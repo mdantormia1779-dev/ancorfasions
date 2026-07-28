@@ -1,0 +1,130 @@
+import { Metadata } from 'next';
+import { 
+  DollarSign, 
+  ShoppingBag, 
+  Activity, 
+  CreditCard,
+  UserPlus,
+  ArrowUpRight,
+  ArrowDownRight
+} from 'lucide-react';
+import { DataCard } from '@/features/admin/components/DataCard';
+import { DataChart } from '@/features/admin/components/DataChart';
+import { RecentOrders } from '@/features/admin/components/RecentOrders';
+import { LowStockAlerts } from '@/features/admin/components/LowStockAlerts';
+import { Button } from '@/components/ui/button';
+import { 
+  fetchDashboardRevenueAction, 
+  fetchDashboardKPIsAction, 
+} from '@/app/actions/bi/dashboard.actions';
+
+export const metadata: Metadata = {
+  title: 'Dashboard | Anchor Fashion',
+  description: 'Enterprise Dashboard',
+};
+
+const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+
+export default async function AdminDashboardPage() {
+  const [revenueRes, kpisRes] = await Promise.all([
+    fetchDashboardRevenueAction(7),
+    fetchDashboardKPIsAction(),
+  ]);
+
+  const revenueData = revenueRes.data || [];
+  
+  const kpis = kpisRes.data || {
+    revenue: { value: 0, trend: { value: 0, isPositive: true } },
+    orders: { value: 0, trend: { value: 0, isPositive: true } },
+    aov: { value: 0, trend: { value: 0, isPositive: true } },
+    newCustomers: { value: 0, trend: { value: 0, isPositive: true } },
+  };
+
+  return (
+    <div className="space-y-6 max-w-[1600px] mx-auto">
+      
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-900">Dashboard</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Overview of your store's performance and recent activity.
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" className="bg-white">Export Report</Button>
+          <Button className="bg-slate-900 text-white hover:bg-slate-800">Add Product</Button>
+        </div>
+      </div>
+
+      {/* KPI Cards Row */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <DataCard
+          title="Total Revenue"
+          value={formatCurrency(kpis.revenue.value)}
+          trend={kpis.revenue.trend}
+          description="vs last 7 days"
+          icon={DollarSign}
+        />
+        <DataCard
+          title="Total Orders"
+          value={kpis.orders.value.toLocaleString()}
+          trend={kpis.orders.trend}
+          description="vs last 7 days"
+          icon={ShoppingBag}
+        />
+        <DataCard
+          title="Average Order Value"
+          value={formatCurrency(kpis.aov.value)}
+          trend={kpis.aov.trend}
+          description="vs last 7 days"
+          icon={CreditCard}
+        />
+        <DataCard
+          title="New Customers"
+          value={kpis.newCustomers.value.toLocaleString()}
+          trend={kpis.newCustomers.trend}
+          description="vs last 7 days"
+          icon={UserPlus}
+        />
+      </div>
+
+      {/* Main Grid: Charts & Tables */}
+      <div className="grid gap-6 lg:grid-cols-7">
+        
+        {/* Left Column (Wider) */}
+        <div className="lg:col-span-4 space-y-6">
+          <DataChart
+            title="Revenue Over Time"
+            description="Daily revenue performance for the current week."
+            data={revenueData}
+            type="area"
+            xKey="name"
+            yKey="revenue"
+            height={350}
+          />
+          <RecentOrders />
+        </div>
+
+        {/* Right Column (Narrower) */}
+        <div className="lg:col-span-3 space-y-6">
+          <LowStockAlerts />
+          
+          {/* Example of a secondary stat card in the right column */}
+          <div className="bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl p-6 text-white shadow-sm border border-indigo-500/20">
+            <h3 className="font-semibold mb-2 flex items-center gap-2">
+              <Activity className="h-4 w-4" />
+              Store Conversion Rate
+            </h3>
+            <div className="text-3xl font-bold tracking-tight mb-2">3.24%</div>
+            <p className="text-indigo-100 text-sm flex items-center gap-1">
+              <ArrowUpRight className="h-4 w-4" />
+              +0.5% from last week
+            </p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+}

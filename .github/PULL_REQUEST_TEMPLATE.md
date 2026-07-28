@@ -1,0 +1,23 @@
+## Description
+<!-- Describe your changes in detail -->
+
+## Related Issue(s)
+<!-- Link to the issue(s) this PR resolves (e.g., "Fixes #123") -->
+
+## Type of Change
+- [ ] Bug fix (non-breaking change which fixes an issue)
+- [ ] New feature (non-breaking change which adds functionality)
+- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
+- [ ] Documentation update
+
+## Checklist:
+- [ ] My code follows the style guidelines of this project
+- [ ] I have performed a self-review of my own code
+- [ ] I have commented my code, particularly in hard-to-understand areas
+- [ ] I have added/updated tests that prove my fix is effective or that my feature works
+- [ ] I have included the necessary Supabase migrations (if applicable)
+- [ ] `npm run build` succeeds locally
+- [ ] `npm run lint` and `npm run typecheck` pass locally
+
+## Screenshots (if applicable)
+<!-- Add screenshots to help explain visual changes -->
