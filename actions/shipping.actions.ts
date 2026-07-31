@@ -1,13 +1,13 @@
-'use server';
+"use server";
 
 // ============================================================================
 // Shipping Server Actions
 // ============================================================================
 
-import { revalidatePath } from 'next/cache';
-import { ShippingService } from '@/services/shipping/shipping.service';
-import { LabelService } from '@/services/shipping/label.service';
-import { TrackingService } from '@/services/shipping/tracking.service';
+import { revalidatePath } from "next/cache";
+import { ShippingService } from "@/services/shipping/shipping.service";
+import { LabelService } from "@/services/shipping/label.service";
+import { TrackingService } from "@/services/shipping/tracking.service";
 import {
   createShipmentSchema,
   updateShipmentSchema,
@@ -19,23 +19,24 @@ import {
   UpdateShipmentData,
   AssignCourierData,
   CancelShipmentData,
-} from '@/schemas/shipping.schema';
-import { createClient } from '@/lib/supabase/server-client';
+} from "@/schemas/shipping.schema";
+import { createClient } from "@/lib/supabase/server-client";
 
 // ---------------------------------------------------------------------------
 // Shared response type
 // ---------------------------------------------------------------------------
 type ActionResponse<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 // ---------------------------------------------------------------------------
 // Get current admin user
 // ---------------------------------------------------------------------------
 async function getCurrentUserId(): Promise<string | undefined> {
   const supabase = await createClient();
-    try {
-    const { data: { user } } = await supabase.auth.getUser();
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     return user?.id;
   } catch {
     return undefined;
@@ -51,7 +52,10 @@ export async function createShipmentAction(
 ): Promise<ActionResponse<{ shipmentId: string; shipmentNumber: string }>> {
   const parse = createShipmentSchema.safeParse(raw);
   if (!parse.success) {
-    return { success: false, error: parse.error.errors[0]?.message ?? 'Validation failed' };
+    return {
+      success: false,
+      error: parse.error.errors[0]?.message ?? "Validation failed",
+    };
   }
 
   try {
@@ -59,10 +63,16 @@ export async function createShipmentAction(
     const service = new ShippingService();
     const shipment = await service.createShipment(parse.data as any, userId);
 
-    revalidatePath('/admin/shipping');
+    revalidatePath("/admin/shipping");
     revalidatePath(`/admin/orders/${parse.data.orderId}`);
 
-    return { success: true, data: { shipmentId: shipment.id, shipmentNumber: shipment.shipment_number } };
+    return {
+      success: true,
+      data: {
+        shipmentId: shipment.id,
+        shipmentNumber: shipment.shipment_number,
+      },
+    };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
@@ -74,15 +84,22 @@ export async function updateShipmentAction(
 ): Promise<ActionResponse<{ shipmentId: string }>> {
   const parse = updateShipmentSchema.safeParse(raw);
   if (!parse.success) {
-    return { success: false, error: parse.error.errors[0]?.message ?? 'Validation failed' };
+    return {
+      success: false,
+      error: parse.error.errors[0]?.message ?? "Validation failed",
+    };
   }
 
   try {
     const userId = await getCurrentUserId();
     const service = new ShippingService();
-    const updated = await service.updateShipment(shipmentId, parse.data as any, userId);
+    const updated = await service.updateShipment(
+      shipmentId,
+      parse.data as any,
+      userId
+    );
 
-    revalidatePath('/admin/shipping');
+    revalidatePath("/admin/shipping");
     revalidatePath(`/admin/shipping/${shipmentId}`);
 
     return { success: true, data: { shipmentId: updated.id } };
@@ -96,15 +113,22 @@ export async function cancelShipmentAction(
 ): Promise<ActionResponse<{ shipmentId: string }>> {
   const parse = cancelShipmentSchema.safeParse(raw);
   if (!parse.success) {
-    return { success: false, error: parse.error.errors[0]?.message ?? 'Validation failed' };
+    return {
+      success: false,
+      error: parse.error.errors[0]?.message ?? "Validation failed",
+    };
   }
 
   try {
     const userId = await getCurrentUserId();
     const service = new ShippingService();
-    const cancelled = await service.cancelShipment(parse.data.shipmentId, parse.data.reason, userId);
+    const cancelled = await service.cancelShipment(
+      parse.data.shipmentId,
+      parse.data.reason,
+      userId
+    );
 
-    revalidatePath('/admin/shipping');
+    revalidatePath("/admin/shipping");
     revalidatePath(`/admin/shipping/${parse.data.shipmentId}`);
 
     return { success: true, data: { shipmentId: cancelled.id } };
@@ -115,10 +139,15 @@ export async function cancelShipmentAction(
 
 export async function assignCourierAction(
   raw: AssignCourierData
-): Promise<ActionResponse<{ shipmentId: string; trackingNumber: string | null }>> {
+): Promise<
+  ActionResponse<{ shipmentId: string; trackingNumber: string | null }>
+> {
   const parse = assignCourierSchema.safeParse(raw);
   if (!parse.success) {
-    return { success: false, error: parse.error.errors[0]?.message ?? 'Validation failed' };
+    return {
+      success: false,
+      error: parse.error.errors[0]?.message ?? "Validation failed",
+    };
   }
 
   try {
@@ -131,10 +160,13 @@ export async function assignCourierAction(
       parse.data.autoSubmit
     );
 
-    revalidatePath('/admin/shipping');
+    revalidatePath("/admin/shipping");
     revalidatePath(`/admin/shipping/${parse.data.shipmentId}`);
 
-    return { success: true, data: { shipmentId: updated.id, trackingNumber: updated.tracking_number } };
+    return {
+      success: true,
+      data: { shipmentId: updated.id, trackingNumber: updated.tracking_number },
+    };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
@@ -143,21 +175,37 @@ export async function assignCourierAction(
 export async function reassignCourierAction(
   shipmentId: string,
   courierProviderCode: string
-): Promise<ActionResponse<{ shipmentId: string; trackingNumber: string | null }>> {
-  const parse = assignCourierSchema.safeParse({ shipmentId, courierProviderCode, autoSubmit: true });
+): Promise<
+  ActionResponse<{ shipmentId: string; trackingNumber: string | null }>
+> {
+  const parse = assignCourierSchema.safeParse({
+    shipmentId,
+    courierProviderCode,
+    autoSubmit: true,
+  });
   if (!parse.success) {
-    return { success: false, error: parse.error.errors[0]?.message ?? 'Validation failed' };
+    return {
+      success: false,
+      error: parse.error.errors[0]?.message ?? "Validation failed",
+    };
   }
 
   try {
     const userId = await getCurrentUserId();
     const service = new ShippingService();
-    const updated = await service.reassignCourier(shipmentId, parse.data.courierProviderCode, userId);
+    const updated = await service.reassignCourier(
+      shipmentId,
+      parse.data.courierProviderCode,
+      userId
+    );
 
-    revalidatePath('/admin/shipping');
+    revalidatePath("/admin/shipping");
     revalidatePath(`/admin/shipping/${shipmentId}`);
 
-    return { success: true, data: { shipmentId: updated.id, trackingNumber: updated.tracking_number } };
+    return {
+      success: true,
+      data: { shipmentId: updated.id, trackingNumber: updated.tracking_number },
+    };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
@@ -172,7 +220,10 @@ export async function generateLabelAction(
     const labelUrl = await service.generateLabel(shipmentId, userId);
 
     if (!labelUrl) {
-      return { success: false, error: 'Label generation failed or not supported by provider' };
+      return {
+        success: false,
+        error: "Label generation failed or not supported by provider",
+      };
     }
 
     revalidatePath(`/admin/shipping/${shipmentId}`);
@@ -184,7 +235,15 @@ export async function generateLabelAction(
 
 export async function printManifestAction(
   shipmentIds: string[]
-): Promise<ActionResponse<Array<{ shipmentNumber: string; trackingNumber: string | null; recipientName: string }>>> {
+): Promise<
+  ActionResponse<
+    Array<{
+      shipmentNumber: string;
+      trackingNumber: string | null;
+      recipientName: string;
+    }>
+  >
+> {
   try {
     const labelService = new LabelService();
     const manifest = await labelService.generateManifest(shipmentIds);
@@ -221,7 +280,7 @@ export async function fetchShipmentsAction(
 ): Promise<ActionResponse<any>> {
   const parse = shipmentFiltersSchema.safeParse(rawFilters);
   if (!parse.success) {
-    return { success: false, error: 'Invalid filters' };
+    return { success: false, error: "Invalid filters" };
   }
 
   try {
@@ -240,7 +299,7 @@ export async function fetchShipmentByIdAction(
     const service = new ShippingService();
     const shipment = await service.getShipmentWithDetails(shipmentId);
 
-    if (!shipment) return { success: false, error: 'Shipment not found' };
+    if (!shipment) return { success: false, error: "Shipment not found" };
     return { success: true, data: shipment };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -252,14 +311,21 @@ export async function getTrackingTimelineAction(
 ): Promise<ActionResponse<any>> {
   const parse = trackingQuerySchema.safeParse({ trackingNumber });
   if (!parse.success) {
-    return { success: false, error: parse.error.errors[0]?.message ?? 'Invalid tracking number' };
+    return {
+      success: false,
+      error: parse.error.errors[0]?.message ?? "Invalid tracking number",
+    };
   }
 
   try {
     const trackingService = new TrackingService();
-    const timeline = await trackingService.getTrackingTimeline(trackingNumber, 'tracking_number');
+    const timeline = await trackingService.getTrackingTimeline(
+      trackingNumber,
+      "tracking_number"
+    );
 
-    if (!timeline) return { success: false, error: 'Tracking information not found' };
+    if (!timeline)
+      return { success: false, error: "Tracking information not found" };
     return { success: true, data: timeline };
   } catch (err: any) {
     return { success: false, error: err.message };

@@ -1,19 +1,27 @@
-import { Metadata } from 'next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { Metadata } from "next";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: 'Profile',
-  description: 'Manage your profile settings',
-}
+  title: "Profile",
+  description: "Manage your profile settings",
+};
 
 export default async function ProfilePage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/auth/login')
+    redirect("/auth/login");
   }
 
   return (
@@ -29,22 +37,22 @@ export default async function ProfilePage() {
         <Card>
           <CardHeader>
             <CardTitle>Personal Information</CardTitle>
-            <CardDescription>
-              Your personal details
-            </CardDescription>
+            <CardDescription>Your personal details</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-2 text-sm">
               <div className="font-medium text-muted-foreground">Email</div>
               <div>{user.email}</div>
-              <div className="font-medium text-muted-foreground">First Name</div>
-              <div>{user.user_metadata?.first_name || '-'}</div>
+              <div className="font-medium text-muted-foreground">
+                First Name
+              </div>
+              <div>{user.user_metadata?.first_name || "-"}</div>
               <div className="font-medium text-muted-foreground">Last Name</div>
-              <div>{user.user_metadata?.last_name || '-'}</div>
+              <div>{user.user_metadata?.last_name || "-"}</div>
             </div>
           </CardContent>
         </Card>
       </div>
     </div>
-  )
+  );
 }

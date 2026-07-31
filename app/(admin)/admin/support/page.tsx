@@ -1,34 +1,59 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { 
-  MessageSquare, 
-  Ticket, 
-  Clock, 
-  CheckCircle2, 
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  MessageSquare,
+  Ticket,
+  Clock,
+  CheckCircle2,
   AlertTriangle,
-  Users
-} from 'lucide-react';
-import Link from 'next/link';
-import { getTicketsAction, getAvailableAgentsAction } from '@/app/actions/support/ticket.actions';
+  Users,
+} from "lucide-react";
+import Link from "next/link";
+import {
+  getTicketsAction,
+  getAvailableAgentsAction,
+} from "@/app/actions/support/ticket.actions";
 
 export default async function SupportCommandCenterPage() {
   const [ticketsRes, agentsRes] = await Promise.all([
     getTicketsAction(),
-    getAvailableAgentsAction()
+    getAvailableAgentsAction(),
   ]);
 
   const tickets = ticketsRes.data || [];
   const agents = agentsRes.data || [];
 
-  const openTicketsCount = tickets.filter(t => t.status === 'open' || t.status === 'in_progress' || t.status === 'pending').length;
-  const criticalTickets = tickets.filter(t => t.priority === 'critical' && t.status !== 'resolved' && t.status !== 'closed').slice(0, 5);
-  const onlineAgentsCount = agents.filter(a => a.current_status === 'online').length;
+  const openTicketsCount = tickets.filter(
+    (t) =>
+      t.status === "open" ||
+      t.status === "in_progress" ||
+      t.status === "pending"
+  ).length;
+  const criticalTickets = tickets
+    .filter(
+      (t) =>
+        t.priority === "critical" &&
+        t.status !== "resolved" &&
+        t.status !== "closed"
+    )
+    .slice(0, 5);
+  const onlineAgentsCount = agents.filter(
+    (a) => a.current_status === "online"
+  ).length;
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Support Command Center</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold tracking-tight">
+            Support Command Center
+          </h1>
+          <p className="mt-1 text-muted-foreground">
             Manage live chats, support tickets, and agent performance.
           </p>
         </div>
@@ -50,12 +75,12 @@ export default async function SupportCommandCenterPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">12</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="mt-1 text-xs text-muted-foreground">
               4 in queue waiting
             </p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
@@ -63,7 +88,7 @@ export default async function SupportCommandCenterPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{openTicketsCount}</div>
-            <p className="text-xs text-rose-500 flex items-center mt-1">
+            <p className="mt-1 flex items-center text-xs text-rose-500">
               <AlertTriangle className="mr-1 h-3 w-3" />
               SLA tracking enabled
             </p>
@@ -72,12 +97,14 @@ export default async function SupportCommandCenterPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Resolution Time</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Avg Resolution Time
+            </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">4h 12m</div>
-            <p className="text-xs text-emerald-500 flex items-center mt-1">
+            <p className="mt-1 flex items-center text-xs text-emerald-500">
               -15m from yesterday
             </p>
           </CardContent>
@@ -89,8 +116,10 @@ export default async function SupportCommandCenterPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{onlineAgentsCount} / {agents.length || 15}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <div className="text-2xl font-bold">
+              {onlineAgentsCount} / {agents.length || 15}
+            </div>
+            <p className="mt-1 text-xs text-muted-foreground">
               Currently handling chats
             </p>
           </CardContent>
@@ -101,22 +130,36 @@ export default async function SupportCommandCenterPage() {
         <Card>
           <CardHeader>
             <CardTitle>Recent Critical Tickets</CardTitle>
-            <CardDescription>Tickets requiring immediate attention.</CardDescription>
+            <CardDescription>
+              Tickets requiring immediate attention.
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {criticalTickets.length > 0 ? criticalTickets.map((t) => (
-                <div key={t.id} className="flex items-center justify-between p-3 border rounded-lg bg-rose-500/5 border-rose-500/20">
-                  <div className="space-y-1">
-                    <p className="text-sm font-medium leading-none text-rose-600">{t.subject}</p>
-                    <p className="text-xs text-muted-foreground">{t.category} • {new Date(t.created_at).toLocaleDateString()}</p>
+              {criticalTickets.length > 0 ? (
+                criticalTickets.map((t) => (
+                  <div
+                    key={t.id}
+                    className="flex items-center justify-between rounded-lg border border-rose-500/20 bg-rose-500/5 p-3"
+                  >
+                    <div className="space-y-1">
+                      <p className="text-sm font-medium leading-none text-rose-600">
+                        {t.subject}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {t.category} •{" "}
+                        {new Date(t.created_at).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Button size="sm" variant="outline">
+                      <Link href={`/admin/support/tickets/${t.id}`}>View</Link>
+                    </Button>
                   </div>
-                  <Button size="sm" variant="outline">
-                    <Link href={`/admin/support/tickets/${t.id}`}>View</Link>
-                  </Button>
-                </div>
-              )) : (
-                <p className="text-sm text-muted-foreground">No critical tickets at the moment.</p>
+                ))
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No critical tickets at the moment.
+                </p>
               )}
             </div>
           </CardContent>
@@ -132,16 +175,22 @@ export default async function SupportCommandCenterPage() {
               {agents.slice(0, 3).map((a) => (
                 <div key={a.id} className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-xs">
-                      {a.auth_users?.first_name?.charAt(0) || 'A'}
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-xs font-bold">
+                      {a.auth_users?.first_name?.charAt(0) || "A"}
                     </div>
                     <div>
-                      <p className="text-sm font-medium leading-none">{a.auth_users?.first_name} {a.auth_users?.last_name}</p>
-                      <p className="text-xs text-muted-foreground">Status: {a.current_status}</p>
+                      <p className="text-sm font-medium leading-none">
+                        {a.auth_users?.first_name} {a.auth_users?.last_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Status: {a.current_status}
+                      </p>
                     </div>
                   </div>
                   <div className="flex items-center gap-1 text-sm font-medium">
-                    <span className="text-emerald-500 capitalize">{a.current_status}</span>
+                    <span className="capitalize text-emerald-500">
+                      {a.current_status}
+                    </span>
                   </div>
                 </div>
               ))}

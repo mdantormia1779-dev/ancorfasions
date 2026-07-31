@@ -1,36 +1,115 @@
-import { Metadata } from 'next';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Package, AlertTriangle, ArrowRightLeft, TrendingUp, Search, Plus, Filter } from 'lucide-react';
+import { Metadata } from "next";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Package,
+  AlertTriangle,
+  ArrowRightLeft,
+  TrendingUp,
+  Search,
+  Plus,
+  Filter,
+} from "lucide-react";
 
 export const metadata: Metadata = {
-  title: 'Inventory Management | Anchor Fashion Enterprise',
-  description: 'Enterprise Inventory and Stock Management Dashboard',
+  title: "Inventory Management | Anchor Fashion Enterprise",
+  description: "Enterprise Inventory and Stock Management Dashboard",
 };
 
 // Mock data for development
 const mockInventory = [
-  { id: '1', sku: 'AF-M-SH-BL-M', name: 'Classic Oxford Shirt - Blue - M', available: 124, reserved: 12, incoming: 50, damaged: 1, reorderPoint: 30, status: 'Healthy' },
-  { id: '2', sku: 'AF-W-DR-RD-S', name: 'Summer Midi Dress - Red - S', available: 5, reserved: 8, incoming: 0, damaged: 0, reorderPoint: 15, status: 'Low Stock' },
-  { id: '3', sku: 'AF-M-PT-CH-32', name: 'Chino Pants - Khaki - 32', available: 0, reserved: 2, incoming: 100, damaged: 0, reorderPoint: 20, status: 'Out of Stock' },
-  { id: '4', sku: 'AF-A-BL-BK-L', name: 'Leather Belt - Black - L', available: 45, reserved: 3, incoming: 0, damaged: 2, reorderPoint: 10, status: 'Healthy' },
-  { id: '5', sku: 'AF-W-TP-WH-M', name: 'Silk Blouse - White - M', available: 8, reserved: 2, incoming: 30, damaged: 0, reorderPoint: 15, status: 'Low Stock' },
+  {
+    id: "1",
+    sku: "AF-M-SH-BL-M",
+    name: "Classic Oxford Shirt - Blue - M",
+    available: 124,
+    reserved: 12,
+    incoming: 50,
+    damaged: 1,
+    reorderPoint: 30,
+    status: "Healthy",
+  },
+  {
+    id: "2",
+    sku: "AF-W-DR-RD-S",
+    name: "Summer Midi Dress - Red - S",
+    available: 5,
+    reserved: 8,
+    incoming: 0,
+    damaged: 0,
+    reorderPoint: 15,
+    status: "Low Stock",
+  },
+  {
+    id: "3",
+    sku: "AF-M-PT-CH-32",
+    name: "Chino Pants - Khaki - 32",
+    available: 0,
+    reserved: 2,
+    incoming: 100,
+    damaged: 0,
+    reorderPoint: 20,
+    status: "Out of Stock",
+  },
+  {
+    id: "4",
+    sku: "AF-A-BL-BK-L",
+    name: "Leather Belt - Black - L",
+    available: 45,
+    reserved: 3,
+    incoming: 0,
+    damaged: 2,
+    reorderPoint: 10,
+    status: "Healthy",
+  },
+  {
+    id: "5",
+    sku: "AF-W-TP-WH-M",
+    name: "Silk Blouse - White - M",
+    available: 8,
+    reserved: 2,
+    incoming: 30,
+    damaged: 0,
+    reorderPoint: 15,
+    status: "Low Stock",
+  },
 ];
 
 export default function InventoryDashboard() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Inventory Management</h1>
-          <p className="text-muted-foreground">Monitor real-time stock levels, valuations, and movements.</p>
+          <h1 className="text-3xl font-bold tracking-tight">
+            Inventory Management
+          </h1>
+          <p className="text-muted-foreground">
+            Monitor real-time stock levels, valuations, and movements.
+          </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline"><ArrowRightLeft className="mr-2 h-4 w-4" /> Transfer Stock</Button>
-          <Button><Plus className="mr-2 h-4 w-4" /> Receive Goods</Button>
+          <Button variant="outline">
+            <ArrowRightLeft className="mr-2 h-4 w-4" /> Transfer Stock
+          </Button>
+          <Button>
+            <Plus className="mr-2 h-4 w-4" /> Receive Goods
+          </Button>
         </div>
       </div>
 
@@ -43,17 +122,23 @@ export default function InventoryDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">142,304</div>
-            <p className="text-xs text-muted-foreground">Across all warehouses</p>
+            <p className="text-xs text-muted-foreground">
+              Across all warehouses
+            </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Alerts</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Low Stock Alerts
+            </CardTitle>
             <AlertTriangle className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-amber-600">34</div>
-            <p className="text-xs text-muted-foreground">SKUs below reorder point</p>
+            <p className="text-xs text-muted-foreground">
+              SKUs below reorder point
+            </p>
           </CardContent>
         </Card>
         <Card>
@@ -68,12 +153,18 @@ export default function InventoryDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Inventory Value</CardTitle>
-            <span className="h-4 w-4 text-muted-foreground font-semibold">৳</span>
+            <CardTitle className="text-sm font-medium">
+              Inventory Value
+            </CardTitle>
+            <span className="h-4 w-4 font-semibold text-muted-foreground">
+              ৳
+            </span>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">12.4M</div>
-            <p className="text-xs text-muted-foreground">Current valuation (MAC)</p>
+            <p className="text-xs text-muted-foreground">
+              Current valuation (MAC)
+            </p>
           </CardContent>
         </Card>
       </div>
@@ -81,12 +172,14 @@ export default function InventoryDashboard() {
       {/* Inventory Table */}
       <Card>
         <CardHeader>
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
             <div>
               <CardTitle>Stock Ledger</CardTitle>
-              <CardDescription>Real-time view of all variants across the enterprise network.</CardDescription>
+              <CardDescription>
+                Real-time view of all variants across the enterprise network.
+              </CardDescription>
             </div>
-            <div className="flex gap-2 w-full md:w-auto">
+            <div className="flex w-full gap-2 md:w-auto">
               <div className="relative w-full md:w-64">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input placeholder="Search SKU or name..." className="pl-8" />
@@ -115,22 +208,39 @@ export default function InventoryDashboard() {
                 <TableRow key={item.id}>
                   <TableCell>
                     <div className="font-medium">{item.sku}</div>
-                    <div className="text-xs text-muted-foreground">{item.name}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {item.name}
+                    </div>
                   </TableCell>
-                  <TableCell className="text-right font-semibold">{item.available}</TableCell>
-                  <TableCell className="text-right text-muted-foreground">{item.reserved}</TableCell>
-                  <TableCell className="text-right text-blue-600">{item.incoming}</TableCell>
-                  <TableCell className="text-right text-red-500">{item.damaged}</TableCell>
+                  <TableCell className="text-right font-semibold">
+                    {item.available}
+                  </TableCell>
+                  <TableCell className="text-right text-muted-foreground">
+                    {item.reserved}
+                  </TableCell>
+                  <TableCell className="text-right text-blue-600">
+                    {item.incoming}
+                  </TableCell>
+                  <TableCell className="text-right text-red-500">
+                    {item.damaged}
+                  </TableCell>
                   <TableCell>
-                    <Badge variant={
-                      item.status === 'Healthy' ? 'default' :
-                      item.status === 'Low Stock' ? 'secondary' : 'destructive'
-                    }>
+                    <Badge
+                      variant={
+                        item.status === "Healthy"
+                          ? "default"
+                          : item.status === "Low Stock"
+                            ? "secondary"
+                            : "destructive"
+                      }
+                    >
                       {item.status}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">Details</Button>
+                    <Button variant="ghost" size="sm">
+                      Details
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}

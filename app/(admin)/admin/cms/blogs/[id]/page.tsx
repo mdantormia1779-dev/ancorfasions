@@ -1,52 +1,58 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getPosts, updatePost } from '@/actions/blog.actions';
-import { ArrowLeft, Save } from 'lucide-react';
-import Link from 'next/link';
-import { toast } from 'sonner';
+import React, { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getPosts, updatePost } from "@/actions/blog.actions";
+import { ArrowLeft, Save } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
 
 export default function EditBlogPost() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
-  
+
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [formData, setFormData] = useState({
-    title: '',
-    slug: '',
-    excerpt: '',
-    content: '',
-    status: 'draft',
+    title: "",
+    slug: "",
+    excerpt: "",
+    content: "",
+    status: "draft",
   });
 
   useEffect(() => {
     const fetchPost = async () => {
       try {
         const posts = await getPosts();
-        const post = posts.find(p => p.id === id);
+        const post = posts.find((p) => p.id === id);
         if (post) {
           setFormData({
             title: post.title,
             slug: post.slug,
-            excerpt: post.excerpt || '',
-            content: post.content || '',
-            status: post.status || 'draft',
+            excerpt: post.excerpt || "",
+            content: post.content || "",
+            status: post.status || "draft",
           });
         } else {
-          toast.error('Post not found');
-          router.push('/admin/cms/blogs');
+          toast.error("Post not found");
+          router.push("/admin/cms/blogs");
         }
       } catch (error) {
-        toast.error('Failed to load post');
+        toast.error("Failed to load post");
       } finally {
         setFetching(false);
       }
@@ -59,10 +65,10 @@ export default function EditBlogPost() {
     setLoading(true);
     try {
       await updatePost(id, formData);
-      toast.success('Blog post updated successfully');
-      router.push('/admin/cms/blogs');
+      toast.success("Blog post updated successfully");
+      router.push("/admin/cms/blogs");
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update blog post');
+      toast.error(error.message || "Failed to update blog post");
     } finally {
       setLoading(false);
     }
@@ -83,12 +89,12 @@ export default function EditBlogPost() {
         </div>
         <Button onClick={handleSubmit} disabled={loading}>
           <Save className="mr-2 h-4 w-4" />
-          {loading ? 'Saving...' : 'Save Changes'}
+          {loading ? "Saving..." : "Save Changes"}
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <div className="md:col-span-2 space-y-6">
+        <div className="space-y-6 md:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Article Content</CardTitle>
@@ -99,7 +105,9 @@ export default function EditBlogPost() {
                 <Input
                   id="title"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -108,7 +116,9 @@ export default function EditBlogPost() {
                 <Input
                   id="slug"
                   value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, slug: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -117,7 +127,9 @@ export default function EditBlogPost() {
                 <Textarea
                   id="excerpt"
                   value={formData.excerpt}
-                  onChange={(e) => setFormData({ ...formData, excerpt: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, excerpt: e.target.value })
+                  }
                 />
               </div>
               <div className="space-y-2">
@@ -126,7 +138,9 @@ export default function EditBlogPost() {
                   id="content"
                   className="min-h-[300px]"
                   value={formData.content}
-                  onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, content: e.target.value })
+                  }
                 />
               </div>
             </CardContent>
@@ -143,7 +157,9 @@ export default function EditBlogPost() {
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(val) => setFormData({ ...formData, status: val || 'draft' })}
+                  onValueChange={(val) =>
+                    setFormData({ ...formData, status: val || "draft" })
+                  }
                 >
                   <SelectTrigger id="status">
                     <SelectValue placeholder="Select status" />

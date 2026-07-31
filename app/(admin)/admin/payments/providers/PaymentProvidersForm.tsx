@@ -1,16 +1,22 @@
-'use client';
+"use client";
 
-import { useState, useTransition } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
-import { Save, AlertCircle } from 'lucide-react';
-import { createClient } from '@supabase/supabase-js';
+import { useState, useTransition } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import { Save, AlertCircle } from "lucide-react";
+import { createClient } from "@supabase/supabase-js";
 
 type GatewayCredentials = {
   store_id?: string;
@@ -42,16 +48,19 @@ export function PaymentProvidersForm({
 
   const saveGateway = (config: GatewayConfig) => {
     startTransition(async () => {
-      const res = await fetch('/api/admin/settings/payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: config.key, value: { enabled: config.enabled, ...config.credentials } }),
+      const res = await fetch("/api/admin/settings/payment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          key: config.key,
+          value: { enabled: config.enabled, ...config.credentials },
+        }),
       });
       const result = await res.json();
       if (result.success) {
-        toast.success('Payment gateway settings saved!');
+        toast.success("Payment gateway settings saved!");
       } else {
-        toast.error(result.error ?? 'Failed to save settings.');
+        toast.error(result.error ?? "Failed to save settings.");
       }
     });
   };
@@ -60,17 +69,19 @@ export function PaymentProvidersForm({
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Payment Providers</h1>
-        <p className="text-muted-foreground mt-1">
-          Configure your payment gateway credentials. These are stored securely in the database.
+        <p className="mt-1 text-muted-foreground">
+          Configure your payment gateway credentials. These are stored securely
+          in the database.
         </p>
       </div>
 
-      <div className="rounded-md border border-amber-200 bg-amber-50 p-4 flex gap-3 items-start">
-        <AlertCircle className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 rounded-md border border-amber-200 bg-amber-50 p-4">
+        <AlertCircle className="mt-0.5 h-5 w-5 flex-shrink-0 text-amber-600" />
         <div className="text-sm text-amber-800">
-          <strong>Security Note:</strong> These credentials are stored in the database settings table.
-          Ensure your Supabase RLS policies restrict access to admin users only. Never expose secret keys
-          in client-side code.
+          <strong>Security Note:</strong> These credentials are stored in the
+          database settings table. Ensure your Supabase RLS policies restrict
+          access to admin users only. Never expose secret keys in client-side
+          code.
         </div>
       </div>
 
@@ -80,16 +91,23 @@ export function PaymentProvidersForm({
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="flex items-center gap-2">
-                <span className="text-pink-600 font-bold text-xl">b</span>Kash
-                <Badge variant={bkash.enabled ? 'default' : 'secondary'} className="ml-1">
-                  {bkash.enabled ? 'Enabled' : 'Disabled'}
+                <span className="text-xl font-bold text-pink-600">b</span>Kash
+                <Badge
+                  variant={bkash.enabled ? "default" : "secondary"}
+                  className="ml-1"
+                >
+                  {bkash.enabled ? "Enabled" : "Disabled"}
                 </Badge>
               </CardTitle>
-              <CardDescription>Bangladesh mobile banking payment gateway</CardDescription>
+              <CardDescription>
+                Bangladesh mobile banking payment gateway
+              </CardDescription>
             </div>
             <Switch
               checked={bkash.enabled}
-              onCheckedChange={(checked) => setBkash({ ...bkash, enabled: checked })}
+              onCheckedChange={(checked) =>
+                setBkash({ ...bkash, enabled: checked })
+              }
             />
           </div>
         </CardHeader>
@@ -97,28 +115,50 @@ export function PaymentProvidersForm({
           <div className="flex items-center gap-3">
             <Switch
               id="bkash-sandbox"
-              checked={bkash.credentials.sandbox === 'true'}
+              checked={bkash.credentials.sandbox === "true"}
               onCheckedChange={(c) =>
-                setBkash({ ...bkash, credentials: { ...bkash.credentials, sandbox: c ? 'true' : 'false' } })
+                setBkash({
+                  ...bkash,
+                  credentials: {
+                    ...bkash.credentials,
+                    sandbox: c ? "true" : "false",
+                  },
+                })
               }
             />
             <Label htmlFor="bkash-sandbox">Use Sandbox (Test) Mode</Label>
           </div>
           <Separator />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Merchant ID</Label>
               <Input
-                value={bkash.credentials.merchant_id ?? ''}
-                onChange={(e) => setBkash({ ...bkash, credentials: { ...bkash.credentials, merchant_id: e.target.value } })}
+                value={bkash.credentials.merchant_id ?? ""}
+                onChange={(e) =>
+                  setBkash({
+                    ...bkash,
+                    credentials: {
+                      ...bkash.credentials,
+                      merchant_id: e.target.value,
+                    },
+                  })
+                }
                 placeholder="Your bKash Merchant ID"
               />
             </div>
             <div className="space-y-2">
               <Label>App Key</Label>
               <Input
-                value={bkash.credentials.app_key ?? ''}
-                onChange={(e) => setBkash({ ...bkash, credentials: { ...bkash.credentials, app_key: e.target.value } })}
+                value={bkash.credentials.app_key ?? ""}
+                onChange={(e) =>
+                  setBkash({
+                    ...bkash,
+                    credentials: {
+                      ...bkash.credentials,
+                      app_key: e.target.value,
+                    },
+                  })
+                }
                 placeholder="bKash App Key"
               />
             </div>
@@ -126,16 +166,32 @@ export function PaymentProvidersForm({
               <Label>App Secret</Label>
               <Input
                 type="password"
-                value={bkash.credentials.app_secret ?? ''}
-                onChange={(e) => setBkash({ ...bkash, credentials: { ...bkash.credentials, app_secret: e.target.value } })}
+                value={bkash.credentials.app_secret ?? ""}
+                onChange={(e) =>
+                  setBkash({
+                    ...bkash,
+                    credentials: {
+                      ...bkash.credentials,
+                      app_secret: e.target.value,
+                    },
+                  })
+                }
                 placeholder="bKash App Secret"
               />
             </div>
             <div className="space-y-2">
               <Label>Username</Label>
               <Input
-                value={bkash.credentials.username ?? ''}
-                onChange={(e) => setBkash({ ...bkash, credentials: { ...bkash.credentials, username: e.target.value } })}
+                value={bkash.credentials.username ?? ""}
+                onChange={(e) =>
+                  setBkash({
+                    ...bkash,
+                    credentials: {
+                      ...bkash.credentials,
+                      username: e.target.value,
+                    },
+                  })
+                }
                 placeholder="bKash Username"
               />
             </div>
@@ -143,8 +199,16 @@ export function PaymentProvidersForm({
               <Label>Password</Label>
               <Input
                 type="password"
-                value={bkash.credentials.password ?? ''}
-                onChange={(e) => setBkash({ ...bkash, credentials: { ...bkash.credentials, password: e.target.value } })}
+                value={bkash.credentials.password ?? ""}
+                onChange={(e) =>
+                  setBkash({
+                    ...bkash,
+                    credentials: {
+                      ...bkash.credentials,
+                      password: e.target.value,
+                    },
+                  })
+                }
                 placeholder="bKash Password"
               />
             </div>
@@ -165,15 +229,22 @@ export function PaymentProvidersForm({
             <div>
               <CardTitle className="flex items-center gap-2">
                 SSLCommerz
-                <Badge variant={ssl.enabled ? 'default' : 'secondary'} className="ml-1">
-                  {ssl.enabled ? 'Enabled' : 'Disabled'}
+                <Badge
+                  variant={ssl.enabled ? "default" : "secondary"}
+                  className="ml-1"
+                >
+                  {ssl.enabled ? "Enabled" : "Disabled"}
                 </Badge>
               </CardTitle>
-              <CardDescription>Cards, mobile banking, internet banking (Bangladesh)</CardDescription>
+              <CardDescription>
+                Cards, mobile banking, internet banking (Bangladesh)
+              </CardDescription>
             </div>
             <Switch
               checked={ssl.enabled}
-              onCheckedChange={(checked) => setSsl({ ...ssl, enabled: checked })}
+              onCheckedChange={(checked) =>
+                setSsl({ ...ssl, enabled: checked })
+              }
             />
           </div>
         </CardHeader>
@@ -181,20 +252,34 @@ export function PaymentProvidersForm({
           <div className="flex items-center gap-3">
             <Switch
               id="ssl-sandbox"
-              checked={ssl.credentials.sandbox === 'true'}
+              checked={ssl.credentials.sandbox === "true"}
               onCheckedChange={(c) =>
-                setSsl({ ...ssl, credentials: { ...ssl.credentials, sandbox: c ? 'true' : 'false' } })
+                setSsl({
+                  ...ssl,
+                  credentials: {
+                    ...ssl.credentials,
+                    sandbox: c ? "true" : "false",
+                  },
+                })
               }
             />
             <Label htmlFor="ssl-sandbox">Use Sandbox (Test) Mode</Label>
           </div>
           <Separator />
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label>Store ID</Label>
               <Input
-                value={ssl.credentials.store_id ?? ''}
-                onChange={(e) => setSsl({ ...ssl, credentials: { ...ssl.credentials, store_id: e.target.value } })}
+                value={ssl.credentials.store_id ?? ""}
+                onChange={(e) =>
+                  setSsl({
+                    ...ssl,
+                    credentials: {
+                      ...ssl.credentials,
+                      store_id: e.target.value,
+                    },
+                  })
+                }
                 placeholder="Your SSLCommerz Store ID"
               />
             </div>
@@ -202,8 +287,16 @@ export function PaymentProvidersForm({
               <Label>Store Password</Label>
               <Input
                 type="password"
-                value={ssl.credentials.store_pass ?? ''}
-                onChange={(e) => setSsl({ ...ssl, credentials: { ...ssl.credentials, store_pass: e.target.value } })}
+                value={ssl.credentials.store_pass ?? ""}
+                onChange={(e) =>
+                  setSsl({
+                    ...ssl,
+                    credentials: {
+                      ...ssl.credentials,
+                      store_pass: e.target.value,
+                    },
+                  })
+                }
                 placeholder="SSLCommerz Store Password"
               />
             </div>

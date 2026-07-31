@@ -5,7 +5,10 @@ import "./globals.css";
 import { GlobalProviders } from "@/providers/GlobalProviders";
 import { AnalyticsProviders } from "@/components/analytics/AnalyticsProviders";
 
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"] });
+const jost = Jost({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+});
 
 export const viewport: Viewport = {
   themeColor: "#000000",
@@ -19,9 +22,17 @@ export const metadata: Metadata = {
     default: "Anchor Fashion | Premium E-Commerce",
     template: "%s | Anchor Fashion",
   },
-  description: "Enterprise e-commerce platform for Anchor Fashion. Discover the latest trends in fashion and apparel.",
+  description:
+    "Enterprise e-commerce platform for Anchor Fashion. Discover the latest trends in fashion and apparel.",
   metadataBase: new URL("https://anchorfashion.com"),
-  keywords: ["fashion", "clothing", "ecommerce", "premium apparel", "anchor fashion", "bangladesh"],
+  keywords: [
+    "fashion",
+    "clothing",
+    "ecommerce",
+    "premium apparel",
+    "anchor fashion",
+    "bangladesh",
+  ],
   authors: [{ name: "Anchor Fashion" }],
   creator: "Anchor Fashion",
   openGraph: {
@@ -29,7 +40,8 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://anchorfashion.com",
     title: "Anchor Fashion | Premium E-Commerce",
-    description: "Enterprise e-commerce platform for Anchor Fashion. Discover the latest trends in fashion and apparel.",
+    description:
+      "Enterprise e-commerce platform for Anchor Fashion. Discover the latest trends in fashion and apparel.",
     siteName: "Anchor Fashion",
     images: [
       {
@@ -43,7 +55,8 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Anchor Fashion | Premium E-Commerce",
-    description: "Enterprise e-commerce platform for Anchor Fashion. Discover the latest trends in fashion and apparel.",
+    description:
+      "Enterprise e-commerce platform for Anchor Fashion. Discover the latest trends in fashion and apparel.",
     images: ["/og-image.jpg"],
     creator: "@anchorfashion",
   },
@@ -71,10 +84,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${jost.className} min-h-screen bg-background text-foreground antialiased`} suppressHydrationWarning>
-        <GlobalProviders>
-          {children}
-        </GlobalProviders>
+      <body
+        className={`${jost.className} min-h-screen bg-background text-foreground antialiased`}
+        suppressHydrationWarning
+      >
+        <GlobalProviders>{children}</GlobalProviders>
         {/* JSON-LD Structured Data */}
         <script
           type="application/ld+json"
@@ -86,7 +100,8 @@ export default function RootLayout({
               url: "https://anchorfashion.com",
               potentialAction: {
                 "@type": "SearchAction",
-                target: "https://anchorfashion.com/products?search={search_term_string}",
+                target:
+                  "https://anchorfashion.com/products?search={search_term_string}",
                 "query-input": "required name=search_term_string",
               },
             }),

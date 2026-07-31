@@ -1,23 +1,27 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { Cart, CartItem } from '@/types/checkout.types';
-import { 
-  fetchCartAction, 
-  addToCartAction, 
-  updateCartItemQuantityAction, 
-  removeFromCartAction, 
-  clearCartAction 
-} from '@/lib/actions/cart.actions';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { Cart, CartItem } from "@/types/checkout.types";
+import {
+  fetchCartAction,
+  addToCartAction,
+  updateCartItemQuantityAction,
+  removeFromCartAction,
+  clearCartAction,
+} from "@/lib/actions/cart.actions";
 
 interface CartState {
   cart: Cart | null;
   isLoading: boolean;
   error: string | null;
   isSheetOpen: boolean;
-  
+
   setSheetOpen: (open: boolean) => void;
   fetchCart: () => Promise<void>;
-  addItem: (productId: string, variantId: string | null, quantity: number) => Promise<void>;
+  addItem: (
+    productId: string,
+    variantId: string | null,
+    quantity: number
+  ) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -88,7 +92,7 @@ export const useCartStore = create<CartState>()(
       },
     }),
     {
-      name: 'af-cart-storage', // only stores simple ui state, cart is fetched from server
+      name: "af-cart-storage", // only stores simple ui state, cart is fetched from server
       partialize: (state) => ({ isSheetOpen: state.isSheetOpen }), // don't persist cart data here, server is source of truth
     }
   )

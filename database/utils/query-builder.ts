@@ -1,5 +1,5 @@
-import { DbClient } from '../repositories/base.repository';
-import { Database } from '@/types/supabase';
+import { DbClient } from "../repositories/base.repository";
+import { Database } from "@/types/supabase";
 
 /**
  * Enterprise Query Builder Wrapper
@@ -9,8 +9,8 @@ import { Database } from '@/types/supabase';
 export class QueryBuilder<T> {
   private query: any;
 
-  constructor(client: DbClient, tableName: keyof Database['public']['Tables']) {
-    this.query = client.from(tableName as string).select('*');
+  constructor(client: DbClient, tableName: keyof Database["public"]["Tables"]) {
+    this.query = client.from(tableName as string).select("*");
   }
 
   select(columns: string) {
@@ -42,7 +42,7 @@ export class QueryBuilder<T> {
   execute(): Promise<{ data: T[] | null; error: any }> {
     return this.query;
   }
-  
+
   executeSingle(): Promise<{ data: T | null; error: any }> {
     return this.query.single();
   }

@@ -1,7 +1,14 @@
-export type TicketPriority = 'low' | 'medium' | 'high' | 'critical';
-export type TicketStatus = 'open' | 'pending' | 'in_progress' | 'waiting_for_customer' | 'resolved' | 'closed' | 'reopened';
-export type AgentStatus = 'online' | 'busy' | 'offline';
-export type SenderType = 'CUSTOMER' | 'AGENT' | 'SYSTEM' | 'AI';
+export type TicketPriority = "low" | "medium" | "high" | "critical";
+export type TicketStatus =
+  | "open"
+  | "pending"
+  | "in_progress"
+  | "waiting_for_customer"
+  | "resolved"
+  | "closed"
+  | "reopened";
+export type AgentStatus = "online" | "busy" | "offline";
+export type SenderType = "CUSTOMER" | "AGENT" | "SYSTEM" | "AI";
 
 export interface SupportDepartment {
   id: string;

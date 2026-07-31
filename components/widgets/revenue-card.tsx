@@ -1,8 +1,14 @@
-import * as React from "react"
-import { StatsCard } from "@/components/data-display/stats-card"
-import { DollarSign } from "lucide-react"
+import * as React from "react";
+import { StatsCard } from "@/components/data-display/stats-card";
+import { DollarSign } from "lucide-react";
 
-export function RevenueCard({ value, trend }: { value: string; trend: number }) {
+export function RevenueCard({
+  value,
+  trend,
+}: {
+  value: string;
+  trend: number;
+}) {
   return (
     <StatsCard
       title="Total Revenue"
@@ -11,5 +17,5 @@ export function RevenueCard({ value, trend }: { value: string; trend: number }) 
       trend={{ value: trend, isUpward: trend > 0 }}
       description="from last month"
     />
-  )
+  );
 }

@@ -1,5 +1,5 @@
-import { createAdminClient } from '@/lib/supabase/server';
-import { Wishlist, WishlistItem } from '@/types/checkout.types';
+import { createAdminClient } from "@/lib/supabase/server";
+import { Wishlist, WishlistItem } from "@/types/checkout.types";
 
 export class WishlistRepository {
   /**
@@ -9,12 +9,14 @@ export class WishlistRepository {
     const supabase = await createAdminClient();
 
     const { data, error } = await supabase
-      .from('wishlists')
-      .select('*, items:wishlist_items(*, product:products(id, name, slug, base_price, compare_at_price, product_media(url, is_primary)))')
-      .eq('user_id', userId)
+      .from("wishlists")
+      .select(
+        "*, items:wishlist_items(*, product:products(id, name, slug, base_price, compare_at_price, product_media(url, is_primary)))"
+      )
+      .eq("user_id", userId)
       .single();
 
-    if (error && error.code !== 'PGRST116') {
+    if (error && error.code !== "PGRST116") {
       throw new Error(`Failed to fetch wishlist: ${error.message}`);
     }
 
@@ -28,9 +30,9 @@ export class WishlistRepository {
     const supabase = await createAdminClient();
 
     const { data, error } = await supabase
-      .from('wishlists')
-      .insert({ user_id: userId, name: 'My Wishlist', is_default: true })
-      .select('*')
+      .from("wishlists")
+      .insert({ user_id: userId, name: "My Wishlist", is_default: true })
+      .select("*")
       .single();
 
     if (error) {
@@ -43,18 +45,22 @@ export class WishlistRepository {
   /**
    * Add item to wishlist
    */
-  static async addItem(wishlistId: string, productId: string, variantId?: string | null): Promise<void> {
+  static async addItem(
+    wishlistId: string,
+    productId: string,
+    variantId?: string | null
+  ): Promise<void> {
     const supabase = await createAdminClient();
 
     // Check if it already exists
     let query = supabase
-      .from('wishlist_items')
-      .select('id')
-      .eq('wishlist_id', wishlistId)
-      .eq('product_id', productId);
-      
+      .from("wishlist_items")
+      .select("id")
+      .eq("wishlist_id", wishlistId)
+      .eq("product_id", productId);
+
     const { data: existing } = await query.single();
-    
+
     if (existing) {
       return; // Already in wishlist
     }
@@ -65,9 +71,7 @@ export class WishlistRepository {
     };
     if (variantId) payload.variant_id = variantId;
 
-    const { error } = await supabase
-      .from('wishlist_items')
-      .insert(payload);
+    const { error } = await supabase.from("wishlist_items").insert(payload);
 
     if (error) {
       throw new Error(`Failed to add item to wishlist: ${error.message}`);
@@ -80,9 +84,9 @@ export class WishlistRepository {
   static async removeItem(itemId: string): Promise<void> {
     const supabase = await createAdminClient();
     const { error } = await supabase
-      .from('wishlist_items')
+      .from("wishlist_items")
       .delete()
-      .eq('id', itemId);
+      .eq("id", itemId);
 
     if (error) {
       throw new Error(`Failed to remove item from wishlist: ${error.message}`);
@@ -92,13 +96,16 @@ export class WishlistRepository {
   /**
    * Remove item by product ID (for a specific wishlist)
    */
-  static async removeItemByProductId(wishlistId: string, productId: string): Promise<void> {
+  static async removeItemByProductId(
+    wishlistId: string,
+    productId: string
+  ): Promise<void> {
     const supabase = await createAdminClient();
     const { error } = await supabase
-      .from('wishlist_items')
+      .from("wishlist_items")
       .delete()
-      .eq('wishlist_id', wishlistId)
-      .eq('product_id', productId);
+      .eq("wishlist_id", wishlistId)
+      .eq("product_id", productId);
 
     if (error) {
       throw new Error(`Failed to remove item from wishlist: ${error.message}`);

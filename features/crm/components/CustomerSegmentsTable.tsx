@@ -13,14 +13,16 @@ interface SegmentStat {
   stage: string;
   count: number;
   percentage: number;
-  trend: 'up' | 'down' | 'stable';
+  trend: "up" | "down" | "stable";
 }
 
 interface CustomerSegmentsTableProps {
   segments?: SegmentStat[];
 }
 
-export const CustomerSegmentsTable = ({ segments = [] }: CustomerSegmentsTableProps) => {
+export const CustomerSegmentsTable = ({
+  segments = [],
+}: CustomerSegmentsTableProps) => {
   return (
     <div className="rounded-md border bg-card">
       <Table>
@@ -37,7 +39,7 @@ export const CustomerSegmentsTable = ({ segments = [] }: CustomerSegmentsTablePr
             <TableRow key={segment.stage}>
               <TableCell className="font-medium">
                 <Badge variant="outline" className="capitalize">
-                  {segment.stage.replace(/_/g, ' ').toLowerCase()}
+                  {segment.stage.replace(/_/g, " ").toLowerCase()}
                 </Badge>
               </TableCell>
               <TableCell className="text-right">
@@ -45,9 +47,9 @@ export const CustomerSegmentsTable = ({ segments = [] }: CustomerSegmentsTablePr
               </TableCell>
               <TableCell className="text-right">
                 <div className="flex items-center justify-end gap-2">
-                  <div className="w-24 h-2 bg-secondary rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-primary" 
+                  <div className="h-2 w-24 overflow-hidden rounded-full bg-secondary">
+                    <div
+                      className="h-full bg-primary"
                       style={{ width: `${segment.percentage}%` }}
                     />
                   </div>
@@ -55,9 +57,15 @@ export const CustomerSegmentsTable = ({ segments = [] }: CustomerSegmentsTablePr
                 </div>
               </TableCell>
               <TableCell className="text-right">
-                {segment.trend === 'up' && <span className="text-green-500 font-bold">↑</span>}
-                {segment.trend === 'down' && <span className="text-red-500 font-bold">↓</span>}
-                {segment.trend === 'stable' && <span className="text-gray-400 font-bold">-</span>}
+                {segment.trend === "up" && (
+                  <span className="font-bold text-green-500">↑</span>
+                )}
+                {segment.trend === "down" && (
+                  <span className="font-bold text-red-500">↓</span>
+                )}
+                {segment.trend === "stable" && (
+                  <span className="font-bold text-gray-400">-</span>
+                )}
               </TableCell>
             </TableRow>
           ))}

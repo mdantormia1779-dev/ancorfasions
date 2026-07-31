@@ -1,1 +1,1 @@
-export const generateMetadata = async (props: any) => ({ title: 'Title' });
+export const generateMetadata = async (props: any) => ({ title: "Title" });

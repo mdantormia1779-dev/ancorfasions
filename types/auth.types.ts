@@ -1,11 +1,11 @@
 export type Role =
-  | 'SUPERADMIN'
-  | 'MANAGER'
-  | 'CUSTOMER'
-  | 'SUPPORT'
-  | 'MARKETING'
-  | 'WAREHOUSE_MANAGER'
-  | 'FINANCE_MANAGER';
+  | "SUPERADMIN"
+  | "MANAGER"
+  | "CUSTOMER"
+  | "SUPPORT"
+  | "MARKETING"
+  | "WAREHOUSE_MANAGER"
+  | "FINANCE_MANAGER";
 
 export interface Permission {
   id: string;

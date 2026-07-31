@@ -48,7 +48,15 @@ export interface InventoryMovement {
   id: string;
   variant_id: string;
   warehouse_id: string;
-  movement_type: 'RECEIVE' | 'TRANSFER' | 'ADJUST' | 'RESERVE' | 'RELEASE' | 'SHIP' | 'RETURN' | 'DAMAGE';
+  movement_type:
+    | "RECEIVE"
+    | "TRANSFER"
+    | "ADJUST"
+    | "RESERVE"
+    | "RELEASE"
+    | "SHIP"
+    | "RETURN"
+    | "DAMAGE";
   quantity: number;
   reference_type?: string;
   reference_id?: string;
@@ -77,7 +85,7 @@ export interface PurchaseOrder {
   po_number: string;
   supplier_id: string;
   destination_warehouse_id: string;
-  status: 'DRAFT' | 'SENT' | 'PARTIAL_RECEIPT' | 'FULFILLED' | 'CANCELLED';
+  status: "DRAFT" | "SENT" | "PARTIAL_RECEIPT" | "FULFILLED" | "CANCELLED";
   ordered_by?: string;
   expected_delivery_date?: string;
   total_amount: number;
@@ -100,7 +108,7 @@ export interface InventoryAudit {
   id: string;
   warehouse_id: string;
   zone_id?: string;
-  status: 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  status: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
   assigned_to?: string;
   scheduled_date?: string;
   completed_date?: string;
@@ -116,7 +124,7 @@ export interface InventoryAuditItem {
   expected_quantity: number;
   counted_quantity?: number;
   variance?: number;
-  status: 'PENDING' | 'COUNTED' | 'DISCREPANCY' | 'RESOLVED';
+  status: "PENDING" | "COUNTED" | "DISCREPANCY" | "RESOLVED";
   created_at: string;
   updated_at: string;
 }

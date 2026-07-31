@@ -1,23 +1,27 @@
-import { create } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { Cart, CartItem } from '@/types/checkout.types';
-import { 
-  fetchCartAction, 
-  addToCartAction, 
-  updateCartItemQuantityAction, 
-  removeFromCartAction, 
-  clearCartAction 
-} from '@/lib/actions/cart.actions';
+import { create } from "zustand";
+import { persist } from "zustand/middleware";
+import { Cart, CartItem } from "@/types/checkout.types";
+import {
+  fetchCartAction,
+  addToCartAction,
+  updateCartItemQuantityAction,
+  removeFromCartAction,
+  clearCartAction,
+} from "@/lib/actions/cart.actions";
 
 interface CartState {
   cart: Cart | null;
   isLoading: boolean;
   error: string | null;
   isSheetOpen: boolean;
-  
+
   setSheetOpen: (open: boolean) => void;
   fetchCart: () => Promise<void>;
-  addItem: (productId: string, variantId: string | null, quantity: number) => Promise<void>;
+  addItem: (
+    productId: string,
+    variantId: string | null,
+    quantity: number
+  ) => Promise<void>;
   updateQuantity: (itemId: string, quantity: number) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   clearCart: () => Promise<void>;
@@ -56,10 +60,10 @@ export const useCartStore = create<CartState>()(
 
       updateQuantity: async (itemId, quantity) => {
         const previousCart = get().cart;
-        
+
         // Optimistic update
         if (previousCart) {
-          const updatedItems = (previousCart.items || []).map(item => 
+          const updatedItems = (previousCart.items || []).map((item) =>
             item.id === itemId ? { ...item, quantity } : item
           );
           set({ cart: { ...previousCart, items: updatedItems } });
@@ -78,10 +82,12 @@ export const useCartStore = create<CartState>()(
 
       removeItem: async (itemId) => {
         const previousCart = get().cart;
-        
+
         // Optimistic update
         if (previousCart) {
-          const updatedItems = (previousCart.items || []).filter(item => item.id !== itemId);
+          const updatedItems = (previousCart.items || []).filter(
+            (item) => item.id !== itemId
+          );
           set({ cart: { ...previousCart, items: updatedItems } });
         }
 
@@ -109,7 +115,7 @@ export const useCartStore = create<CartState>()(
       },
     }),
     {
-      name: 'af-cart-storage',
+      name: "af-cart-storage",
       partialize: (state) => ({ isSheetOpen: state.isSheetOpen }),
     }
   )

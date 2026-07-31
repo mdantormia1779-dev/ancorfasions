@@ -1,15 +1,26 @@
-'use client';
+"use client";
 
-import { useState, useTransition } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Separator } from '@/components/ui/separator';
-import { toast } from 'sonner';
-import { updateStoreInfo, updateSocialLinks, StoreInfo, SocialLinks } from '@/lib/actions/settings.actions';
-import { Save, Store, Share2, Megaphone } from 'lucide-react';
+import { useState, useTransition } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Separator } from "@/components/ui/separator";
+import { toast } from "sonner";
+import {
+  updateStoreInfo,
+  updateSocialLinks,
+  StoreInfo,
+  SocialLinks,
+} from "@/lib/actions/settings.actions";
+import { Save, Store, Share2, Megaphone } from "lucide-react";
 
 export function GeneralSettingsForm({
   initialStoreInfo,
@@ -26,9 +37,9 @@ export function GeneralSettingsForm({
     startTransition(async () => {
       const result = await updateStoreInfo(storeInfo);
       if (result.success) {
-        toast.success('Store information saved successfully!');
+        toast.success("Store information saved successfully!");
       } else {
-        toast.error(result.error ?? 'Failed to save settings.');
+        toast.error(result.error ?? "Failed to save settings.");
       }
     });
   };
@@ -37,9 +48,9 @@ export function GeneralSettingsForm({
     startTransition(async () => {
       const result = await updateSocialLinks(socialLinks);
       if (result.success) {
-        toast.success('Social links saved successfully!');
+        toast.success("Social links saved successfully!");
       } else {
-        toast.error(result.error ?? 'Failed to save settings.');
+        toast.error(result.error ?? "Failed to save settings.");
       }
     });
   };
@@ -50,25 +61,28 @@ export function GeneralSettingsForm({
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Store className="w-5 h-5 text-primary" />
+            <div className="rounded-lg bg-primary/10 p-2">
+              <Store className="h-5 w-5 text-primary" />
             </div>
             <div>
               <CardTitle>Store Information</CardTitle>
               <CardDescription>
-                This information appears in the website footer, header, and contact pages.
+                This information appears in the website footer, header, and
+                contact pages.
               </CardDescription>
             </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="store_name">Store Name</Label>
               <Input
                 id="store_name"
                 value={storeInfo.store_name}
-                onChange={(e) => setStoreInfo({ ...storeInfo, store_name: e.target.value })}
+                onChange={(e) =>
+                  setStoreInfo({ ...storeInfo, store_name: e.target.value })
+                }
                 placeholder="Anchor Fashion Enterprise"
               />
             </div>
@@ -77,7 +91,9 @@ export function GeneralSettingsForm({
               <Input
                 id="store_phone"
                 value={storeInfo.phone}
-                onChange={(e) => setStoreInfo({ ...storeInfo, phone: e.target.value })}
+                onChange={(e) =>
+                  setStoreInfo({ ...storeInfo, phone: e.target.value })
+                }
                 placeholder="+880 1234-567890"
               />
             </div>
@@ -87,7 +103,9 @@ export function GeneralSettingsForm({
                 id="store_email"
                 type="email"
                 value={storeInfo.email}
-                onChange={(e) => setStoreInfo({ ...storeInfo, email: e.target.value })}
+                onChange={(e) =>
+                  setStoreInfo({ ...storeInfo, email: e.target.value })
+                }
                 placeholder="support@anchorfashion.com"
               />
             </div>
@@ -96,7 +114,9 @@ export function GeneralSettingsForm({
               <Input
                 id="store_address"
                 value={storeInfo.address}
-                onChange={(e) => setStoreInfo({ ...storeInfo, address: e.target.value })}
+                onChange={(e) =>
+                  setStoreInfo({ ...storeInfo, address: e.target.value })
+                }
                 placeholder="Dhaka, Bangladesh"
               />
             </div>
@@ -106,20 +126,30 @@ export function GeneralSettingsForm({
             <Textarea
               id="store_description"
               value={storeInfo.store_description}
-              onChange={(e) => setStoreInfo({ ...storeInfo, store_description: e.target.value })}
+              onChange={(e) =>
+                setStoreInfo({
+                  ...storeInfo,
+                  store_description: e.target.value,
+                })
+              }
               rows={3}
               placeholder="A short description of your store shown in the footer..."
             />
           </div>
           <Separator />
           <div className="space-y-2">
-            <Label htmlFor="announcement_bar" className="flex items-center gap-2">
-              <Megaphone className="w-4 h-4" /> Announcement Bar Text
+            <Label
+              htmlFor="announcement_bar"
+              className="flex items-center gap-2"
+            >
+              <Megaphone className="h-4 w-4" /> Announcement Bar Text
             </Label>
             <Input
               id="announcement_bar"
               value={storeInfo.announcement_bar}
-              onChange={(e) => setStoreInfo({ ...storeInfo, announcement_bar: e.target.value })}
+              onChange={(e) =>
+                setStoreInfo({ ...storeInfo, announcement_bar: e.target.value })
+              }
               placeholder="🚚 Free Shipping On Orders Over ৳999 | Easy Returns & Exchanges"
             />
             <p className="text-xs text-muted-foreground">
@@ -127,19 +157,26 @@ export function GeneralSettingsForm({
             </p>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="free_shipping_threshold">Free Shipping Threshold (৳)</Label>
+            <Label htmlFor="free_shipping_threshold">
+              Free Shipping Threshold (৳)
+            </Label>
             <Input
               id="free_shipping_threshold"
               type="number"
               value={storeInfo.free_shipping_threshold}
-              onChange={(e) => setStoreInfo({ ...storeInfo, free_shipping_threshold: e.target.value })}
+              onChange={(e) =>
+                setStoreInfo({
+                  ...storeInfo,
+                  free_shipping_threshold: e.target.value,
+                })
+              }
               placeholder="999"
             />
           </div>
           <div className="flex justify-end">
             <Button onClick={handleSaveStoreInfo} disabled={isPending}>
               <Save className="mr-2 h-4 w-4" />
-              {isPending ? 'Saving...' : 'Save Store Info'}
+              {isPending ? "Saving..." : "Save Store Info"}
             </Button>
           </div>
         </CardContent>
@@ -149,8 +186,8 @@ export function GeneralSettingsForm({
       <Card>
         <CardHeader>
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <Share2 className="w-5 h-5 text-primary" />
+            <div className="rounded-lg bg-primary/10 p-2">
+              <Share2 className="h-5 w-5 text-primary" />
             </div>
             <div>
               <CardTitle>Social Media Links</CardTitle>
@@ -161,13 +198,15 @@ export function GeneralSettingsForm({
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="facebook">Facebook URL</Label>
               <Input
                 id="facebook"
                 value={socialLinks.facebook}
-                onChange={(e) => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
+                onChange={(e) =>
+                  setSocialLinks({ ...socialLinks, facebook: e.target.value })
+                }
                 placeholder="https://facebook.com/yourpage"
               />
             </div>
@@ -176,7 +215,9 @@ export function GeneralSettingsForm({
               <Input
                 id="instagram"
                 value={socialLinks.instagram}
-                onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
+                onChange={(e) =>
+                  setSocialLinks({ ...socialLinks, instagram: e.target.value })
+                }
                 placeholder="https://instagram.com/yourhandle"
               />
             </div>
@@ -185,7 +226,9 @@ export function GeneralSettingsForm({
               <Input
                 id="twitter"
                 value={socialLinks.twitter}
-                onChange={(e) => setSocialLinks({ ...socialLinks, twitter: e.target.value })}
+                onChange={(e) =>
+                  setSocialLinks({ ...socialLinks, twitter: e.target.value })
+                }
                 placeholder="https://twitter.com/yourhandle"
               />
             </div>
@@ -194,7 +237,9 @@ export function GeneralSettingsForm({
               <Input
                 id="youtube"
                 value={socialLinks.youtube}
-                onChange={(e) => setSocialLinks({ ...socialLinks, youtube: e.target.value })}
+                onChange={(e) =>
+                  setSocialLinks({ ...socialLinks, youtube: e.target.value })
+                }
                 placeholder="https://youtube.com/@yourchannel"
               />
             </div>
@@ -203,7 +248,9 @@ export function GeneralSettingsForm({
               <Input
                 id="tiktok"
                 value={socialLinks.tiktok}
-                onChange={(e) => setSocialLinks({ ...socialLinks, tiktok: e.target.value })}
+                onChange={(e) =>
+                  setSocialLinks({ ...socialLinks, tiktok: e.target.value })
+                }
                 placeholder="https://tiktok.com/@yourhandle"
               />
             </div>
@@ -211,7 +258,7 @@ export function GeneralSettingsForm({
           <div className="flex justify-end">
             <Button onClick={handleSaveSocialLinks} disabled={isPending}>
               <Save className="mr-2 h-4 w-4" />
-              {isPending ? 'Saving...' : 'Save Social Links'}
+              {isPending ? "Saving..." : "Save Social Links"}
             </Button>
           </div>
         </CardContent>

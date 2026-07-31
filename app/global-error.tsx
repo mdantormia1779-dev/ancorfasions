@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import { Inter } from "next/font/google";
 import "./globals.css";
@@ -14,9 +14,13 @@ export default function GlobalError({
 }) {
   return (
     <html lang="en">
-      <body className={`${inter.className} min-h-screen bg-background text-foreground antialiased`}>
+      <body
+        className={`${inter.className} min-h-screen bg-background text-foreground antialiased`}
+      >
         <div className="flex min-h-screen flex-col items-center justify-center p-4 text-center">
-          <h2 className="mb-4 text-3xl font-bold tracking-tight">Critical Error</h2>
+          <h2 className="mb-4 text-3xl font-bold tracking-tight">
+            Critical Error
+          </h2>
           <p className="mb-8 text-muted-foreground">
             A critical error occurred while loading the application.
           </p>

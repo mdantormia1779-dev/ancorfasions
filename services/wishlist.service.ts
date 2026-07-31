@@ -1,6 +1,6 @@
-import { WishlistRepository } from '@/repositories/wishlist.repository';
-import { Wishlist, WishlistItem } from '@/types/checkout.types';
-import { CartService } from './cart.service';
+import { WishlistRepository } from "@/repositories/wishlist.repository";
+import { Wishlist, WishlistItem } from "@/types/checkout.types";
+import { CartService } from "./cart.service";
 
 export class WishlistService {
   private wishlistRepository: WishlistRepository;
@@ -21,7 +21,10 @@ export class WishlistService {
     return await this.wishlistRepository.createWishlist(userId);
   }
 
-  async addToWishlist(userId: string, productId: string): Promise<WishlistItem> {
+  async addToWishlist(
+    userId: string,
+    productId: string
+  ): Promise<WishlistItem> {
     const wishlist = await this.initializeWishlist(userId);
     return await this.wishlistRepository.addItem(wishlist.id, productId);
   }
@@ -30,10 +33,15 @@ export class WishlistService {
     await this.wishlistRepository.removeItem(itemId);
   }
 
-  async moveToCart(userId: string, cartId: string, productId: string, wishlistId: string): Promise<void> {
+  async moveToCart(
+    userId: string,
+    cartId: string,
+    productId: string,
+    wishlistId: string
+  ): Promise<void> {
     // 1. Add to cart
     await this.cartService.addToCart(cartId, productId, 1);
-    
+
     // 2. Remove from wishlist
     await this.wishlistRepository.removeItemByProductId(wishlistId, productId);
   }

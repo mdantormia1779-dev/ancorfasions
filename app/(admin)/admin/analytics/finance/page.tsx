@@ -1,4 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { LiveKpiCard } from "@/components/admin/analytics/kpi/LiveKpiCard";
 import { AreaChartVariant } from "@/components/admin/analytics/charts/AreaChartVariant";
 import { DollarSign, Percent, TrendingDown, Wallet } from "lucide-react";
@@ -47,10 +53,10 @@ export default async function FinanceAnalyticsPage() {
           </CardHeader>
           <CardContent>
             {/* Reusing salesTrends to show profit trend, in a real scenario this might be a composed chart */}
-            <AreaChartVariant 
-              data={trends} 
-              xDataKey="date" 
-              yDataKey="profit" 
+            <AreaChartVariant
+              data={trends}
+              xDataKey="date"
+              yDataKey="profit"
               valueFormatter="currency"
               color="#059669"
             />

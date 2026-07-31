@@ -12,7 +12,7 @@ import {
   ProviderResponse,
   NormalizedWebhookEvent,
   ShipmentStatus,
-} from '@/types/shipping.types';
+} from "@/types/shipping.types";
 
 interface PathaoTokenCache {
   accessToken: string;
@@ -21,8 +21,8 @@ interface PathaoTokenCache {
 }
 
 export class PathaoProvider implements ICourierProvider {
-  readonly id = 'pathao' as const;
-  readonly name = 'Pathao Courier';
+  readonly id = "pathao" as const;
+  readonly name = "Pathao Courier";
   readonly isSandbox: boolean;
 
   private readonly clientId: string;
@@ -34,15 +34,15 @@ export class PathaoProvider implements ICourierProvider {
   private tokenCache: PathaoTokenCache | null = null;
 
   constructor(config: Record<string, any>, isSandbox: boolean) {
-    this.clientId = config.clientId ?? '';
-    this.clientSecret = config.clientSecret ?? '';
-    this.username = config.username ?? '';
-    this.password = config.password ?? '';
-    this.storeId = config.storeId ?? '';
+    this.clientId = config.clientId ?? "";
+    this.clientSecret = config.clientSecret ?? "";
+    this.username = config.username ?? "";
+    this.password = config.password ?? "";
+    this.storeId = config.storeId ?? "";
     this.isSandbox = isSandbox;
     this.baseUrl = isSandbox
-      ? 'https://courier-api-sandbox.pathao.com/aladdin/api/v1'
-      : 'https://api-hermes.pathao.com/aladdin/api/v1';
+      ? "https://courier-api-sandbox.pathao.com/aladdin/api/v1"
+      : "https://api-hermes.pathao.com/aladdin/api/v1";
   }
 
   private async getAccessToken(): Promise<string> {
@@ -61,23 +61,27 @@ export class PathaoProvider implements ICourierProvider {
 
     // Full auth
     const response = await fetch(`${this.baseUrl}/issue-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: JSON.stringify({
         client_id: this.clientId,
         client_secret: this.clientSecret,
         username: this.username,
         password: this.password,
-        grant_type: 'password',
+        grant_type: "password",
       }),
     });
 
     const data = await response.json();
-    if (!data.access_token) throw new Error('Pathao: failed to obtain access token');
+    if (!data.access_token)
+      throw new Error("Pathao: failed to obtain access token");
 
     this.tokenCache = {
       accessToken: data.access_token,
-      refreshToken: data.refresh_token || '',
+      refreshToken: data.refresh_token || "",
       expiresAt: Date.now() + (data.expires_in || 3600) * 1000,
     };
 
@@ -86,13 +90,16 @@ export class PathaoProvider implements ICourierProvider {
 
   private async refreshToken(refreshToken: string): Promise<string | null> {
     const response = await fetch(`${this.baseUrl}/issue-token`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+      },
       body: JSON.stringify({
         client_id: this.clientId,
         client_secret: this.clientSecret,
         refresh_token: refreshToken,
-        grant_type: 'refresh_token',
+        grant_type: "refresh_token",
       }),
     });
 
@@ -111,13 +118,15 @@ export class PathaoProvider implements ICourierProvider {
   private async authHeaders(): Promise<Record<string, string>> {
     const token = await this.getAccessToken();
     return {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
+      "Content-Type": "application/json",
+      Accept: "application/json",
       Authorization: `Bearer ${token}`,
     };
   }
 
-  async createConsignment(request: ConsignmentRequest): Promise<ProviderResponse<ConsignmentResponse>> {
+  async createConsignment(
+    request: ConsignmentRequest
+  ): Promise<ProviderResponse<ConsignmentResponse>> {
     try {
       const headers = await this.authHeaders();
 
@@ -127,11 +136,15 @@ export class PathaoProvider implements ICourierProvider {
         recipient_name: request.recipientName,
         recipient_phone: request.recipientPhone,
         recipient_address: request.recipientAddress,
-        recipient_city: request.recipientCity ? parseInt(request.recipientCity, 10) || 1 : 1,
-        recipient_zone: request.recipientZone ? parseInt(request.recipientZone, 10) || 1 : 1,
-        delivery_type: 48,         // 48 = Normal; 12 = On-demand
-        item_type: 2,              // 2 = Parcel
-        special_instruction: request.instructions ?? '',
+        recipient_city: request.recipientCity
+          ? parseInt(request.recipientCity, 10) || 1
+          : 1,
+        recipient_zone: request.recipientZone
+          ? parseInt(request.recipientZone, 10) || 1
+          : 1,
+        delivery_type: 48, // 48 = Normal; 12 = On-demand
+        item_type: 2, // 2 = Parcel
+        special_instruction: request.instructions ?? "",
         item_quantity: 1,
         item_weight: request.weight ?? 0.5,
         amount_to_collect: request.codAmount,
@@ -139,14 +152,14 @@ export class PathaoProvider implements ICourierProvider {
       };
 
       const response = await fetch(`${this.baseUrl}/orders`, {
-        method: 'POST',
+        method: "POST",
         headers,
         body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
-      if (data.type === 'success' && data.data) {
+      if (data.type === "success" && data.data) {
         return {
           success: true,
           providerId: this.id,
@@ -154,44 +167,58 @@ export class PathaoProvider implements ICourierProvider {
           data: {
             trackingCode: data.data.consignment_id,
             consignmentId: String(data.data.consignment_id),
-            status: 'created',
+            status: "created",
           },
         };
       }
 
-      return this.errorResponse('API_ERROR', data.message || 'Failed to create Pathao consignment');
+      return this.errorResponse(
+        "API_ERROR",
+        data.message || "Failed to create Pathao consignment"
+      );
     } catch (err: any) {
-      return this.errorResponse('EXCEPTION', err.message);
+      return this.errorResponse("EXCEPTION", err.message);
     }
   }
 
-  async cancelConsignment(consignmentId: string): Promise<ProviderResponse<void>> {
+  async cancelConsignment(
+    consignmentId: string
+  ): Promise<ProviderResponse<void>> {
     // Pathao does not support cancel via API — must be done via portal
     return {
       success: false,
       providerId: this.id,
       timestamp: new Date().toISOString(),
-      error: { code: 'NOT_SUPPORTED', message: 'Pathao does not support API cancellation. Use the Pathao portal.' },
+      error: {
+        code: "NOT_SUPPORTED",
+        message:
+          "Pathao does not support API cancellation. Use the Pathao portal.",
+      },
     };
   }
 
-  async trackShipment(trackingCode: string): Promise<ProviderResponse<TrackingResult>> {
+  async trackShipment(
+    trackingCode: string
+  ): Promise<ProviderResponse<TrackingResult>> {
     try {
       const headers = await this.authHeaders();
 
-      const response = await fetch(`${this.baseUrl}/orders/${trackingCode}/info`, {
-        method: 'GET',
-        headers,
-      });
+      const response = await fetch(
+        `${this.baseUrl}/orders/${trackingCode}/info`,
+        {
+          method: "GET",
+          headers,
+        }
+      );
 
       const data = await response.json();
 
-      if (data.type === 'success' && data.data) {
+      if (data.type === "success" && data.data) {
         const order = data.data;
         const updates: TrackingUpdate[] = (order.log || []).map((log: any) => ({
           status: log.status,
           statusDescription: log.comment || log.status,
-          location: '',
+          location: "",
           timestamp: log.created_at,
           raw: log,
         }));
@@ -202,32 +229,34 @@ export class PathaoProvider implements ICourierProvider {
           timestamp: new Date().toISOString(),
           data: {
             status: this.normalizeStatus(order.order_status),
-            statusDescription: order.order_status || '',
+            statusDescription: order.order_status || "",
             estimatedDelivery: null,
             updates,
           },
         };
       }
 
-      return this.errorResponse('API_ERROR', 'Tracking info not found');
+      return this.errorResponse("API_ERROR", "Tracking info not found");
     } catch (err: any) {
-      return this.errorResponse('EXCEPTION', err.message);
+      return this.errorResponse("EXCEPTION", err.message);
     }
   }
 
-  async generateLabel(consignmentId: string): Promise<ProviderResponse<{ labelUrl: string }>> {
+  async generateLabel(
+    consignmentId: string
+  ): Promise<ProviderResponse<{ labelUrl: string }>> {
     try {
       const headers = await this.authHeaders();
 
       const response = await fetch(`${this.baseUrl}/print/order-label`, {
-        method: 'POST',
+        method: "POST",
         headers,
         body: JSON.stringify({ orders: [consignmentId] }),
       });
 
       const data = await response.json();
 
-      if (data.type === 'success' && data.data?.label_url) {
+      if (data.type === "success" && data.data?.label_url) {
         return {
           success: true,
           providerId: this.id,
@@ -236,50 +265,53 @@ export class PathaoProvider implements ICourierProvider {
         };
       }
 
-      return this.errorResponse('API_ERROR', 'Failed to generate Pathao label');
+      return this.errorResponse("API_ERROR", "Failed to generate Pathao label");
     } catch (err: any) {
-      return this.errorResponse('EXCEPTION', err.message);
+      return this.errorResponse("EXCEPTION", err.message);
     }
   }
 
-  async processWebhook(payload: unknown, signature: string): Promise<ProviderResponse<NormalizedWebhookEvent>> {
+  async processWebhook(
+    payload: unknown,
+    signature: string
+  ): Promise<ProviderResponse<NormalizedWebhookEvent>> {
     try {
       const body = payload as Record<string, any>;
-      const normalized = this.normalizeStatus(body.order_status || '');
+      const normalized = this.normalizeStatus(body.order_status || "");
 
       return {
         success: true,
         providerId: this.id,
         timestamp: new Date().toISOString(),
         data: {
-          trackingNumber: body.consignment_id || body.merchant_order_id || '',
-          consignmentId: String(body.consignment_id || ''),
+          trackingNumber: body.consignment_id || body.merchant_order_id || "",
+          consignmentId: String(body.consignment_id || ""),
           status: normalized,
-          statusDescription: body.order_status || '',
-          location: body.hub || '',
+          statusDescription: body.order_status || "",
+          location: body.hub || "",
           eventTime: body.updated_at || new Date().toISOString(),
           raw: body,
         },
       };
     } catch (err: any) {
-      return this.errorResponse('WEBHOOK_ERROR', err.message);
+      return this.errorResponse("WEBHOOK_ERROR", err.message);
     }
   }
 
   private normalizeStatus(raw: string): ShipmentStatus {
     const map: Record<string, ShipmentStatus> = {
-      'Pending': 'created',
-      'Processing': 'pickup_requested',
-      'Picked': 'picked_up',
-      'In Transit': 'in_transit',
-      'Out for Delivery': 'out_for_delivery',
-      'Delivered': 'delivered',
-      'Return': 'returned_to_origin',
-      'Return in Transit': 'returned_to_origin',
-      'Cancelled': 'cancelled',
-      'Hold': 'in_transit',
+      Pending: "created",
+      Processing: "pickup_requested",
+      Picked: "picked_up",
+      "In Transit": "in_transit",
+      "Out for Delivery": "out_for_delivery",
+      Delivered: "delivered",
+      Return: "returned_to_origin",
+      "Return in Transit": "returned_to_origin",
+      Cancelled: "cancelled",
+      Hold: "in_transit",
     };
-    return map[raw] ?? 'in_transit';
+    return map[raw] ?? "in_transit";
   }
 
   private errorResponse(code: string, message: string): ProviderResponse<any> {

@@ -1,4 +1,10 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { LiveKpiCard } from "@/components/admin/analytics/kpi/LiveKpiCard";
 import { Bot, Zap, Cpu, CheckCircle2 } from "lucide-react";
 import { AreaChartVariant } from "@/components/admin/analytics/charts/AreaChartVariant";
@@ -47,13 +53,15 @@ export default function AiAnalyticsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Token Usage Trends</CardTitle>
-          <CardDescription>Monthly Gemini API token consumption.</CardDescription>
+          <CardDescription>
+            Monthly Gemini API token consumption.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <AreaChartVariant 
-            data={tokenUsage} 
-            xDataKey="date" 
-            yDataKey="tokens" 
+          <AreaChartVariant
+            data={tokenUsage}
+            xDataKey="date"
+            yDataKey="tokens"
             valueFormatter="number"
             color="#8b5cf6"
           />

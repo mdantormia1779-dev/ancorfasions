@@ -12,8 +12,8 @@ export async function GET(request: Request) {
         data: {
           today: { revenue: 125000, orders: 450, visitors: 12400 },
           yesterday: { revenue: 110000, orders: 380, visitors: 11000 },
-          growth: { revenue: 13.6, orders: 18.4, visitors: 12.7 }
-        }
+          growth: { revenue: 13.6, orders: 18.4, visitors: 12.7 },
+        },
       });
     }
 
@@ -25,13 +25,19 @@ export async function GET(request: Request) {
         rows: [
           ["Dhaka", 500000, 1200],
           ["Chattogram", 250000, 800],
-          ["Sylhet", 150000, 450]
-        ]
+          ["Sylhet", 150000, 450],
+        ],
       });
     }
 
-    return NextResponse.json({ error: "Invalid type parameter" }, { status: 400 });
+    return NextResponse.json(
+      { error: "Invalid type parameter" },
+      { status: 400 }
+    );
   } catch (error) {
-    return NextResponse.json({ error: "Failed to fetch BI data" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to fetch BI data" },
+      { status: 500 }
+    );
   }
 }

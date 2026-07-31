@@ -9,7 +9,13 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 
-export type CustomerLifecycleStage = 'PROSPECT' | 'FIRST_TIME_BUYER' | 'REPEAT_CUSTOMER' | 'LOYAL' | 'AT_RISK' | 'CHURNED';
+export type CustomerLifecycleStage =
+  | "PROSPECT"
+  | "FIRST_TIME_BUYER"
+  | "REPEAT_CUSTOMER"
+  | "LOYAL"
+  | "AT_RISK"
+  | "CHURNED";
 
 export interface CrmCustomer {
   id: string;
@@ -42,7 +48,10 @@ export const CustomersList = ({ customers = [] }: CustomersListProps) => {
         <TableBody>
           {customers.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+              <TableCell
+                colSpan={4}
+                className="py-6 text-center text-muted-foreground"
+              >
                 No customers found.
               </TableCell>
             </TableRow>
@@ -50,23 +59,36 @@ export const CustomersList = ({ customers = [] }: CustomersListProps) => {
             customers.map((customer) => (
               <TableRow key={customer.id}>
                 <TableCell>
-                  <div className="font-medium">{customer.first_name} {customer.last_name}</div>
-                  <div className="text-sm text-muted-foreground">{customer.email}</div>
+                  <div className="font-medium">
+                    {customer.first_name} {customer.last_name}
+                  </div>
+                  <div className="text-sm text-muted-foreground">
+                    {customer.email}
+                  </div>
                 </TableCell>
                 <TableCell>
                   {customer.is_vip ? (
-                    <Badge variant="default" className="bg-amber-500 hover:bg-amber-600">VIP</Badge>
+                    <Badge
+                      variant="default"
+                      className="bg-amber-500 hover:bg-amber-600"
+                    >
+                      VIP
+                    </Badge>
                   ) : (
                     <Badge variant="outline">Standard</Badge>
                   )}
                 </TableCell>
                 <TableCell>
                   <Badge variant="secondary" className="capitalize">
-                    {customer.customer_lifecycle_stage.replace(/_/g, ' ').toLowerCase()}
+                    {customer.customer_lifecycle_stage
+                      .replace(/_/g, " ")
+                      .toLowerCase()}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className={`font-semibold ${customer.health_score > 75 ? 'text-green-600' : customer.health_score < 50 ? 'text-red-600' : 'text-yellow-600'}`}>
+                  <span
+                    className={`font-semibold ${customer.health_score > 75 ? "text-green-600" : customer.health_score < 50 ? "text-red-600" : "text-yellow-600"}`}
+                  >
                     {customer.health_score}/100
                   </span>
                 </TableCell>

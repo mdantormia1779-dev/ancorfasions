@@ -1,11 +1,19 @@
-import * as React from "react"
-import { cn } from "@/lib/utils"
-import { Sidebar } from "@/components/navigation/sidebar"
-import { Header } from "@/components/layout/header"
+import * as React from "react";
+import { cn } from "@/lib/utils";
+import { Sidebar } from "@/components/navigation/sidebar";
+import { Header } from "@/components/layout/header";
 
-export function DashboardLayout({ children, className }: { children: React.ReactNode; className?: string }) {
+export function DashboardLayout({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className={cn("flex h-screen overflow-hidden bg-background", className)}>
+    <div
+      className={cn("flex h-screen overflow-hidden bg-background", className)}
+    >
       <Sidebar />
       <div className="flex flex-1 flex-col overflow-hidden">
         <Header />
@@ -14,5 +22,5 @@ export function DashboardLayout({ children, className }: { children: React.React
         </main>
       </div>
     </div>
-  )
+  );
 }

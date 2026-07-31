@@ -2,9 +2,9 @@
 // Label Service
 // ============================================================================
 
-import { ShipmentRepository } from '@/repositories/shipment.repository';
-import { CourierGatewayService } from '@/services/courier/courier-gateway.service';
-import { ManifestEntry } from '@/types/shipping.types';
+import { ShipmentRepository } from "@/repositories/shipment.repository";
+import { CourierGatewayService } from "@/services/courier/courier-gateway.service";
+import { ManifestEntry } from "@/types/shipping.types";
 
 export class LabelService {
   private shipmentRepo: ShipmentRepository;
@@ -17,12 +17,15 @@ export class LabelService {
    * Generate a shipping label for a single shipment.
    * Returns the label URL or null.
    */
-  async generateLabel(shipmentId: string, generatedBy?: string): Promise<{ labelUrl: string; labelData?: string } | null> {
+  async generateLabel(
+    shipmentId: string,
+    generatedBy?: string
+  ): Promise<{ labelUrl: string; labelData?: string } | null> {
     const shipment = await this.shipmentRepo.getShipmentById(shipmentId);
     if (!shipment) return null;
 
     if (!shipment.courier_provider_code || !shipment.consignment_id) {
-      throw new Error('Shipment has no courier assigned or no consignment ID');
+      throw new Error("Shipment has no courier assigned or no consignment ID");
     }
 
     const result = await CourierGatewayService.generateLabel(
@@ -31,14 +34,14 @@ export class LabelService {
     );
 
     if (!result.success || !result.data) {
-      throw new Error(result.error?.message ?? 'Failed to generate label');
+      throw new Error(result.error?.message ?? "Failed to generate label");
     }
 
     const { labelUrl, labelData } = result.data;
 
     // Save label record
     await this.shipmentRepo.saveLabel(shipmentId, {
-      label_type: 'pdf',
+      label_type: "pdf",
       label_url: labelUrl,
       label_data: labelData ?? null,
     });
@@ -76,7 +79,7 @@ export class LabelService {
 
       entries.push({
         shipmentNumber: details.shipment_number,
-        orderNumber: details.order_number ?? '',
+        orderNumber: details.order_number ?? "",
         trackingNumber: details.tracking_number,
         recipientName: details.recipient_name,
         recipientPhone: details.recipient_phone,

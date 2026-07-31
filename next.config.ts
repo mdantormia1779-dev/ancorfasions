@@ -23,7 +23,12 @@ const nextConfig: NextConfig = {
     serverActions: {
       bodySizeLimit: "2mb",
     },
-    optimizePackageImports: ["lucide-react", "framer-motion", "@radix-ui/react-icons", "recharts"],
+    optimizePackageImports: [
+      "lucide-react",
+      "framer-motion",
+      "@radix-ui/react-icons",
+      "recharts",
+    ],
   },
   turbopack: {},
   async headers() {

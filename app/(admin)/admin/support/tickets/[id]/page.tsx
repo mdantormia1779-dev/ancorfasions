@@ -1,4 +1,11 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -9,30 +16,47 @@ import { Send, Clock, User, CheckCircle, Reply } from "lucide-react";
 import Link from "next/link";
 import { getTicketDetailsAction } from "@/app/actions/support/ticket.actions";
 
-export default async function SupportTicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function SupportTicketDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
-  
+
   const { data: ticket, error } = await getTicketDetailsAction(id);
-  
+
   if (error || !ticket) {
-    return <div className="p-8 text-red-500">Failed to load ticket details: {error || 'Ticket not found'}</div>;
+    return (
+      <div className="p-8 text-red-500">
+        Failed to load ticket details: {error || "Ticket not found"}
+      </div>
+    );
   }
 
   const customer = ticket.customer_profiles || {};
   const messages = ticket.ticket_messages || [];
-  
+
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+    <div className="mx-auto max-w-5xl space-y-6">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight">Ticket {ticket.id.substring(0, 8)}</h1>
-            <Badge variant="default" className="capitalize">{ticket.status.replace(/_/g, ' ')}</Badge>
-            <Badge variant={ticket.priority === 'critical' ? 'destructive' : 'secondary'} className="capitalize">{ticket.priority} Priority</Badge>
+            <h1 className="text-3xl font-bold tracking-tight">
+              Ticket {ticket.id.substring(0, 8)}
+            </h1>
+            <Badge variant="default" className="capitalize">
+              {ticket.status.replace(/_/g, " ")}
+            </Badge>
+            <Badge
+              variant={
+                ticket.priority === "critical" ? "destructive" : "secondary"
+              }
+              className="capitalize"
+            >
+              {ticket.priority} Priority
+            </Badge>
           </div>
-          <p className="text-muted-foreground mt-1 text-lg">
-            {ticket.subject}
-          </p>
+          <p className="mt-1 text-lg text-muted-foreground">{ticket.subject}</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
@@ -44,8 +68,8 @@ export default async function SupportTicketDetailPage({ params }: { params: Prom
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="space-y-6 md:col-span-2">
           {/* Conversation Thread */}
           <Card>
             <CardHeader>
@@ -53,25 +77,42 @@ export default async function SupportTicketDetailPage({ params }: { params: Prom
             </CardHeader>
             <CardContent className="space-y-6">
               {messages.length === 0 ? (
-                <div className="text-muted-foreground text-sm">No messages yet.</div>
+                <div className="text-sm text-muted-foreground">
+                  No messages yet.
+                </div>
               ) : (
                 messages.map((msg: any) => (
-                  <div key={msg.id} className={`flex gap-4 ${msg.sender_type === 'AGENT' ? 'flex-row-reverse' : ''}`}>
+                  <div
+                    key={msg.id}
+                    className={`flex gap-4 ${msg.sender_type === "AGENT" ? "flex-row-reverse" : ""}`}
+                  >
                     <Avatar>
-                      {msg.sender_type === 'AGENT' ? (
-                        <AvatarFallback className="bg-primary/10 text-primary">A</AvatarFallback>
+                      {msg.sender_type === "AGENT" ? (
+                        <AvatarFallback className="bg-primary/10 text-primary">
+                          A
+                        </AvatarFallback>
                       ) : (
-                        <AvatarFallback>{customer.first_name?.charAt(0) || 'C'}</AvatarFallback>
+                        <AvatarFallback>
+                          {customer.first_name?.charAt(0) || "C"}
+                        </AvatarFallback>
                       )}
                     </Avatar>
                     <div className="flex-1 space-y-2">
-                      <div className={`flex justify-between items-center ${msg.sender_type === 'AGENT' ? 'flex-row-reverse' : ''}`}>
-                        <span className="font-semibold text-sm">
-                          {msg.sender_type === 'AGENT' ? 'Support Agent' : `${customer.first_name || 'Customer'}`}
+                      <div
+                        className={`flex items-center justify-between ${msg.sender_type === "AGENT" ? "flex-row-reverse" : ""}`}
+                      >
+                        <span className="text-sm font-semibold">
+                          {msg.sender_type === "AGENT"
+                            ? "Support Agent"
+                            : `${customer.first_name || "Customer"}`}
                         </span>
-                        <span className="text-xs text-muted-foreground">{new Date(msg.created_at).toLocaleString()}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(msg.created_at).toLocaleString()}
+                        </span>
                       </div>
-                      <div className={`p-4 rounded-lg text-sm ${msg.sender_type === 'AGENT' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-slate-100 rounded-tl-none text-slate-800'}`}>
+                      <div
+                        className={`rounded-lg p-4 text-sm ${msg.sender_type === "AGENT" ? "rounded-tr-none bg-primary text-primary-foreground" : "rounded-tl-none bg-slate-100 text-slate-800"}`}
+                      >
                         {msg.body}
                       </div>
                     </div>
@@ -82,13 +123,15 @@ export default async function SupportTicketDetailPage({ params }: { params: Prom
             <Separator />
             <CardFooter className="pt-6">
               <div className="w-full space-y-4">
-                <Textarea 
-                  placeholder="Type your reply to Michael..." 
+                <Textarea
+                  placeholder="Type your reply to Michael..."
                   className="min-h-[100px]"
                 />
-                <div className="flex justify-between items-center">
+                <div className="flex items-center justify-between">
                   <div className="flex gap-2">
-                    <Button variant="outline" size="sm">Add Internal Note</Button>
+                    <Button variant="outline" size="sm">
+                      Add Internal Note
+                    </Button>
                   </div>
                   <Button className="flex items-center gap-2">
                     <Send className="h-4 w-4" /> Send Reply
@@ -108,19 +151,29 @@ export default async function SupportTicketDetailPage({ params }: { params: Prom
             <CardContent className="space-y-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Assigned To</span>
-                <span className="font-medium">{ticket.assigned_agent_id ? 'Assigned' : 'Unassigned'}</span>
+                <span className="font-medium">
+                  {ticket.assigned_agent_id ? "Assigned" : "Unassigned"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">SLA Target</span>
-                <span className="font-medium text-rose-500">{ticket.sla_breach_at ? new Date(ticket.sla_breach_at).toLocaleString() : 'N/A'}</span>
+                <span className="font-medium text-rose-500">
+                  {ticket.sla_breach_at
+                    ? new Date(ticket.sla_breach_at).toLocaleString()
+                    : "N/A"}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Category</span>
-                <span className="font-medium capitalize">{ticket.category}</span>
+                <span className="font-medium capitalize">
+                  {ticket.category}
+                </span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Created</span>
-                <span className="font-medium">{new Date(ticket.created_at).toLocaleDateString()}</span>
+                <span className="font-medium">
+                  {new Date(ticket.created_at).toLocaleDateString()}
+                </span>
               </div>
             </CardContent>
           </Card>
@@ -130,30 +183,36 @@ export default async function SupportTicketDetailPage({ params }: { params: Prom
               <CardTitle className="text-lg">Customer Info</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
-              <div className="flex items-center gap-3 mb-2">
+              <div className="mb-2 flex items-center gap-3">
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback>{customer.first_name?.charAt(0) || 'C'}</AvatarFallback>
+                  <AvatarFallback>
+                    {customer.first_name?.charAt(0) || "C"}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">{customer.first_name} {customer.last_name}</p>
-                  <p className="text-xs text-muted-foreground">{customer.email}</p>
+                  <p className="font-medium">
+                    {customer.first_name} {customer.last_name}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {customer.email}
+                  </p>
                 </div>
               </div>
               <Separator />
-              <div className="pt-2 space-y-2">
+              <div className="space-y-2 pt-2">
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Phone</span>
-                  <span className="font-medium">{customer.phone || 'N/A'}</span>
+                  <span className="font-medium">{customer.phone || "N/A"}</span>
                 </div>
               </div>
               <Link href={`/admin/customers/${ticket.profile_id}`}>
-                <Button variant="outline" className="w-full mt-2" size="sm">
+                <Button variant="outline" className="mt-2 w-full" size="sm">
                   View Full Profile
                 </Button>
               </Link>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader>
               <CardTitle className="text-lg">Related Order</CardTitle>
@@ -161,10 +220,12 @@ export default async function SupportTicketDetailPage({ params }: { params: Prom
             <CardContent className="space-y-4 text-sm">
               {ticket.order_id ? (
                 <>
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-blue-600 hover:underline cursor-pointer">Order {ticket.order_id}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="cursor-pointer font-medium text-blue-600 hover:underline">
+                      Order {ticket.order_id}
+                    </span>
                   </div>
-                  <Button variant="secondary" className="w-full mt-2" size="sm">
+                  <Button variant="secondary" className="mt-2 w-full" size="sm">
                     Open Order Details
                   </Button>
                 </>

@@ -15,14 +15,20 @@ interface ProductCardProps {
 }
 
 export function ProductCard({ product, className }: ProductCardProps) {
-  const { wishlist, addItem: addWishlistItem, removeItemByProductId } = useWishlistStore();
+  const {
+    wishlist,
+    addItem: addWishlistItem,
+    removeItemByProductId,
+  } = useWishlistStore();
   const { addItem: addCartItem } = useCartStore();
-  
-  const primaryImage = product.product_media?.find((img: any) => img.is_primary)?.url 
-    || product.product_media?.[0]?.url 
-    || "/images/placeholder.webp"; // Fallback image
 
-  const isWished = wishlist?.items?.some((item) => item.product_id === product.id) || false;
+  const primaryImage =
+    product.product_media?.find((img: any) => img.is_primary)?.url ||
+    product.product_media?.[0]?.url ||
+    "/images/placeholder.webp"; // Fallback image
+
+  const isWished =
+    wishlist?.items?.some((item) => item.product_id === product.id) || false;
 
   const handleToggleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
@@ -39,9 +45,17 @@ export function ProductCard({ product, className }: ProductCardProps) {
   };
 
   return (
-    <div className={cn("group relative flex flex-col gap-3 rounded-lg border bg-card p-4 transition-all hover:shadow-md", className)}>
+    <div
+      className={cn(
+        "group relative flex flex-col gap-3 rounded-lg border bg-card p-4 transition-all hover:shadow-md",
+        className
+      )}
+    >
       <div className="relative aspect-square overflow-hidden rounded-md bg-muted">
-        <Link href={`/products/${product.slug}`} className="block h-full w-full">
+        <Link
+          href={`/products/${product.slug}`}
+          className="block h-full w-full"
+        >
           <Image
             src={primaryImage}
             alt={product.name}
@@ -50,58 +64,75 @@ export function ProductCard({ product, className }: ProductCardProps) {
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         </Link>
-        
+
         {/* Badges */}
-        <div className="absolute top-2 left-2 flex flex-col gap-2">
-          {product.status === 'NEW' && <Badge variant="default">New</Badge>}
-          {product.discount > 0 && <Badge variant="destructive">-{product.discount}%</Badge>}
+        <div className="absolute left-2 top-2 flex flex-col gap-2">
+          {product.status === "NEW" && <Badge variant="default">New</Badge>}
+          {product.discount > 0 && (
+            <Badge variant="destructive">-{product.discount}%</Badge>
+          )}
         </div>
 
         {/* Quick Actions */}
-        <div className="absolute top-2 right-2 flex flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-          <Button 
-            variant="secondary" 
-            size="icon" 
+        <div className="absolute right-2 top-2 flex flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100">
+          <Button
+            variant="secondary"
+            size="icon"
             className="h-8 w-8 rounded-full shadow-sm"
             onClick={handleToggleWishlist}
           >
-            <Heart className={cn("h-4 w-4", isWished && "fill-primary text-primary")} />
+            <Heart
+              className={cn("h-4 w-4", isWished && "fill-primary text-primary")}
+            />
             <span className="sr-only">Wishlist</span>
           </Button>
         </div>
-        
+
         <div className="absolute bottom-2 left-2 right-2 opacity-0 transition-opacity group-hover:opacity-100">
-          <Button variant="default" className="w-full h-9 shadow-sm" onClick={handleQuickAdd}>
-            <ShoppingCart className="h-4 w-4 mr-2" />
+          <Button
+            variant="default"
+            className="h-9 w-full shadow-sm"
+            onClick={handleQuickAdd}
+          >
+            <ShoppingCart className="mr-2 h-4 w-4" />
             Quick Add
           </Button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-1 flex-1">
+      <div className="flex flex-1 flex-col gap-1">
         <div className="flex items-start justify-between gap-2">
           <div>
             {product.brands?.name && (
-              <p className="text-xs text-muted-foreground font-medium uppercase tracking-wider">{product.brands.name}</p>
+              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                {product.brands.name}
+              </p>
             )}
             <Link href={`/products/${product.slug}`}>
-              <h3 className="font-medium leading-tight line-clamp-2 hover:text-primary transition-colors">
+              <h3 className="line-clamp-2 font-medium leading-tight transition-colors hover:text-primary">
                 {product.name}
               </h3>
             </Link>
           </div>
           <div className="text-right">
-            <p className="font-semibold">${Number(product.base_price).toFixed(2)}</p>
+            <p className="font-semibold">
+              ${Number(product.base_price).toFixed(2)}
+            </p>
           </div>
         </div>
-        
+
         {product.average_rating > 0 && (
-          <div className="flex items-center gap-1 mt-auto pt-2">
+          <div className="mt-auto flex items-center gap-1 pt-2">
             <div className="flex items-center text-amber-400">
               {Array.from({ length: 5 }).map((_, i) => (
                 <svg
                   key={i}
-                  className={cn("w-3 h-3", i < Math.floor(product.average_rating) ? "fill-current" : "fill-muted text-muted")}
+                  className={cn(
+                    "h-3 w-3",
+                    i < Math.floor(product.average_rating)
+                      ? "fill-current"
+                      : "fill-muted text-muted"
+                  )}
                   xmlns="http://www.w3.org/2000/svg"
                   viewBox="0 0 24 24"
                 >
@@ -109,7 +140,9 @@ export function ProductCard({ product, className }: ProductCardProps) {
                 </svg>
               ))}
             </div>
-            <span className="text-xs text-muted-foreground ml-1">({product.average_rating})</span>
+            <span className="ml-1 text-xs text-muted-foreground">
+              ({product.average_rating})
+            </span>
           </div>
         )}
       </div>

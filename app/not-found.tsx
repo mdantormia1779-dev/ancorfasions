@@ -1,13 +1,13 @@
-import Link from 'next/link';
+import Link from "next/link";
 
 export default function NotFound() {
   return (
     <div className="flex h-[calc(100vh-4rem)] flex-col items-center justify-center gap-4">
       <h2 className="text-4xl font-bold">404</h2>
       <p className="text-xl text-muted-foreground">Page not found</p>
-      <Link 
+      <Link
         href="/"
-        className="px-4 py-2 mt-4 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+        className="mt-4 rounded-md bg-primary px-4 py-2 text-primary-foreground transition-colors hover:bg-primary/90"
       >
         Return Home
       </Link>

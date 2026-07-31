@@ -1,28 +1,57 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import Link from 'next/link';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import Link from "next/link";
 
 export const metadata = {
-  title: 'Customer Management | Admin',
+  title: "Customer Management | Admin",
 };
 
 export default function AdminCustomersPage() {
   const customers = [
-    { id: 'usr-1', name: 'John Doe', email: 'john@example.com', tier: 'VIP', status: 'Active', totalSpent: 45000 },
-    { id: 'usr-2', name: 'Jane Smith', email: 'jane@example.com', tier: 'GOLD', status: 'Active', totalSpent: 12000 },
-    { id: 'usr-3', name: 'Bob Wilson', email: 'bob@example.com', tier: 'SILVER', status: 'Suspended', totalSpent: 1500 },
+    {
+      id: "usr-1",
+      name: "John Doe",
+      email: "john@example.com",
+      tier: "VIP",
+      status: "Active",
+      totalSpent: 45000,
+    },
+    {
+      id: "usr-2",
+      name: "Jane Smith",
+      email: "jane@example.com",
+      tier: "GOLD",
+      status: "Active",
+      totalSpent: 12000,
+    },
+    {
+      id: "usr-3",
+      name: "Bob Wilson",
+      email: "bob@example.com",
+      tier: "SILVER",
+      status: "Suspended",
+      totalSpent: 1500,
+    },
   ];
 
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 p-8">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
-          <p className="text-muted-foreground mt-2">
-            Manage your enterprise customers, view their loyalty tiers and wallets.
+          <p className="mt-2 text-muted-foreground">
+            Manage your enterprise customers, view their loyalty tiers and
+            wallets.
           </p>
         </div>
       </div>
@@ -48,10 +77,13 @@ export default function AdminCustomersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {customers.map(c => (
+              {customers.map((c) => (
                 <TableRow key={c.id}>
                   <TableCell className="font-medium">
-                    <Link href={`/customers/${c.id}`} className="hover:underline text-blue-600">
+                    <Link
+                      href={`/customers/${c.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
                       {c.name}
                     </Link>
                   </TableCell>
@@ -60,7 +92,13 @@ export default function AdminCustomersPage() {
                     <Badge variant="outline">{c.tier}</Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={c.status === 'Active' ? 'default' : 'destructive'}>{c.status}</Badge>
+                    <Badge
+                      variant={
+                        c.status === "Active" ? "default" : "destructive"
+                      }
+                    >
+                      {c.status}
+                    </Badge>
                   </TableCell>
                   <TableCell>{c.totalSpent.toLocaleString()}</TableCell>
                   <TableCell className="text-right">

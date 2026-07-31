@@ -1,10 +1,10 @@
-'use client';
+"use client";
 
 // ============================================================================
 // Shipping Hooks — TanStack Query
 // ============================================================================
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchShipmentsAction,
   fetchShipmentByIdAction,
@@ -15,17 +15,17 @@ import {
   refreshTrackingAction,
   createShipmentAction,
   reassignCourierAction,
-} from '@/actions/shipping.actions';
-import { ShipmentFilters } from '@/types/shipping.types';
+} from "@/actions/shipping.actions";
+import { ShipmentFilters } from "@/types/shipping.types";
 
 // ============================================================================
 // Query Keys
 // ============================================================================
 
 export const shipmentKeys = {
-  all: ['shipments'] as const,
-  list: (filters: ShipmentFilters) => ['shipments', 'list', filters] as const,
-  detail: (id: string) => ['shipments', 'detail', id] as const,
+  all: ["shipments"] as const,
+  list: (filters: ShipmentFilters) => ["shipments", "list", filters] as const,
+  detail: (id: string) => ["shipments", "detail", id] as const,
 };
 
 // ============================================================================
@@ -50,7 +50,7 @@ export function useShipments(filters: ShipmentFilters = {}) {
 
 export function useShipmentDetail(shipmentId: string | undefined) {
   return useQuery({
-    queryKey: shipmentKeys.detail(shipmentId ?? ''),
+    queryKey: shipmentKeys.detail(shipmentId ?? ""),
     queryFn: async () => {
       const res = await fetchShipmentByIdAction(shipmentId!);
       if (!res.success) throw new Error(res.error);
@@ -69,14 +69,20 @@ export function useAssignCourier() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async (input: { shipmentId: string; courierProviderCode: string; autoSubmit?: boolean }) => {
+    mutationFn: async (input: {
+      shipmentId: string;
+      courierProviderCode: string;
+      autoSubmit?: boolean;
+    }) => {
       const res = await assignCourierAction(input as any);
       if (!res.success) throw new Error(res.error);
       return res.data;
     },
     onSuccess: (_, variables) => {
       qc.invalidateQueries({ queryKey: shipmentKeys.all });
-      qc.invalidateQueries({ queryKey: shipmentKeys.detail(variables.shipmentId) });
+      qc.invalidateQueries({
+        queryKey: shipmentKeys.detail(variables.shipmentId),
+      });
     },
   });
 }
@@ -89,7 +95,13 @@ export function useReassignCourier() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ shipmentId, courierCode }: { shipmentId: string; courierCode: string }) => {
+    mutationFn: async ({
+      shipmentId,
+      courierCode,
+    }: {
+      shipmentId: string;
+      courierCode: string;
+    }) => {
       const res = await reassignCourierAction(shipmentId, courierCode);
       if (!res.success) throw new Error(res.error);
       return res.data;
@@ -109,7 +121,13 @@ export function useCancelShipment() {
   const qc = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ shipmentId, reason }: { shipmentId: string; reason?: string }) => {
+    mutationFn: async ({
+      shipmentId,
+      reason,
+    }: {
+      shipmentId: string;
+      reason?: string;
+    }) => {
       const res = await cancelShipmentAction({ shipmentId, reason });
       if (!res.success) throw new Error(res.error);
       return res.data;

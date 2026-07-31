@@ -1,8 +1,8 @@
-'use server';
+"use server";
 
-import { blogService } from '@/services/blog.service';
-import { BlogPost, BlogCategory, BlogTag } from '@/types/blog.types';
-import { revalidatePath } from 'next/cache';
+import { blogService } from "@/services/blog.service";
+import { BlogPost, BlogCategory, BlogTag } from "@/types/blog.types";
+import { revalidatePath } from "next/cache";
 
 export async function getPosts(status?: string): Promise<BlogPost[]> {
   return await blogService.getPosts(status);
@@ -14,15 +14,15 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
 
 export async function createPost(data: unknown): Promise<BlogPost> {
   const post = await blogService.createPost(data);
-  revalidatePath('/admin/blog');
-  revalidatePath('/blog');
+  revalidatePath("/admin/blog");
+  revalidatePath("/blog");
   return post;
 }
 
 export async function updatePost(id: string, data: unknown): Promise<BlogPost> {
   const post = await blogService.updatePost(id, data);
-  revalidatePath('/admin/blog');
-  revalidatePath('/blog');
+  revalidatePath("/admin/blog");
+  revalidatePath("/blog");
   if (post.slug) {
     revalidatePath(`/blog/${post.slug}`);
   }
@@ -31,8 +31,8 @@ export async function updatePost(id: string, data: unknown): Promise<BlogPost> {
 
 export async function deletePost(id: string): Promise<void> {
   await blogService.deletePost(id);
-  revalidatePath('/admin/blog');
-  revalidatePath('/blog');
+  revalidatePath("/admin/blog");
+  revalidatePath("/blog");
 }
 
 export async function getCategories(): Promise<BlogCategory[]> {

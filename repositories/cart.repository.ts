@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server-client';
-import { Cart, CartItem } from '@/types/checkout.types';
+import { createClient } from "@/lib/supabase/server-client";
+import { Cart, CartItem } from "@/types/checkout.types";
 
 export class CartRepository {
   /**
@@ -8,22 +8,24 @@ export class CartRepository {
   async getCartById(cartId: string): Promise<Cart | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('carts')
-      .select(`
+      .from("carts")
+      .select(
+        `
         *,
         items:cart_items(
           *,
           product:products(id, title, slug, price, sale_price, main_image_url, stock_quantity),
           variant:product_variants(id, sku, price, sale_price, stock_quantity, attributes)
         )
-      `)
-      .eq('id', cartId)
+      `
+      )
+      .eq("id", cartId)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // Not found
-      console.error('Error fetching cart:', error);
-      throw new Error('Failed to fetch cart');
+      if (error.code === "PGRST116") return null; // Not found
+      console.error("Error fetching cart:", error);
+      throw new Error("Failed to fetch cart");
     }
 
     return data as Cart;
@@ -35,22 +37,24 @@ export class CartRepository {
   async getCartByUserId(userId: string): Promise<Cart | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('carts')
-      .select(`
+      .from("carts")
+      .select(
+        `
         *,
         items:cart_items(
           *,
           product:products(id, title, slug, price, sale_price, main_image_url, stock_quantity),
           variant:product_variants(id, sku, price, sale_price, stock_quantity, attributes)
         )
-      `)
-      .eq('user_id', userId)
+      `
+      )
+      .eq("user_id", userId)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null;
-      console.error('Error fetching user cart:', error);
-      throw new Error('Failed to fetch user cart');
+      if (error.code === "PGRST116") return null;
+      console.error("Error fetching user cart:", error);
+      throw new Error("Failed to fetch user cart");
     }
 
     return data as Cart;
@@ -62,7 +66,7 @@ export class CartRepository {
   async createCart(userId?: string, sessionId?: string): Promise<Cart> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('carts')
+      .from("carts")
       .insert({
         user_id: userId || null,
         session_id: sessionId || null,
@@ -71,8 +75,8 @@ export class CartRepository {
       .single();
 
     if (error) {
-      console.error('Error creating cart:', error);
-      throw new Error('Failed to create cart');
+      console.error("Error creating cart:", error);
+      throw new Error("Failed to create cart");
     }
 
     return data as Cart;
@@ -83,71 +87,76 @@ export class CartRepository {
    */
   async mergeCart(guestCartId: string, userId: string): Promise<void> {
     const supabase = await createClient();
-    
+
     // Check if user already has a cart
     let userCart = await this.getCartByUserId(userId);
-    
+
     if (!userCart) {
       // Just update the guest cart to belong to user
       const { error } = await supabase
-        .from('carts')
+        .from("carts")
         .update({ user_id: userId, session_id: null })
-        .eq('id', guestCartId);
-        
-      if (error) throw new Error('Failed to merge cart');
+        .eq("id", guestCartId);
+
+      if (error) throw new Error("Failed to merge cart");
       return;
     }
 
     // Move all items from guest cart to user cart
     const { data: guestItems } = await supabase
-      .from('cart_items')
-      .select('*')
-      .eq('cart_id', guestCartId);
+      .from("cart_items")
+      .select("*")
+      .eq("cart_id", guestCartId);
 
     if (guestItems && guestItems.length > 0) {
       for (const item of guestItems) {
         // Check if item already exists in user cart
         const { data: existingItem } = await supabase
-          .from('cart_items')
-          .select('id, quantity')
-          .eq('cart_id', userCart.id)
-          .eq('product_id', item.product_id)
-          .eq('variant_id', item.variant_id || null)
+          .from("cart_items")
+          .select("id, quantity")
+          .eq("cart_id", userCart.id)
+          .eq("product_id", item.product_id)
+          .eq("variant_id", item.variant_id || null)
           .single();
 
         if (existingItem) {
           // Add quantities
           await supabase
-            .from('cart_items')
+            .from("cart_items")
             .update({ quantity: existingItem.quantity + item.quantity })
-            .eq('id', existingItem.id);
+            .eq("id", existingItem.id);
         } else {
           // Reassign cart_id
           await supabase
-            .from('cart_items')
+            .from("cart_items")
             .update({ cart_id: userCart.id })
-            .eq('id', item.id);
+            .eq("id", item.id);
         }
       }
     }
 
     // Delete guest cart
-    await supabase.from('carts').delete().eq('id', guestCartId);
+    await supabase.from("carts").delete().eq("id", guestCartId);
   }
 
   /**
    * Add item to cart
    */
-  async addItem(cartId: string, productId: string, quantity: number, variantId?: string): Promise<CartItem> {
+  async addItem(
+    cartId: string,
+    productId: string,
+    quantity: number,
+    variantId?: string
+  ): Promise<CartItem> {
     const supabase = await createClient();
-    
+
     // Check if already exists
     const { data: existing } = await supabase
-      .from('cart_items')
-      .select('id, quantity')
-      .eq('cart_id', cartId)
-      .eq('product_id', productId)
-      .eq(variantId ? 'variant_id' : 'variant_id', variantId ? variantId : null)
+      .from("cart_items")
+      .select("id, quantity")
+      .eq("cart_id", cartId)
+      .eq("product_id", productId)
+      .eq(variantId ? "variant_id" : "variant_id", variantId ? variantId : null)
       .single();
 
     if (existing) {
@@ -155,7 +164,7 @@ export class CartRepository {
     }
 
     const { data, error } = await supabase
-      .from('cart_items')
+      .from("cart_items")
       .insert({
         cart_id: cartId,
         product_id: productId,
@@ -166,8 +175,8 @@ export class CartRepository {
       .single();
 
     if (error) {
-      console.error('Error adding cart item:', error);
-      throw new Error('Failed to add item to cart');
+      console.error("Error adding cart item:", error);
+      throw new Error("Failed to add item to cart");
     }
 
     return data as CartItem;
@@ -176,18 +185,21 @@ export class CartRepository {
   /**
    * Update item quantity
    */
-  async updateItemQuantity(itemId: string, quantity: number): Promise<CartItem> {
+  async updateItemQuantity(
+    itemId: string,
+    quantity: number
+  ): Promise<CartItem> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('cart_items')
+      .from("cart_items")
       .update({ quantity })
-      .eq('id', itemId)
+      .eq("id", itemId)
       .select()
       .single();
 
     if (error) {
-      console.error('Error updating cart item:', error);
-      throw new Error('Failed to update item quantity');
+      console.error("Error updating cart item:", error);
+      throw new Error("Failed to update item quantity");
     }
 
     return data as CartItem;
@@ -199,13 +211,13 @@ export class CartRepository {
   async removeItem(itemId: string): Promise<void> {
     const supabase = await createClient();
     const { error } = await supabase
-      .from('cart_items')
+      .from("cart_items")
       .delete()
-      .eq('id', itemId);
+      .eq("id", itemId);
 
     if (error) {
-      console.error('Error removing cart item:', error);
-      throw new Error('Failed to remove item from cart');
+      console.error("Error removing cart item:", error);
+      throw new Error("Failed to remove item from cart");
     }
   }
 
@@ -215,13 +227,13 @@ export class CartRepository {
   async clearCart(cartId: string): Promise<void> {
     const supabase = await createClient();
     const { error } = await supabase
-      .from('cart_items')
+      .from("cart_items")
       .delete()
-      .eq('cart_id', cartId);
+      .eq("cart_id", cartId);
 
     if (error) {
-      console.error('Error clearing cart:', error);
-      throw new Error('Failed to clear cart');
+      console.error("Error clearing cart:", error);
+      throw new Error("Failed to clear cart");
     }
   }
 }

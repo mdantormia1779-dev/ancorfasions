@@ -1,18 +1,27 @@
-import { createAdminClient } from '@/lib/supabase/server';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { createAdminClient } from "@/lib/supabase/server";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export const revalidate = 0;
 
 export default async function RefundsPage() {
   const supabase = await createAdminClient();
   const { data: refunds, error } = await supabase
-    .from('payment_refunds')
-    .select(`
+    .from("payment_refunds")
+    .select(
+      `
       *,
       payment_transactions (reference_number, order_id)
-    `)
-    .order('created_at', { ascending: false })
+    `
+    )
+    .order("created_at", { ascending: false })
     .limit(50);
 
   if (error) {
@@ -39,20 +48,33 @@ export default async function RefundsPage() {
           <TableBody>
             {refunds?.map((refund) => (
               <TableRow key={refund.id}>
-                <TableCell className="font-mono text-xs">{refund.payment_transactions?.reference_number}</TableCell>
+                <TableCell className="font-mono text-xs">
+                  {refund.payment_transactions?.reference_number}
+                </TableCell>
                 <TableCell>{refund.amount}</TableCell>
                 <TableCell>{refund.reason}</TableCell>
                 <TableCell>
-                  <Badge variant={refund.status === 'completed' ? 'default' : (refund.status === 'failed' || refund.status === 'rejected' ? 'destructive' : 'secondary')}>
+                  <Badge
+                    variant={
+                      refund.status === "completed"
+                        ? "default"
+                        : refund.status === "failed" ||
+                            refund.status === "rejected"
+                          ? "destructive"
+                          : "secondary"
+                    }
+                  >
                     {refund.status}
                   </Badge>
                 </TableCell>
-                <TableCell>{new Date(refund.created_at).toLocaleString()}</TableCell>
+                <TableCell>
+                  {new Date(refund.created_at).toLocaleString()}
+                </TableCell>
               </TableRow>
             ))}
             {(!refunds || refunds.length === 0) && (
               <TableRow>
-                <TableCell colSpan={5} className="text-center h-24">
+                <TableCell colSpan={5} className="h-24 text-center">
                   No refunds found.
                 </TableCell>
               </TableRow>

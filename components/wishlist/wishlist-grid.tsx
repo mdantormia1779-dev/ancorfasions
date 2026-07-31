@@ -1,15 +1,16 @@
-'use client';
+"use client";
 
-import { useWishlistStore } from '@/stores/use-wishlist-store';
-import Image from 'next/image';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { ShoppingCart, Trash2, Heart } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils';
-import { useEffect } from 'react';
+import { useWishlistStore } from "@/stores/use-wishlist-store";
+import Image from "next/image";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { ShoppingCart, Trash2, Heart } from "lucide-react";
+import { formatCurrency } from "@/lib/utils";
+import { useEffect } from "react";
 
 export function WishlistGrid() {
-  const { wishlist, fetchWishlist, removeItem, moveToCart, isLoading } = useWishlistStore();
+  const { wishlist, fetchWishlist, removeItem, moveToCart, isLoading } =
+    useWishlistStore();
 
   useEffect(() => {
     fetchWishlist();
@@ -17,12 +18,12 @@ export function WishlistGrid() {
 
   if (isLoading && (!wishlist || !wishlist.items)) {
     return (
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
         {[...Array(4)].map((_, i) => (
-          <div key={i} className="flex flex-col space-y-3 animate-pulse">
-            <div className="bg-slate-200 dark:bg-slate-800 h-64 rounded-xl" />
-            <div className="bg-slate-200 dark:bg-slate-800 h-4 w-2/3" />
-            <div className="bg-slate-200 dark:bg-slate-800 h-4 w-1/3" />
+          <div key={i} className="flex animate-pulse flex-col space-y-3">
+            <div className="h-64 rounded-xl bg-slate-200 dark:bg-slate-800" />
+            <div className="h-4 w-2/3 bg-slate-200 dark:bg-slate-800" />
+            <div className="h-4 w-1/3 bg-slate-200 dark:bg-slate-800" />
           </div>
         ))}
       </div>
@@ -33,10 +34,12 @@ export function WishlistGrid() {
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[400px] text-center border rounded-xl border-dashed">
-        <Heart className="w-16 h-16 text-slate-300 mb-4" />
-        <h3 className="text-xl font-semibold mb-2">Your wishlist is empty</h3>
-        <p className="text-slate-500 mb-6">Save items you love and buy them later.</p>
+      <div className="flex min-h-[400px] flex-col items-center justify-center rounded-xl border border-dashed text-center">
+        <Heart className="mb-4 h-16 w-16 text-slate-300" />
+        <h3 className="mb-2 text-xl font-semibold">Your wishlist is empty</h3>
+        <p className="mb-6 text-slate-500">
+          Save items you love and buy them later.
+        </p>
         <Button>
           <Link href="/products">Explore Products</Link>
         </Button>
@@ -45,47 +48,54 @@ export function WishlistGrid() {
   }
 
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-      {items.map(item => {
+    <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+      {items.map((item) => {
         const product = item.product as any;
-        const title = product?.name || product?.title || 'Unknown Product';
+        const title = product?.name || product?.title || "Unknown Product";
         const price = product?.base_price || product?.price || 0;
-        const image = product?.product_media?.find((m: any) => m.is_primary)?.url || 
-                      product?.product_media?.[0]?.url || 
-                      product?.main_image_url ||
-                      '/images/placeholder.webp';
-        const slug = product?.slug || '#';
+        const image =
+          product?.product_media?.find((m: any) => m.is_primary)?.url ||
+          product?.product_media?.[0]?.url ||
+          product?.main_image_url ||
+          "/images/placeholder.webp";
+        const slug = product?.slug || "#";
 
         return (
-          <div key={item.id} className="group relative border rounded-xl p-4 transition-shadow hover:shadow-lg bg-white dark:bg-slate-950">
-            <div className="relative aspect-square mb-4 overflow-hidden rounded-md bg-slate-100">
-              <Image 
+          <div
+            key={item.id}
+            className="group relative rounded-xl border bg-white p-4 transition-shadow hover:shadow-lg dark:bg-slate-950"
+          >
+            <div className="relative mb-4 aspect-square overflow-hidden rounded-md bg-slate-100">
+              <Image
                 src={image}
                 alt={title}
                 fill
                 className="object-cover transition-transform group-hover:scale-105"
               />
-              <button 
+              <button
                 onClick={() => removeItem(item.id)}
-                className="absolute top-2 right-2 p-2 bg-white/80 dark:bg-black/50 rounded-full hover:text-rose-500 transition-colors"
+                className="absolute right-2 top-2 rounded-full bg-white/80 p-2 transition-colors hover:text-rose-500 dark:bg-black/50"
                 title="Remove from Wishlist"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="h-4 w-4" />
               </button>
             </div>
-            
-            <div className="space-y-1 mb-4">
-              <Link href={`/product/${slug}`} className="font-medium hover:underline line-clamp-1">
+
+            <div className="mb-4 space-y-1">
+              <Link
+                href={`/product/${slug}`}
+                className="line-clamp-1 font-medium hover:underline"
+              >
                 {title}
               </Link>
               <p className="text-sm font-semibold">{formatCurrency(price)}</p>
             </div>
-            
-            <Button 
-              className="w-full" 
+
+            <Button
+              className="w-full"
               onClick={() => moveToCart(item.id, item.product_id)}
             >
-              <ShoppingCart className="w-4 h-4 mr-2" />
+              <ShoppingCart className="mr-2 h-4 w-4" />
               Move to Cart
             </Button>
           </div>

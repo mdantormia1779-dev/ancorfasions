@@ -1,6 +1,7 @@
 # Anchor Fashion - Development Setup Guide
 
 ## Prerequisites
+
 - **Node.js**: Version 20.x or higher
 - **Package Manager**: npm (or pnpm/yarn)
 - **Supabase Account**: You must have access to the Anchor Fashion Supabase project, or create a new one for local development.
@@ -12,7 +13,8 @@ git clone <repository-url>
 cd anchor-fashion
 npm install --legacy-peer-deps
 ```
-*(Note: `--legacy-peer-deps` is required due to some UI component libraries expecting React 18 while we are on React 19)*
+
+_(Note: `--legacy-peer-deps` is required due to some UI component libraries expecting React 18 while we are on React 19)_
 
 ## 2. Environment Variables
 
@@ -47,5 +49,6 @@ npm run start
 ```
 
 ## Common Issues
+
 - **Compile Errors**: Ensure you have run `npm install --legacy-peer-deps` correctly.
 - **Supabase Auth / Data fetching fails**: Verify your `.env.local` keys are exact and that your local/remote Supabase instance has the necessary schemas/migrations.

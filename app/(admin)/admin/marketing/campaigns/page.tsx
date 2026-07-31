@@ -1,29 +1,36 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Bot, Send, CalendarIcon, Wand2 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useState } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Bot, Send, CalendarIcon, Wand2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function CampaignBuilderPage() {
   const [aiGenerating, setAiGenerating] = useState(false);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
+    <div className="mx-auto max-w-5xl space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Campaign Builder</h1>
-        <p className="text-muted-foreground mt-1">
+        <p className="mt-1 text-muted-foreground">
           Create, schedule, and send targeted marketing campaigns.
         </p>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-6">
-        <div className="md:col-span-2 space-y-6">
+      <div className="grid gap-6 md:grid-cols-3">
+        <div className="space-y-6 md:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Campaign Details</CardTitle>
@@ -49,10 +56,16 @@ export default function CampaignBuilderPage() {
             <CardHeader className="flex flex-row items-center justify-between">
               <div>
                 <CardTitle>Content</CardTitle>
-                <CardDescription>Draft your email or push notification.</CardDescription>
+                <CardDescription>
+                  Draft your email or push notification.
+                </CardDescription>
               </div>
-              <Button variant="outline" size="sm" className="bg-primary/5 text-primary border-primary/20">
-                <Wand2 className="h-4 w-4 mr-2" />
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-primary/20 bg-primary/5 text-primary"
+              >
+                <Wand2 className="mr-2 h-4 w-4" />
                 AI Generate
               </Button>
             </CardHeader>
@@ -69,8 +82,8 @@ export default function CampaignBuilderPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Email Body</Label>
-                    <Textarea 
-                      placeholder="Write your email content here (HTML supported)..." 
+                    <Textarea
+                      placeholder="Write your email content here (HTML supported)..."
                       className="min-h-[300px] font-mono text-sm"
                     />
                   </div>
@@ -82,8 +95,8 @@ export default function CampaignBuilderPage() {
                   </div>
                   <div className="space-y-2">
                     <Label>Push Message</Label>
-                    <Textarea 
-                      placeholder="Tap to shop our exclusive new arrivals before they sell out." 
+                    <Textarea
+                      placeholder="Tap to shop our exclusive new arrivals before they sell out."
                       className="min-h-[100px]"
                     />
                   </div>
@@ -99,21 +112,31 @@ export default function CampaignBuilderPage() {
               <CardTitle>AI Assistant</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="bg-muted p-4 rounded-lg text-sm">
-                <div className="flex items-center gap-2 font-medium mb-2">
+              <div className="rounded-lg bg-muted p-4 text-sm">
+                <div className="mb-2 flex items-center gap-2 font-medium">
                   <Bot className="h-4 w-4" /> Gemini AI Suggestions
                 </div>
-                <p className="text-muted-foreground mb-4">
-                  I can analyze your target segment and product catalog to write high-converting copy.
+                <p className="mb-4 text-muted-foreground">
+                  I can analyze your target segment and product catalog to write
+                  high-converting copy.
                 </p>
                 <div className="space-y-2">
-                  <Button variant="secondary" className="w-full text-xs justify-start h-8">
+                  <Button
+                    variant="secondary"
+                    className="h-8 w-full justify-start text-xs"
+                  >
                     Suggest subject lines for VIPs
                   </Button>
-                  <Button variant="secondary" className="w-full text-xs justify-start h-8">
+                  <Button
+                    variant="secondary"
+                    className="h-8 w-full justify-start text-xs"
+                  >
                     Draft a FOMO push notification
                   </Button>
-                  <Button variant="secondary" className="w-full text-xs justify-start h-8">
+                  <Button
+                    variant="secondary"
+                    className="h-8 w-full justify-start text-xs"
+                  >
                     Translate content to Spanish
                   </Button>
                 </div>

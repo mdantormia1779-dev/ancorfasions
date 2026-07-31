@@ -32,7 +32,7 @@ export interface AILogEntry {
   totalTokens: number;
   latencyMs: number;
   costEstimatedUsd: number;
-  status: 'success' | 'error' | 'timeout';
+  status: "success" | "error" | "timeout";
   errorMessage?: string;
 }
 
@@ -42,7 +42,7 @@ export interface AIGovernanceAction {
   suggestedByModel: string;
   payload: Record<string, any>;
   confidenceScore: number;
-  status: 'PENDING_REVIEW' | 'APPROVED' | 'REJECTED';
+  status: "PENDING_REVIEW" | "APPROVED" | "REJECTED";
   reviewedBy?: string;
   reviewedAt?: string;
 }

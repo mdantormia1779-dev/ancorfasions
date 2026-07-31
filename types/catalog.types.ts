@@ -1,19 +1,19 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 // ============================================================================
 // ENUMS & CONSTANTS
 // ============================================================================
-export const ProductStatus = z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED']);
-export const Gender = z.enum(['MEN', 'WOMEN', 'UNISEX', 'KIDS']);
-export const MediaType = z.enum(['IMAGE', 'VIDEO', '360_VIEW']);
+export const ProductStatus = z.enum(["DRAFT", "ACTIVE", "ARCHIVED"]);
+export const Gender = z.enum(["MEN", "WOMEN", "UNISEX", "KIDS"]);
+export const MediaType = z.enum(["IMAGE", "VIDEO", "360_VIEW"]);
 
 // ============================================================================
 // BASE SCHEMAS
 // ============================================================================
 export const TagSchema = z.object({
   id: z.string().uuid(),
-  name: z.string().min(1, 'Name is required').max(100),
-  slug: z.string().min(1, 'Slug is required').max(100),
+  name: z.string().min(1, "Name is required").max(100),
+  slug: z.string().min(1, "Slug is required").max(100),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -40,11 +40,14 @@ export const ProductVariantSchema = z.object({
   priceOverride: z.number().min(0).optional().nullable(),
   salePrice: z.number().min(0).optional().nullable(),
   weight: z.number().min(0).optional().nullable(),
-  dimensions: z.object({
-    length: z.number().optional(),
-    width: z.number().optional(),
-    height: z.number().optional(),
-  }).optional().nullable(),
+  dimensions: z
+    .object({
+      length: z.number().optional(),
+      width: z.number().optional(),
+      height: z.number().optional(),
+    })
+    .optional()
+    .nullable(),
   isActive: z.boolean().default(true),
   attributes: z.record(z.string()).optional(), // { Color: 'Red', Size: 'M' }
 });
@@ -58,13 +61,13 @@ export const ProductMediaSchema = z.object({
   altText: z.string().max(255).optional().nullable(),
   displayOrder: z.number().default(0),
   isPrimary: z.boolean().default(false),
-  mediaType: MediaType.default('IMAGE'),
+  mediaType: MediaType.default("IMAGE"),
 });
 
 export const ProductSchema = z.object({
   id: z.string().uuid(),
-  name: z.string().min(1, 'Product name is required').max(255),
-  slug: z.string().min(1, 'Slug is required').max(255),
+  name: z.string().min(1, "Product name is required").max(255),
+  slug: z.string().min(1, "Slug is required").max(255),
   shortDescription: z.string().max(500).optional().nullable(),
   description: z.string().optional().nullable(),
   categoryId: z.string().uuid(),
@@ -72,7 +75,7 @@ export const ProductSchema = z.object({
   basePrice: z.number().min(0),
   sku: z.string().max(100).optional().nullable(),
   barcode: z.string().max(100).optional().nullable(),
-  status: ProductStatus.default('DRAFT'),
+  status: ProductStatus.default("DRAFT"),
   gender: Gender.optional().nullable(),
   season: z.string().max(50).optional().nullable(),
   careInstructions: z.string().optional().nullable(),
@@ -84,7 +87,7 @@ export const ProductSchema = z.object({
   publishedAt: z.string().optional().nullable(),
   createdAt: z.string(),
   updatedAt: z.string(),
-  
+
   // Relations
   variants: z.array(ProductVariantSchema).optional(),
   media: z.array(ProductMediaSchema).optional(),
@@ -119,10 +122,16 @@ export const CreateProductSchema = ProductSchema.omit({
   seo: true,
   tags: true,
 }).extend({
-  seo: ProductSeoSchema.omit({ id: true, productId: true }).optional().nullable(),
+  seo: ProductSeoSchema.omit({ id: true, productId: true })
+    .optional()
+    .nullable(),
   tags: z.array(z.string().uuid()).optional(), // Tag IDs
-  media: z.array(ProductMediaSchema.omit({ id: true, productId: true })).optional(),
-  variants: z.array(ProductVariantSchema.omit({ id: true, productId: true })).optional(),
+  media: z
+    .array(ProductMediaSchema.omit({ id: true, productId: true }))
+    .optional(),
+  variants: z
+    .array(ProductVariantSchema.omit({ id: true, productId: true }))
+    .optional(),
 });
 
 export type CreateProductInput = z.infer<typeof CreateProductSchema>;

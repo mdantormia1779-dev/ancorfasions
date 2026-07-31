@@ -1,13 +1,18 @@
-import { createClient } from '@/lib/supabase/server';
-import { CRMCustomer, CRMLead, CRMNote, CommunicationLog } from '@/types/crm.types';
+import { createClient } from "@/lib/supabase/server";
+import {
+  CRMCustomer,
+  CRMLead,
+  CRMNote,
+  CommunicationLog,
+} from "@/types/crm.types";
 
 export class CRMRepository {
   async getCustomers(): Promise<CRMCustomer[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('crm_customers')
-      .select('*, customer_profiles(*)')
-      .order('created_at', { ascending: false });
+      .from("crm_customers")
+      .select("*, customer_profiles(*)")
+      .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
     return data;
@@ -16,13 +21,13 @@ export class CRMRepository {
   async getCustomerById(id: string): Promise<CRMCustomer | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('crm_customers')
-      .select('*, customer_profiles(*)')
-      .eq('id', id)
+      .from("crm_customers")
+      .select("*, customer_profiles(*)")
+      .eq("id", id)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // not found
+      if (error.code === "PGRST116") return null; // not found
       throw new Error(error.message);
     }
     return data;
@@ -31,9 +36,9 @@ export class CRMRepository {
   async getLeads(): Promise<CRMLead[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('crm_leads')
-      .select('*')
-      .order('created_at', { ascending: false });
+      .from("crm_leads")
+      .select("*")
+      .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
     return data;
@@ -42,7 +47,7 @@ export class CRMRepository {
   async createLead(leadData: Partial<CRMLead>): Promise<CRMLead> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('crm_leads')
+      .from("crm_leads")
       .insert(leadData)
       .select()
       .single();
@@ -54,9 +59,9 @@ export class CRMRepository {
   async updateLead(id: string, updateData: Partial<CRMLead>): Promise<CRMLead> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('crm_leads')
+      .from("crm_leads")
       .update(updateData)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -66,12 +71,15 @@ export class CRMRepository {
 
   async getNotes(profileId?: string, leadId?: string): Promise<CRMNote[]> {
     const supabase = await createClient();
-    let query = supabase.from('crm_notes').select('*').order('created_at', { ascending: false });
-    
+    let query = supabase
+      .from("crm_notes")
+      .select("*")
+      .order("created_at", { ascending: false });
+
     if (profileId) {
-      query = query.eq('profile_id', profileId);
+      query = query.eq("profile_id", profileId);
     } else if (leadId) {
-      query = query.eq('lead_id', leadId);
+      query = query.eq("lead_id", leadId);
     }
 
     const { data, error } = await query;
@@ -82,7 +90,7 @@ export class CRMRepository {
   async createNote(noteData: Partial<CRMNote>): Promise<CRMNote> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('crm_notes')
+      .from("crm_notes")
       .insert(noteData)
       .select()
       .single();
@@ -91,14 +99,20 @@ export class CRMRepository {
     return data;
   }
 
-  async getCommunicationLogs(profileId?: string, leadId?: string): Promise<CommunicationLog[]> {
+  async getCommunicationLogs(
+    profileId?: string,
+    leadId?: string
+  ): Promise<CommunicationLog[]> {
     const supabase = await createClient();
-    let query = supabase.from('communication_logs').select('*').order('created_at', { ascending: false });
-    
+    let query = supabase
+      .from("communication_logs")
+      .select("*")
+      .order("created_at", { ascending: false });
+
     if (profileId) {
-      query = query.eq('profile_id', profileId);
+      query = query.eq("profile_id", profileId);
     } else if (leadId) {
-      query = query.eq('lead_id', leadId);
+      query = query.eq("lead_id", leadId);
     }
 
     const { data, error } = await query;
@@ -106,10 +120,12 @@ export class CRMRepository {
     return data;
   }
 
-  async createCommunicationLog(logData: Partial<CommunicationLog>): Promise<CommunicationLog> {
+  async createCommunicationLog(
+    logData: Partial<CommunicationLog>
+  ): Promise<CommunicationLog> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('communication_logs')
+      .from("communication_logs")
       .insert(logData)
       .select()
       .single();

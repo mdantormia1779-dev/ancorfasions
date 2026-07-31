@@ -1,4 +1,4 @@
-import { Product } from './product';
+import { Product } from "./product";
 
 export interface CartItem {
   id: string; // Unique ID for the cart item (usually product.id + variants)

@@ -1,6 +1,12 @@
 import { Metadata } from "next";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -20,8 +26,8 @@ export const metadata: Metadata = {
 
 export default function AddProductPage() {
   return (
-    <div className="flex flex-col gap-6 max-w-5xl mx-auto w-full">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="mx-auto flex w-full max-w-5xl flex-col gap-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon">
             <Link href="/manager/products">
@@ -29,8 +35,10 @@ export default function AddProductPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Add New Product</h1>
-            <p className="text-muted-foreground mt-1">
+            <h1 className="text-3xl font-bold tracking-tight">
+              Add New Product
+            </h1>
+            <p className="mt-1 text-muted-foreground">
               Create a new product listing in the catalog.
             </p>
           </div>
@@ -41,8 +49,8 @@ export default function AddProductPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="col-span-1 md:col-span-2 flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="col-span-1 flex flex-col gap-6 md:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Basic Information</CardTitle>
@@ -55,14 +63,18 @@ export default function AddProductPage() {
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <Label htmlFor="description">Description</Label>
-                  <Button variant="ghost" size="sm" className="h-6 text-indigo-600 px-2 py-0">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-6 px-2 py-0 text-indigo-600"
+                  >
                     <Sparkles className="mr-1 h-3 w-3" />
                     AI Generate
                   </Button>
                 </div>
-                <Textarea 
-                  id="description" 
-                  placeholder="Detailed description of the product..." 
+                <Textarea
+                  id="description"
+                  placeholder="Detailed description of the product..."
                   className="min-h-[150px]"
                 />
               </div>
@@ -160,10 +172,14 @@ export default function AddProductPage() {
               <CardDescription>Add product images</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="border-2 border-dashed rounded-lg p-6 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition">
-                <Upload className="h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-sm font-medium">Click to upload or drag and drop</p>
-                <p className="text-xs text-muted-foreground mt-1">SVG, PNG, JPG or GIF (max. 5MB)</p>
+              <div className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed p-6 text-center transition hover:bg-muted/50">
+                <Upload className="mb-2 h-8 w-8 text-muted-foreground" />
+                <p className="text-sm font-medium">
+                  Click to upload or drag and drop
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  SVG, PNG, JPG or GIF (max. 5MB)
+                </p>
               </div>
             </CardContent>
           </Card>

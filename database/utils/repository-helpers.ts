@@ -1,4 +1,4 @@
-import { DbClient } from '../repositories/base.repository';
+import { DbClient } from "../repositories/base.repository";
 
 export interface PaginationOptions {
   page?: number;

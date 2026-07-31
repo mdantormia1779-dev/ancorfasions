@@ -1,27 +1,33 @@
-'use client';
+"use client";
 
-import React, { useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { createPage } from '@/actions/cms.actions';
-import { ArrowLeft, Save } from 'lucide-react';
-import Link from 'next/link';
-import { toast } from 'sonner';
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { createPage } from "@/actions/cms.actions";
+import { ArrowLeft, Save } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
 
 export default function NewPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    title: '',
-    slug: '',
-    status: 'draft',
-    author_id: '00000000-0000-0000-0000-000000000000', // Need auth context ideally
-    layout_data: {}
+    title: "",
+    slug: "",
+    status: "draft",
+    author_id: "00000000-0000-0000-0000-000000000000", // Need auth context ideally
+    layout_data: {},
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,10 +35,10 @@ export default function NewPage() {
     setLoading(true);
     try {
       await createPage(formData);
-      toast.success('Page created successfully');
-      router.push('/admin/cms/pages');
+      toast.success("Page created successfully");
+      router.push("/admin/cms/pages");
     } catch (error: any) {
-      toast.error(error.message || 'Failed to create page');
+      toast.error(error.message || "Failed to create page");
     } finally {
       setLoading(false);
     }
@@ -51,12 +57,12 @@ export default function NewPage() {
         </div>
         <Button onClick={handleSubmit} disabled={loading}>
           <Save className="mr-2 h-4 w-4" />
-          {loading ? 'Saving...' : 'Save Page'}
+          {loading ? "Saving..." : "Save Page"}
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <div className="md:col-span-2 space-y-6">
+        <div className="space-y-6 md:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>General Information</CardTitle>
@@ -68,7 +74,9 @@ export default function NewPage() {
                   id="title"
                   placeholder="e.g. About Us"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -78,7 +86,9 @@ export default function NewPage() {
                   id="slug"
                   placeholder="e.g. about-us"
                   value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, slug: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -96,7 +106,9 @@ export default function NewPage() {
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(val) => setFormData({ ...formData, status: val || 'draft' })}
+                  onValueChange={(val) =>
+                    setFormData({ ...formData, status: val || "draft" })
+                  }
                 >
                   <SelectTrigger id="status">
                     <SelectValue placeholder="Select status" />

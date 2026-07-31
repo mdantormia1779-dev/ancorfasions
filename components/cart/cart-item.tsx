@@ -1,13 +1,13 @@
-'use client';
+"use client";
 
-import Image from 'next/image';
-import Link from 'next/link';
-import { Minus, Plus, Trash2, Heart } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { CartItem as CartItemType } from '@/types/checkout.types';
-import { useCartStore } from '@/stores/use-cart-store';
-import { useWishlistStore } from '@/stores/use-wishlist-store';
-import { formatCurrency } from '@/lib/utils';
+import Image from "next/image";
+import Link from "next/link";
+import { Minus, Plus, Trash2, Heart } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CartItem as CartItemType } from "@/types/checkout.types";
+import { useCartStore } from "@/stores/use-cart-store";
+import { useWishlistStore } from "@/stores/use-wishlist-store";
+import { formatCurrency } from "@/lib/utils";
 
 interface CartItemProps {
   item: CartItemType;
@@ -19,13 +19,20 @@ export function CartItem({ item, isReadOnly = false }: CartItemProps) {
   const { addItem: addToWishlist } = useWishlistStore();
 
   const product = item.product as any;
-  const title = product?.name || product?.title || 'Unknown Product';
-  const price = item.variant?.sale_price || item.variant?.price || product?.sale_price || product?.base_price || product?.price || 0;
-  const image = product?.product_media?.find((m: any) => m.is_primary)?.url || 
-                product?.product_media?.[0]?.url || 
-                product?.main_image_url ||
-                '/images/placeholder.webp';
-  const slug = product?.slug || '#';
+  const title = product?.name || product?.title || "Unknown Product";
+  const price =
+    item.variant?.sale_price ||
+    item.variant?.price ||
+    product?.sale_price ||
+    product?.base_price ||
+    product?.price ||
+    0;
+  const image =
+    product?.product_media?.find((m: any) => m.is_primary)?.url ||
+    product?.product_media?.[0]?.url ||
+    product?.main_image_url ||
+    "/images/placeholder.webp";
+  const slug = product?.slug || "#";
 
   const handleDecrease = () => {
     if (item.quantity > 1) {
@@ -72,7 +79,7 @@ export function CartItem({ item, isReadOnly = false }: CartItemProps) {
             <p className="mt-1 text-sm text-slate-500">
               {Object.entries(item.variant.attributes || {})
                 .map(([key, val]) => `${key}: ${val}`)
-                .join(', ')}
+                .join(", ")}
             </p>
           )}
         </div>
@@ -80,13 +87,23 @@ export function CartItem({ item, isReadOnly = false }: CartItemProps) {
           {isReadOnly ? (
             <p className="text-slate-500">Qty {item.quantity}</p>
           ) : (
-            <div className="flex items-center space-x-2 border rounded-md">
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleDecrease}>
+            <div className="flex items-center space-x-2 rounded-md border">
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleDecrease}
+              >
                 <Minus className="h-3 w-3" />
                 <span className="sr-only">Decrease quantity</span>
               </Button>
               <span className="w-4 text-center">{item.quantity}</span>
-              <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleIncrease}>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-8 w-8"
+                onClick={handleIncrease}
+              >
                 <Plus className="h-3 w-3" />
                 <span className="sr-only">Increase quantity</span>
               </Button>
@@ -95,12 +112,22 @@ export function CartItem({ item, isReadOnly = false }: CartItemProps) {
 
           {!isReadOnly && (
             <div className="flex gap-2">
-              <Button variant="ghost" size="sm" className="font-medium text-slate-600 hover:text-slate-900" onClick={handleSaveForLater}>
-                <Heart className="h-4 w-4 mr-2" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="font-medium text-slate-600 hover:text-slate-900"
+                onClick={handleSaveForLater}
+              >
+                <Heart className="mr-2 h-4 w-4" />
                 Save for later
               </Button>
-              <Button variant="ghost" size="sm" className="font-medium text-rose-600 hover:text-rose-500" onClick={handleRemove}>
-                <Trash2 className="h-4 w-4 mr-2" />
+              <Button
+                variant="ghost"
+                size="sm"
+                className="font-medium text-rose-600 hover:text-rose-500"
+                onClick={handleRemove}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
                 Remove
               </Button>
             </div>

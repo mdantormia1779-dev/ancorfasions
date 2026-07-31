@@ -1,8 +1,19 @@
-export type PaymentProviderStatus = 'active' | 'inactive' | 'maintenance' | 'deprecated';
-export type PaymentSessionStatus = 'pending' | 'completed' | 'failed' | 'expired' | 'cancelled';
-export type PaymentTransactionStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'partially_refunded' | 'cancelled';
-export type PaymentWebhookStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'ignored';
-export type PaymentRefundStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'rejected';
+export type PaymentProviderStatus =
+  "active" | "inactive" | "maintenance" | "deprecated";
+export type PaymentSessionStatus =
+  "pending" | "completed" | "failed" | "expired" | "cancelled";
+export type PaymentTransactionStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "refunded"
+  | "partially_refunded"
+  | "cancelled";
+export type PaymentWebhookStatus =
+  "pending" | "processing" | "completed" | "failed" | "ignored";
+export type PaymentRefundStatus =
+  "pending" | "processing" | "completed" | "failed" | "rejected";
 
 export interface PaymentProvider {
   id: string;

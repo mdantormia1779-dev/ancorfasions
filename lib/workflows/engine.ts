@@ -1,5 +1,5 @@
-import { supabase } from '@/lib/supabase';
-import { automationRules, WorkflowTrigger } from './rules';
+import { supabase } from "@/lib/supabase";
+import { automationRules, WorkflowTrigger } from "./rules";
 
 export interface WorkflowEvent {
   triggerEvent: WorkflowTrigger;
@@ -9,7 +9,7 @@ export interface WorkflowEvent {
 export interface WorkflowExecutionLog {
   workflow_id: string;
   trigger_event: string;
-  status: 'PENDING' | 'SUCCESS' | 'FAILED';
+  status: "PENDING" | "SUCCESS" | "FAILED";
   error_message?: string;
   execution_details?: any;
 }
@@ -24,18 +24,20 @@ export async function executeWorkflows(event: WorkflowEvent) {
   try {
     // 1. Fetch active workflows matching the trigger
     const { data: workflows, error } = await supabase
-      .from('ai_workflows')
-      .select('*')
-      .eq('trigger_event', event.triggerEvent)
-      .eq('is_active', true);
+      .from("ai_workflows")
+      .select("*")
+      .eq("trigger_event", event.triggerEvent)
+      .eq("is_active", true);
 
     if (error) {
-      console.error('Error fetching workflows:', error);
+      console.error("Error fetching workflows:", error);
       throw error;
     }
 
     if (!workflows || workflows.length === 0) {
-      console.log(`No active workflows found for trigger: ${event.triggerEvent}`);
+      console.log(
+        `No active workflows found for trigger: ${event.triggerEvent}`
+      );
       return;
     }
 
@@ -47,11 +49,11 @@ export async function executeWorkflows(event: WorkflowEvent) {
       for (const ruleFn of ruleFns) {
         try {
           const actionResult = await ruleFn(event.payload, workflow.config);
-          
+
           logs.push({
             workflow_id: workflow.id,
             trigger_event: event.triggerEvent,
-            status: 'SUCCESS',
+            status: "SUCCESS",
             execution_details: actionResult,
           });
         } catch (actionError: any) {
@@ -59,7 +61,7 @@ export async function executeWorkflows(event: WorkflowEvent) {
           logs.push({
             workflow_id: workflow.id,
             trigger_event: event.triggerEvent,
-            status: 'FAILED',
+            status: "FAILED",
             error_message: actionError.message,
           });
         }
@@ -68,9 +70,8 @@ export async function executeWorkflows(event: WorkflowEvent) {
 
     // 4. Ideally, save the logs to an audit table here.
     // await supabase.from('workflow_logs').insert(logs);
-
   } catch (err) {
-    console.error('Workflow Engine Error:', err);
+    console.error("Workflow Engine Error:", err);
     throw err;
   }
 }

@@ -1,40 +1,63 @@
-'use client';
+"use client";
 
-import { useRouter, useSearchParams, usePathname } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Calendar } from '@/components/ui/calendar';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { CalendarIcon, DownloadIcon, FilterIcon, RefreshCwIcon } from 'lucide-react';
-import { format, subDays } from 'date-fns';
-import { useState, useTransition } from 'react';
-import { DateRange } from 'react-day-picker';
-import { cn } from '@/lib/utils';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  CalendarIcon,
+  DownloadIcon,
+  FilterIcon,
+  RefreshCwIcon,
+} from "lucide-react";
+import { format, subDays } from "date-fns";
+import { useState, useTransition } from "react";
+import { DateRange } from "react-day-picker";
+import { cn } from "@/lib/utils";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
-export function AnalyticsFilters({ showExport = true }: { showExport?: boolean }) {
+export function AnalyticsFilters({
+  showExport = true,
+}: {
+  showExport?: boolean;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  
+
   const [dateRange, setDateRange] = useState<DateRange | undefined>({
-    from: searchParams.get('from') ? new Date(searchParams.get('from') as string) : subDays(new Date(), 30),
-    to: searchParams.get('to') ? new Date(searchParams.get('to') as string) : new Date(),
+    from: searchParams.get("from")
+      ? new Date(searchParams.get("from") as string)
+      : subDays(new Date(), 30),
+    to: searchParams.get("to")
+      ? new Date(searchParams.get("to") as string)
+      : new Date(),
   });
 
   const updateFilters = (range: DateRange | undefined) => {
     const params = new URLSearchParams(searchParams.toString());
-    
+
     if (range?.from) {
-      params.set('from', range.from.toISOString());
+      params.set("from", range.from.toISOString());
     } else {
-      params.delete('from');
+      params.delete("from");
     }
-    
+
     if (range?.to) {
-      params.set('to', range.to.toISOString());
+      params.set("to", range.to.toISOString());
     } else {
-      params.delete('to');
+      params.delete("to");
     }
 
     startTransition(() => {
@@ -50,7 +73,7 @@ export function AnalyticsFilters({ showExport = true }: { showExport?: boolean }
   };
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center justify-between mb-6">
+    <div className="mb-6 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
       <div className="flex flex-wrap items-center gap-2">
         <Popover>
           <PopoverTrigger asChild>
@@ -92,18 +115,42 @@ export function AnalyticsFilters({ showExport = true }: { showExport?: boolean }
           </PopoverContent>
         </Popover>
 
-        <div className="hidden md:flex items-center gap-1">
-          <Button variant="ghost" size="sm" onClick={() => handleQuickFilter(7)}>7D</Button>
-          <Button variant="ghost" size="sm" onClick={() => handleQuickFilter(30)}>30D</Button>
-          <Button variant="ghost" size="sm" onClick={() => handleQuickFilter(90)}>90D</Button>
-          <Button variant="ghost" size="sm" onClick={() => handleQuickFilter(365)}>1Y</Button>
+        <div className="hidden items-center gap-1 md:flex">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleQuickFilter(7)}
+          >
+            7D
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleQuickFilter(30)}
+          >
+            30D
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleQuickFilter(90)}
+          >
+            90D
+          </Button>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleQuickFilter(365)}
+          >
+            1Y
+          </Button>
         </div>
       </div>
 
       <div className="flex items-center gap-2">
-        <Button 
-          variant="outline" 
-          size="icon" 
+        <Button
+          variant="outline"
+          size="icon"
           onClick={() => {
             startTransition(() => {
               router.refresh();
@@ -111,9 +158,11 @@ export function AnalyticsFilters({ showExport = true }: { showExport?: boolean }
           }}
           disabled={isPending}
         >
-          <RefreshCwIcon className={cn("h-4 w-4", isPending && "animate-spin")} />
+          <RefreshCwIcon
+            className={cn("h-4 w-4", isPending && "animate-spin")}
+          />
         </Button>
-        
+
         {showExport && (
           <Button variant="outline" className="gap-2">
             <DownloadIcon className="h-4 w-4" />

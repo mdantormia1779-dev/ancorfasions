@@ -1,13 +1,22 @@
 "use client";
 
-import Link from 'next/link';
-import { useEffect, useState } from 'react';
-import { Playfair_Display, Jost } from 'next/font/google';
+import Link from "next/link";
+import { useEffect, useState } from "react";
+import { Playfair_Display, Jost } from "next/font/google";
 
-const playfair = Playfair_Display({ subsets: ['latin'], weight: ['500', '600'] });
-const jost = Jost({ subsets: ['latin'], weight: ['400', '500'] });
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  weight: ["500", "600"],
+});
+const jost = Jost({ subsets: ["latin"], weight: ["400", "500"] });
 
-export const AnchorFashionLogo = ({ className, isLoading = false }: { className?: string; isLoading?: boolean }) => {
+export const AnchorFashionLogo = ({
+  className,
+  isLoading = false,
+}: {
+  className?: string;
+  isLoading?: boolean;
+}) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -17,12 +26,12 @@ export const AnchorFashionLogo = ({ className, isLoading = false }: { className?
   return (
     <Link
       href="/"
-      className={`flex items-center select-none ${className || ''}`}
+      className={`flex select-none items-center ${className || ""}`}
       aria-label="Anchor Fashion Home"
       style={{
-        maxWidth: '280px',
-        verticalAlign: 'middle',
-        boxSizing: 'border-box'
+        maxWidth: "280px",
+        verticalAlign: "middle",
+        boxSizing: "border-box",
       }}
     >
       <style>{`
@@ -73,11 +82,11 @@ export const AnchorFashionLogo = ({ className, isLoading = false }: { className?
       `}</style>
 
       {/* SVG Canvas for the Perfect Anchor Fashion Logo */}
-      <svg 
-        viewBox="0 0 440 130" 
-        className="w-full h-auto"
+      <svg
+        viewBox="0 0 440 130"
+        className="h-auto w-full"
         xmlns="http://www.w3.org/2000/svg"
-        style={{ visibility: mounted ? 'visible' : 'hidden' }}
+        style={{ visibility: mounted ? "visible" : "hidden" }}
       >
         <defs>
           {/* Mask to cut out the standard crossbar of the 'A' */}
@@ -89,54 +98,46 @@ export const AnchorFashionLogo = ({ className, isLoading = false }: { className?
 
         {/* 1. The Gold 'A' */}
         <g mask="url(#a-crossbar-cut)">
-          <text 
-            x="15" 
-            y="80" 
+          <text
+            x="15"
+            y="80"
             className={`af-draw-gold ${playfair.className}`}
-            style={{ fontSize: '90px', fontWeight: '500' }}
+            style={{ fontSize: "90px", fontWeight: "500" }}
           >
             A
           </text>
         </g>
 
         {/* 2. The Custom Gold Swoosh across the 'A' */}
-        <path 
-          d="M 5 65 Q 45 35 95 68 Q 50 50 15 73 Z" 
+        <path
+          d="M 5 65 Q 45 35 95 68 Q 50 50 15 73 Z"
           className="af-draw-gold"
-          style={{ strokeWidth: '0.5px' }}
+          style={{ strokeWidth: "0.5px" }}
         />
-        
+
         {/* 3. The 'NCHOR' text in Dark Blue */}
-        <text 
-          x="105" 
-          y="80" 
+        <text
+          x="105"
+          y="80"
           className={`af-draw-blue ${playfair.className}`}
-          style={{ fontSize: '66px', fontWeight: '600', letterSpacing: '2px' }}
+          style={{ fontSize: "66px", fontWeight: "600", letterSpacing: "2px" }}
         >
           NCHOR
         </text>
 
         {/* 4. The 'FASHION' text below */}
-        <text 
-          x="145" 
-          y="118" 
+        <text
+          x="145"
+          y="118"
           className={`af-draw-blue ${jost.className}`}
-          style={{ fontSize: '20px', fontWeight: '500', letterSpacing: '9px' }}
+          style={{ fontSize: "20px", fontWeight: "500", letterSpacing: "9px" }}
         >
           FASHION
         </text>
 
         {/* 5. Left and Right Lines next to FASHION */}
-        <path 
-          d="M 35 112 L 125 112" 
-          className="af-draw-line"
-          fill="none"
-        />
-        <path 
-          d="M 290 112 L 380 112" 
-          className="af-draw-line"
-          fill="none"
-        />
+        <path d="M 35 112 L 125 112" className="af-draw-line" fill="none" />
+        <path d="M 290 112 L 380 112" className="af-draw-line" fill="none" />
       </svg>
     </Link>
   );

@@ -1,19 +1,19 @@
-import { IPaymentProvider } from './payment.interface';
-import { paymentRepository } from '@/repositories/payment.repository';
-import { MockProvider } from './mock.provider';
-import { CodProvider } from './cod.provider';
+import { IPaymentProvider } from "./payment.interface";
+import { paymentRepository } from "@/repositories/payment.repository";
+import { MockProvider } from "./mock.provider";
+import { CodProvider } from "./cod.provider";
 
 export class PaymentProviderFactory {
   private static instance: PaymentProviderFactory;
   private providers: Map<string, IPaymentProvider> = new Map();
 
   private constructor() {
-    this.registerProvider(new MockProvider('sslcommerz'));
-    this.registerProvider(new MockProvider('bkash'));
-    this.registerProvider(new MockProvider('nagad'));
-    this.registerProvider(new MockProvider('rocket'));
-    this.registerProvider(new MockProvider('visa'));
-    this.registerProvider(new MockProvider('mastercard'));
+    this.registerProvider(new MockProvider("sslcommerz"));
+    this.registerProvider(new MockProvider("bkash"));
+    this.registerProvider(new MockProvider("nagad"));
+    this.registerProvider(new MockProvider("rocket"));
+    this.registerProvider(new MockProvider("visa"));
+    this.registerProvider(new MockProvider("mastercard"));
     this.registerProvider(new CodProvider());
   }
 
@@ -38,7 +38,7 @@ export class PaymentProviderFactory {
 
   public async getActiveProvider(code: string): Promise<IPaymentProvider> {
     const dbProvider = await paymentRepository.getProviderByCode(code);
-    if (!dbProvider || dbProvider.status !== 'active') {
+    if (!dbProvider || dbProvider.status !== "active") {
       throw new Error(`Provider ${code} is not active or does not exist`);
     }
     return this.getProvider(code);
@@ -47,7 +47,7 @@ export class PaymentProviderFactory {
   public async getFallbackProvider(): Promise<IPaymentProvider> {
     const dbProvider = await paymentRepository.getFallbackProvider();
     if (!dbProvider) {
-      throw new Error('No fallback payment provider configured');
+      throw new Error("No fallback payment provider configured");
     }
     return this.getProvider(dbProvider.code);
   }

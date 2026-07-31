@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useRef } from 'react';
-import { useCheckoutStore } from '@/stores/use-checkout-store';
+import { useEffect, useRef } from "react";
+import { useCheckoutStore } from "@/stores/use-checkout-store";
 
 export function CheckoutStoreInitializer({ cartId }: { cartId: string }) {
   const initialized = useRef(false);

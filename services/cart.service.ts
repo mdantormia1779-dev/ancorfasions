@@ -1,5 +1,5 @@
-import { CartRepository } from '@/repositories/cart.repository';
-import { Cart, CartItem } from '@/types/checkout.types';
+import { CartRepository } from "@/repositories/cart.repository";
+import { Cart, CartItem } from "@/types/checkout.types";
 
 export class CartService {
   private cartRepository: CartRepository;
@@ -24,17 +24,27 @@ export class CartService {
     return await this.cartRepository.createCart(userId, sessionId);
   }
 
-  async addToCart(cartId: string, productId: string, quantity: number, variantId?: string): Promise<CartItem> {
-    if (quantity <= 0) throw new Error('Quantity must be greater than zero');
-    
+  async addToCart(
+    cartId: string,
+    productId: string,
+    quantity: number,
+    variantId?: string
+  ): Promise<CartItem> {
+    if (quantity <= 0) throw new Error("Quantity must be greater than zero");
+
     // In a real scenario, we'd also check inventory using a ProductService here before adding.
     // Assuming validation is handled or stock is sufficient for now.
-    
-    return await this.cartRepository.addItem(cartId, productId, quantity, variantId);
+
+    return await this.cartRepository.addItem(
+      cartId,
+      productId,
+      quantity,
+      variantId
+    );
   }
 
   async updateQuantity(itemId: string, quantity: number): Promise<CartItem> {
-    if (quantity <= 0) throw new Error('Quantity must be greater than zero');
+    if (quantity <= 0) throw new Error("Quantity must be greater than zero");
     return await this.cartRepository.updateItemQuantity(itemId, quantity);
   }
 

@@ -1,5 +1,5 @@
-import { supabase } from '../supabase';
-import { PersonalizationContext } from './types';
+import { supabase } from "../supabase";
+import { PersonalizationContext } from "./types";
 
 export class AIPersonalizationEngine {
   /**
@@ -8,9 +8,11 @@ export class AIPersonalizationEngine {
    */
   static async getContext(userId: string): Promise<PersonalizationContext> {
     const { data, error } = await supabase
-      .from('ai_user_context_vectors')
-      .select('explicit_preferences, implicit_preferences, risk_score, lifetime_value_predicted')
-      .eq('user_id', userId)
+      .from("ai_user_context_vectors")
+      .select(
+        "explicit_preferences, implicit_preferences, risk_score, lifetime_value_predicted"
+      )
+      .eq("user_id", userId)
       .single();
 
     if (error || !data) {
@@ -44,12 +46,10 @@ export class AIPersonalizationEngine {
     const context = await this.getContext(userId);
     const merged = { ...context.implicitPreferences, ...newPreferences };
 
-    await supabase
-      .from('ai_user_context_vectors')
-      .upsert({
-        user_id: userId,
-        implicit_preferences: merged,
-        last_computed_at: new Date().toISOString(),
-      });
+    await supabase.from("ai_user_context_vectors").upsert({
+      user_id: userId,
+      implicit_preferences: merged,
+      last_computed_at: new Date().toISOString(),
+    });
   }
 }

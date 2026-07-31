@@ -1,7 +1,7 @@
-'use server';
+"use server";
 
-import { revalidatePath } from 'next/cache';
-import { CategoryRepository } from '@/lib/repositories/catalog/category.repository';
+import { revalidatePath } from "next/cache";
+import { CategoryRepository } from "@/lib/repositories/catalog/category.repository";
 
 // For simplicity, we just expose basic fetches as actions if needed in client components,
 // or we can add create/update actions here.

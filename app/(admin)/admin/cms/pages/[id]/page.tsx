@@ -1,49 +1,55 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { getPageBySlug, updatePage, getPages } from '@/actions/cms.actions';
-import { ArrowLeft, Save } from 'lucide-react';
-import Link from 'next/link';
-import { toast } from 'sonner';
+import React, { useState, useEffect } from "react";
+import { useRouter, useParams } from "next/navigation";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getPageBySlug, updatePage, getPages } from "@/actions/cms.actions";
+import { ArrowLeft, Save } from "lucide-react";
+import Link from "next/link";
+import { toast } from "sonner";
 
 export default function EditPage() {
   const router = useRouter();
   const params = useParams();
   const id = params.id as string;
-  
+
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [formData, setFormData] = useState({
-    title: '',
-    slug: '',
-    status: 'draft',
-    layout_data: {}
+    title: "",
+    slug: "",
+    status: "draft",
+    layout_data: {},
   });
 
   useEffect(() => {
     const fetchPage = async () => {
       try {
         const pages = await getPages();
-        const page = pages.find(p => p.id === id);
+        const page = pages.find((p) => p.id === id);
         if (page) {
           setFormData({
             title: page.title,
             slug: page.slug,
             status: page.status,
-            layout_data: page.layout_data || {}
+            layout_data: page.layout_data || {},
           });
         } else {
-          toast.error('Page not found');
-          router.push('/admin/cms/pages');
+          toast.error("Page not found");
+          router.push("/admin/cms/pages");
         }
       } catch (error) {
-        toast.error('Failed to load page');
+        toast.error("Failed to load page");
       } finally {
         setFetching(false);
       }
@@ -56,10 +62,10 @@ export default function EditPage() {
     setLoading(true);
     try {
       await updatePage(id, formData);
-      toast.success('Page updated successfully');
-      router.push('/admin/cms/pages');
+      toast.success("Page updated successfully");
+      router.push("/admin/cms/pages");
     } catch (error: any) {
-      toast.error(error.message || 'Failed to update page');
+      toast.error(error.message || "Failed to update page");
     } finally {
       setLoading(false);
     }
@@ -80,12 +86,12 @@ export default function EditPage() {
         </div>
         <Button onClick={handleSubmit} disabled={loading}>
           <Save className="mr-2 h-4 w-4" />
-          {loading ? 'Saving...' : 'Save Changes'}
+          {loading ? "Saving..." : "Save Changes"}
         </Button>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
-        <div className="md:col-span-2 space-y-6">
+        <div className="space-y-6 md:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>General Information</CardTitle>
@@ -96,7 +102,9 @@ export default function EditPage() {
                 <Input
                   id="title"
                   value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, title: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -105,7 +113,9 @@ export default function EditPage() {
                 <Input
                   id="slug"
                   value={formData.slug}
-                  onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                  onChange={(e) =>
+                    setFormData({ ...formData, slug: e.target.value })
+                  }
                   required
                 />
               </div>
@@ -123,7 +133,9 @@ export default function EditPage() {
                 <Label htmlFor="status">Status</Label>
                 <Select
                   value={formData.status}
-                  onValueChange={(val) => setFormData({ ...formData, status: val || 'draft' })}
+                  onValueChange={(val) =>
+                    setFormData({ ...formData, status: val || "draft" })
+                  }
                 >
                   <SelectTrigger id="status">
                     <SelectValue placeholder="Select status" />

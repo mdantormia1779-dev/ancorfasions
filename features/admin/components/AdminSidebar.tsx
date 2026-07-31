@@ -2,24 +2,29 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { 
-  LayoutDashboard, 
-  BarChart3, 
-  Package, 
-  ShoppingCart, 
-  Users, 
-  Archive, 
-  Megaphone, 
-  FileText, 
-  Headphones, 
-  CreditCard, 
-  Truck, 
-  ShieldCheck, 
+import {
+  LayoutDashboard,
+  BarChart3,
+  Package,
+  ShoppingCart,
+  Users,
+  Archive,
+  Megaphone,
+  FileText,
+  Headphones,
+  CreditCard,
+  Truck,
+  ShieldCheck,
   Settings,
-  ChevronDown
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnchorFashionLogo } from "@/components/shared/logo";
 
@@ -157,70 +162,119 @@ const navigation: NavGroup[] = [
   },
 ];
 
-export const AdminSidebar = ({ className, role = "CUSTOMER" }: { className?: string, role?: string }) => {
+export const AdminSidebar = ({
+  className,
+  role = "CUSTOMER",
+}: {
+  className?: string;
+  role?: string;
+}) => {
   const pathname = usePathname();
 
-  const filteredNavigation = navigation.filter(nav => {
+  const filteredNavigation = navigation.filter((nav) => {
     if (!nav.allowedRoles) return true;
     return nav.allowedRoles.includes(role);
   });
 
   // Determine which accordion items should be open by default based on current path
   const defaultOpenValues = filteredNavigation
-    .filter(nav => nav.items?.some(item => pathname === item.href || pathname.startsWith(`${item.href}/`)))
-    .map(nav => nav.name);
+    .filter((nav) =>
+      nav.items?.some(
+        (item) => pathname === item.href || pathname.startsWith(`${item.href}/`)
+      )
+    )
+    .map((nav) => nav.name);
 
   return (
-    <div className={cn("flex h-full flex-col bg-white border-r border-slate-200 text-slate-900 w-64 flex-shrink-0 shadow-sm", className)}>
-      <div className="p-5 border-b border-slate-100 flex items-center justify-between">
+    <div
+      className={cn(
+        "flex h-full w-64 flex-shrink-0 flex-col border-r border-slate-200 bg-white text-slate-900 shadow-sm",
+        className
+      )}
+    >
+      <div className="flex items-center justify-between border-b border-slate-100 p-5">
         <Link href="/admin" className="flex items-center gap-2">
           <AnchorFashionLogo />
-          <span className="font-semibold text-lg tracking-tight hidden">Admin</span>
+          <span className="hidden text-lg font-semibold tracking-tight">
+            Admin
+          </span>
         </Link>
       </div>
-      
+
       <ScrollArea className="flex-1 py-4">
-        <nav className="px-3 space-y-1">
-          <Accordion type="multiple" defaultValue={defaultOpenValues} className="w-full">
+        <nav className="space-y-1 px-3">
+          <Accordion
+            type="multiple"
+            defaultValue={defaultOpenValues}
+            className="w-full"
+          >
             {filteredNavigation.map((group) => {
               const Icon = group.icon;
 
               // If it's a single link without children
               if (group.href) {
-                const isActive = pathname === group.href || (group.href !== "/admin" && pathname.startsWith(`${group.href}/`));
+                const isActive =
+                  pathname === group.href ||
+                  (group.href !== "/admin" &&
+                    pathname.startsWith(`${group.href}/`));
                 return (
                   <Link
                     key={group.name}
                     href={group.href}
                     className={cn(
-                      "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all group",
-                      isActive 
-                        ? "bg-slate-100 text-slate-900 shadow-sm font-semibold" 
+                      "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all",
+                      isActive
+                        ? "bg-slate-100 font-semibold text-slate-900 shadow-sm"
                         : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                     )}
                   >
-                    <Icon className={cn("h-[18px] w-[18px] flex-shrink-0", isActive ? "text-slate-900" : "text-slate-500 group-hover:text-slate-700")} />
+                    <Icon
+                      className={cn(
+                        "h-[18px] w-[18px] flex-shrink-0",
+                        isActive
+                          ? "text-slate-900"
+                          : "text-slate-500 group-hover:text-slate-700"
+                      )}
+                    />
                     {group.name}
                   </Link>
                 );
               }
 
               // If it has children (Accordion)
-              const hasActiveChild = group.items?.some(item => pathname === item.href || pathname.startsWith(`${item.href}/`));
-              
+              const hasActiveChild = group.items?.some(
+                (item) =>
+                  pathname === item.href || pathname.startsWith(`${item.href}/`)
+              );
+
               return (
-                <AccordionItem key={group.name} value={group.name} className="border-none">
-                  <AccordionTrigger className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all hover:no-underline group",
-                    hasActiveChild ? "text-slate-900" : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
-                  )}>
-                    <div className="flex items-center gap-3 flex-1">
-                      <Icon className={cn("h-[18px] w-[18px] flex-shrink-0", hasActiveChild ? "text-slate-900" : "text-slate-500 group-hover:text-slate-700")} />
+                <AccordionItem
+                  key={group.name}
+                  value={group.name}
+                  className="border-none"
+                >
+                  <AccordionTrigger
+                    className={cn(
+                      "group flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-all hover:no-underline",
+                      hasActiveChild
+                        ? "text-slate-900"
+                        : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
+                    )}
+                  >
+                    <div className="flex flex-1 items-center gap-3">
+                      <Icon
+                        className={cn(
+                          "h-[18px] w-[18px] flex-shrink-0",
+                          hasActiveChild
+                            ? "text-slate-900"
+                            : "text-slate-500 group-hover:text-slate-700"
+                        )}
+                      />
                       {group.name}
                     </div>
                   </AccordionTrigger>
                   <AccordionContent className="pb-1 pt-0">
-                    <div className="flex flex-col space-y-1 pl-9 pr-2 border-l border-slate-100 ml-5 mt-1">
+                    <div className="ml-5 mt-1 flex flex-col space-y-1 border-l border-slate-100 pl-9 pr-2">
                       {group.items?.map((item) => {
                         const isSubActive = pathname === item.href;
                         return (
@@ -228,14 +282,14 @@ export const AdminSidebar = ({ className, role = "CUSTOMER" }: { className?: str
                             key={item.name}
                             href={item.href}
                             className={cn(
-                              "px-3 py-1.5 text-sm rounded-md transition-colors relative",
-                              isSubActive 
-                                ? "text-slate-900 font-medium bg-slate-100/50" 
-                                : "text-slate-500 hover:text-slate-900 hover:bg-slate-50"
+                              "relative rounded-md px-3 py-1.5 text-sm transition-colors",
+                              isSubActive
+                                ? "bg-slate-100/50 font-medium text-slate-900"
+                                : "text-slate-500 hover:bg-slate-50 hover:text-slate-900"
                             )}
                           >
                             {isSubActive && (
-                              <div className="absolute left-[-17px] top-1/2 -translate-y-1/2 w-[2px] h-4 bg-slate-900 rounded-r-full" />
+                              <div className="absolute left-[-17px] top-1/2 h-4 w-[2px] -translate-y-1/2 rounded-r-full bg-slate-900" />
                             )}
                             {item.name}
                           </Link>
@@ -249,8 +303,8 @@ export const AdminSidebar = ({ className, role = "CUSTOMER" }: { className?: str
           </Accordion>
         </nav>
       </ScrollArea>
-      
-      <div className="p-4 border-t border-slate-100 bg-slate-50/50">
+
+      <div className="border-t border-slate-100 bg-slate-50/50 p-4">
         <div className="flex items-center gap-3 px-2 text-xs font-medium text-slate-500">
           <span>v1.0.0-enterprise</span>
         </div>

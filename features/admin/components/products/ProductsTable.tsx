@@ -3,17 +3,17 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { 
-  MoreHorizontal, 
-  Plus, 
-  Search, 
-  Copy, 
-  Trash2, 
-  Edit2, 
-  Eye, 
-  EyeOff, 
-  CheckCircle2, 
-  AlertCircle
+import {
+  MoreHorizontal,
+  Plus,
+  Search,
+  Copy,
+  Trash2,
+  Edit2,
+  Eye,
+  EyeOff,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -38,17 +38,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Product } from "@/types/catalog.types";
-import { 
-  deleteAdminProductAction, 
-  duplicateAdminProductAction, 
+import {
+  deleteAdminProductAction,
+  duplicateAdminProductAction,
   bulkUpdateProductStatusAction,
-  bulkDeleteProductsAction
+  bulkDeleteProductsAction,
 } from "@/lib/actions/admin/products.actions";
 
-export function ProductsTable({ 
-  initialProducts, 
-  totalCount 
-}: { 
+export function ProductsTable({
+  initialProducts,
+  totalCount,
+}: {
   initialProducts: Product[];
   totalCount: number;
 }) {
@@ -59,11 +59,15 @@ export function ProductsTable({
   const [isDuplicating, setIsDuplicating] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const formatCurrency = (val: number) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+    }).format(val);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedIds(products.map(p => p.id));
+      setSelectedIds(products.map((p) => p.id));
     } else {
       setSelectedIds([]);
     }
@@ -71,9 +75,9 @@ export function ProductsTable({
 
   const handleSelectOne = (id: string, checked: boolean) => {
     if (checked) {
-      setSelectedIds(prev => [...prev, id]);
+      setSelectedIds((prev) => [...prev, id]);
     } else {
-      setSelectedIds(prev => prev.filter(selectedId => selectedId !== id));
+      setSelectedIds((prev) => prev.filter((selectedId) => selectedId !== id));
     }
   };
 
@@ -83,7 +87,7 @@ export function ProductsTable({
     const res = await deleteAdminProductAction({ id });
     if (res.success) {
       toast.success("Product deleted successfully");
-      setProducts(prev => prev.filter(p => p.id !== id));
+      setProducts((prev) => prev.filter((p) => p.id !== id));
     } else {
       toast.error(res.error || "Failed to delete product");
     }
@@ -102,25 +106,35 @@ export function ProductsTable({
     }
   };
 
-  const handleBulkAction = async (action: 'publish' | 'archive' | 'delete') => {
+  const handleBulkAction = async (action: "publish" | "archive" | "delete") => {
     if (selectedIds.length === 0) return;
-    
-    if (action === 'delete') {
-      if (!confirm(`Are you sure you want to delete ${selectedIds.length} products?`)) return;
+
+    if (action === "delete") {
+      if (
+        !confirm(
+          `Are you sure you want to delete ${selectedIds.length} products?`
+        )
+      )
+        return;
       const res = await bulkDeleteProductsAction({ ids: selectedIds });
       if (res.success) {
         toast.success(`Deleted ${res.data?.count} products`);
-        setProducts(prev => prev.filter(p => !selectedIds.includes(p.id)));
+        setProducts((prev) => prev.filter((p) => !selectedIds.includes(p.id)));
         setSelectedIds([]);
       } else {
         toast.error(res.error || "Failed to delete products");
       }
     } else {
-      const status = action === 'publish' ? 'ACTIVE' : 'ARCHIVED';
-      const res = await bulkUpdateProductStatusAction({ ids: selectedIds, status });
+      const status = action === "publish" ? "ACTIVE" : "ARCHIVED";
+      const res = await bulkUpdateProductStatusAction({
+        ids: selectedIds,
+        status,
+      });
       if (res.success) {
         toast.success(`Updated ${res.data?.count} products`);
-        setProducts(prev => prev.map(p => selectedIds.includes(p.id) ? { ...p, status } : p));
+        setProducts((prev) =>
+          prev.map((p) => (selectedIds.includes(p.id) ? { ...p, status } : p))
+        );
         setSelectedIds([]);
       } else {
         toast.error(res.error || "Failed to update products");
@@ -130,25 +144,33 @@ export function ProductsTable({
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-col sm:flex-row justify-between gap-4">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row">
         <div className="flex items-center gap-2">
           <div className="relative w-full max-w-sm">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
             <Input
               type="search"
               placeholder="Search products..."
-              className="w-full pl-9 bg-white"
+              className="w-full bg-white pl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  router.push(`/admin/products?search=${encodeURIComponent(searchQuery)}`);
+                if (e.key === "Enter") {
+                  router.push(
+                    `/admin/products?search=${encodeURIComponent(searchQuery)}`
+                  );
                 }
               }}
             />
           </div>
           {searchQuery && (
-            <Button variant="ghost" onClick={() => { setSearchQuery(""); router.push("/admin/products"); }}>
+            <Button
+              variant="ghost"
+              onClick={() => {
+                setSearchQuery("");
+                router.push("/admin/products");
+              }}
+            >
               Clear
             </Button>
           )}
@@ -156,20 +178,27 @@ export function ProductsTable({
         <div className="flex items-center gap-2">
           {selectedIds.length > 0 ? (
             <>
-              <span className="text-sm text-slate-500 mr-2">{selectedIds.length} selected</span>
+              <span className="mr-2 text-sm text-slate-500">
+                {selectedIds.length} selected
+              </span>
               <DropdownMenu>
                 <DropdownMenuTrigger>
                   <Button variant="outline">Bulk Actions</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem onClick={() => handleBulkAction('publish')}>
-                    <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" /> Publish Selected
+                  <DropdownMenuItem onClick={() => handleBulkAction("publish")}>
+                    <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" />{" "}
+                    Publish Selected
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleBulkAction('archive')}>
-                    <EyeOff className="mr-2 h-4 w-4 text-amber-500" /> Archive Selected
+                  <DropdownMenuItem onClick={() => handleBulkAction("archive")}>
+                    <EyeOff className="mr-2 h-4 w-4 text-amber-500" /> Archive
+                    Selected
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => handleBulkAction('delete')} className="text-red-600">
+                  <DropdownMenuItem
+                    onClick={() => handleBulkAction("delete")}
+                    className="text-red-600"
+                  >
                     <Trash2 className="mr-2 h-4 w-4" /> Delete Selected
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -190,8 +219,11 @@ export function ProductsTable({
           <TableHeader>
             <TableRow>
               <TableHead className="w-12 pl-4">
-                <Checkbox 
-                  checked={selectedIds.length > 0 && selectedIds.length === products.length}
+                <Checkbox
+                  checked={
+                    selectedIds.length > 0 &&
+                    selectedIds.length === products.length
+                  }
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>
@@ -200,7 +232,7 @@ export function ProductsTable({
               <TableHead>Inventory</TableHead>
               <TableHead>Price</TableHead>
               <TableHead>Category</TableHead>
-              <TableHead className="text-right pr-4">Actions</TableHead>
+              <TableHead className="pr-4 text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -214,33 +246,64 @@ export function ProductsTable({
               products.map((product) => (
                 <TableRow key={product.id}>
                   <TableCell className="pl-4">
-                    <Checkbox 
+                    <Checkbox
                       checked={selectedIds.includes(product.id)}
-                      onCheckedChange={(checked) => handleSelectOne(product.id, checked as boolean)}
+                      onCheckedChange={(checked) =>
+                        handleSelectOne(product.id, checked as boolean)
+                      }
                     />
                   </TableCell>
                   <TableCell>
                     <div className="flex flex-col">
-                      <span className="font-medium text-slate-900">{product.name}</span>
-                      <span className="text-xs text-slate-500">SKU: {product.sku || 'N/A'}</span>
+                      <span className="font-medium text-slate-900">
+                        {product.name}
+                      </span>
+                      <span className="text-xs text-slate-500">
+                        SKU: {product.sku || "N/A"}
+                      </span>
                     </div>
                   </TableCell>
                   <TableCell>
-                    {product.status === 'ACTIVE' && <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200">Active</Badge>}
-                    {product.status === 'DRAFT' && <Badge variant="outline" className="bg-slate-100 text-slate-700 border-slate-200">Draft</Badge>}
-                    {product.status === 'ARCHIVED' && <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Archived</Badge>}
+                    {product.status === "ACTIVE" && (
+                      <Badge
+                        variant="outline"
+                        className="border-emerald-200 bg-emerald-50 text-emerald-700"
+                      >
+                        Active
+                      </Badge>
+                    )}
+                    {product.status === "DRAFT" && (
+                      <Badge
+                        variant="outline"
+                        className="border-slate-200 bg-slate-100 text-slate-700"
+                      >
+                        Draft
+                      </Badge>
+                    )}
+                    {product.status === "ARCHIVED" && (
+                      <Badge
+                        variant="outline"
+                        className="border-amber-200 bg-amber-50 text-amber-700"
+                      >
+                        Archived
+                      </Badge>
+                    )}
                   </TableCell>
                   <TableCell>
                     {/* Assuming we calculate total inventory from variants, or just placeholder for now */}
                     <span className="text-sm text-slate-600">Tracked</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm font-medium text-slate-900">{formatCurrency(product.basePrice)}</span>
+                    <span className="text-sm font-medium text-slate-900">
+                      {formatCurrency(product.basePrice)}
+                    </span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-slate-600">{(product as any).category?.name || 'Uncategorized'}</span>
+                    <span className="text-sm text-slate-600">
+                      {(product as any).category?.name || "Uncategorized"}
+                    </span>
                   </TableCell>
-                  <TableCell className="text-right pr-4">
+                  <TableCell className="pr-4 text-right">
                     <DropdownMenu>
                       <DropdownMenuTrigger>
                         <Button variant="ghost" className="h-8 w-8 p-0">
@@ -249,17 +312,36 @@ export function ProductsTable({
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => router.push(`/admin/products/${product.id}/edit`)}>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            router.push(`/admin/products/${product.id}/edit`)
+                          }
+                        >
                           <Edit2 className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => window.open(`/products/${product.slug}`, '_blank', 'noopener,noreferrer')}>
+                        <DropdownMenuItem
+                          onClick={() =>
+                            window.open(
+                              `/products/${product.slug}`,
+                              "_blank",
+                              "noopener,noreferrer"
+                            )
+                          }
+                        >
                           <Eye className="mr-2 h-4 w-4" /> View in Store
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleDuplicate(product.id)} disabled={isDuplicating === product.id}>
+                        <DropdownMenuItem
+                          onClick={() => handleDuplicate(product.id)}
+                          disabled={isDuplicating === product.id}
+                        >
                           <Copy className="mr-2 h-4 w-4" /> Duplicate
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem onClick={() => handleDelete(product.id)} disabled={isDeleting === product.id} className="text-red-600 focus:text-red-600">
+                        <DropdownMenuItem
+                          onClick={() => handleDelete(product.id)}
+                          disabled={isDeleting === product.id}
+                          className="text-red-600 focus:text-red-600"
+                        >
                           <Trash2 className="mr-2 h-4 w-4" /> Delete
                         </DropdownMenuItem>
                       </DropdownMenuContent>
@@ -271,7 +353,7 @@ export function ProductsTable({
           </TableBody>
         </Table>
       </div>
-      <div className="text-xs text-slate-500 text-center">
+      <div className="text-center text-xs text-slate-500">
         Showing {products.length} of {totalCount} products
       </div>
     </div>

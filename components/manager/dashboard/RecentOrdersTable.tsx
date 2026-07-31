@@ -9,7 +9,13 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
@@ -53,14 +59,20 @@ export function RecentOrdersTable({ orders = [] }: { orders?: OrderData[] }) {
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.id.slice(0, 8).toUpperCase()}</TableCell>
-                <TableCell>{order.customer || 'Guest'}</TableCell>
+                <TableCell className="font-medium">
+                  {order.id.slice(0, 8).toUpperCase()}
+                </TableCell>
+                <TableCell>{order.customer || "Guest"}</TableCell>
                 <TableCell>
-                  <Badge 
+                  <Badge
                     variant={
-                      order.status.toLowerCase() === "delivered" ? "default" :
-                      order.status.toLowerCase() === "processing" ? "secondary" :
-                      order.status.toLowerCase() === "shipped" ? "outline" : "destructive"
+                      order.status.toLowerCase() === "delivered"
+                        ? "default"
+                        : order.status.toLowerCase() === "processing"
+                          ? "secondary"
+                          : order.status.toLowerCase() === "shipped"
+                            ? "outline"
+                            : "destructive"
                     }
                   >
                     {order.status}
@@ -68,8 +80,11 @@ export function RecentOrdersTable({ orders = [] }: { orders?: OrderData[] }) {
                 </TableCell>
                 <TableCell>{order.date}</TableCell>
                 <TableCell className="text-right">
-                  {typeof order.amount === 'number' 
-                    ? new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(order.amount) 
+                  {typeof order.amount === "number"
+                    ? new Intl.NumberFormat("en-US", {
+                        style: "currency",
+                        currency: "USD",
+                      }).format(order.amount)
                     : order.amount}
                 </TableCell>
               </TableRow>

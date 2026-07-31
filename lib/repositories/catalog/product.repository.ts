@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server';
-import { CreateProductInput, Product } from '@/types/catalog.types';
+import { createClient } from "@/lib/supabase/server";
+import { CreateProductInput, Product } from "@/types/catalog.types";
 
 export class ProductRepository {
   /**
@@ -23,9 +23,8 @@ export class ProductRepository {
     const supabase = await createClient();
     const offset = (page - 1) * limit;
 
-    let query = supabase
-      .from('products')
-      .select(`
+    let query = supabase.from("products").select(
+      `
         *,
         category:categories(id, name),
         brand:brands(id, name),
@@ -33,23 +32,27 @@ export class ProductRepository {
         media:product_media(*),
         seo:product_seo(*),
         tags:product_tags(tag:tags(*))
-      `, { count: 'exact' });
+      `,
+      { count: "exact" }
+    );
 
     if (search) {
-      query = query.or(`name.ilike.%${search}%,sku.ilike.%${search}%,barcode.ilike.%${search}%`);
+      query = query.or(
+        `name.ilike.%${search}%,sku.ilike.%${search}%,barcode.ilike.%${search}%`
+      );
     }
     if (categoryId) {
-      query = query.eq('category_id', categoryId);
+      query = query.eq("category_id", categoryId);
     }
     if (brandId) {
-      query = query.eq('brand_id', brandId);
+      query = query.eq("brand_id", brandId);
     }
     if (status) {
-      query = query.eq('status', status);
+      query = query.eq("status", status);
     }
 
     const { data, count, error } = await query
-      .order('created_at', { ascending: false })
+      .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
     if (error) throw error;
@@ -69,19 +72,21 @@ export class ProductRepository {
     const supabase = await createClient();
 
     const { data, error } = await supabase
-      .from('products')
-      .select(`
+      .from("products")
+      .select(
+        `
         *,
         variants(*),
         media:product_media(*),
         seo:product_seo(*),
         tags:product_tags(tag:tags(*))
-      `)
-      .eq('id', id)
+      `
+      )
+      .eq("id", id)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // not found
+      if (error.code === "PGRST116") return null; // not found
       throw error;
     }
 
@@ -96,14 +101,14 @@ export class ProductRepository {
 
     const { seo, tags, media, variants, ...productData } = input;
 
-    // We need to use an RPC or just transaction equivalent if available. 
+    // We need to use an RPC or just transaction equivalent if available.
     // Since Supabase JS doesn't have native multi-table transactions out of the box,
     // we do sequential inserts or use a stored procedure.
     // For Enterprise, we'll do sequential here, but ideally we'd use Postgres Functions.
-    
+
     // 1. Create Product
     const { data: newProduct, error: productError } = await supabase
-      .from('products')
+      .from("products")
       .insert({
         name: productData.name,
         slug: productData.slug,
@@ -131,7 +136,7 @@ export class ProductRepository {
 
     // 2. Create SEO
     if (seo) {
-      await supabase.from('product_seo').insert({
+      await supabase.from("product_seo").insert({
         product_id: productId,
         meta_title: seo.metaTitle,
         meta_description: seo.metaDescription,
@@ -147,30 +152,30 @@ export class ProductRepository {
 
     // 3. Link Tags
     if (tags && tags.length > 0) {
-      const tagInserts = tags.map(tagId => ({
+      const tagInserts = tags.map((tagId) => ({
         product_id: productId,
         tag_id: tagId,
       }));
-      await supabase.from('product_tags').insert(tagInserts);
+      await supabase.from("product_tags").insert(tagInserts);
     }
 
     // 4. Create Media
     if (media && media.length > 0) {
-       const mediaInserts = media.map(m => ({
-          product_id: productId,
-          url: m.url,
-          url_webp: m.urlWebp,
-          alt_text: m.altText,
-          display_order: m.displayOrder,
-          is_primary: m.isPrimary,
-          media_type: m.mediaType
-       }));
-       await supabase.from('product_media').insert(mediaInserts);
+      const mediaInserts = media.map((m) => ({
+        product_id: productId,
+        url: m.url,
+        url_webp: m.urlWebp,
+        alt_text: m.altText,
+        display_order: m.displayOrder,
+        is_primary: m.isPrimary,
+        media_type: m.mediaType,
+      }));
+      await supabase.from("product_media").insert(mediaInserts);
     }
 
     // 5. Create Variants
     if (variants && variants.length > 0) {
-      const variantInserts = variants.map(v => ({
+      const variantInserts = variants.map((v) => ({
         product_id: productId,
         sku: v.sku,
         barcode: v.barcode,
@@ -181,7 +186,7 @@ export class ProductRepository {
         is_active: v.isActive,
         attributes: v.attributes,
       }));
-      await supabase.from('variants').insert(variantInserts);
+      await supabase.from("variants").insert(variantInserts);
     }
 
     return this.getProductById(productId);
@@ -197,7 +202,7 @@ export class ProductRepository {
     // 1. Update Product
     if (Object.keys(productData).length > 0) {
       const { error } = await supabase
-        .from('products')
+        .from("products")
         .update({
           name: productData.name,
           slug: productData.slug,
@@ -217,17 +222,23 @@ export class ProductRepository {
           material: productData.material,
           is_featured: productData.isFeatured,
         })
-        .eq('id', id);
+        .eq("id", id);
 
       if (error) throw error;
     }
 
     // 2. Update SEO (Upsert)
     if (seo) {
-      const { data: existingSeo } = await supabase.from('product_seo').select('id').eq('product_id', id).single();
-      
+      const { data: existingSeo } = await supabase
+        .from("product_seo")
+        .select("id")
+        .eq("product_id", id)
+        .single();
+
       if (existingSeo) {
-        await supabase.from('product_seo').update({
+        await supabase
+          .from("product_seo")
+          .update({
             meta_title: seo.metaTitle,
             meta_description: seo.metaDescription,
             canonical_url: seo.canonicalUrl,
@@ -237,19 +248,20 @@ export class ProductRepository {
             twitter_card_type: seo.twitterCardType,
             structured_data: seo.structuredData,
             keywords: seo.keywords,
-        }).eq('product_id', id);
+          })
+          .eq("product_id", id);
       } else {
-        await supabase.from('product_seo').insert({
-            product_id: id,
-            meta_title: seo.metaTitle,
-            meta_description: seo.metaDescription,
-            canonical_url: seo.canonicalUrl,
-            og_title: seo.ogTitle,
-            og_description: seo.ogDescription,
-            og_image_url: seo.ogImageUrl,
-            twitter_card_type: seo.twitterCardType,
-            structured_data: seo.structuredData,
-            keywords: seo.keywords,
+        await supabase.from("product_seo").insert({
+          product_id: id,
+          meta_title: seo.metaTitle,
+          meta_description: seo.metaDescription,
+          canonical_url: seo.canonicalUrl,
+          og_title: seo.ogTitle,
+          og_description: seo.ogDescription,
+          og_image_url: seo.ogImageUrl,
+          twitter_card_type: seo.twitterCardType,
+          structured_data: seo.structuredData,
+          keywords: seo.keywords,
         });
       }
     }
@@ -257,38 +269,38 @@ export class ProductRepository {
     // 3. Update Tags
     if (tags !== undefined) {
       // Simple strategy: delete existing and re-insert
-      await supabase.from('product_tags').delete().eq('product_id', id);
+      await supabase.from("product_tags").delete().eq("product_id", id);
       if (tags.length > 0) {
-        const tagInserts = tags.map(tagId => ({
+        const tagInserts = tags.map((tagId) => ({
           product_id: id,
           tag_id: tagId,
         }));
-        await supabase.from('product_tags').insert(tagInserts);
+        await supabase.from("product_tags").insert(tagInserts);
       }
     }
 
     // 4. Update Media
     if (media !== undefined) {
-      await supabase.from('product_media').delete().eq('product_id', id);
+      await supabase.from("product_media").delete().eq("product_id", id);
       if (media.length > 0) {
-        const mediaInserts = media.map(m => ({
-           product_id: id,
-           url: m.url,
-           url_webp: m.urlWebp,
-           alt_text: m.altText,
-           display_order: m.displayOrder,
-           is_primary: m.isPrimary,
-           media_type: m.mediaType
+        const mediaInserts = media.map((m) => ({
+          product_id: id,
+          url: m.url,
+          url_webp: m.urlWebp,
+          alt_text: m.altText,
+          display_order: m.displayOrder,
+          is_primary: m.isPrimary,
+          media_type: m.mediaType,
         }));
-        await supabase.from('product_media').insert(mediaInserts);
+        await supabase.from("product_media").insert(mediaInserts);
       }
     }
 
     // 5. Update Variants
     if (variants !== undefined) {
-      await supabase.from('variants').delete().eq('product_id', id);
+      await supabase.from("variants").delete().eq("product_id", id);
       if (variants.length > 0) {
-        const variantInserts = variants.map(v => ({
+        const variantInserts = variants.map((v) => ({
           product_id: id,
           sku: v.sku,
           barcode: v.barcode,
@@ -299,7 +311,7 @@ export class ProductRepository {
           is_active: v.isActive,
           attributes: v.attributes,
         }));
-        await supabase.from('variants').insert(variantInserts);
+        await supabase.from("variants").insert(variantInserts);
       }
     }
 
@@ -312,9 +324,9 @@ export class ProductRepository {
   static async deleteProduct(id: string) {
     const supabase = await createClient();
     const { error } = await supabase
-      .from('products')
-      .update({ deleted_at: new Date().toISOString(), status: 'ARCHIVED' })
-      .eq('id', id);
+      .from("products")
+      .update({ deleted_at: new Date().toISOString(), status: "ARCHIVED" })
+      .eq("id", id);
 
     if (error) throw error;
     return true;

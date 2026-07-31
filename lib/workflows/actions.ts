@@ -1,6 +1,6 @@
-import { NotificationService } from '@/lib/notifications/NotificationService';
-import { generateContent } from '@/lib/ai/gemini';
-import { PromptEngine } from '@/lib/ai/prompt-engine';
+import { NotificationService } from "@/lib/notifications/NotificationService";
+import { generateContent } from "@/lib/ai/gemini";
+import { PromptEngine } from "@/lib/ai/prompt-engine";
 
 /**
  * Executes a notification action.
@@ -13,7 +13,7 @@ export async function sendNotificationAction(
   return NotificationService.dispatch({
     userId,
     templateName,
-    variables
+    variables,
   });
 }
 
@@ -25,12 +25,15 @@ export async function generateAiContentAction(
   variables: Record<string, string>
 ) {
   const promptTemplate = await PromptEngine.getPrompt(promptName);
-  
+
   if (!promptTemplate) {
     throw new Error(`Prompt template ${promptName} not found.`);
   }
 
-  const hydratedPrompt = PromptEngine.hydrateTemplate(promptTemplate.userPromptTemplate, variables);
+  const hydratedPrompt = PromptEngine.hydrateTemplate(
+    promptTemplate.userPromptTemplate,
+    variables
+  );
 
   return generateContent(
     promptTemplate.model,
@@ -46,7 +49,7 @@ export async function generateAiContentAction(
 export async function alertAdminAction(
   title: string,
   message: string,
-  role: 'SUPERADMIN' | 'MANAGER' = 'MANAGER'
+  role: "SUPERADMIN" | "MANAGER" = "MANAGER"
 ) {
   // Logic to query admins and send them a broadcast or push notification
   console.log(`Alerting ${role}s: ${title} - ${message}`);

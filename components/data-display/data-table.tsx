@@ -1,5 +1,5 @@
-"use client"
-import * as React from "react"
+"use client";
+import * as React from "react";
 import {
   Table,
   TableBody,
@@ -7,11 +7,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 
 export interface DataTableProps<TData> {
-  columns: { key: keyof TData; header: string; render?: (val: any, item: TData) => React.ReactNode }[]
-  data: TData[]
+  columns: {
+    key: keyof TData;
+    header: string;
+    render?: (val: any, item: TData) => React.ReactNode;
+  }[];
+  data: TData[];
 }
 
 export function DataTable<TData>({ columns, data }: DataTableProps<TData>) {
@@ -37,7 +41,9 @@ export function DataTable<TData>({ columns, data }: DataTableProps<TData>) {
               <TableRow key={i}>
                 {columns.map((col) => (
                   <TableCell key={String(col.key)}>
-                    {col.render ? col.render(row[col.key], row) : row[col.key] as React.ReactNode}
+                    {col.render
+                      ? col.render(row[col.key], row)
+                      : (row[col.key] as React.ReactNode)}
                   </TableCell>
                 ))}
               </TableRow>
@@ -46,5 +52,5 @@ export function DataTable<TData>({ columns, data }: DataTableProps<TData>) {
         </TableBody>
       </Table>
     </div>
-  )
+  );
 }

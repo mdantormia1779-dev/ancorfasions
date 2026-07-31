@@ -1,6 +1,9 @@
-import { MarketingRepository } from '@/repositories/marketing.repository';
-import { campaignSchema, campaignAudienceSchema } from '@/validators/marketing.schema';
-import { Campaign, CampaignAudience } from '@/types/marketing.types';
+import { MarketingRepository } from "@/repositories/marketing.repository";
+import {
+  campaignSchema,
+  campaignAudienceSchema,
+} from "@/validators/marketing.schema";
+import { Campaign, CampaignAudience } from "@/types/marketing.types";
 
 const marketingRepository = new MarketingRepository();
 

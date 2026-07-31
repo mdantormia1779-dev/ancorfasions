@@ -7,7 +7,11 @@ interface TrendIndicatorProps {
   className?: string;
 }
 
-export function TrendIndicator({ value, invertColors = false, className }: TrendIndicatorProps) {
+export function TrendIndicator({
+  value,
+  invertColors = false,
+  className,
+}: TrendIndicatorProps) {
   const isPositive = value > 0;
   const isNeutral = value === 0;
   const isNegative = value < 0;
@@ -15,8 +19,8 @@ export function TrendIndicator({ value, invertColors = false, className }: Trend
   const colorClass = isNeutral
     ? "text-gray-500 bg-gray-100"
     : (isPositive && !invertColors) || (isNegative && invertColors)
-    ? "text-emerald-700 bg-emerald-100"
-    : "text-rose-700 bg-rose-100";
+      ? "text-emerald-700 bg-emerald-100"
+      : "text-rose-700 bg-rose-100";
 
   const Icon = isNeutral ? MinusIcon : isPositive ? ArrowUpIcon : ArrowDownIcon;
 

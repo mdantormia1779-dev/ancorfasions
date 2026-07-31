@@ -1,23 +1,27 @@
-import { create } from 'zustand';
-import { Wishlist } from '@/types/checkout.types';
-import { 
-  fetchWishlistAction, 
-  addToWishlistAction, 
+import { create } from "zustand";
+import { Wishlist } from "@/types/checkout.types";
+import {
+  fetchWishlistAction,
+  addToWishlistAction,
   removeFromWishlistAction,
   removeWishlistItemByProductIdAction,
-  moveWishlistItemToCartAction 
-} from '@/lib/actions/wishlist.actions';
+  moveWishlistItemToCartAction,
+} from "@/lib/actions/wishlist.actions";
 
 interface WishlistState {
   wishlist: Wishlist | null;
   isLoading: boolean;
   error: string | null;
-  
+
   fetchWishlist: () => Promise<void>;
   addItem: (productId: string, variantId?: string | null) => Promise<void>;
   removeItem: (itemId: string) => Promise<void>;
   removeItemByProductId: (productId: string) => Promise<void>;
-  moveToCart: (itemId: string, productId: string, variantId?: string | null) => Promise<void>;
+  moveToCart: (
+    itemId: string,
+    productId: string,
+    variantId?: string | null
+  ) => Promise<void>;
 }
 
 export const useWishlistStore = create<WishlistState>((set, get) => ({
@@ -67,12 +71,16 @@ export const useWishlistStore = create<WishlistState>((set, get) => ({
 
   moveToCart: async (itemId, productId, variantId) => {
     set({ isLoading: true, error: null });
-    const res = await moveWishlistItemToCartAction(itemId, productId, variantId);
+    const res = await moveWishlistItemToCartAction(
+      itemId,
+      productId,
+      variantId
+    );
     if (res.success) {
       await get().fetchWishlist();
       // Should ideally trigger cart store update here, but we will let the cart component re-fetch or use a global event/hook.
     } else {
       set({ error: res.error, isLoading: false });
     }
-  }
+  },
 }));

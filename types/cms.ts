@@ -1,4 +1,10 @@
-export type SectionType = 'HERO' | 'PROMO' | 'CATEGORY_GRID' | 'PRODUCT_GRID' | 'TRUST_BAR' | 'SOCIAL_PROOF';
+export type SectionType =
+  | "HERO"
+  | "PROMO"
+  | "CATEGORY_GRID"
+  | "PRODUCT_GRID"
+  | "TRUST_BAR"
+  | "SOCIAL_PROOF";
 
 export interface HomepageSection {
   id: string;
@@ -11,7 +17,7 @@ export interface HomepageSection {
 export interface HomepageHero {
   id: string;
   section_id: string;
-  media_type: 'IMAGE' | 'VIDEO';
+  media_type: "IMAGE" | "VIDEO";
   media_url: string;
   headline?: string;
   subheadline?: string;
@@ -37,12 +43,13 @@ export interface HomepagePromotion {
 export interface SectionWithContent extends HomepageSection {
   hero_content?: HomepageHero;
   promo_content?: HomepagePromotion;
-  featured_categories?: string[]; 
-  featured_products?: string[]; 
+  featured_categories?: string[];
+  featured_products?: string[];
 }
 
 // Enterprise CMS & Page Builder Types
-export type ContentStatus = 'draft' | 'review' | 'scheduled' | 'published' | 'archived';
+export type ContentStatus =
+  "draft" | "review" | "scheduled" | "published" | "archived";
 
 export interface SeoMetadata {
   title?: string;
@@ -55,7 +62,16 @@ export interface SeoMetadata {
 
 export interface CmsBlock {
   id: string;
-  type: 'hero' | 'product-carousel' | 'category-grid' | 'text' | 'image' | 'video' | 'custom-html' | 'testimonials' | 'newsletter';
+  type:
+    | "hero"
+    | "product-carousel"
+    | "category-grid"
+    | "text"
+    | "image"
+    | "video"
+    | "custom-html"
+    | "testimonials"
+    | "newsletter";
   settings: Record<string, any>;
   content: Record<string, any>;
   styles?: {
@@ -71,7 +87,7 @@ export interface CmsPage {
   id: string;
   title: string;
   slug: string;
-  type: 'homepage' | 'landing_page' | 'static_page' | 'blog_index';
+  type: "homepage" | "landing_page" | "static_page" | "blog_index";
   status: ContentStatus;
   content_blocks: CmsBlock[];
   seo_metadata: SeoMetadata;
@@ -117,7 +133,7 @@ export interface MenuItem {
   id: string;
   label: string;
   url: string;
-  target?: '_blank' | '_self';
+  target?: "_blank" | "_self";
   children?: MenuItem[];
 }
 
@@ -133,12 +149,12 @@ export interface CmsMenu {
 export interface CmsBanner {
   id: string;
   title: string;
-  type: 'hero' | 'popup' | 'sidebar' | 'announcement_bar';
+  type: "hero" | "popup" | "sidebar" | "announcement_bar";
   content?: string;
   media_url?: string;
   link_url?: string;
   target_audience: string;
-  status: 'active' | 'inactive' | 'scheduled';
+  status: "active" | "inactive" | "scheduled";
   start_date?: string;
   end_date?: string;
   created_at: string;

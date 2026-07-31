@@ -1,25 +1,25 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const orderStatusSchema = z.enum([
-  'draft',
-  'pending_payment',
-  'payment_processing',
-  'paid',
-  'confirmed',
-  'preparing',
-  'picking',
-  'packing',
-  'ready_for_shipment',
-  'shipped',
-  'out_for_delivery',
-  'delivered',
-  'completed',
-  'cancelled',
-  'refund_requested',
-  'refund_approved',
-  'refunded',
-  'returned',
-  'failed',
+  "draft",
+  "pending_payment",
+  "payment_processing",
+  "paid",
+  "confirmed",
+  "preparing",
+  "picking",
+  "packing",
+  "ready_for_shipment",
+  "shipped",
+  "out_for_delivery",
+  "delivered",
+  "completed",
+  "cancelled",
+  "refund_requested",
+  "refund_approved",
+  "refunded",
+  "returned",
+  "failed",
 ]);
 
 export const orderItemSchema = z.object({
@@ -42,11 +42,13 @@ export const createOrderSchema = z.object({
   shipping_total: z.number().min(0),
   discount_total: z.number().min(0),
   grand_total: z.number().min(0),
-  currency: z.string().length(3).default('USD'),
+  currency: z.string().length(3).default("USD"),
   shipping_address_id: z.string().uuid().optional().nullable(),
   billing_address_id: z.string().uuid().optional().nullable(),
   payment_intent_id: z.string().optional().nullable(),
-  items: z.array(orderItemSchema).min(1, 'Order must contain at least one item'),
+  items: z
+    .array(orderItemSchema)
+    .min(1, "Order must contain at least one item"),
 });
 
 export const updateOrderStatusSchema = z.object({
@@ -57,7 +59,7 @@ export const updateOrderStatusSchema = z.object({
 
 export const addOrderNoteSchema = z.object({
   order_id: z.string().uuid(),
-  note: z.string().min(1, 'Note cannot be empty'),
+  note: z.string().min(1, "Note cannot be empty"),
   is_customer_visible: z.boolean().default(false),
 });
 

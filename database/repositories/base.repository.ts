@@ -1,5 +1,5 @@
-import { SupabaseClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
+import { SupabaseClient } from "@supabase/supabase-js";
+import { Database } from "@/types/supabase";
 
 export type DbClient = SupabaseClient<Database>;
 
@@ -15,10 +15,13 @@ export interface IRepository<T, ID = string> {
  * Enterprise Base Repository
  * Provides abstract data access foundation.
  */
-export abstract class BaseRepository<T, ID = string> implements IRepository<T, ID> {
+export abstract class BaseRepository<T, ID = string> implements IRepository<
+  T,
+  ID
+> {
   protected constructor(
     protected readonly client: DbClient,
-    protected readonly tableName: keyof Database['public']['Tables']
+    protected readonly tableName: keyof Database["public"]["Tables"]
   ) {}
 
   abstract findById(id: ID): Promise<T | null>;

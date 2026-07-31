@@ -1,12 +1,12 @@
-import { PaymentProviderCode } from '@/types/payment.types';
-import { BasePaymentProvider } from './providers/base.provider';
-import { SSLCommerzProvider } from './providers/sslcommerz.provider';
-import { BKashProvider } from './providers/bkash.provider';
-import { NagadProvider } from './providers/nagad.provider';
-import { RocketProvider } from './providers/rocket.provider';
-import { VisaProvider } from './providers/visa.provider';
-import { MasterCardProvider } from './providers/mastercard.provider';
-import { CODProvider } from './providers/cod.provider';
+import { PaymentProviderCode } from "@/types/payment.types";
+import { BasePaymentProvider } from "./providers/base.provider";
+import { SSLCommerzProvider } from "./providers/sslcommerz.provider";
+import { BKashProvider } from "./providers/bkash.provider";
+import { NagadProvider } from "./providers/nagad.provider";
+import { RocketProvider } from "./providers/rocket.provider";
+import { VisaProvider } from "./providers/visa.provider";
+import { MasterCardProvider } from "./providers/mastercard.provider";
+import { CODProvider } from "./providers/cod.provider";
 
 export class PaymentProviderFactory {
   /**
@@ -20,19 +20,19 @@ export class PaymentProviderFactory {
     config: Record<string, any>
   ): BasePaymentProvider {
     switch (providerCode) {
-      case 'sslcommerz':
+      case "sslcommerz":
         return new SSLCommerzProvider(config);
-      case 'bkash':
+      case "bkash":
         return new BKashProvider(config);
-      case 'nagad':
+      case "nagad":
         return new NagadProvider(config);
-      case 'rocket':
+      case "rocket":
         return new RocketProvider(config);
-      case 'visa':
+      case "visa":
         return new VisaProvider(config);
-      case 'mastercard':
+      case "mastercard":
         return new MasterCardProvider(config);
-      case 'cod':
+      case "cod":
         return new CODProvider(config);
       default:
         throw new Error(`Unsupported payment provider: ${providerCode}`);

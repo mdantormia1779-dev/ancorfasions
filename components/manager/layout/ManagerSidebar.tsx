@@ -80,17 +80,22 @@ export function ManagerSidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="hidden border-r bg-muted/40 md:block w-64 flex-shrink-0 h-screen sticky top-0">
+    <div className="sticky top-0 hidden h-screen w-64 flex-shrink-0 border-r bg-muted/40 md:block">
       <div className="flex h-full max-h-screen flex-col gap-2">
         <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
-          <Link href="/manager" className="flex items-center gap-2 font-semibold">
+          <Link
+            href="/manager"
+            className="flex items-center gap-2 font-semibold"
+          >
             <Package className="h-6 w-6 text-primary" />
-            <span className="font-bold text-lg tracking-tight">Anchor Manager</span>
+            <span className="text-lg font-bold tracking-tight">
+              Anchor Manager
+            </span>
           </Link>
         </div>
         <ScrollArea className="flex-1">
-          <nav className="grid items-start px-2 text-sm font-medium lg:px-4 py-4">
-            <div className="px-3 py-2 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <nav className="grid items-start px-2 py-4 text-sm font-medium lg:px-4">
+            <div className="mb-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Operations
             </div>
             {sidebarNavItems.map((item, index) => {
@@ -100,9 +105,11 @@ export function ManagerSidebar() {
                   key={index}
                   href={item.href}
                   className={cn(
-                    "flex items-center gap-3 rounded-md px-3 py-2.5 transition-all mb-1",
-                    pathname === item.href || (pathname.startsWith(item.href) && item.href !== '/manager')
-                      ? "bg-primary text-primary-foreground font-medium shadow-sm"
+                    "mb-1 flex items-center gap-3 rounded-md px-3 py-2.5 transition-all",
+                    pathname === item.href ||
+                      (pathname.startsWith(item.href) &&
+                        item.href !== "/manager")
+                      ? "bg-primary font-medium text-primary-foreground shadow-sm"
                       : "text-muted-foreground hover:bg-muted hover:text-foreground"
                   )}
                 >

@@ -1,8 +1,8 @@
-import { cookies } from 'next/headers';
-import crypto from 'crypto';
+import { cookies } from "next/headers";
+import crypto from "crypto";
 
-const CSRF_COOKIE_NAME = 'csrf_token';
-const CSRF_HEADER_NAME = 'x-csrf-token';
+const CSRF_COOKIE_NAME = "csrf_token";
+const CSRF_HEADER_NAME = "x-csrf-token";
 
 /**
  * Enterprise CSRF Protection Utility
@@ -14,13 +14,13 @@ export const CSRFService = {
    * Typically called on page load or auth state change.
    */
   async generateToken(): Promise<string> {
-    const token = crypto.randomBytes(32).toString('hex');
+    const token = crypto.randomBytes(32).toString("hex");
     const cookieStore = await cookies();
     cookieStore.set(CSRF_COOKIE_NAME, token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "strict",
+      path: "/",
     });
     return token;
   },
@@ -30,10 +30,10 @@ export const CSRFService = {
    */
   async validateToken(requestHeaderToken: string | null): Promise<boolean> {
     if (!requestHeaderToken) return false;
-    
+
     const cookieStore = await cookies();
     const cookieToken = cookieStore.get(CSRF_COOKIE_NAME)?.value;
-    
+
     if (!cookieToken) return false;
 
     // Use timing-safe equal to prevent timing attacks
@@ -41,5 +41,5 @@ export const CSRFService = {
       Buffer.from(cookieToken),
       Buffer.from(requestHeaderToken)
     );
-  }
+  },
 };

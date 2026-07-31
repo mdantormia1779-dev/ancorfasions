@@ -27,10 +27,11 @@ export async function withRetry<T>(
       return await operation();
     } catch (error: any) {
       attempt++;
-      
+
       // Determine if error is transient (e.g., lock timeout, connection failure)
       // Postgres lock timeout is '55P03', connection issues might be generic network errors
-      const isTransient = error.code === '55P03' || error.message?.includes('fetch');
+      const isTransient =
+        error.code === "55P03" || error.message?.includes("fetch");
 
       if (!isTransient || attempt >= maxRetries) {
         throw error;
@@ -41,5 +42,5 @@ export async function withRetry<T>(
     }
   }
 
-  throw new Error('Maximum retries exceeded');
+  throw new Error("Maximum retries exceeded");
 }

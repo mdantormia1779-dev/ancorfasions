@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server-client';
-import { Wishlist, WishlistItem } from '@/types/checkout.types';
+import { createClient } from "@/lib/supabase/server-client";
+import { Wishlist, WishlistItem } from "@/types/checkout.types";
 
 export class WishlistRepository {
   /**
@@ -8,21 +8,23 @@ export class WishlistRepository {
   async getWishlistByUserId(userId: string): Promise<Wishlist | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('wishlists')
-      .select(`
+      .from("wishlists")
+      .select(
+        `
         *,
         items:wishlist_items(
           *,
           product:products(id, title, slug, price, sale_price, main_image_url, stock_quantity)
         )
-      `)
-      .eq('user_id', userId)
+      `
+      )
+      .eq("user_id", userId)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null;
-      console.error('Error fetching wishlist:', error);
-      throw new Error('Failed to fetch wishlist');
+      if (error.code === "PGRST116") return null;
+      console.error("Error fetching wishlist:", error);
+      throw new Error("Failed to fetch wishlist");
     }
 
     return data as Wishlist;
@@ -34,7 +36,7 @@ export class WishlistRepository {
   async createWishlist(userId: string): Promise<Wishlist> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('wishlists')
+      .from("wishlists")
       .insert({
         user_id: userId,
         is_public: false,
@@ -43,8 +45,8 @@ export class WishlistRepository {
       .single();
 
     if (error) {
-      console.error('Error creating wishlist:', error);
-      throw new Error('Failed to create wishlist');
+      console.error("Error creating wishlist:", error);
+      throw new Error("Failed to create wishlist");
     }
 
     return data as Wishlist;
@@ -55,13 +57,13 @@ export class WishlistRepository {
    */
   async addItem(wishlistId: string, productId: string): Promise<WishlistItem> {
     const supabase = await createClient();
-    
+
     // Check if exists
     const { data: existing } = await supabase
-      .from('wishlist_items')
-      .select('id')
-      .eq('wishlist_id', wishlistId)
-      .eq('product_id', productId)
+      .from("wishlist_items")
+      .select("id")
+      .eq("wishlist_id", wishlistId)
+      .eq("product_id", productId)
       .single();
 
     if (existing) {
@@ -69,7 +71,7 @@ export class WishlistRepository {
     }
 
     const { data, error } = await supabase
-      .from('wishlist_items')
+      .from("wishlist_items")
       .insert({
         wishlist_id: wishlistId,
         product_id: productId,
@@ -78,8 +80,8 @@ export class WishlistRepository {
       .single();
 
     if (error) {
-      console.error('Error adding wishlist item:', error);
-      throw new Error('Failed to add item to wishlist');
+      console.error("Error adding wishlist item:", error);
+      throw new Error("Failed to add item to wishlist");
     }
 
     return data as WishlistItem;
@@ -91,30 +93,33 @@ export class WishlistRepository {
   async removeItem(itemId: string): Promise<void> {
     const supabase = await createClient();
     const { error } = await supabase
-      .from('wishlist_items')
+      .from("wishlist_items")
       .delete()
-      .eq('id', itemId);
+      .eq("id", itemId);
 
     if (error) {
-      console.error('Error removing wishlist item:', error);
-      throw new Error('Failed to remove item from wishlist');
+      console.error("Error removing wishlist item:", error);
+      throw new Error("Failed to remove item from wishlist");
     }
   }
 
   /**
    * Remove item by product ID
    */
-  async removeItemByProductId(wishlistId: string, productId: string): Promise<void> {
+  async removeItemByProductId(
+    wishlistId: string,
+    productId: string
+  ): Promise<void> {
     const supabase = await createClient();
     const { error } = await supabase
-      .from('wishlist_items')
+      .from("wishlist_items")
       .delete()
-      .eq('wishlist_id', wishlistId)
-      .eq('product_id', productId);
+      .eq("wishlist_id", wishlistId)
+      .eq("product_id", productId);
 
     if (error) {
-      console.error('Error removing wishlist item by product id:', error);
-      throw new Error('Failed to remove item from wishlist');
+      console.error("Error removing wishlist item by product id:", error);
+      throw new Error("Failed to remove item from wishlist");
     }
   }
 }

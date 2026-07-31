@@ -7,12 +7,14 @@ This document synthesizes the core operational platforms that support the Anchor
 Anchor Fashion implements a Zero-Trust security model.
 
 ### Application Security
+
 - **Content Security Policy (CSP):** Enforced via Next.js `middleware.ts`, strictly controlling origins for scripts, styles, and images.
 - **Security Headers:** HSTS, X-Frame-Options (DENY), X-XSS-Protection, and Referrer-Policy applied universally.
 - **CSRF Protection:** Next.js Server Actions and custom API routes are protected using cryptographically secure tokens.
 - **Data Privacy:** Sensitive data (PII, Credit Cards) is masked at the application layer via `lib/security/encryption.ts` before logging or display.
 
 ### API Security
+
 - **Rate Limiting & Throttling:** Handled at the Edge (Middleware/Vercel) to prevent abuse.
 - **Key Validation & Request Freshness:** Incoming webhook or external API traffic is validated against replay attacks and HMAC-SHA256 signatures.
 
@@ -39,7 +41,7 @@ Performance is optimized for a sub-2-second Time to Interactive (TTI) globally.
 
 - **Database Backup:** Continuous archiving (WAL) via Supabase, with Point-in-Time Recovery (PITR) up to 7 days, and daily snapshots stored in cold storage for 1 year.
 - **Storage Backup:** Supabase Storage buckets (S3-compatible) are versioned and replicated cross-region.
-- **RPO/RTO:** 
+- **RPO/RTO:**
   - Recovery Point Objective (RPO): 15 minutes.
   - Recovery Time Objective (RTO): 1 hour.
 

@@ -35,8 +35,8 @@ export function LiveKpiCard({
         <div className="flex items-center space-x-2">
           {isLive && (
             <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500"></span>
             </span>
           )}
           <div className="h-4 w-4 text-muted-foreground">{icon}</div>
@@ -45,7 +45,7 @@ export function LiveKpiCard({
       <CardContent>
         <div className="text-2xl font-bold tracking-tight">{value}</div>
         {(trend !== undefined || description) && (
-          <div className="mt-1 flex items-center text-xs text-muted-foreground space-x-2">
+          <div className="mt-1 flex items-center space-x-2 text-xs text-muted-foreground">
             {trend !== undefined && (
               <TrendIndicator value={trend} invertColors={invertColors} />
             )}

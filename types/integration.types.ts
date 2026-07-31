@@ -1,4 +1,4 @@
-export type ProviderStatus = 'active' | 'inactive' | 'sandbox' | 'deprecated';
+export type ProviderStatus = "active" | "inactive" | "sandbox" | "deprecated";
 
 export interface BaseProviderConfig {
   id: string;
@@ -41,7 +41,7 @@ export interface PaymentIntentResponse {
   transactionId: string;
   redirectUrl?: string;
   clientSecret?: string;
-  status: 'initiated' | 'pending' | 'completed' | 'failed';
+  status: "initiated" | "pending" | "completed" | "failed";
 }
 
 export interface PaymentVerifyRequest {
@@ -52,9 +52,18 @@ export interface PaymentVerifyRequest {
 export interface PaymentProvider {
   id: string;
   name: string;
-  initiatePayment(request: PaymentIntentRequest): Promise<IntegrationResponse<PaymentIntentResponse>>;
-  verifyPayment(request: PaymentVerifyRequest): Promise<IntegrationResponse<{ status: string; amount: number; currency: string }>>;
-  processWebhook(payload: any, signature: string): Promise<IntegrationResponse<any>>;
+  initiatePayment(
+    request: PaymentIntentRequest
+  ): Promise<IntegrationResponse<PaymentIntentResponse>>;
+  verifyPayment(
+    request: PaymentVerifyRequest
+  ): Promise<
+    IntegrationResponse<{ status: string; amount: number; currency: string }>
+  >;
+  processWebhook(
+    payload: any,
+    signature: string
+  ): Promise<IntegrationResponse<any>>;
 }
 
 // Courier Types
@@ -75,15 +84,28 @@ export interface CourierCreateConsignmentResponse {
   trackingCode: string;
   consignmentId: string;
   labelUrl?: string;
-  status: 'created' | 'failed';
+  status: "created" | "failed";
 }
 
 export interface CourierProvider {
   id: string;
   name: string;
-  createConsignment(request: CourierCreateConsignmentRequest): Promise<IntegrationResponse<CourierCreateConsignmentResponse>>;
-  trackShipment(trackingCode: string): Promise<IntegrationResponse<{ status: string; statusDescription?: string; updates: any[] }>>;
-  processWebhook(payload: any, signature: string): Promise<IntegrationResponse<any>>;
+  createConsignment(
+    request: CourierCreateConsignmentRequest
+  ): Promise<IntegrationResponse<CourierCreateConsignmentResponse>>;
+  trackShipment(
+    trackingCode: string
+  ): Promise<
+    IntegrationResponse<{
+      status: string;
+      statusDescription?: string;
+      updates: any[];
+    }>
+  >;
+  processWebhook(
+    payload: any,
+    signature: string
+  ): Promise<IntegrationResponse<any>>;
 }
 
 // Email Types
@@ -103,7 +125,9 @@ export interface EmailSendRequest {
 export interface EmailProvider {
   id: string;
   name: string;
-  sendEmail(request: EmailSendRequest): Promise<IntegrationResponse<{ messageId: string }>>;
+  sendEmail(
+    request: EmailSendRequest
+  ): Promise<IntegrationResponse<{ messageId: string }>>;
 }
 
 // AI Types
@@ -118,5 +142,12 @@ export interface AIGenerateRequest {
 export interface AIProvider {
   id: string;
   name: string;
-  generateText(request: AIGenerateRequest): Promise<IntegrationResponse<{ text: string; usage?: { promptTokens: number; completionTokens: number } }>>;
+  generateText(
+    request: AIGenerateRequest
+  ): Promise<
+    IntegrationResponse<{
+      text: string;
+      usage?: { promptTokens: number; completionTokens: number };
+    }>
+  >;
 }

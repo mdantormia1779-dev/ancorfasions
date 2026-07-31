@@ -1,7 +1,7 @@
-'use server';
+"use server";
 
-import { AnalyticsService } from '@/services/analytics.service';
-import { DateRange } from '@/repositories/analytics.repository';
+import { AnalyticsService } from "@/services/analytics.service";
+import { DateRange } from "@/repositories/analytics.repository";
 
 export async function getExecutiveSummaryAction(dateRange?: DateRange) {
   try {

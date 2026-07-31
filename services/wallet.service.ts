@@ -1,5 +1,5 @@
-import { WalletRepository } from '@/repositories/wallet.repository';
-import { CustomerWallet, WalletTransaction } from '@/types/customer.types';
+import { WalletRepository } from "@/repositories/wallet.repository";
+import { CustomerWallet, WalletTransaction } from "@/types/customer.types";
 
 export class WalletService {
   static async getWallet(userId: string): Promise<CustomerWallet | null> {

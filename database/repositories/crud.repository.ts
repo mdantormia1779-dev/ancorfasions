@@ -1,34 +1,31 @@
-import { BaseRepository, DbClient } from './base.repository';
-import { Database } from '@/types/supabase';
-import { handlePostgresError } from '../utils/error-handler';
+import { BaseRepository, DbClient } from "./base.repository";
+import { Database } from "@/types/supabase";
+import { handlePostgresError } from "../utils/error-handler";
 
 /**
  * Enterprise Generic CRUD Repository
  * Standardizes common data access patterns.
  */
-export class CrudRepository<T extends { id: any }, ID = T['id']> extends BaseRepository<T, ID> {
-  constructor(
-    client: DbClient,
-    tableName: keyof Database['public']['Tables']
-  ) {
+export class CrudRepository<
+  T extends { id: any },
+  ID = T["id"],
+> extends BaseRepository<T, ID> {
+  constructor(client: DbClient, tableName: keyof Database["public"]["Tables"]) {
     super(client, tableName);
   }
 
   async findById(id: ID): Promise<T | null> {
-    const { data, error } = await this.query
-      .select('*')
-      .eq('id', id)
-      .single();
+    const { data, error } = await this.query.select("*").eq("id", id).single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null; // Not found
+      if (error.code === "PGRST116") return null; // Not found
       throw handlePostgresError(error);
     }
     return data as T;
   }
 
   async findAll(options?: { limit?: number; offset?: number }): Promise<T[]> {
-    let queryBuilder = this.query.select('*');
+    let queryBuilder = this.query.select("*");
 
     if (options?.limit) {
       queryBuilder = queryBuilder.limit(options.limit);
@@ -59,7 +56,7 @@ export class CrudRepository<T extends { id: any }, ID = T['id']> extends BaseRep
   async update(id: ID, payload: Partial<T>): Promise<T> {
     const { data, error } = await this.query
       .update(payload as any)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -68,7 +65,7 @@ export class CrudRepository<T extends { id: any }, ID = T['id']> extends BaseRep
   }
 
   async delete(id: ID): Promise<void> {
-    const { error } = await this.query.delete().eq('id', id);
+    const { error } = await this.query.delete().eq("id", id);
 
     if (error) throw handlePostgresError(error);
   }

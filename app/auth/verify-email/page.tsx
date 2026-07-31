@@ -1,25 +1,25 @@
-import { Metadata } from 'next'
-import Link from 'next/link'
-import { buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { CheckCircle2, XCircle } from 'lucide-react'
+import { Metadata } from "next";
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { CheckCircle2, XCircle } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: 'Verify Email',
-  description: 'Verify your email address',
-}
+  title: "Verify Email",
+  description: "Verify your email address",
+};
 
 interface VerifyEmailPageProps {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }
 
 export default async function VerifyEmailPage({
   searchParams,
 }: VerifyEmailPageProps) {
-  const params = await searchParams
-  const error = params.error
-  const code = params.code
-  
+  const params = await searchParams;
+  const error = params.error;
+  const code = params.code;
+
   return (
     <div className="flex flex-col items-center justify-center space-y-4 text-center">
       {error ? (
@@ -29,11 +29,11 @@ export default async function VerifyEmailPage({
             Verification Failed
           </h1>
           <p className="text-sm text-muted-foreground">
-            {error || 'The verification link is invalid or has expired.'}
+            {error || "The verification link is invalid or has expired."}
           </p>
           <Link
             href="/auth/login"
-            className={cn(buttonVariants({ variant: 'default' }), 'mt-4')}
+            className={cn(buttonVariants({ variant: "default" }), "mt-4")}
           >
             Return to Sign In
           </Link>
@@ -49,12 +49,12 @@ export default async function VerifyEmailPage({
           </p>
           <Link
             href="/auth/login"
-            className={cn(buttonVariants({ variant: 'outline' }), 'mt-4')}
+            className={cn(buttonVariants({ variant: "outline" }), "mt-4")}
           >
             Back to login
           </Link>
         </>
       )}
     </div>
-  )
+  );
 }

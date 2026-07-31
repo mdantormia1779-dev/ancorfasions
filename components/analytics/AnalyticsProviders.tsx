@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { usePathname, useSearchParams } from 'next/navigation';
-import { useEffect } from 'react';
-import { GoogleAnalytics, GoogleTagManager } from '@next/third-parties/google';
-import Script from 'next/script';
+import { usePathname, useSearchParams } from "next/navigation";
+import { useEffect } from "react";
+import { GoogleAnalytics, GoogleTagManager } from "@next/third-parties/google";
+import Script from "next/script";
 
 export function AnalyticsProviders() {
   const pathname = usePathname();
@@ -20,10 +20,12 @@ export function AnalyticsProviders() {
   return (
     <>
       {/* GA4 */}
-      <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || 'G-XXXXXXXXXX'} />
-      
+      <GoogleAnalytics gaId={process.env.NEXT_PUBLIC_GA_ID || "G-XXXXXXXXXX"} />
+
       {/* GTM */}
-      <GoogleTagManager gtmId={process.env.NEXT_PUBLIC_GTM_ID || 'GTM-XXXXXXX'} />
+      <GoogleTagManager
+        gtmId={process.env.NEXT_PUBLIC_GTM_ID || "GTM-XXXXXXX"}
+      />
 
       {/* Meta Pixel */}
       <Script
@@ -39,7 +41,7 @@ export function AnalyticsProviders() {
             t.src=v;s=b.getElementsByTagName(e)[0];
             s.parentNode.insertBefore(t,s)}(window, document,'script',
             'https://connect.facebook.net/en_US/fbevents.js');
-            fbq('init', '${process.env.NEXT_PUBLIC_META_PIXEL_ID || 'XXXXXXXXXXXXXXXX'}');
+            fbq('init', '${process.env.NEXT_PUBLIC_META_PIXEL_ID || "XXXXXXXXXXXXXXXX"}');
             fbq('track', 'PageView');
           `,
         }}

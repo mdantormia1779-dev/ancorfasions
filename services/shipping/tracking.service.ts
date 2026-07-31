@@ -2,39 +2,39 @@
 // Tracking Service
 // ============================================================================
 
-import { ShipmentRepository } from '@/repositories/shipment.repository';
-import { CourierGatewayService } from '@/services/courier/courier-gateway.service';
+import { ShipmentRepository } from "@/repositories/shipment.repository";
+import { CourierGatewayService } from "@/services/courier/courier-gateway.service";
 import {
   TrackingTimeline,
   TrackingTimelineEvent,
   ShipmentStatus,
   Shipment,
   ShipmentTrackingEvent,
-} from '@/types/shipping.types';
+} from "@/types/shipping.types";
 
 const STATUS_LABELS: Record<ShipmentStatus, string> = {
-  created: 'Order Dispatched',
-  pickup_requested: 'Pickup Requested',
-  pickup_confirmed: 'Pickup Confirmed',
-  picked_up: 'Parcel Picked Up',
-  in_transit: 'In Transit',
-  hub_received: 'Arrived at Hub',
-  out_for_delivery: 'Out for Delivery',
-  delivered: 'Delivered',
-  delivery_failed: 'Delivery Failed',
-  returned_to_origin: 'Returned to Origin',
-  cancelled: 'Cancelled',
+  created: "Order Dispatched",
+  pickup_requested: "Pickup Requested",
+  pickup_confirmed: "Pickup Confirmed",
+  picked_up: "Parcel Picked Up",
+  in_transit: "In Transit",
+  hub_received: "Arrived at Hub",
+  out_for_delivery: "Out for Delivery",
+  delivered: "Delivered",
+  delivery_failed: "Delivery Failed",
+  returned_to_origin: "Returned to Origin",
+  cancelled: "Cancelled",
 };
 
 const ORDERED_LIFECYCLE: ShipmentStatus[] = [
-  'created',
-  'pickup_requested',
-  'pickup_confirmed',
-  'picked_up',
-  'in_transit',
-  'hub_received',
-  'out_for_delivery',
-  'delivered',
+  "created",
+  "pickup_requested",
+  "pickup_confirmed",
+  "picked_up",
+  "in_transit",
+  "hub_received",
+  "out_for_delivery",
+  "delivered",
 ];
 
 export class TrackingService {
@@ -49,19 +49,22 @@ export class TrackingService {
    */
   async getTrackingTimeline(
     identifier: string,
-    identifierType: 'shipment_id' | 'tracking_number' = 'tracking_number'
+    identifierType: "shipment_id" | "tracking_number" = "tracking_number"
   ): Promise<TrackingTimeline | null> {
     let shipment: Shipment | null = null;
 
-    if (identifierType === 'tracking_number') {
-      shipment = await this.shipmentRepo.getShipmentByTrackingNumber(identifier);
+    if (identifierType === "tracking_number") {
+      shipment =
+        await this.shipmentRepo.getShipmentByTrackingNumber(identifier);
     } else {
       shipment = await this.shipmentRepo.getShipmentById(identifier);
     }
 
     if (!shipment) return null;
 
-    const providerEvents = await this.shipmentRepo.getTrackingEvents(shipment.id);
+    const providerEvents = await this.shipmentRepo.getTrackingEvents(
+      shipment.id
+    );
     const timeline = this.buildTimeline(shipment, providerEvents);
 
     return timeline;
@@ -72,7 +75,11 @@ export class TrackingService {
    */
   async refreshTracking(shipmentId: string): Promise<TrackingTimeline | null> {
     const shipment = await this.shipmentRepo.getShipmentById(shipmentId);
-    if (!shipment || !shipment.courier_provider_code || !shipment.tracking_number) {
+    if (
+      !shipment ||
+      !shipment.courier_provider_code ||
+      !shipment.tracking_number
+    ) {
       return null;
     }
 
@@ -101,7 +108,7 @@ export class TrackingService {
       });
     }
 
-    return this.getTrackingTimeline(shipmentId, 'shipment_id');
+    return this.getTrackingTimeline(shipmentId, "shipment_id");
   }
 
   /**
@@ -117,30 +124,45 @@ export class TrackingService {
   /**
    * Build a structured tracking timeline from shipment + events.
    */
-  private buildTimeline(shipment: Shipment, providerEvents: ShipmentTrackingEvent[]): TrackingTimeline {
+  private buildTimeline(
+    shipment: Shipment,
+    providerEvents: ShipmentTrackingEvent[]
+  ): TrackingTimeline {
     const currentStatusIndex = ORDERED_LIFECYCLE.indexOf(shipment.status);
-    const isTerminal = ['cancelled', 'returned_to_origin', 'delivery_failed'].includes(shipment.status);
+    const isTerminal = [
+      "cancelled",
+      "returned_to_origin",
+      "delivery_failed",
+    ].includes(shipment.status);
 
     // Build ordered lifecycle steps
-    const lifecycleSteps: TrackingTimelineEvent[] = ORDERED_LIFECYCLE.map((status, index) => {
-      const matchingEvent = providerEvents.find(
-        (e) => e.status === status || e.status.toLowerCase().includes(status.replace('_', ' '))
-      );
+    const lifecycleSteps: TrackingTimelineEvent[] = ORDERED_LIFECYCLE.map(
+      (status, index) => {
+        const matchingEvent = providerEvents.find(
+          (e) =>
+            e.status === status ||
+            e.status.toLowerCase().includes(status.replace("_", " "))
+        );
 
-      const isCompleted = !isTerminal && index <= currentStatusIndex;
-      const isCurrent = index === currentStatusIndex && !isTerminal;
+        const isCompleted = !isTerminal && index <= currentStatusIndex;
+        const isCurrent = index === currentStatusIndex && !isTerminal;
 
-      return {
-        id: `lifecycle-${status}`,
-        status,
-        statusLabel: STATUS_LABELS[status],
-        description: matchingEvent?.status_description ?? null,
-        location: matchingEvent?.location ?? null,
-        timestamp: matchingEvent?.event_time ?? (isCurrent || isCompleted ? this.inferTimestamp(shipment, status) : ''),
-        isCompleted,
-        isCurrent,
-      };
-    });
+        return {
+          id: `lifecycle-${status}`,
+          status,
+          statusLabel: STATUS_LABELS[status],
+          description: matchingEvent?.status_description ?? null,
+          location: matchingEvent?.location ?? null,
+          timestamp:
+            matchingEvent?.event_time ??
+            (isCurrent || isCompleted
+              ? this.inferTimestamp(shipment, status)
+              : ""),
+          isCompleted,
+          isCurrent,
+        };
+      }
+    );
 
     // Append terminal states if applicable
     if (isTerminal && !ORDERED_LIFECYCLE.includes(shipment.status)) {
@@ -159,7 +181,7 @@ export class TrackingService {
     return {
       shipmentNumber: shipment.shipment_number,
       trackingNumber: shipment.tracking_number,
-      courierName: shipment.courier_provider_code ?? 'Unknown',
+      courierName: shipment.courier_provider_code ?? "Unknown",
       currentStatus: shipment.status,
       estimatedDelivery: shipment.estimated_delivery_date,
       events: lifecycleSteps,
@@ -179,6 +201,6 @@ export class TrackingService {
       returned_to_origin: shipment.returned_at,
       cancelled: shipment.cancelled_at,
     };
-    return map[status] ?? '';
+    return map[status] ?? "";
   }
 }

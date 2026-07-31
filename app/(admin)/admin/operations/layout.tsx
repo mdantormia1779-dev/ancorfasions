@@ -1,55 +1,68 @@
-import { ReactNode } from 'react';
-import Link from 'next/link';
-import { Package, Warehouse, Truck, ShoppingCart, RotateCcw, Box, BarChart3, ScanBarcode } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { ReactNode } from "react";
+import Link from "next/link";
+import {
+  Package,
+  Warehouse,
+  Truck,
+  ShoppingCart,
+  RotateCcw,
+  Box,
+  BarChart3,
+  ScanBarcode,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-export default function OperationsLayout({ children }: { children: ReactNode }) {
+export default function OperationsLayout({
+  children,
+}: {
+  children: ReactNode;
+}) {
   const navItems = [
     {
-      title: 'Inventory',
+      title: "Inventory",
       icon: Package,
-      href: '/admin/operations/inventory',
+      href: "/admin/operations/inventory",
     },
     {
-      title: 'Warehouses',
+      title: "Warehouses",
       icon: Warehouse,
-      href: '/admin/operations/warehouses',
+      href: "/admin/operations/warehouses",
     },
     {
-      title: 'Procurement',
+      title: "Procurement",
       icon: ShoppingCart,
-      href: '/admin/operations/procurement/purchase-orders',
+      href: "/admin/operations/procurement/purchase-orders",
     },
     {
-      title: 'Fulfillment',
+      title: "Fulfillment",
       icon: Box,
-      href: '/admin/operations/fulfillment/pick-lists',
+      href: "/admin/operations/fulfillment/pick-lists",
     },
     {
-      title: 'Couriers',
+      title: "Couriers",
       icon: Truck,
-      href: '/admin/operations/logistics/couriers',
+      href: "/admin/operations/logistics/couriers",
     },
     {
-      title: 'Returns',
+      title: "Returns",
       icon: RotateCcw,
-      href: '/admin/operations/returns/requests',
+      href: "/admin/operations/returns/requests",
     },
     {
-      title: 'Analytics',
+      title: "Analytics",
       icon: BarChart3,
-      href: '/admin/operations/analytics',
+      href: "/admin/operations/analytics",
     },
     {
-      title: 'Scan Station',
+      title: "Scan Station",
       icon: ScanBarcode,
-      href: '/admin/operations/scan',
+      href: "/admin/operations/scan",
     },
   ];
 
   return (
-    <div className="flex h-full flex-col lg:flex-row gap-6">
-      <aside className="w-full lg:w-64 shrink-0">
+    <div className="flex h-full flex-col gap-6 lg:flex-row">
+      <aside className="w-full shrink-0 lg:w-64">
         <nav className="flex flex-col gap-2">
           {navItems.map((item) => (
             <Link key={item.href} href={item.href}>
@@ -61,9 +74,7 @@ export default function OperationsLayout({ children }: { children: ReactNode }) 
           ))}
         </nav>
       </aside>
-      <main className="flex-1 overflow-hidden">
-        {children}
-      </main>
+      <main className="flex-1 overflow-hidden">{children}</main>
     </div>
   );
 }

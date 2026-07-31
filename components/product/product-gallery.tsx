@@ -12,37 +12,38 @@ interface ProductGalleryProps {
 
 export function ProductGallery({ images }: ProductGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
-  
+
   if (!images || images.length === 0) {
     return (
-      <div className="aspect-square bg-muted rounded-xl flex items-center justify-center">
+      <div className="flex aspect-square items-center justify-center rounded-xl bg-muted">
         <span className="text-muted-foreground">No image available</span>
       </div>
     );
   }
 
   const nextImage = () => setCurrentIndex((prev) => (prev + 1) % images.length);
-  const prevImage = () => setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
+  const prevImage = () =>
+    setCurrentIndex((prev) => (prev - 1 + images.length) % images.length);
 
   return (
-    <div className="flex flex-col gap-4 w-full">
+    <div className="flex w-full flex-col gap-4">
       {/* Main Image */}
-      <div className="relative aspect-square md:aspect-[4/5] bg-muted rounded-xl overflow-hidden group">
+      <div className="group relative aspect-square overflow-hidden rounded-xl bg-muted md:aspect-[4/5]">
         <Image
           src={images[currentIndex].url}
           alt={images[currentIndex].alt_text || "Product Image"}
           fill
-          className="object-cover object-center transition-transform duration-500 hover:scale-110 cursor-zoom-in"
+          className="cursor-zoom-in object-cover object-center transition-transform duration-500 hover:scale-110"
           priority
           sizes="(max-width: 768px) 100vw, 50vw"
         />
-        
+
         {images.length > 1 && (
           <>
             <Button
               variant="secondary"
               size="icon"
-              className="absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute left-4 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full opacity-0 transition-opacity group-hover:opacity-100"
               onClick={prevImage}
             >
               <ChevronLeft className="h-6 w-6" />
@@ -50,7 +51,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
             <Button
               variant="secondary"
               size="icon"
-              className="absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+              className="absolute right-4 top-1/2 h-10 w-10 -translate-y-1/2 rounded-full opacity-0 transition-opacity group-hover:opacity-100"
               onClick={nextImage}
             >
               <ChevronRight className="h-6 w-6" />
@@ -61,14 +62,16 @@ export function ProductGallery({ images }: ProductGalleryProps) {
 
       {/* Thumbnails */}
       {images.length > 1 && (
-        <div className="flex gap-4 overflow-x-auto pb-2 scrollbar-hide">
+        <div className="scrollbar-hide flex gap-4 overflow-x-auto pb-2">
           {images.map((image, index) => (
             <button
               key={index}
               onClick={() => setCurrentIndex(index)}
               className={cn(
-                "relative h-20 w-20 md:h-24 md:w-24 shrink-0 overflow-hidden rounded-md border-2 transition-colors",
-                currentIndex === index ? "border-primary" : "border-transparent hover:border-muted-foreground/50"
+                "relative h-20 w-20 shrink-0 overflow-hidden rounded-md border-2 transition-colors md:h-24 md:w-24",
+                currentIndex === index
+                  ? "border-primary"
+                  : "border-transparent hover:border-muted-foreground/50"
               )}
             >
               <Image

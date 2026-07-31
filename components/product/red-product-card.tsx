@@ -10,19 +10,24 @@ import { formatCurrency } from "@/lib/utils";
 const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
 export function RedProductCard({ product }: { product: any }) {
-  const imageSrc = product.images?.[0]?.url || product.product_media?.[0]?.url || "/images/placeholder.webp";
+  const imageSrc =
+    product.images?.[0]?.url ||
+    product.product_media?.[0]?.url ||
+    "/images/placeholder.webp";
   const slug = product.slug || product.id;
   const price = product.base_price ?? product.price ?? 0;
   const comparePrice = product.compare_at_price ?? product.compareAtPrice;
-  const discountPct = comparePrice && comparePrice > price
-    ? Math.round(((comparePrice - price) / comparePrice) * 100)
-    : null;
+  const discountPct =
+    comparePrice && comparePrice > price
+      ? Math.round(((comparePrice - price) / comparePrice) * 100)
+      : null;
 
   return (
-    <div className={`${jost.className} group relative w-full overflow-hidden bg-white border border-gray-100 hover:border-[#C9A86A]/30 hover:shadow-xl transition-all duration-500`}>
-      
+    <div
+      className={`${jost.className} group relative w-full overflow-hidden border border-gray-100 bg-white transition-all duration-500 hover:border-[#C9A86A]/30 hover:shadow-xl`}
+    >
       {/* Image Container */}
-      <div className="relative w-full h-[300px] md:h-[400px] overflow-hidden bg-[#F8F7F4]">
+      <div className="relative h-[300px] w-full overflow-hidden bg-[#F8F7F4] md:h-[400px]">
         <Image
           src={imageSrc}
           alt={product.name}
@@ -32,7 +37,7 @@ export function RedProductCard({ product }: { product: any }) {
 
         {/* Discount Badge */}
         {discountPct && (
-          <div className="absolute top-3 left-3 bg-[#C9A86A] text-white text-[10px] font-bold tracking-widest uppercase px-2.5 py-1 z-10">
+          <div className="absolute left-3 top-3 z-10 bg-[#C9A86A] px-2.5 py-1 text-[10px] font-bold uppercase tracking-widest text-white">
             -{discountPct}%
           </div>
         )}
@@ -43,19 +48,19 @@ export function RedProductCard({ product }: { product: any }) {
             e.preventDefault();
             toast.success(`${product.name} added to Wishlist!`);
           }}
-          className="absolute top-3 right-3 z-10 p-2 bg-white/80 backdrop-blur-sm text-gray-400 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100 -translate-y-1 group-hover:translate-y-0 transition-all duration-300"
+          className="absolute right-3 top-3 z-10 -translate-y-1 bg-white/80 p-2 text-gray-400 opacity-0 backdrop-blur-sm transition-all transition-colors duration-300 hover:text-red-500 group-hover:translate-y-0 group-hover:opacity-100"
           aria-label="Add to Wishlist"
         >
-          <Heart className="w-4 h-4" strokeWidth={1.5} />
+          <Heart className="h-4 w-4" strokeWidth={1.5} />
         </button>
 
         {/* Slide-up Action */}
-        <div className="absolute bottom-0 left-0 right-0 translate-y-full group-hover:translate-y-0 transition-transform duration-500 ease-out z-10">
+        <div className="absolute bottom-0 left-0 right-0 z-10 translate-y-full transition-transform duration-500 ease-out group-hover:translate-y-0">
           <button
             onClick={() => toast.success(`${product.name} added to cart!`)}
-            className="w-full bg-[#1A1A1A] hover:bg-[#C9A86A] text-white text-[10px] font-bold tracking-[0.3em] uppercase py-4 flex items-center justify-center gap-2 transition-colors duration-300"
+            className="flex w-full items-center justify-center gap-2 bg-[#1A1A1A] py-4 text-[10px] font-bold uppercase tracking-[0.3em] text-white transition-colors duration-300 hover:bg-[#C9A86A]"
           >
-            <ShoppingBag className="w-4 h-4" strokeWidth={1.5} />
+            <ShoppingBag className="h-4 w-4" strokeWidth={1.5} />
             Add to Cart
           </button>
         </div>
@@ -63,13 +68,17 @@ export function RedProductCard({ product }: { product: any }) {
 
       {/* Product Info */}
       <Link href={`/product/${slug}`} className="block p-4">
-        <h3 className="text-sm font-medium text-[#1A1A1A] line-clamp-1 group-hover:text-[#C9A86A] transition-colors">
+        <h3 className="line-clamp-1 text-sm font-medium text-[#1A1A1A] transition-colors group-hover:text-[#C9A86A]">
           {product.name}
         </h3>
-        <div className="flex items-center gap-2 mt-1.5">
-          <span className="text-sm font-semibold text-[#1A1A1A]">{formatCurrency(price)}</span>
+        <div className="mt-1.5 flex items-center gap-2">
+          <span className="text-sm font-semibold text-[#1A1A1A]">
+            {formatCurrency(price)}
+          </span>
           {comparePrice && comparePrice > price && (
-            <span className="text-xs text-gray-400 line-through">{formatCurrency(comparePrice)}</span>
+            <span className="text-xs text-gray-400 line-through">
+              {formatCurrency(comparePrice)}
+            </span>
           )}
         </div>
       </Link>

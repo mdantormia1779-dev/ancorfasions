@@ -1,21 +1,24 @@
-import { CartRepository } from '../repositories/cart.repository';
-import { Cart } from '@/types/checkout.types';
+import { CartRepository } from "../repositories/cart.repository";
+import { Cart } from "@/types/checkout.types";
 
 export class CartService {
   /**
    * Get or create a cart
    */
-  static async getOrCreateCart(userId?: string | null, sessionId?: string | null): Promise<Cart> {
+  static async getOrCreateCart(
+    userId?: string | null,
+    sessionId?: string | null
+  ): Promise<Cart> {
     if (!userId && !sessionId) {
-      throw new Error('Must provide userId or sessionId');
+      throw new Error("Must provide userId or sessionId");
     }
 
     let cart = await CartRepository.getCart(userId, sessionId);
-    
+
     if (!cart) {
       cart = await CartRepository.createCart(userId, sessionId);
     }
-    
+
     return cart;
   }
 
@@ -23,10 +26,10 @@ export class CartService {
    * Add an item to the cart, checking inventory if necessary
    */
   static async addItem(
-    userId: string | null | undefined, 
-    sessionId: string | null | undefined, 
-    productId: string, 
-    variantId: string | null, 
+    userId: string | null | undefined,
+    sessionId: string | null | undefined,
+    productId: string,
+    variantId: string | null,
     quantity: number
   ): Promise<void> {
     const cart = await this.getOrCreateCart(userId, sessionId);
@@ -57,7 +60,10 @@ export class CartService {
   /**
    * Merge guest cart to user cart
    */
-  static async mergeGuestCart(sessionId: string, userId: string): Promise<void> {
+  static async mergeGuestCart(
+    sessionId: string,
+    userId: string
+  ): Promise<void> {
     await CartRepository.mergeCart(sessionId, userId);
   }
 }

@@ -1,11 +1,11 @@
-import { Role, Resource, Action, ROLE_PERMISSIONS } from './matrix'
+import { Role, Resource, Action, ROLE_PERMISSIONS } from "./matrix";
 
 export interface UserRole {
-  role: Role
+  role: Role;
   customPermissions?: {
-    resource: Resource
-    actions: Action[]
-  }[]
+    resource: Resource;
+    actions: Action[];
+  }[];
 }
 
 /**
@@ -16,17 +16,17 @@ export function hasPermission(
   resource: Resource,
   action: Action
 ): boolean {
-  if (userRole.role === 'Main Admin') return true
+  if (userRole.role === "Main Admin") return true;
 
   // Check custom permissions first if they exist
-  if (userRole.role === 'Custom' && userRole.customPermissions) {
-    return checkPermissionsList(userRole.customPermissions, resource, action)
+  if (userRole.role === "Custom" && userRole.customPermissions) {
+    return checkPermissionsList(userRole.customPermissions, resource, action);
   }
 
-  const rolePermissions = ROLE_PERMISSIONS[userRole.role]
-  if (!rolePermissions) return false
+  const rolePermissions = ROLE_PERMISSIONS[userRole.role];
+  if (!rolePermissions) return false;
 
-  return checkPermissionsList(rolePermissions, resource, action)
+  return checkPermissionsList(rolePermissions, resource, action);
 }
 
 function checkPermissionsList(
@@ -34,9 +34,9 @@ function checkPermissionsList(
   resource: Resource,
   action: Action
 ): boolean {
-  const resourcePermission = permissions.find((p) => p.resource === resource)
-  if (!resourcePermission) return false
+  const resourcePermission = permissions.find((p) => p.resource === resource);
+  if (!resourcePermission) return false;
 
-  if (resourcePermission.actions.includes('Manage')) return true
-  return resourcePermission.actions.includes(action)
+  if (resourcePermission.actions.includes("Manage")) return true;
+  return resourcePermission.actions.includes(action);
 }

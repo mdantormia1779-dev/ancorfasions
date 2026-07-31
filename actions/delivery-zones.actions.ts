@@ -1,33 +1,38 @@
-'use server';
+"use server";
 
 // ============================================================================
 // Delivery Zones Server Actions
 // ============================================================================
 
-import { revalidatePath } from 'next/cache';
-import { RateCalculatorService } from '@/services/shipping/rate-calculator.service';
-import { DeliveryZoneRepository } from '@/repositories/delivery-zone.repository';
+import { revalidatePath } from "next/cache";
+import { RateCalculatorService } from "@/services/shipping/rate-calculator.service";
+import { DeliveryZoneRepository } from "@/repositories/delivery-zone.repository";
 import {
   shippingRateQuerySchema,
   createDeliveryZoneSchema,
   createShippingRateSchema,
-} from '@/schemas/shipping.schema';
+} from "@/schemas/shipping.schema";
 
 type ActionResponse<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 export async function calculateShippingRateAction(
   raw: Record<string, any>
 ): Promise<ActionResponse<any>> {
   const parse = shippingRateQuerySchema.safeParse(raw);
   if (!parse.success) {
-    return { success: false, error: parse.error.errors[0]?.message ?? 'Validation failed' };
+    return {
+      success: false,
+      error: parse.error.errors[0]?.message ?? "Validation failed",
+    };
   }
 
   try {
     const calculator = new RateCalculatorService();
-    const zone = await calculator.getZoneByAddress(parse.data.district, parse.data.city);
+    const zone = await calculator.getZoneByAddress(
+      parse.data.district,
+      parse.data.city
+    );
 
     if (!zone) {
       return {
@@ -40,7 +45,7 @@ export async function calculateShippingRateAction(
           isFreeShipping: false,
           zone: null,
           rate: null,
-          message: 'No zone found for the provided address',
+          message: "No zone found for the provided address",
         },
       };
     }
@@ -58,7 +63,9 @@ export async function calculateShippingRateAction(
   }
 }
 
-export async function fetchDeliveryZonesAction(): Promise<ActionResponse<any[]>> {
+export async function fetchDeliveryZonesAction(): Promise<
+  ActionResponse<any[]>
+> {
   try {
     const calculator = new RateCalculatorService();
     const zones = await calculator.getActiveZones();
@@ -73,14 +80,17 @@ export async function createDeliveryZoneAction(
 ): Promise<ActionResponse<{ zoneId: string }>> {
   const parse = createDeliveryZoneSchema.safeParse(raw);
   if (!parse.success) {
-    return { success: false, error: parse.error.errors[0]?.message ?? 'Validation failed' };
+    return {
+      success: false,
+      error: parse.error.errors[0]?.message ?? "Validation failed",
+    };
   }
 
   try {
     const repo = new DeliveryZoneRepository();
     const zone = await repo.createZone(parse.data as any);
 
-    revalidatePath('/admin/shipping/zones');
+    revalidatePath("/admin/shipping/zones");
     return { success: true, data: { zoneId: zone.id } };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -95,7 +105,7 @@ export async function updateDeliveryZoneAction(
     const repo = new DeliveryZoneRepository();
     const zone = await repo.updateZone(zoneId, raw);
 
-    revalidatePath('/admin/shipping/zones');
+    revalidatePath("/admin/shipping/zones");
     return { success: true, data: { zoneId: zone.id } };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -107,7 +117,10 @@ export async function createShippingRateAction(
 ): Promise<ActionResponse<{ rateId: string }>> {
   const parse = createShippingRateSchema.safeParse(raw);
   if (!parse.success) {
-    return { success: false, error: parse.error.errors[0]?.message ?? 'Validation failed' };
+    return {
+      success: false,
+      error: parse.error.errors[0]?.message ?? "Validation failed",
+    };
   }
 
   try {
@@ -119,7 +132,7 @@ export async function createShippingRateAction(
       ...rest,
     } as any);
 
-    revalidatePath('/admin/shipping/zones');
+    revalidatePath("/admin/shipping/zones");
     return { success: true, data: { rateId: rate.id } };
   } catch (err: any) {
     return { success: false, error: err.message };

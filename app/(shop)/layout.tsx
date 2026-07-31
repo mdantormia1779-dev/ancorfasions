@@ -11,7 +11,9 @@ export default async function ShopLayout({
   children: React.ReactNode;
 }) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   const [categories, storeInfo] = await Promise.all([
     CatalogRepository.getCategories(),
@@ -20,16 +22,14 @@ export default async function ShopLayout({
 
   return (
     <div className="flex min-h-screen flex-col pb-16 md:pb-0">
-      <StoreHeader 
-        dbCategories={categories} 
+      <StoreHeader
+        dbCategories={categories}
         contactPhone={storeInfo.phone}
         contactEmail={storeInfo.email}
         announcementBar={storeInfo.announcement_bar}
         user={user}
       />
-      <main className="flex-1 w-full bg-background">
-        {children}
-      </main>
+      <main className="w-full flex-1 bg-background">{children}</main>
       <StoreFooter />
       <MobileBottomNav user={user} />
     </div>

@@ -1,6 +1,6 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
-import { cookies } from 'next/headers';
-import { Database } from '@/types/supabase';
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { Database } from "@/types/supabase";
 
 /**
  * Enterprise Server Client
@@ -11,10 +11,10 @@ export async function createClient() {
   const cookieStore = await cookies();
 
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not defined');
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL is not defined");
   }
   if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not defined');
+    throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY is not defined");
   }
 
   return createServerClient<Database>(

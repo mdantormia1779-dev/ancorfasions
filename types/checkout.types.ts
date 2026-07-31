@@ -1,4 +1,4 @@
-import { AddressFormValues } from '@/schemas/checkout.schema';
+import { AddressFormValues } from "@/schemas/checkout.schema";
 
 // ==========================================
 // CART TYPES
@@ -12,7 +12,7 @@ export interface CartItem {
   quantity: number;
   created_at: string;
   updated_at: string;
-  
+
   // Joined fields
   product?: {
     id: string;
@@ -51,7 +51,7 @@ export interface WishlistItem {
   wishlist_id: string;
   product_id: string;
   created_at: string;
-  
+
   // Joined fields
   product?: {
     id: string;
@@ -77,7 +77,8 @@ export interface Wishlist {
 // CHECKOUT SESSIONS
 // ==========================================
 
-export type CheckoutStep = 'INFORMATION' | 'SHIPPING' | 'PAYMENT' | 'REVIEW' | 'COMPLETED';
+export type CheckoutStep =
+  "INFORMATION" | "SHIPPING" | "PAYMENT" | "REVIEW" | "COMPLETED";
 
 export interface CheckoutSession {
   id: string;
@@ -98,8 +99,15 @@ export interface CheckoutSession {
 // ORDER TYPES
 // ==========================================
 
-export type OrderStatus = 'PENDING_PAYMENT' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED' | 'RETURNED' | 'REFUNDED';
-export type RiskLevel = 'LOW' | 'MEDIUM' | 'HIGH';
+export type OrderStatus =
+  | "PENDING_PAYMENT"
+  | "PROCESSING"
+  | "SHIPPED"
+  | "DELIVERED"
+  | "CANCELLED"
+  | "RETURNED"
+  | "REFUNDED";
+export type RiskLevel = "LOW" | "MEDIUM" | "HIGH";
 
 export interface Order {
   id: string;
@@ -108,25 +116,25 @@ export interface Order {
   order_number: string;
   status: OrderStatus;
   idempotency_key?: string | null;
-  
+
   shipping_address_id?: string | null;
   billing_address_id?: string | null;
-  
+
   subtotal: number;
   shipping_fee: number;
   discount_amount: number;
   total_amount: number;
-  
+
   coupon_id?: string | null;
   payment_method: string;
   notes?: string | null;
-  
+
   risk_level: RiskLevel;
   invoice_url?: string | null;
-  
+
   created_at: string;
   updated_at: string;
-  
+
   items?: OrderItem[];
   shipping_address?: OrderAddress;
   billing_address?: OrderAddress;
@@ -146,7 +154,7 @@ export interface OrderItem {
 export interface OrderAddress {
   id: string;
   order_id: string;
-  address_type: 'SHIPPING' | 'BILLING';
+  address_type: "SHIPPING" | "BILLING";
   first_name: string;
   last_name: string;
   phone: string;
@@ -173,7 +181,7 @@ export interface OrderStatusHistory {
 // COUPON TYPES
 // ==========================================
 
-export type CouponType = 'PERCENTAGE' | 'FIXED' | 'FREE_SHIPPING';
+export type CouponType = "PERCENTAGE" | "FIXED" | "FREE_SHIPPING";
 
 export interface Coupon {
   id: string;

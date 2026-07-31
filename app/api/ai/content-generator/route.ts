@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { generateContent } from '@/lib/ai/gemini';
+import { NextResponse } from "next/server";
+import { generateContent } from "@/lib/ai/gemini";
 
 const SYSTEM_PROMPT = `
 You are an expert Content Generation AI for Anchor Fashion.
@@ -11,10 +11,13 @@ Output the requested content directly, without conversational filler.
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { contentType, contextData, tone = 'premium' } = body;
+    const { contentType, contextData, tone = "premium" } = body;
 
     if (!contentType || !contextData) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields" },
+        { status: 400 }
+      );
     }
 
     const userPrompt = `
@@ -26,18 +29,21 @@ Please generate the content now.
 `;
 
     const response = await generateContent(
-      'gemini-1.5-flash',
+      "gemini-1.5-flash",
       SYSTEM_PROMPT,
       userPrompt,
       0.8 // Higher temperature for more creative content
     );
-    
+
     return NextResponse.json({
       content: response.text,
-      usage: response.usage
+      usage: response.usage,
     });
   } catch (error: any) {
-    console.error('Content Generator Error:', error);
-    return NextResponse.json({ error: 'Failed to generate content' }, { status: 500 });
+    console.error("Content Generator Error:", error);
+    return NextResponse.json(
+      { error: "Failed to generate content" },
+      { status: 500 }
+    );
   }
 }

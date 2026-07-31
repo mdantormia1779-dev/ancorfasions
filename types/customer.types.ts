@@ -5,7 +5,7 @@ export interface CustomerProfile {
   email: string;
   phone: string | null;
   date_of_birth: string | null;
-  gender: 'MALE' | 'FEMALE' | 'OTHER' | 'PREFER_NOT_TO_SAY' | null;
+  gender: "MALE" | "FEMALE" | "OTHER" | "PREFER_NOT_TO_SAY" | null;
   avatar_url: string | null;
   emergency_contact_name: string | null;
   emergency_contact_phone: string | null;
@@ -46,7 +46,7 @@ export interface CustomerWallet {
 export interface WalletTransaction {
   id: string;
   wallet_id: string;
-  type: 'CREDIT' | 'DEBIT';
+  type: "CREDIT" | "DEBIT";
   amount: number;
   balance_after: number;
   reference_type: string;
@@ -58,7 +58,7 @@ export interface WalletTransaction {
 export interface LoyaltyAccount {
   id: string;
   customer_id: string;
-  tier: 'SILVER' | 'GOLD' | 'PLATINUM' | 'VIP';
+  tier: "SILVER" | "GOLD" | "PLATINUM" | "VIP";
   points_balance: number;
   total_points_earned: number;
   total_points_redeemed: number;
@@ -70,7 +70,7 @@ export interface LoyaltyAccount {
 export interface LoyaltyTransaction {
   id: string;
   loyalty_account_id: string;
-  type: 'EARN' | 'REDEEM' | 'EXPIRE' | 'ADJUSTMENT';
+  type: "EARN" | "REDEEM" | "EXPIRE" | "ADJUSTMENT";
   points: number;
   description: string | null;
   reference_type: string | null;
@@ -96,7 +96,7 @@ export interface CustomerReview {
 export interface CustomerNotification {
   id: string;
   customer_id: string;
-  type: 'ORDER_UPDATE' | 'PROMOTION' | 'SYSTEM' | 'SUPPORT' | 'SECURITY';
+  type: "ORDER_UPDATE" | "PROMOTION" | "SYSTEM" | "SUPPORT" | "SECURITY";
   title: string;
   message: string;
   action_url: string | null;
@@ -118,8 +118,6 @@ export interface CustomerDevice {
   created_at: string;
 }
 
-
-
 export interface LoginHistory {
   id: string;
   user_id: string;
@@ -128,9 +126,9 @@ export interface LoginHistory {
   user_agent: string | null;
   device_fingerprint: string | null;
   location: string | null;
-  status: 'SUCCESS' | 'FAILURE' | 'BLOCKED' | 'FAILED';
+  status: "SUCCESS" | "FAILURE" | "BLOCKED" | "FAILED";
   failure_reason: string | null;
-  attempted_at?: string; 
+  attempted_at?: string;
   created_at?: string;
 }
 
@@ -163,4 +161,3 @@ export interface WishlistItem {
   added_at?: string;
   created_at?: string;
 }
-

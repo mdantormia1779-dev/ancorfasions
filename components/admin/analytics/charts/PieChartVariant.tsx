@@ -50,13 +50,25 @@ export function PieChartVariant({
             nameKey={nameKey}
           >
             {data.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />
+              <Cell
+                key={`cell-${index}`}
+                fill={colors[index % colors.length]}
+              />
             ))}
           </Pie>
           <Tooltip
-            contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" }}
+            contentStyle={{
+              borderRadius: "8px",
+              border: "none",
+              boxShadow:
+                "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+            }}
             formatter={(value: number) => [formatValue(value), dataKey]}
-            labelStyle={{ color: "#374151", fontWeight: "bold", marginBottom: "4px" }}
+            labelStyle={{
+              color: "#374151",
+              fontWeight: "bold",
+              marginBottom: "4px",
+            }}
           />
           <Legend
             verticalAlign="bottom"

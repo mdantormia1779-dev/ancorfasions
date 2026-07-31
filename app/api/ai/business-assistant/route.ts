@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { generateContent } from '@/lib/ai/gemini';
+import { NextResponse } from "next/server";
+import { generateContent } from "@/lib/ai/gemini";
 
 const SYSTEM_PROMPT = `
 You are an expert AI Business Assistant for the Executive and Manager teams of Anchor Fashion.
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const { contextData, query } = body;
 
     if (!query) {
-      return NextResponse.json({ error: 'Query is required' }, { status: 400 });
+      return NextResponse.json({ error: "Query is required" }, { status: 400 });
     }
 
     const userPrompt = `
@@ -27,19 +27,22 @@ ${query}
 `;
 
     const response = await generateContent(
-      'gemini-1.5-pro', // Use pro for complex reasoning
+      "gemini-1.5-pro", // Use pro for complex reasoning
       SYSTEM_PROMPT,
       userPrompt,
       0.4 // Lower temperature for more analytical responses
     );
-    
+
     return NextResponse.json({
-      role: 'assistant',
+      role: "assistant",
       content: response.text,
-      usage: response.usage
+      usage: response.usage,
     });
   } catch (error: any) {
-    console.error('Business Assistant Error:', error);
-    return NextResponse.json({ error: 'Failed to process business request' }, { status: 500 });
+    console.error("Business Assistant Error:", error);
+    return NextResponse.json(
+      { error: "Failed to process business request" },
+      { status: 500 }
+    );
   }
 }

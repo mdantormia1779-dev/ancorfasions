@@ -12,9 +12,7 @@ export default async function CustomerLayout({
   return (
     <div className="flex min-h-screen flex-col">
       <StoreHeader dbCategories={categories} />
-      <main className="flex-1 w-full bg-background">
-        {children}
-      </main>
+      <main className="w-full flex-1 bg-background">{children}</main>
       <StoreFooter />
     </div>
   );

@@ -1,13 +1,13 @@
 import { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Download, Filter, Search, MessageCircle } from "lucide-react";
@@ -18,20 +18,55 @@ export const metadata: Metadata = {
 };
 
 const tickets = [
-  { id: "TCK-901", subject: "Order hasn't arrived yet", customer: "Liam Johnson", type: "Delivery", priority: "High", status: "Open" },
-  { id: "TCK-902", subject: "Wrong size received", customer: "Olivia Smith", type: "Return/Exchange", priority: "Medium", status: "In Progress" },
-  { id: "TCK-903", subject: "Refund request for ORD-5316", customer: "William Garcia", type: "Refund", priority: "High", status: "Open" },
-  { id: "TCK-904", subject: "Question about fabric material", customer: "Emma Brown", type: "Product Inquiry", priority: "Low", status: "Closed" },
-  { id: "TCK-905", subject: "Promo code not working", customer: "Noah Williams", type: "Billing", priority: "Medium", status: "In Progress" },
+  {
+    id: "TCK-901",
+    subject: "Order hasn't arrived yet",
+    customer: "Liam Johnson",
+    type: "Delivery",
+    priority: "High",
+    status: "Open",
+  },
+  {
+    id: "TCK-902",
+    subject: "Wrong size received",
+    customer: "Olivia Smith",
+    type: "Return/Exchange",
+    priority: "Medium",
+    status: "In Progress",
+  },
+  {
+    id: "TCK-903",
+    subject: "Refund request for ORD-5316",
+    customer: "William Garcia",
+    type: "Refund",
+    priority: "High",
+    status: "Open",
+  },
+  {
+    id: "TCK-904",
+    subject: "Question about fabric material",
+    customer: "Emma Brown",
+    type: "Product Inquiry",
+    priority: "Low",
+    status: "Closed",
+  },
+  {
+    id: "TCK-905",
+    subject: "Promo code not working",
+    customer: "Noah Williams",
+    type: "Billing",
+    priority: "Medium",
+    status: "In Progress",
+  },
 ];
 
 export default function SupportPage() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Support Center</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="mt-1 text-muted-foreground">
             Manage customer inquiries, returns, and refunds.
           </p>
         </div>
@@ -47,7 +82,7 @@ export default function SupportPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
@@ -58,7 +93,9 @@ export default function SupportPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Avg Response Time</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Avg Response Time
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">1h 15m</div>
@@ -66,7 +103,9 @@ export default function SupportPage() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Returns</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Pending Returns
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-500">4</div>
@@ -96,7 +135,7 @@ export default function SupportPage() {
         </Button>
       </div>
 
-      <div className="border rounded-md">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -112,26 +151,38 @@ export default function SupportPage() {
           <TableBody>
             {tickets.map((ticket) => (
               <TableRow key={ticket.id}>
-                <TableCell className="font-medium text-muted-foreground">{ticket.id}</TableCell>
+                <TableCell className="font-medium text-muted-foreground">
+                  {ticket.id}
+                </TableCell>
                 <TableCell className="font-medium">{ticket.subject}</TableCell>
                 <TableCell>{ticket.customer}</TableCell>
                 <TableCell>{ticket.type}</TableCell>
                 <TableCell>
-                  <Badge 
+                  <Badge
                     variant={
-                      ticket.priority === "High" ? "destructive" :
-                      ticket.priority === "Medium" ? "secondary" : "outline"
+                      ticket.priority === "High"
+                        ? "destructive"
+                        : ticket.priority === "Medium"
+                          ? "secondary"
+                          : "outline"
                     }
-                    className={ticket.priority === "Medium" ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
+                    className={
+                      ticket.priority === "Medium"
+                        ? "bg-orange-500 text-white hover:bg-orange-600"
+                        : ""
+                    }
                   >
                     {ticket.priority}
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  <Badge 
+                  <Badge
                     variant={
-                      ticket.status === "Open" ? "default" :
-                      ticket.status === "In Progress" ? "secondary" : "outline"
+                      ticket.status === "Open"
+                        ? "default"
+                        : ticket.status === "In Progress"
+                          ? "secondary"
+                          : "outline"
                     }
                   >
                     {ticket.status}

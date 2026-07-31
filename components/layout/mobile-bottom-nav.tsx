@@ -22,46 +22,50 @@ export function MobileBottomNav({ user }: { user: any }) {
   ];
 
   return (
-    <div className="md:hidden fixed bottom-0 left-0 z-50 w-full h-16 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
-      <div className="grid h-full max-w-lg grid-cols-5 mx-auto font-medium">
+    <div className="fixed bottom-0 left-0 z-50 h-16 w-full border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:hidden">
+      <div className="mx-auto grid h-full max-w-lg grid-cols-5 font-medium">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           return (
             <Link
               key={item.href}
               href={item.href}
-              className={`inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 group transition-colors ${
+              className={`group inline-flex flex-col items-center justify-center px-5 transition-colors hover:bg-gray-50 ${
                 isActive ? "text-primary" : "text-gray-500 hover:text-gray-900"
               }`}
             >
               <item.icon
-                className={`w-5 h-5 mb-1 ${
+                className={`mb-1 h-5 w-5 ${
                   isActive ? "fill-primary text-primary" : ""
                 }`}
                 strokeWidth={isActive ? 2.5 : 2}
               />
-              <span className="text-[10px] uppercase tracking-wide">{item.label}</span>
+              <span className="text-[10px] uppercase tracking-wide">
+                {item.label}
+              </span>
             </Link>
           );
         })}
-        
+
         {/* Profile Tab */}
         <Link
           href={user ? "/account/profile" : "/login"}
-          className={`inline-flex flex-col items-center justify-center px-5 hover:bg-gray-50 group transition-colors ${
-            pathname.includes("/account") || pathname === "/login" ? "text-primary" : "text-gray-500 hover:text-gray-900"
+          className={`group inline-flex flex-col items-center justify-center px-5 transition-colors hover:bg-gray-50 ${
+            pathname.includes("/account") || pathname === "/login"
+              ? "text-primary"
+              : "text-gray-500 hover:text-gray-900"
           }`}
         >
           {user ? (
-            <Avatar className="w-6 h-6 mb-1 border border-gray-200">
+            <Avatar className="mb-1 h-6 w-6 border border-gray-200">
               <AvatarImage src={user.user_metadata?.avatar_url} />
-              <AvatarFallback className="bg-primary/10 text-primary text-[10px] font-bold">
+              <AvatarFallback className="bg-primary/10 text-[10px] font-bold text-primary">
                 {getInitials(user.user_metadata?.full_name, user.email)}
               </AvatarFallback>
             </Avatar>
           ) : (
             <User
-              className={`w-5 h-5 mb-1 ${
+              className={`mb-1 h-5 w-5 ${
                 pathname === "/login" ? "fill-primary text-primary" : ""
               }`}
               strokeWidth={pathname === "/login" ? 2.5 : 2}

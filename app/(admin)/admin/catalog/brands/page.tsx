@@ -1,14 +1,21 @@
-import { Suspense } from 'react';
-import Link from 'next/link';
-import { Plus } from 'lucide-react';
+import { Suspense } from "react";
+import Link from "next/link";
+import { Plus } from "lucide-react";
 
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { BrandRepository } from '@/lib/repositories/catalog/brand.repository';
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { BrandRepository } from "@/lib/repositories/catalog/brand.repository";
 
 export const metadata = {
-  title: 'Brands | Catalog | Anchor Fashion Enterprise',
+  title: "Brands | Catalog | Anchor Fashion Enterprise",
 };
 
 export default async function AdminBrandsPage() {
@@ -48,12 +55,14 @@ export default async function AdminBrandsPage() {
                   <TableCell className="font-medium">{brand.name}</TableCell>
                   <TableCell>{brand.slug}</TableCell>
                   <TableCell>
-                    <Badge variant={brand.is_active ? 'default' : 'secondary'}>
-                      {brand.is_active ? 'Active' : 'Inactive'}
+                    <Badge variant={brand.is_active ? "default" : "secondary"}>
+                      {brand.is_active ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">Edit</Button>
+                    <Button variant="ghost" size="sm">
+                      Edit
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))

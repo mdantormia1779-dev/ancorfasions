@@ -1,7 +1,12 @@
-import { createClient } from '../supabase/browser-client';
-import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
+import { createClient } from "../supabase/browser-client";
+import {
+  RealtimeChannel,
+  RealtimePostgresChangesPayload,
+} from "@supabase/supabase-js";
 
-type SubscriptionCallback<T extends { [key: string]: any }> = (payload: RealtimePostgresChangesPayload<T>) => void;
+type SubscriptionCallback<T extends { [key: string]: any }> = (
+  payload: RealtimePostgresChangesPayload<T>
+) => void;
 
 /**
  * Enterprise Supabase Realtime Channel Manager
@@ -19,7 +24,7 @@ export class ChannelManager {
     callback: SubscriptionCallback<T>,
     filter?: string // e.g., 'id=eq.123'
   ) {
-    const channelName = `public:${tableName}${filter ? `:${filter}` : ''}`;
+    const channelName = `public:${tableName}${filter ? `:${filter}` : ""}`;
 
     if (this.channels.has(channelName)) {
       return this.channels.get(channelName)!;
@@ -28,23 +33,23 @@ export class ChannelManager {
     const channel = this.supabase
       .channel(channelName)
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
+          event: "*",
+          schema: "public",
           table: tableName,
           filter: filter,
         },
         callback
       )
       .subscribe((status) => {
-        if (status === 'SUBSCRIBED') {
+        if (status === "SUBSCRIBED") {
           console.log(`[Realtime] Subscribed to ${channelName}`);
         }
-        if (status === 'CLOSED') {
+        if (status === "CLOSED") {
           console.log(`[Realtime] Closed ${channelName}`);
         }
-        if (status === 'CHANNEL_ERROR') {
+        if (status === "CHANNEL_ERROR") {
           console.error(`[Realtime] Error in ${channelName}`);
         }
       });
@@ -57,15 +62,16 @@ export class ChannelManager {
    * Broadcasts a custom event to a specific channel
    */
   async broadcastEvent(channelName: string, event: string, payload: any) {
-    const channel = this.channels.get(channelName) || this.supabase.channel(channelName);
-    
+    const channel =
+      this.channels.get(channelName) || this.supabase.channel(channelName);
+
     // Ensure subscribed before broadcasting
-    if (channel.state !== 'joined') {
+    if (channel.state !== "joined") {
       channel.subscribe();
     }
 
     return await channel.send({
-      type: 'broadcast',
+      type: "broadcast",
       event: event,
       payload: payload,
     });

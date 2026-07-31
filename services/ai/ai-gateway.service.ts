@@ -1,20 +1,26 @@
-import { AIProvider, AIGenerateRequest, IntegrationResponse } from '@/types/integration.types';
-import { ConfigService } from '@/services/config/config.service';
-import { GeminiProvider } from './providers/gemini.provider';
+import {
+  AIProvider,
+  AIGenerateRequest,
+  IntegrationResponse,
+} from "@/types/integration.types";
+import { ConfigService } from "@/services/config/config.service";
+import { GeminiProvider } from "./providers/gemini.provider";
 
 export class AIGatewayService {
   /**
    * Factory to get an instantiated AI provider based on the provider code
    */
   private static async getProvider(providerCode: string): Promise<AIProvider> {
-    const config = await ConfigService.getProviderConfig('ai', providerCode);
+    const config = await ConfigService.getProviderConfig("ai", providerCode);
 
     if (!config) {
-      throw new Error(`AI provider ${providerCode} is not configured or inactive.`);
+      throw new Error(
+        `AI provider ${providerCode} is not configured or inactive.`
+      );
     }
 
     switch (providerCode.toLowerCase()) {
-      case 'gemini':
+      case "gemini":
         return new GeminiProvider(config.config);
       default:
         throw new Error(`AI provider ${providerCode} is not supported.`);
@@ -24,7 +30,15 @@ export class AIGatewayService {
   /**
    * Generates text using the specified AI provider
    */
-  static async generateText(providerCode: string, request: AIGenerateRequest): Promise<IntegrationResponse<{ text: string; usage?: { promptTokens: number; completionTokens: number } }>> {
+  static async generateText(
+    providerCode: string,
+    request: AIGenerateRequest
+  ): Promise<
+    IntegrationResponse<{
+      text: string;
+      usage?: { promptTokens: number; completionTokens: number };
+    }>
+  > {
     try {
       const provider = await this.getProvider(providerCode);
       return await provider.generateText(request);
@@ -34,9 +48,9 @@ export class AIGatewayService {
         providerId: providerCode,
         timestamp: new Date().toISOString(),
         error: {
-          code: 'GATEWAY_ERROR',
-          message: error.message
-        }
+          code: "GATEWAY_ERROR",
+          message: error.message,
+        },
       };
     }
   }

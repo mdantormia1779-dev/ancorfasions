@@ -56,17 +56,35 @@ export function ForgotPasswordForm() {
 
   if (isSubmitted) {
     return (
-      <div className="flex flex-col items-center justify-center text-center space-y-4">
+      <div className="flex flex-col items-center justify-center space-y-4 text-center">
         <div className="rounded-full bg-green-100 p-3">
-          <svg className="h-6 w-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7"></path>
+          <svg
+            className="h-6 w-6 text-green-600"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M5 13l4 4L19 7"
+            ></path>
           </svg>
         </div>
         <h3 className="text-xl font-medium">Check your email</h3>
         <p className="text-sm text-muted-foreground">
-          We sent a password reset link to <span className="font-medium text-foreground">{form.getValues().email}</span>.
+          We sent a password reset link to{" "}
+          <span className="font-medium text-foreground">
+            {form.getValues().email}
+          </span>
+          .
         </p>
-        <Button variant="outline" className="mt-4" onClick={() => setIsSubmitted(false)}>
+        <Button
+          variant="outline"
+          className="mt-4"
+          onClick={() => setIsSubmitted(false)}
+        >
           Back to reset
         </Button>
       </div>
@@ -84,7 +102,11 @@ export function ForgotPasswordForm() {
               <FormItem>
                 <FormLabel>Email</FormLabel>
                 <FormControl>
-                  <Input placeholder="name@example.com" {...field} disabled={isLoading} />
+                  <Input
+                    placeholder="name@example.com"
+                    {...field}
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -97,7 +119,10 @@ export function ForgotPasswordForm() {
       </Form>
       <div className="text-center text-sm">
         Remember your password?{" "}
-        <Link href="/auth/login" className="font-medium text-primary hover:underline">
+        <Link
+          href="/auth/login"
+          className="font-medium text-primary hover:underline"
+        >
           Sign in
         </Link>
       </div>

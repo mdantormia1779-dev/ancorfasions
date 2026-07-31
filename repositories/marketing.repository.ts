@@ -1,13 +1,13 @@
-import { createClient } from '@/lib/supabase/server';
-import { Campaign, CampaignAudience } from '@/types/marketing.types';
+import { createClient } from "@/lib/supabase/server";
+import { Campaign, CampaignAudience } from "@/types/marketing.types";
 
 export class MarketingRepository {
   async getCampaigns(): Promise<Campaign[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('campaigns')
-      .select('*, campaign_audiences(*)')
-      .order('created_at', { ascending: false });
+      .from("campaigns")
+      .select("*, campaign_audiences(*)")
+      .order("created_at", { ascending: false });
 
     if (error) throw new Error(error.message);
     return data;
@@ -16,13 +16,13 @@ export class MarketingRepository {
   async getCampaignById(id: string): Promise<Campaign | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('campaigns')
-      .select('*, campaign_audiences(*)')
-      .eq('id', id)
+      .from("campaigns")
+      .select("*, campaign_audiences(*)")
+      .eq("id", id)
       .single();
 
     if (error) {
-      if (error.code === 'PGRST116') return null;
+      if (error.code === "PGRST116") return null;
       throw new Error(error.message);
     }
     return data;
@@ -31,7 +31,7 @@ export class MarketingRepository {
   async createCampaign(campaign: Partial<Campaign>): Promise<Campaign> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('campaigns')
+      .from("campaigns")
       .insert(campaign)
       .select()
       .single();
@@ -40,12 +40,15 @@ export class MarketingRepository {
     return data;
   }
 
-  async updateCampaign(id: string, updates: Partial<Campaign>): Promise<Campaign> {
+  async updateCampaign(
+    id: string,
+    updates: Partial<Campaign>
+  ): Promise<Campaign> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('campaigns')
+      .from("campaigns")
       .update(updates)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -55,15 +58,20 @@ export class MarketingRepository {
 
   async getAudiences(): Promise<CampaignAudience[]> {
     const supabase = await createClient();
-    const { data, error } = await supabase.from('campaign_audiences').select('*').order('name');
+    const { data, error } = await supabase
+      .from("campaign_audiences")
+      .select("*")
+      .order("name");
     if (error) throw new Error(error.message);
     return data;
   }
 
-  async createAudience(audience: Partial<CampaignAudience>): Promise<CampaignAudience> {
+  async createAudience(
+    audience: Partial<CampaignAudience>
+  ): Promise<CampaignAudience> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('campaign_audiences')
+      .from("campaign_audiences")
       .insert(audience)
       .select()
       .single();

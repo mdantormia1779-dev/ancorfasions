@@ -2,8 +2,8 @@
 // Delivery Zone Repository
 // ============================================================================
 
-import { createAdminClient } from '@/lib/supabase/admin-client';
-import { DeliveryZone, ShippingRate } from '@/types/shipping.types';
+import { createAdminClient } from "@/lib/supabase/admin-client";
+import { DeliveryZone, ShippingRate } from "@/types/shipping.types";
 
 export class DeliveryZoneRepository {
   private getClient() {
@@ -17,10 +17,10 @@ export class DeliveryZoneRepository {
     const supabase = this.getClient();
 
     const { data, error } = await supabase
-      .from('delivery_zones')
-      .select('*')
-      .eq('code', code)
-      .eq('is_active', true)
+      .from("delivery_zones")
+      .select("*")
+      .eq("code", code)
+      .eq("is_active", true)
       .maybeSingle();
 
     if (error) throw new Error(`Get zone by code failed: ${error.message}`);
@@ -34,9 +34,9 @@ export class DeliveryZoneRepository {
     const supabase = this.getClient();
 
     const { data, error } = await supabase
-      .from('delivery_zones')
-      .select('*')
-      .eq('id', id)
+      .from("delivery_zones")
+      .select("*")
+      .eq("id", id)
       .maybeSingle();
 
     if (error) throw new Error(`Get zone by ID failed: ${error.message}`);
@@ -46,15 +46,18 @@ export class DeliveryZoneRepository {
   /**
    * Find zone by district or city match.
    */
-  async getZoneByAddress(district: string, city?: string): Promise<DeliveryZone | null> {
+  async getZoneByAddress(
+    district: string,
+    city?: string
+  ): Promise<DeliveryZone | null> {
     const supabase = this.getClient();
 
     // Try to match district in the districts array
     const { data, error } = await supabase
-      .from('delivery_zones')
-      .select('*')
-      .eq('is_active', true)
-      .contains('districts', [district]);
+      .from("delivery_zones")
+      .select("*")
+      .eq("is_active", true)
+      .contains("districts", [district]);
 
     if (error) throw new Error(`Zone lookup failed: ${error.message}`);
 
@@ -63,16 +66,17 @@ export class DeliveryZoneRepository {
     // Fallback: try city match in any array element
     if (city) {
       const { data: cityMatch } = await supabase
-        .from('delivery_zones')
-        .select('*')
-        .eq('is_active', true)
-        .contains('districts', [city]);
+        .from("delivery_zones")
+        .select("*")
+        .eq("is_active", true)
+        .contains("districts", [city]);
 
-      if (cityMatch && cityMatch.length > 0) return cityMatch[0] as DeliveryZone;
+      if (cityMatch && cityMatch.length > 0)
+        return cityMatch[0] as DeliveryZone;
     }
 
     // Fallback to REMOTE zone
-    return this.getZoneByCode('REMOTE');
+    return this.getZoneByCode("REMOTE");
   }
 
   /**
@@ -82,10 +86,10 @@ export class DeliveryZoneRepository {
     const supabase = this.getClient();
 
     const { data, error } = await supabase
-      .from('delivery_zones')
-      .select('*')
-      .eq('is_active', true)
-      .order('name');
+      .from("delivery_zones")
+      .select("*")
+      .eq("is_active", true)
+      .order("name");
 
     if (error) throw new Error(`Get active zones failed: ${error.message}`);
     return (data ?? []) as DeliveryZone[];
@@ -98,9 +102,9 @@ export class DeliveryZoneRepository {
     const supabase = this.getClient();
 
     const { data, error } = await supabase
-      .from('delivery_zones')
-      .select('*')
-      .order('name');
+      .from("delivery_zones")
+      .select("*")
+      .order("name");
 
     if (error) throw new Error(`Get all zones failed: ${error.message}`);
     return (data ?? []) as DeliveryZone[];
@@ -110,12 +114,12 @@ export class DeliveryZoneRepository {
    * Create a new delivery zone.
    */
   async createZone(
-    data: Omit<DeliveryZone, 'id' | 'created_at' | 'updated_at'>
+    data: Omit<DeliveryZone, "id" | "created_at" | "updated_at">
   ): Promise<DeliveryZone> {
     const supabase = this.getClient();
 
     const { data: zone, error } = await supabase
-      .from('delivery_zones')
+      .from("delivery_zones")
       .insert(data as any)
       .select()
       .single();
@@ -127,13 +131,16 @@ export class DeliveryZoneRepository {
   /**
    * Update a delivery zone.
    */
-  async updateZone(id: string, data: Partial<DeliveryZone>): Promise<DeliveryZone> {
+  async updateZone(
+    id: string,
+    data: Partial<DeliveryZone>
+  ): Promise<DeliveryZone> {
     const supabase = this.getClient();
 
     const { data: zone, error } = await supabase
-      .from('delivery_zones')
+      .from("delivery_zones")
       .update(data as any)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -152,10 +159,10 @@ export class DeliveryZoneRepository {
     const supabase = this.getClient();
 
     const { data, error } = await supabase
-      .from('shipping_rates')
-      .select('*')
-      .eq('zone_id', zoneId)
-      .eq('is_active', true);
+      .from("shipping_rates")
+      .select("*")
+      .eq("zone_id", zoneId)
+      .eq("is_active", true);
 
     if (error) throw new Error(`Get rates failed: ${error.message}`);
     return (data ?? []) as ShippingRate[];
@@ -165,13 +172,13 @@ export class DeliveryZoneRepository {
    * Upsert a shipping rate.
    */
   async upsertRate(
-    data: Omit<ShippingRate, 'id' | 'created_at' | 'updated_at'>
+    data: Omit<ShippingRate, "id" | "created_at" | "updated_at">
   ): Promise<ShippingRate> {
     const supabase = this.getClient();
 
     const { data: rate, error } = await supabase
-      .from('shipping_rates')
-      .upsert(data as any, { onConflict: 'zone_id,name,is_cod_rate' })
+      .from("shipping_rates")
+      .upsert(data as any, { onConflict: "zone_id,name,is_cod_rate" })
       .select()
       .single();
 
@@ -190,7 +197,7 @@ export class DeliveryZoneRepository {
   ): Promise<number> {
     const supabase = this.getClient();
 
-    const { data, error } = await supabase.rpc('calculate_shipping_charge', {
+    const { data, error } = await supabase.rpc("calculate_shipping_charge", {
       p_zone_id: zoneId,
       p_weight_kg: weightKg,
       p_order_value: orderValue,
@@ -198,7 +205,7 @@ export class DeliveryZoneRepository {
     });
 
     if (error) {
-      console.error('calculateCharge RPC failed:', error);
+      console.error("calculateCharge RPC failed:", error);
       return 0;
     }
 

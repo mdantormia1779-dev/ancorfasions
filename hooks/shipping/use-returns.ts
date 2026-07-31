@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchReturnsAction,
   fetchReturnByIdAction,
@@ -10,13 +10,13 @@ import {
   markReturnReceivedAction,
   syncReturnInventoryAction,
   completeReturnAction,
-} from '@/actions/returns.actions';
-import { ReturnFilters } from '@/types/shipping.types';
+} from "@/actions/returns.actions";
+import { ReturnFilters } from "@/types/shipping.types";
 
 export const returnKeys = {
-  all: ['returns'] as const,
-  list: (filters: ReturnFilters) => ['returns', 'list', filters] as const,
-  detail: (id: string) => ['returns', 'detail', id] as const,
+  all: ["returns"] as const,
+  list: (filters: ReturnFilters) => ["returns", "list", filters] as const,
+  detail: (id: string) => ["returns", "detail", id] as const,
 };
 
 export function useReturns(filters: ReturnFilters = {}) {
@@ -33,7 +33,7 @@ export function useReturns(filters: ReturnFilters = {}) {
 
 export function useReturnDetail(returnId: string | undefined) {
   return useQuery({
-    queryKey: returnKeys.detail(returnId ?? ''),
+    queryKey: returnKeys.detail(returnId ?? ""),
     queryFn: async () => {
       const res = await fetchReturnByIdAction(returnId!);
       if (!res.success) throw new Error(res.error);
@@ -74,7 +74,13 @@ export function useApproveReturn() {
 export function useRejectReturn() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ returnId, reason }: { returnId: string; reason: string }) => {
+    mutationFn: async ({
+      returnId,
+      reason,
+    }: {
+      returnId: string;
+      reason: string;
+    }) => {
       const res = await rejectReturnAction(returnId, reason);
       if (!res.success) throw new Error(res.error);
       return res.data;

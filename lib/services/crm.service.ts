@@ -1,5 +1,10 @@
-import { CRMRepository } from '@/lib/repositories/crm.repository';
-import { CRMCustomer, CRMLead, CRMNote, CommunicationLog } from '@/types/crm.types';
+import { CRMRepository } from "@/lib/repositories/crm.repository";
+import {
+  CRMCustomer,
+  CRMLead,
+  CRMNote,
+  CommunicationLog,
+} from "@/types/crm.types";
 
 export class CRMService {
   private repository: CRMRepository;
@@ -16,7 +21,10 @@ export class CRMService {
     return this.repository.getCustomerById(id);
   }
 
-  async updateCustomer(id: string, updates: Partial<CRMCustomer>): Promise<CRMCustomer> {
+  async updateCustomer(
+    id: string,
+    updates: Partial<CRMCustomer>
+  ): Promise<CRMCustomer> {
     return this.repository.updateCustomer(id, updates);
   }
 
@@ -29,7 +37,11 @@ export class CRMService {
   }
 
   async createNote(profileId: string, content: string): Promise<CRMNote> {
-    return this.repository.createNote({ profile_id: profileId, content, is_pinned: false });
+    return this.repository.createNote({
+      profile_id: profileId,
+      content,
+      is_pinned: false,
+    });
   }
 
   async getTimeline(profileId: string): Promise<any[]> {
@@ -38,10 +50,12 @@ export class CRMService {
     const comms = await this.repository.getCommunicationLogs(profileId);
 
     const timeline = [
-      ...notes.map(n => ({ type: 'note', date: n.created_at, data: n })),
-      ...comms.map(c => ({ type: 'comm', date: c.created_at, data: c }))
+      ...notes.map((n) => ({ type: "note", date: n.created_at, data: n })),
+      ...comms.map((c) => ({ type: "comm", date: c.created_at, data: c })),
     ];
 
-    return timeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    return timeline.sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
   }
 }

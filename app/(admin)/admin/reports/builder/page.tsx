@@ -2,8 +2,20 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { exportToCsv } from "@/lib/analytics/export-utils";
@@ -24,11 +36,15 @@ export default function ReportBuilderPage() {
   const [metrics, setMetrics] = useState<string[]>(["sales"]);
 
   const toggleDimension = (dim: string) => {
-    setDimensions(prev => prev.includes(dim) ? prev.filter(d => d !== dim) : [...prev, dim]);
+    setDimensions((prev) =>
+      prev.includes(dim) ? prev.filter((d) => d !== dim) : [...prev, dim]
+    );
   };
 
   const toggleMetric = (met: string) => {
-    setMetrics(prev => prev.includes(met) ? prev.filter(m => m !== met) : [...prev, met]);
+    setMetrics((prev) =>
+      prev.includes(met) ? prev.filter((m) => m !== met) : [...prev, met]
+    );
   };
 
   const handleExport = () => {
@@ -36,7 +52,10 @@ export default function ReportBuilderPage() {
       toast.error("Please enter a report name");
       return;
     }
-    exportToCsv(mockPreviewData, `${reportName.replace(/\s+/g, '_').toLowerCase()}.csv`);
+    exportToCsv(
+      mockPreviewData,
+      `${reportName.replace(/\s+/g, "_").toLowerCase()}.csv`
+    );
     toast.success("Report exported successfully");
   };
 
@@ -52,7 +71,9 @@ export default function ReportBuilderPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-3xl font-bold tracking-tight">Custom Report Builder</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Custom Report Builder
+        </h1>
         <p className="text-muted-foreground">
           Design, preview, and export custom enterprise reports.
         </p>
@@ -68,9 +89,9 @@ export default function ReportBuilderPage() {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="reportName">Report Name</Label>
-              <Input 
-                id="reportName" 
-                placeholder="e.g., Weekly Category Sales" 
+              <Input
+                id="reportName"
+                placeholder="e.g., Weekly Category Sales"
                 value={reportName}
                 onChange={(e) => setReportName(e.target.value)}
               />
@@ -79,36 +100,48 @@ export default function ReportBuilderPage() {
             <div className="space-y-3">
               <h4 className="text-sm font-medium">Dimensions (Rows)</h4>
               <div className="flex flex-col space-y-2">
-                {["Date", "Category", "Brand", "Region", "Device"].map((dim) => (
-                  <div key={dim} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`dim-${dim}`} 
-                      checked={dimensions.includes(dim.toLowerCase())}
-                      onCheckedChange={() => toggleDimension(dim.toLowerCase())}
-                    />
-                    <Label htmlFor={`dim-${dim}`} className="text-sm font-normal cursor-pointer">
-                      {dim}
-                    </Label>
-                  </div>
-                ))}
+                {["Date", "Category", "Brand", "Region", "Device"].map(
+                  (dim) => (
+                    <div key={dim} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`dim-${dim}`}
+                        checked={dimensions.includes(dim.toLowerCase())}
+                        onCheckedChange={() =>
+                          toggleDimension(dim.toLowerCase())
+                        }
+                      />
+                      <Label
+                        htmlFor={`dim-${dim}`}
+                        className="cursor-pointer text-sm font-normal"
+                      >
+                        {dim}
+                      </Label>
+                    </div>
+                  )
+                )}
               </div>
             </div>
 
             <div className="space-y-3">
               <h4 className="text-sm font-medium">Metrics (Columns)</h4>
               <div className="flex flex-col space-y-2">
-                {["Sales", "Orders", "Units", "Refunds", "Profit"].map((met) => (
-                  <div key={met} className="flex items-center space-x-2">
-                    <Checkbox 
-                      id={`met-${met}`}
-                      checked={metrics.includes(met.toLowerCase())}
-                      onCheckedChange={() => toggleMetric(met.toLowerCase())}
-                    />
-                    <Label htmlFor={`met-${met}`} className="text-sm font-normal cursor-pointer">
-                      {met}
-                    </Label>
-                  </div>
-                ))}
+                {["Sales", "Orders", "Units", "Refunds", "Profit"].map(
+                  (met) => (
+                    <div key={met} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`met-${met}`}
+                        checked={metrics.includes(met.toLowerCase())}
+                        onCheckedChange={() => toggleMetric(met.toLowerCase())}
+                      />
+                      <Label
+                        htmlFor={`met-${met}`}
+                        className="cursor-pointer text-sm font-normal"
+                      >
+                        {met}
+                      </Label>
+                    </div>
+                  )
+                )}
               </div>
             </div>
 
@@ -131,47 +164,58 @@ export default function ReportBuilderPage() {
         </Card>
 
         {/* Preview Panel */}
-        <Card className="md:col-span-8 flex flex-col">
+        <Card className="flex flex-col md:col-span-8">
           <CardHeader className="flex flex-row items-start justify-between space-y-0">
             <div>
               <CardTitle>Data Preview</CardTitle>
-              <CardDescription>Live preview of the first 100 rows.</CardDescription>
+              <CardDescription>
+                Live preview of the first 100 rows.
+              </CardDescription>
             </div>
             <div className="flex space-x-2">
               <Button variant="outline" size="sm" onClick={handleSave}>
-                <Save className="h-4 w-4 mr-2" />
+                <Save className="mr-2 h-4 w-4" />
                 Save Report
               </Button>
               <Button size="sm" onClick={handleExport}>
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="mr-2 h-4 w-4" />
                 Export CSV
               </Button>
             </div>
           </CardHeader>
           <CardContent className="flex-1">
-            <div className="border rounded-md">
-              <table className="w-full text-sm text-left">
-                <thead className="bg-muted text-muted-foreground border-b">
+            <div className="rounded-md border">
+              <table className="w-full text-left text-sm">
+                <thead className="border-b bg-muted text-muted-foreground">
                   <tr>
-                    {dimensions.map(d => (
-                      <th key={d} className="px-4 py-3 font-medium capitalize">{d}</th>
+                    {dimensions.map((d) => (
+                      <th key={d} className="px-4 py-3 font-medium capitalize">
+                        {d}
+                      </th>
                     ))}
-                    {metrics.map(m => (
-                      <th key={m} className="px-4 py-3 font-medium capitalize">{m}</th>
+                    {metrics.map((m) => (
+                      <th key={m} className="px-4 py-3 font-medium capitalize">
+                        {m}
+                      </th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {mockPreviewData.map((row, i) => (
-                    <tr key={i} className="border-b last:border-0 hover:bg-muted/50 transition-colors">
-                      {dimensions.map(d => (
-                        <td key={d} className="px-4 py-3">{(row as any)[d] || '-'}</td>
+                    <tr
+                      key={i}
+                      className="border-b transition-colors last:border-0 hover:bg-muted/50"
+                    >
+                      {dimensions.map((d) => (
+                        <td key={d} className="px-4 py-3">
+                          {(row as any)[d] || "-"}
+                        </td>
                       ))}
-                      {metrics.map(m => (
+                      {metrics.map((m) => (
                         <td key={m} className="px-4 py-3">
-                          {m === 'sales' || m === 'profit' || m === 'refunds' ? 
-                            `$${(row as any)[m] || 0}` : 
-                            (row as any)[m] || 0}
+                          {m === "sales" || m === "profit" || m === "refunds"
+                            ? `$${(row as any)[m] || 0}`
+                            : (row as any)[m] || 0}
                         </td>
                       ))}
                     </tr>

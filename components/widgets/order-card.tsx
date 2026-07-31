@@ -1,6 +1,6 @@
-import * as React from "react"
-import { StatsCard } from "@/components/data-display/stats-card"
-import { ShoppingCart } from "lucide-react"
+import * as React from "react";
+import { StatsCard } from "@/components/data-display/stats-card";
+import { ShoppingCart } from "lucide-react";
 
 export function OrderCard({ value, trend }: { value: string; trend: number }) {
   return (
@@ -11,5 +11,5 @@ export function OrderCard({ value, trend }: { value: string; trend: number }) {
       trend={{ value: trend, isUpward: trend > 0 }}
       description="from last month"
     />
-  )
+  );
 }

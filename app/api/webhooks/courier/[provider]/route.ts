@@ -1,7 +1,7 @@
-import { NextResponse } from 'next/server';
-import { CourierGatewayService } from '@/services/courier/courier-gateway.service';
-import { ShippingService } from '@/services/shipping/shipping.service';
-import { CourierProviderCode } from '@/types/shipping.types';
+import { NextResponse } from "next/server";
+import { CourierGatewayService } from "@/services/courier/courier-gateway.service";
+import { ShippingService } from "@/services/shipping/shipping.service";
+import { CourierProviderCode } from "@/types/shipping.types";
 
 /**
  * POST /api/webhooks/courier/[provider]
@@ -17,23 +17,38 @@ export async function POST(
 
   try {
     const rawBody = await req.text();
-    const signature = req.headers.get('x-signature') ||
-                      req.headers.get('x-hmac-signature') ||
-                      req.headers.get('x-provider-signature') || '';
+    const signature =
+      req.headers.get("x-signature") ||
+      req.headers.get("x-hmac-signature") ||
+      req.headers.get("x-provider-signature") ||
+      "";
 
     let payload: unknown;
     try {
       payload = JSON.parse(rawBody);
     } catch {
-      return NextResponse.json({ error: 'Invalid JSON payload' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid JSON payload" },
+        { status: 400 }
+      );
     }
 
     // Normalize event via provider-specific processing
-    const result = await CourierGatewayService.processWebhook(providerCode, payload, signature);
+    const result = await CourierGatewayService.processWebhook(
+      providerCode,
+      payload,
+      signature
+    );
 
     if (!result.success) {
-      console.error(`[Webhook:${providerCode}] Processing failed:`, result.error);
-      return NextResponse.json({ error: result.error?.message }, { status: 400 });
+      console.error(
+        `[Webhook:${providerCode}] Processing failed:`,
+        result.error
+      );
+      return NextResponse.json(
+        { error: result.error?.message },
+        { status: 400 }
+      );
     }
 
     if (result.data) {
@@ -45,6 +60,9 @@ export async function POST(
     return NextResponse.json({ received: true, provider: providerCode });
   } catch (err: any) {
     console.error(`[Webhook:${providerCode}] Unexpected error:`, err);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

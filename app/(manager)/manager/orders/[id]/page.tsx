@@ -1,6 +1,12 @@
 import { Metadata } from "next";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ArrowLeft, Printer, Truck } from "lucide-react";
@@ -17,10 +23,14 @@ export const metadata: Metadata = {
   title: "Order Details | Manager Dashboard",
 };
 
-export default function OrderDetailsPage({ params }: { params: { id: string } }) {
+export default function OrderDetailsPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-4">
           <Button variant="outline" size="icon">
             <Link href="/manager/orders">
@@ -28,8 +38,10 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Order {params.id}</h1>
-            <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+            <h1 className="text-3xl font-bold tracking-tight">
+              Order {params.id}
+            </h1>
+            <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
               <span>Placed on June 23, 2023 at 10:24 AM</span>
               <span>•</span>
               <Badge variant="secondary">Processing</Badge>
@@ -48,8 +60,8 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="col-span-1 md:col-span-2 flex flex-col gap-6">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        <div className="col-span-1 flex flex-col gap-6 md:col-span-2">
           <Card>
             <CardHeader>
               <CardTitle>Order Items</CardTitle>
@@ -58,10 +70,14 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-4">
-                    <div className="h-16 w-16 bg-muted rounded-md flex items-center justify-center">Image</div>
+                    <div className="flex h-16 w-16 items-center justify-center rounded-md bg-muted">
+                      Image
+                    </div>
                     <div>
                       <p className="font-medium">Classic Oxford Shirt</p>
-                      <p className="text-sm text-muted-foreground">Color: White, Size: M</p>
+                      <p className="text-sm text-muted-foreground">
+                        Color: White, Size: M
+                      </p>
                     </div>
                   </div>
                   <div className="text-right">
@@ -70,7 +86,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
                   </div>
                 </div>
                 <Separator />
-                <div className="flex items-center justify-between font-medium pt-2">
+                <div className="flex items-center justify-between pt-2 font-medium">
                   <span>Subtotal</span>
                   <span>$250.00</span>
                 </div>
@@ -83,7 +99,7 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
                   <span>$20.00</span>
                 </div>
                 <Separator />
-                <div className="flex items-center justify-between font-bold text-lg pt-2">
+                <div className="flex items-center justify-between pt-2 text-lg font-bold">
                   <span>Total</span>
                   <span>$285.00</span>
                 </div>
@@ -97,27 +113,33 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                 <div className="flex gap-4">
-                   <div className="w-2 h-2 rounded-full bg-primary mt-2"></div>
-                   <div>
-                     <p className="font-medium">Order Processing</p>
-                     <p className="text-sm text-muted-foreground">June 23, 2023 - 11:30 AM</p>
-                   </div>
-                 </div>
-                 <div className="flex gap-4">
-                   <div className="w-2 h-2 rounded-full bg-muted mt-2"></div>
-                   <div>
-                     <p className="font-medium">Payment Confirmed</p>
-                     <p className="text-sm text-muted-foreground">June 23, 2023 - 10:25 AM</p>
-                   </div>
-                 </div>
-                 <div className="flex gap-4">
-                   <div className="w-2 h-2 rounded-full bg-muted mt-2"></div>
-                   <div>
-                     <p className="font-medium">Order Placed</p>
-                     <p className="text-sm text-muted-foreground">June 23, 2023 - 10:24 AM</p>
-                   </div>
-                 </div>
+                <div className="flex gap-4">
+                  <div className="mt-2 h-2 w-2 rounded-full bg-primary"></div>
+                  <div>
+                    <p className="font-medium">Order Processing</p>
+                    <p className="text-sm text-muted-foreground">
+                      June 23, 2023 - 11:30 AM
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="mt-2 h-2 w-2 rounded-full bg-muted"></div>
+                  <div>
+                    <p className="font-medium">Payment Confirmed</p>
+                    <p className="text-sm text-muted-foreground">
+                      June 23, 2023 - 10:25 AM
+                    </p>
+                  </div>
+                </div>
+                <div className="flex gap-4">
+                  <div className="mt-2 h-2 w-2 rounded-full bg-muted"></div>
+                  <div>
+                    <p className="font-medium">Order Placed</p>
+                    <p className="text-sm text-muted-foreground">
+                      June 23, 2023 - 10:24 AM
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -131,16 +153,21 @@ export default function OrderDetailsPage({ params }: { params: { id: string } })
             <CardContent className="space-y-4">
               <div>
                 <p className="font-medium">Liam Johnson</p>
-                <p className="text-sm text-muted-foreground">liam.johnson@example.com</p>
+                <p className="text-sm text-muted-foreground">
+                  liam.johnson@example.com
+                </p>
                 <p className="text-sm text-muted-foreground">+1 555-0192</p>
               </div>
               <Separator />
               <div>
-                <p className="font-medium mb-1">Shipping Address</p>
+                <p className="mb-1 font-medium">Shipping Address</p>
                 <p className="text-sm text-muted-foreground">
-                  123 Fashion Ave<br />
-                  Suite 4B<br />
-                  New York, NY 10001<br />
+                  123 Fashion Ave
+                  <br />
+                  Suite 4B
+                  <br />
+                  New York, NY 10001
+                  <br />
                   United States
                 </p>
               </div>

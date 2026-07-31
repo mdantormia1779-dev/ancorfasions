@@ -1,8 +1,8 @@
-'use server';
+"use server";
 
-import { revalidatePath } from 'next/cache';
-import { supportService } from '@/services/support.service';
-import { SupportTicket, TicketMessage } from '@/types/support.types';
+import { revalidatePath } from "next/cache";
+import { supportService } from "@/services/support.service";
+import { SupportTicket, TicketMessage } from "@/types/support.types";
 
 export async function getTicketsAction() {
   try {
@@ -25,7 +25,7 @@ export async function getTicketDetailsAction(id: string) {
 export async function createTicketAction(data: unknown) {
   try {
     const ticket = await supportService.createTicket(data);
-    revalidatePath('/admin/support/tickets');
+    revalidatePath("/admin/support/tickets");
     return { data: ticket };
   } catch (error: any) {
     return { error: error.message };
@@ -36,7 +36,7 @@ export async function updateTicketAction(id: string, data: unknown) {
   try {
     const ticket = await supportService.updateTicket(id, data);
     revalidatePath(`/admin/support/tickets/${id}`);
-    revalidatePath('/admin/support/tickets');
+    revalidatePath("/admin/support/tickets");
     return { data: ticket };
   } catch (error: any) {
     return { error: error.message };
@@ -47,7 +47,7 @@ export async function assignTicketAction(ticketId: string, agentId: string) {
   try {
     const ticket = await supportService.assignTicket(ticketId, agentId);
     revalidatePath(`/admin/support/tickets/${ticketId}`);
-    revalidatePath('/admin/support/tickets');
+    revalidatePath("/admin/support/tickets");
     return { data: ticket };
   } catch (error: any) {
     return { error: error.message };

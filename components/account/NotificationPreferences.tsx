@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import React, { useEffect, useState } from 'react';
-import { createClient } from '@/lib/supabase/client';
+import React, { useEffect, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 
 interface Preferences {
   email_enabled: boolean;
@@ -22,13 +22,15 @@ export function NotificationPreferences() {
   }, []);
 
   const fetchPreferences = async () => {
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) return;
 
     const { data } = await supabase
-      .from('notification_preferences')
-      .select('*')
-      .eq('user_id', session.user.id)
+      .from("notification_preferences")
+      .select("*")
+      .eq("user_id", session.user.id)
       .single();
 
     if (data) {
@@ -49,34 +51,34 @@ export function NotificationPreferences() {
   const handleSave = async () => {
     if (!preferences) return;
     setSaving(true);
-    const { data: { session } } = await supabase.auth.getSession();
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
     if (!session) return;
 
-    await supabase
-      .from('notification_preferences')
-      .upsert({
-        user_id: session.user.id,
-        ...preferences,
-      });
+    await supabase.from("notification_preferences").upsert({
+      user_id: session.user.id,
+      ...preferences,
+    });
 
     setSaving(false);
-    alert('Preferences saved successfully!');
+    alert("Preferences saved successfully!");
   };
 
   const requestPushPermission = async () => {
-    if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
-      alert('Push notifications are not supported by your browser.');
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+      alert("Push notifications are not supported by your browser.");
       return;
     }
 
     const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
+    if (permission === "granted") {
       // In a real implementation, you would subscribe the user to the push manager here
       // and send the subscription object to your backend via the API route we created.
-      setPreferences((prev) => prev ? { ...prev, push_enabled: true } : null);
-      alert('Push notifications enabled!');
+      setPreferences((prev) => (prev ? { ...prev, push_enabled: true } : null));
+      alert("Push notifications enabled!");
     } else {
-      alert('Push notification permission denied.');
+      alert("Push notification permission denied.");
     }
   };
 
@@ -84,45 +86,59 @@ export function NotificationPreferences() {
   if (!preferences) return null;
 
   return (
-    <div className="max-w-2xl p-6 bg-white rounded-lg shadow">
-      <h2 className="text-2xl font-semibold mb-6">Notification Preferences</h2>
-      
+    <div className="max-w-2xl rounded-lg bg-white p-6 shadow">
+      <h2 className="mb-6 text-2xl font-semibold">Notification Preferences</h2>
+
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-medium text-gray-900">Email Notifications</h3>
-            <p className="text-sm text-gray-500">Receive order updates and important alerts via email.</p>
+            <p className="text-sm text-gray-500">
+              Receive order updates and important alerts via email.
+            </p>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input 
-              type="checkbox" 
-              className="sr-only peer" 
+          <label className="relative inline-flex cursor-pointer items-center">
+            <input
+              type="checkbox"
+              className="peer sr-only"
               checked={preferences.email_enabled}
-              onChange={(e) => setPreferences({ ...preferences, email_enabled: e.target.checked })}
+              onChange={(e) =>
+                setPreferences({
+                  ...preferences,
+                  email_enabled: e.target.checked,
+                })
+              }
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
           </label>
         </div>
 
         <div className="flex items-center justify-between">
           <div>
             <h3 className="font-medium text-gray-900">Push Notifications</h3>
-            <p className="text-sm text-gray-500">Receive real-time alerts directly on your device.</p>
+            <p className="text-sm text-gray-500">
+              Receive real-time alerts directly on your device.
+            </p>
           </div>
           {preferences.push_enabled ? (
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input 
-                type="checkbox" 
-                className="sr-only peer" 
+            <label className="relative inline-flex cursor-pointer items-center">
+              <input
+                type="checkbox"
+                className="peer sr-only"
                 checked={preferences.push_enabled}
-                onChange={(e) => setPreferences({ ...preferences, push_enabled: e.target.checked })}
+                onChange={(e) =>
+                  setPreferences({
+                    ...preferences,
+                    push_enabled: e.target.checked,
+                  })
+                }
               />
-              <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+              <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
             </label>
           ) : (
-            <button 
+            <button
               onClick={requestPushPermission}
-              className="px-3 py-1 text-sm text-blue-600 border border-blue-600 rounded hover:bg-blue-50 transition-colors"
+              className="rounded border border-blue-600 px-3 py-1 text-sm text-blue-600 transition-colors hover:bg-blue-50"
             >
               Enable
             </button>
@@ -131,53 +147,78 @@ export function NotificationPreferences() {
 
         <div className="flex items-center justify-between border-t pt-6">
           <div>
-            <h3 className="font-medium text-gray-900">Marketing & Promotions</h3>
-            <p className="text-sm text-gray-500">Receive personalized offers, flash sales, and newsletters.</p>
+            <h3 className="font-medium text-gray-900">
+              Marketing & Promotions
+            </h3>
+            <p className="text-sm text-gray-500">
+              Receive personalized offers, flash sales, and newsletters.
+            </p>
           </div>
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input 
-              type="checkbox" 
-              className="sr-only peer" 
+          <label className="relative inline-flex cursor-pointer items-center">
+            <input
+              type="checkbox"
+              className="peer sr-only"
               checked={preferences.marketing_enabled}
-              onChange={(e) => setPreferences({ ...preferences, marketing_enabled: e.target.checked })}
+              onChange={(e) =>
+                setPreferences({
+                  ...preferences,
+                  marketing_enabled: e.target.checked,
+                })
+              }
             />
-            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            <div className="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-blue-600 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"></div>
           </label>
         </div>
 
         <div className="border-t pt-6">
-          <h3 className="font-medium text-gray-900 mb-4">Quiet Hours</h3>
-          <p className="text-sm text-gray-500 mb-4">Pause non-essential notifications during these hours.</p>
+          <h3 className="mb-4 font-medium text-gray-900">Quiet Hours</h3>
+          <p className="mb-4 text-sm text-gray-500">
+            Pause non-essential notifications during these hours.
+          </p>
           <div className="flex gap-4">
             <div>
-              <label className="block text-xs text-gray-500 mb-1">Start Time</label>
-              <input 
-                type="time" 
-                className="px-3 py-2 border rounded-md"
-                value={preferences.quiet_hours_start || ''}
-                onChange={(e) => setPreferences({ ...preferences, quiet_hours_start: e.target.value })}
+              <label className="mb-1 block text-xs text-gray-500">
+                Start Time
+              </label>
+              <input
+                type="time"
+                className="rounded-md border px-3 py-2"
+                value={preferences.quiet_hours_start || ""}
+                onChange={(e) =>
+                  setPreferences({
+                    ...preferences,
+                    quiet_hours_start: e.target.value,
+                  })
+                }
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-500 mb-1">End Time</label>
-              <input 
-                type="time" 
-                className="px-3 py-2 border rounded-md"
-                value={preferences.quiet_hours_end || ''}
-                onChange={(e) => setPreferences({ ...preferences, quiet_hours_end: e.target.value })}
+              <label className="mb-1 block text-xs text-gray-500">
+                End Time
+              </label>
+              <input
+                type="time"
+                className="rounded-md border px-3 py-2"
+                value={preferences.quiet_hours_end || ""}
+                onChange={(e) =>
+                  setPreferences({
+                    ...preferences,
+                    quiet_hours_end: e.target.value,
+                  })
+                }
               />
             </div>
           </div>
         </div>
       </div>
 
-      <div className="mt-8 pt-6 border-t flex justify-end">
+      <div className="mt-8 flex justify-end border-t pt-6">
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-2 bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 transition-colors"
+          className="rounded-md bg-black px-6 py-2 text-white transition-colors hover:bg-gray-800 disabled:opacity-50"
         >
-          {saving ? 'Saving...' : 'Save Preferences'}
+          {saving ? "Saving..." : "Save Preferences"}
         </button>
       </div>
     </div>

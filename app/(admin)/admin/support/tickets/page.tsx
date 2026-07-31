@@ -1,5 +1,5 @@
-import Link from 'next/link';
-import { getTicketsAction } from '@/app/actions/support/ticket.actions';
+import Link from "next/link";
+import { getTicketsAction } from "@/app/actions/support/ticket.actions";
 
 import {
   Table,
@@ -8,35 +8,41 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, MoreHorizontal, AlertCircle, Clock } from 'lucide-react';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Input } from '@/components/ui/input';
-
-
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Plus, MoreHorizontal, AlertCircle, Clock } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 
 export default async function TicketManagementPage() {
   const { data: rawTickets, error } = await getTicketsAction();
   const tickets = rawTickets || [];
 
   if (error) {
-    return <div className="p-8 text-red-500">Failed to load tickets: {error}</div>;
+    return (
+      <div className="p-8 text-red-500">Failed to load tickets: {error}</div>
+    );
   }
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Support Tickets</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="mt-1 text-muted-foreground">
             Manage customer inquiries and technical issues.
           </p>
         </div>
@@ -47,7 +53,10 @@ export default async function TicketManagementPage() {
       </div>
 
       <div className="flex items-center gap-2">
-        <Input placeholder="Search tickets by ID, subject, or customer..." className="max-w-md" />
+        <Input
+          placeholder="Search tickets by ID, subject, or customer..."
+          className="max-w-md"
+        />
         <Button variant="outline">Filter</Button>
       </div>
 
@@ -75,27 +84,42 @@ export default async function TicketManagementPage() {
               <TableBody>
                 {tickets.map((ticket) => (
                   <TableRow key={ticket.id}>
-                    <TableCell className="font-medium font-mono">{ticket.id.substring(0, 8)}</TableCell>
+                    <TableCell className="font-mono font-medium">
+                      {ticket.id.substring(0, 8)}
+                    </TableCell>
                     <TableCell>
                       <div className="font-medium">{ticket.subject}</div>
-                      <div className="text-xs text-muted-foreground">{ticket.customer_profiles?.first_name || 'Customer'}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {ticket.customer_profiles?.first_name || "Customer"}
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={
-                        ticket.priority === 'critical' ? 'destructive' :
-                        ticket.priority === 'high' ? 'default' :
-                        ticket.priority === 'medium' ? 'secondary' : 'outline'
-                      } className="capitalize">
+                      <Badge
+                        variant={
+                          ticket.priority === "critical"
+                            ? "destructive"
+                            : ticket.priority === "high"
+                              ? "default"
+                              : ticket.priority === "medium"
+                                ? "secondary"
+                                : "outline"
+                        }
+                        className="capitalize"
+                      >
                         {ticket.priority}
                       </Badge>
-                      {ticket.priority === 'critical' && ticket.status !== 'resolved' && ticket.status !== 'closed' && (
-                        <div className="flex items-center text-[10px] text-rose-500 mt-1 font-bold">
-                          <AlertCircle className="h-3 w-3 mr-1" /> SLA Risk
-                        </div>
-                      )}
+                      {ticket.priority === "critical" &&
+                        ticket.status !== "resolved" &&
+                        ticket.status !== "closed" && (
+                          <div className="mt-1 flex items-center text-[10px] font-bold text-rose-500">
+                            <AlertCircle className="mr-1 h-3 w-3" /> SLA Risk
+                          </div>
+                        )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline" className="capitalize">{ticket.status.replace(/_/g, ' ')}</Badge>
+                      <Badge variant="outline" className="capitalize">
+                        {ticket.status.replace(/_/g, " ")}
+                      </Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
@@ -103,17 +127,23 @@ export default async function TicketManagementPage() {
                           <>
                             <Avatar className="h-6 w-6">
                               <AvatarFallback className="text-[10px]">
-                                {ticket.assigned_agent_id.substring(0, 2).toUpperCase()}
+                                {ticket.assigned_agent_id
+                                  .substring(0, 2)
+                                  .toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
                             <span className="text-sm">Assigned</span>
                           </>
                         ) : (
-                          <span className="text-sm text-muted-foreground italic">Unassigned</span>
+                          <span className="text-sm italic text-muted-foreground">
+                            Unassigned
+                          </span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{new Date(ticket.updated_at).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(ticket.updated_at).toLocaleDateString()}
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger>
@@ -127,7 +157,9 @@ export default async function TicketManagementPage() {
                           </Link>
                           <DropdownMenuItem>Assign to me</DropdownMenuItem>
                           <DropdownMenuItem>Change Status</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Escalate</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive">
+                            Escalate
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

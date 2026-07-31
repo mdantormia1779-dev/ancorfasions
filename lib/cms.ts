@@ -1,4 +1,4 @@
-import { createAdminClient } from '@/lib/supabase/server';
+import { createAdminClient } from "@/lib/supabase/server";
 
 export interface CmsPost {
   id: string;
@@ -6,7 +6,8 @@ export interface CmsPost {
   slug: string;
   content: string;
   excerpt: string;
-  status: 'DRAFT' | 'IN_REVIEW' | 'APPROVED' | 'SCHEDULED' | 'PUBLISHED' | 'ARCHIVED';
+  status:
+    "DRAFT" | "IN_REVIEW" | "APPROVED" | "SCHEDULED" | "PUBLISHED" | "ARCHIVED";
   published_at: string;
 }
 
@@ -49,11 +50,11 @@ export interface CmsMenuItem {
 export async function getBlogPostBySlug(slug: string): Promise<CmsPost | null> {
   const supabaseAdmin = await createAdminClient();
   const { data, error } = await supabaseAdmin
-    .from('cms_blog_posts')
-    .select('*')
-    .eq('slug', slug)
-    .eq('status', 'PUBLISHED')
-    .lte('published_at', new Date().toISOString())
+    .from("cms_blog_posts")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "PUBLISHED")
+    .lte("published_at", new Date().toISOString())
     .single();
 
   if (error) {
@@ -69,11 +70,11 @@ export async function getBlogPostBySlug(slug: string): Promise<CmsPost | null> {
 export async function getPageBySlug(slug: string): Promise<CmsPage | null> {
   const supabaseAdmin = await createAdminClient();
   const { data: page, error: pageError } = await supabaseAdmin
-    .from('cms_pages')
-    .select('*')
-    .eq('slug', slug)
-    .eq('status', 'PUBLISHED')
-    .lte('published_at', new Date().toISOString())
+    .from("cms_pages")
+    .select("*")
+    .eq("slug", slug)
+    .eq("status", "PUBLISHED")
+    .lte("published_at", new Date().toISOString())
     .single();
 
   if (pageError || !page) {
@@ -81,11 +82,11 @@ export async function getPageBySlug(slug: string): Promise<CmsPage | null> {
   }
 
   const { data: blocks, error: blocksError } = await supabaseAdmin
-    .from('cms_page_blocks')
-    .select('*')
-    .eq('page_id', page.id)
-    .eq('is_active', true)
-    .order('display_order', { ascending: true });
+    .from("cms_page_blocks")
+    .select("*")
+    .eq("page_id", page.id)
+    .eq("is_active", true)
+    .order("display_order", { ascending: true });
 
   if (blocksError) {
     console.error(`Error fetching page blocks for ${slug}:`, blocksError);
@@ -100,13 +101,15 @@ export async function getPageBySlug(slug: string): Promise<CmsPage | null> {
 /**
  * Fetch a global menu (e.g. HEADER_MAIN) and build its hierarchy.
  */
-export async function getMenuByLocation(location: string): Promise<CmsMenu | null> {
+export async function getMenuByLocation(
+  location: string
+): Promise<CmsMenu | null> {
   const supabaseAdmin = await createAdminClient();
   const { data: menu, error: menuError } = await supabaseAdmin
-    .from('cms_menus')
-    .select('*')
-    .eq('location', location)
-    .eq('is_active', true)
+    .from("cms_menus")
+    .select("*")
+    .eq("location", location)
+    .eq("is_active", true)
     .single();
 
   if (menuError || !menu) {
@@ -114,10 +117,10 @@ export async function getMenuByLocation(location: string): Promise<CmsMenu | nul
   }
 
   const { data: items, error: itemsError } = await supabaseAdmin
-    .from('cms_menu_items')
-    .select('*')
-    .eq('menu_id', menu.id)
-    .order('display_order', { ascending: true });
+    .from("cms_menu_items")
+    .select("*")
+    .eq("menu_id", menu.id)
+    .order("display_order", { ascending: true });
 
   if (itemsError) {
     console.error(`Error fetching menu items for ${location}:`, itemsError);

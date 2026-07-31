@@ -1,13 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { 
-  Bell, 
-  CircleUser, 
-  Search, 
-  Menu,
-  Sparkles
-} from "lucide-react";
+import { Bell, CircleUser, Search, Menu, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -23,7 +17,7 @@ import { ManagerSidebar } from "./ManagerSidebar";
 
 export function ManagerHeader() {
   return (
-    <header className="flex h-14 items-center gap-4 border-b bg-muted/40 px-4 lg:h-[60px] lg:px-6 sticky top-0 z-30 backdrop-blur-md">
+    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-muted/40 px-4 backdrop-blur-md lg:h-[60px] lg:px-6">
       <Sheet>
         <SheetTrigger asChild>
           <Button variant="outline" size="icon" className="lg:hidden">
@@ -31,13 +25,15 @@ export function ManagerHeader() {
             <span className="sr-only">Toggle navigation menu</span>
           </Button>
         </SheetTrigger>
-        <SheetContent side="left" className="p-0 flex flex-col w-72">
+        <SheetContent side="left" className="flex w-72 flex-col p-0">
           {/* Mobile sidebar goes here - reusing logic or simple version */}
           <div className="flex h-14 items-center border-b px-4 font-semibold">
             Anchor Manager
           </div>
-          <div className="p-4 flex-1 overflow-y-auto">
-             <div className="text-sm text-muted-foreground">Navigation available on desktop.</div>
+          <div className="flex-1 overflow-y-auto p-4">
+            <div className="text-sm text-muted-foreground">
+              Navigation available on desktop.
+            </div>
           </div>
         </SheetContent>
       </Sheet>
@@ -48,23 +44,27 @@ export function ManagerHeader() {
             <Input
               type="search"
               placeholder="Global Enterprise Search..."
-              className="w-full appearance-none bg-background pl-8 shadow-none focus-visible:ring-primary h-9 rounded-md"
+              className="h-9 w-full appearance-none rounded-md bg-background pl-8 shadow-none focus-visible:ring-primary"
             />
           </div>
         </form>
       </div>
       <div className="flex items-center gap-4">
-        <Button variant="outline" size="sm" className="hidden sm:flex gap-2 text-indigo-600 border-indigo-200 bg-indigo-50 hover:bg-indigo-100 hover:text-indigo-700">
+        <Button
+          variant="outline"
+          size="sm"
+          className="hidden gap-2 border-indigo-200 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 hover:text-indigo-700 sm:flex"
+        >
           <Sparkles className="h-4 w-4" />
           Ask Gemini
         </Button>
-        
+
         <Button variant="ghost" size="icon" className="relative">
           <Bell className="h-5 w-5" />
-          <span className="absolute top-1 right-1 h-2 w-2 rounded-full bg-destructive"></span>
+          <span className="absolute right-1 top-1 h-2 w-2 rounded-full bg-destructive"></span>
           <span className="sr-only">Toggle notifications</span>
         </Button>
-        
+
         <DropdownMenu>
           <DropdownMenuTrigger>
             <Button variant="ghost" size="icon" className="rounded-full">

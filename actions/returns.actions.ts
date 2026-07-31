@@ -1,27 +1,28 @@
-'use server';
+"use server";
 
 // ============================================================================
 // Returns Server Actions
 // ============================================================================
 
-import { revalidatePath } from 'next/cache';
-import { ReturnsService } from '@/services/shipping/returns.service';
+import { revalidatePath } from "next/cache";
+import { ReturnsService } from "@/services/shipping/returns.service";
 import {
   createReturnSchema,
   approveReturnSchema,
   rejectReturnSchema,
   returnFiltersSchema,
-} from '@/schemas/shipping.schema';
-import { createClient } from '@/lib/supabase/server-client';
+} from "@/schemas/shipping.schema";
+import { createClient } from "@/lib/supabase/server-client";
 
 type ActionResponse<T = void> =
-  | { success: true; data: T }
-  | { success: false; error: string };
+  { success: true; data: T } | { success: false; error: string };
 
 async function getCurrentUser() {
   const supabase = await createClient();
-    try {
-    const { data: { user } } = await supabase.auth.getUser();
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     return user;
   } catch {
     return null;
@@ -33,7 +34,10 @@ export async function createReturnRequestAction(
 ): Promise<ActionResponse<{ returnId: string; returnNumber: string }>> {
   const parse = createReturnSchema.safeParse(raw);
   if (!parse.success) {
-    return { success: false, error: parse.error.errors[0]?.message ?? 'Validation failed' };
+    return {
+      success: false,
+      error: parse.error.errors[0]?.message ?? "Validation failed",
+    };
   }
 
   try {
@@ -45,12 +49,15 @@ export async function createReturnRequestAction(
       user?.id
     );
 
-    revalidatePath('/admin/shipping/returns');
+    revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/orders/${parse.data.orderId}`);
 
     return {
       success: true,
-      data: { returnId: returnRecord.id, returnNumber: returnRecord.return_number },
+      data: {
+        returnId: returnRecord.id,
+        returnNumber: returnRecord.return_number,
+      },
     };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -62,7 +69,7 @@ export async function approveReturnAction(
 ): Promise<ActionResponse<{ returnId: string }>> {
   const parse = approveReturnSchema.safeParse({ returnId });
   if (!parse.success) {
-    return { success: false, error: 'Invalid return ID' };
+    return { success: false, error: "Invalid return ID" };
   }
 
   try {
@@ -70,7 +77,7 @@ export async function approveReturnAction(
     const service = new ReturnsService();
     await service.approveReturn(returnId, user?.id);
 
-    revalidatePath('/admin/shipping/returns');
+    revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
 
     return { success: true, data: { returnId } };
@@ -85,7 +92,10 @@ export async function rejectReturnAction(
 ): Promise<ActionResponse<{ returnId: string }>> {
   const parse = rejectReturnSchema.safeParse({ returnId, reason });
   if (!parse.success) {
-    return { success: false, error: parse.error.errors[0]?.message ?? 'Validation failed' };
+    return {
+      success: false,
+      error: parse.error.errors[0]?.message ?? "Validation failed",
+    };
   }
 
   try {
@@ -93,7 +103,7 @@ export async function rejectReturnAction(
     const service = new ReturnsService();
     await service.rejectReturn(returnId, reason, user?.id);
 
-    revalidatePath('/admin/shipping/returns');
+    revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
 
     return { success: true, data: { returnId } };
@@ -107,7 +117,7 @@ export async function fetchReturnsAction(
 ): Promise<ActionResponse<any>> {
   const parse = returnFiltersSchema.safeParse(rawFilters);
   if (!parse.success) {
-    return { success: false, error: 'Invalid filters' };
+    return { success: false, error: "Invalid filters" };
   }
 
   try {
@@ -126,7 +136,7 @@ export async function fetchReturnByIdAction(
     const service = new ReturnsService();
     const returnRecord = await service.getReturnWithItems(returnId);
 
-    if (!returnRecord) return { success: false, error: 'Return not found' };
+    if (!returnRecord) return { success: false, error: "Return not found" };
     return { success: true, data: returnRecord };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -140,7 +150,7 @@ export async function markReturnReceivedAction(
     const service = new ReturnsService();
     await service.markReturnReceived(returnId);
 
-    revalidatePath('/admin/shipping/returns');
+    revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
 
     return { success: true, data: { returnId } };
@@ -156,7 +166,7 @@ export async function syncReturnInventoryAction(
     const service = new ReturnsService();
     await service.syncReturnInventory(returnId);
 
-    revalidatePath('/admin/shipping/returns');
+    revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
 
     return { success: true, data: { returnId } };
@@ -172,7 +182,7 @@ export async function completeReturnAction(
     const service = new ReturnsService();
     await service.completeReturn(returnId);
 
-    revalidatePath('/admin/shipping/returns');
+    revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
 
     return { success: true, data: { returnId } };

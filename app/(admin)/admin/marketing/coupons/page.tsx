@@ -1,4 +1,4 @@
-'use client';
+"use client";
 
 import {
   Table,
@@ -7,64 +7,72 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Plus, Tag, MoreHorizontal } from 'lucide-react';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import { Plus, Tag, MoreHorizontal } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const coupons = [
   {
-    id: '1',
-    code: 'SUMMER26',
-    discount: '20% OFF',
-    type: 'Percentage',
-    usage: '14,230 / Unlimited',
-    status: 'Active',
-    expires: 'Aug 31, 2026',
+    id: "1",
+    code: "SUMMER26",
+    discount: "20% OFF",
+    type: "Percentage",
+    usage: "14,230 / Unlimited",
+    status: "Active",
+    expires: "Aug 31, 2026",
   },
   {
-    id: '2',
-    code: 'VIPWELCOME50',
-    discount: '$50 OFF',
-    type: 'Fixed Amount',
-    usage: '450 / 1000',
-    status: 'Active',
-    expires: 'No Expiry',
+    id: "2",
+    code: "VIPWELCOME50",
+    discount: "$50 OFF",
+    type: "Fixed Amount",
+    usage: "450 / 1000",
+    status: "Active",
+    expires: "No Expiry",
   },
   {
-    id: '3',
-    code: 'FREESHIP-HOLIDAY',
-    discount: 'Free Shipping',
-    type: 'Shipping',
-    usage: '0 / Unlimited',
-    status: 'Scheduled',
-    expires: 'Dec 31, 2026',
+    id: "3",
+    code: "FREESHIP-HOLIDAY",
+    discount: "Free Shipping",
+    type: "Shipping",
+    usage: "0 / Unlimited",
+    status: "Scheduled",
+    expires: "Dec 31, 2026",
   },
   {
-    id: '4',
-    code: 'WINTER25',
-    discount: '15% OFF',
-    type: 'Percentage',
-    usage: '84,500 / Unlimited',
-    status: 'Expired',
-    expires: 'Jan 31, 2026',
-  }
+    id: "4",
+    code: "WINTER25",
+    discount: "15% OFF",
+    type: "Percentage",
+    usage: "84,500 / Unlimited",
+    status: "Expired",
+    expires: "Jan 31, 2026",
+  },
 ];
 
 export default function CouponsManagementPage() {
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Coupon Management</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold tracking-tight">
+            Coupon Management
+          </h1>
+          <p className="mt-1 text-muted-foreground">
             Create and track promotional codes and discounts.
           </p>
         </div>
@@ -101,21 +109,32 @@ export default function CouponsManagementPage() {
                     <TableCell>
                       <div className="flex items-center space-x-2">
                         <Tag className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-mono font-bold">{coupon.code}</span>
+                        <span className="font-mono font-bold">
+                          {coupon.code}
+                        </span>
                       </div>
                     </TableCell>
-                    <TableCell className="font-medium">{coupon.discount}</TableCell>
+                    <TableCell className="font-medium">
+                      {coupon.discount}
+                    </TableCell>
                     <TableCell>{coupon.type}</TableCell>
                     <TableCell>{coupon.usage}</TableCell>
                     <TableCell>
-                      <Badge variant={
-                        coupon.status === 'Active' ? 'default' :
-                        coupon.status === 'Scheduled' ? 'secondary' : 'outline'
-                      }>
+                      <Badge
+                        variant={
+                          coupon.status === "Active"
+                            ? "default"
+                            : coupon.status === "Scheduled"
+                              ? "secondary"
+                              : "outline"
+                        }
+                      >
                         {coupon.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{coupon.expires}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {coupon.expires}
+                    </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger>
@@ -126,7 +145,9 @@ export default function CouponsManagementPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem>View Performance</DropdownMenuItem>
                           <DropdownMenuItem>Edit Rules</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Deactivate</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive">
+                            Deactivate
+                          </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>

@@ -1,28 +1,62 @@
-import { Metadata } from 'next';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Search, UserPlus, Filter, MoreHorizontal } from 'lucide-react';
+import { Metadata } from "next";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Search, UserPlus, Filter, MoreHorizontal } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: 'User Management | Anchor Fashion',
-  description: 'Manage admin users, roles, and permissions',
+  title: "User Management | Anchor Fashion",
+  description: "Manage admin users, roles, and permissions",
 };
 
 const mockUsers = [
-  { id: '1', name: 'Eleanor Vance', email: 'eleanor@anchorfashion.com', role: 'Super Admin', status: 'Active', lastActive: '2 mins ago' },
-  { id: '2', name: 'Marcus Sterling', email: 'marcus@anchorfashion.com', role: 'Finance Executive', status: 'Active', lastActive: '1 hr ago' },
-  { id: '3', name: 'Sophia Chen', email: 'sophia@anchorfashion.com', role: 'Marketing Manager', status: 'Active', lastActive: '3 hrs ago' },
-  { id: '4', name: 'David Miller', email: 'david@anchorfashion.com', role: 'Support Lead', status: 'Inactive', lastActive: '5 days ago' },
+  {
+    id: "1",
+    name: "Eleanor Vance",
+    email: "eleanor@anchorfashion.com",
+    role: "Super Admin",
+    status: "Active",
+    lastActive: "2 mins ago",
+  },
+  {
+    id: "2",
+    name: "Marcus Sterling",
+    email: "marcus@anchorfashion.com",
+    role: "Finance Executive",
+    status: "Active",
+    lastActive: "1 hr ago",
+  },
+  {
+    id: "3",
+    name: "Sophia Chen",
+    email: "sophia@anchorfashion.com",
+    role: "Marketing Manager",
+    status: "Active",
+    lastActive: "3 hrs ago",
+  },
+  {
+    id: "4",
+    name: "David Miller",
+    email: "david@anchorfashion.com",
+    role: "Support Lead",
+    status: "Inactive",
+    lastActive: "5 days ago",
+  },
 ];
 
 export default function UserManagementPage() {
@@ -49,8 +83,8 @@ export default function UserManagementPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex items-center gap-4 mb-4">
-            <div className="relative flex-1 max-w-sm">
+          <div className="mb-4 flex items-center gap-4">
+            <div className="relative max-w-sm flex-1">
               <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
                 type="search"
@@ -63,7 +97,7 @@ export default function UserManagementPage() {
               Filters
             </Button>
           </div>
-          
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>
@@ -80,17 +114,30 @@ export default function UserManagementPage() {
                   <TableRow key={user.id}>
                     <TableCell>
                       <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-muted-foreground">{user.email}</div>
+                      <div className="text-sm text-muted-foreground">
+                        {user.email}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <Badge variant="secondary">{user.role}</Badge>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={user.status === 'Active' ? 'default' : 'outline'} className={user.status === 'Active' ? 'bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20' : ''}>
+                      <Badge
+                        variant={
+                          user.status === "Active" ? "default" : "outline"
+                        }
+                        className={
+                          user.status === "Active"
+                            ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                            : ""
+                        }
+                      >
                         {user.status}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-muted-foreground">{user.lastActive}</TableCell>
+                    <TableCell className="text-muted-foreground">
+                      {user.lastActive}
+                    </TableCell>
                     <TableCell className="text-right">
                       <Button variant="ghost" size="icon">
                         <MoreHorizontal className="h-4 w-4" />

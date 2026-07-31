@@ -1,7 +1,7 @@
-import { AIGatewayRequest, AIGatewayResponse } from './types';
-import { PromptEngine } from './prompt-engine';
-import { generateContent } from './gemini';
-import { AITelemetry } from './telemetry';
+import { AIGatewayRequest, AIGatewayResponse } from "./types";
+import { PromptEngine } from "./prompt-engine";
+import { generateContent } from "./gemini";
+import { AITelemetry } from "./telemetry";
 
 export class AIGateway {
   /**
@@ -45,7 +45,7 @@ export class AIGateway {
         totalTokens: result.usage.totalTokens,
         latencyMs: result.latencyMs,
         costEstimatedUsd: cost,
-        status: 'success',
+        status: "success",
       });
 
       return {
@@ -55,15 +55,15 @@ export class AIGateway {
       // Log error telemetry
       AITelemetry.logRequest({
         promptName: request.promptName,
-        model: 'unknown',
+        model: "unknown",
         userId: request.userId,
         inputTokens: 0,
         outputTokens: 0,
         totalTokens: 0,
         latencyMs: 0,
         costEstimatedUsd: 0,
-        status: 'error',
-        errorMessage: error?.message || 'Unknown error',
+        status: "error",
+        errorMessage: error?.message || "Unknown error",
       });
 
       throw error;

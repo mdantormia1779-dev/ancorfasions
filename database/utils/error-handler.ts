@@ -1,4 +1,4 @@
-import { PostgrestError } from '@supabase/supabase-js';
+import { PostgrestError } from "@supabase/supabase-js";
 
 export class DatabaseError extends Error {
   constructor(
@@ -8,7 +8,7 @@ export class DatabaseError extends Error {
     public hint: string | null
   ) {
     super(message);
-    this.name = 'DatabaseError';
+    this.name = "DatabaseError";
   }
 }
 
@@ -20,17 +20,19 @@ export function handlePostgresError(error: PostgrestError): DatabaseError {
 
   // Postgres Error Codes mapping
   switch (error.code) {
-    case '23505':
-      customMessage = 'A record with this identifier already exists (Unique Violation).';
+    case "23505":
+      customMessage =
+        "A record with this identifier already exists (Unique Violation).";
       break;
-    case '23503':
-      customMessage = 'Referenced record does not exist (Foreign Key Violation).';
+    case "23503":
+      customMessage =
+        "Referenced record does not exist (Foreign Key Violation).";
       break;
-    case '42P01':
-      customMessage = 'The requested table does not exist.';
+    case "42P01":
+      customMessage = "The requested table does not exist.";
       break;
-    case 'PGRST116':
-      customMessage = 'Record not found.';
+    case "PGRST116":
+      customMessage = "Record not found.";
       break;
     default:
       // Leave default message for unknown codes
@@ -40,5 +42,10 @@ export function handlePostgresError(error: PostgrestError): DatabaseError {
   // TODO: Add logging integration here (e.g., Sentry, Winston, Datadog)
   console.error(`[DB Error ${error.code}]: ${error.message}`, error.details);
 
-  return new DatabaseError(customMessage, error.code, error.details, error.hint);
+  return new DatabaseError(
+    customMessage,
+    error.code,
+    error.details,
+    error.hint
+  );
 }

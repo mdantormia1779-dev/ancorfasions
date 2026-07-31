@@ -5,7 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { RevenueChart } from "@/components/manager/dashboard/RevenueChart";
 import { InventoryAlerts } from "@/components/manager/dashboard/InventoryAlerts";
-import { fetchDashboardKPIsAction, fetchDashboardRevenueAction, fetchOperationalMetricsAction } from "@/app/actions/bi/dashboard.actions";
+import {
+  fetchDashboardKPIsAction,
+  fetchDashboardRevenueAction,
+  fetchOperationalMetricsAction,
+} from "@/app/actions/bi/dashboard.actions";
 import { fetchOrdersAction } from "@/app/actions/oms/order.actions";
 
 export const metadata: Metadata = {
@@ -18,49 +22,56 @@ export default async function ManagerDashboardPage() {
     fetchDashboardKPIsAction(),
     fetchDashboardRevenueAction(7),
     fetchOrdersAction({ limit: 5 }),
-    fetchOperationalMetricsAction()
+    fetchOperationalMetricsAction(),
   ]);
 
   const rawKpis = kpisRes.data || {
     revenue: { value: 0, trend: { value: 0, isPositive: true } },
-    orders: { value: 0, trend: { value: 0, isPositive: true } }
+    orders: { value: 0, trend: { value: 0, isPositive: true } },
   };
-  
+
   const ops = opsRes.data || {
     pendingOrders: 0,
-    supportTickets: 0
+    supportTickets: 0,
   };
 
   const kpis = {
     revenue: rawKpis.revenue,
     orders: rawKpis.orders,
-    processing: { value: ops.pendingOrders, trend: { value: 0, isPositive: true } }, // Dummy trend for ops
-    alerts: { value: ops.supportTickets }
+    processing: {
+      value: ops.pendingOrders,
+      trend: { value: 0, isPositive: true },
+    }, // Dummy trend for ops
+    alerts: { value: ops.supportTickets },
   };
 
   // Map revenue to expected format for Recharts
   const revenueData = (revenueRes.data || []).map((d: any) => ({
     name: d.name,
-    total: d.revenue
+    total: d.revenue,
   }));
 
   // Orders pagination returns { data, count } or just array depending on the repo
   const rawOrders = ordersRes.data;
-  const ordersList = Array.isArray(rawOrders) ? rawOrders : (rawOrders?.data || []);
+  const ordersList = Array.isArray(rawOrders)
+    ? rawOrders
+    : rawOrders?.data || [];
 
   const orders = ordersList.map((o: any) => ({
     id: o.id,
     customer: o.user_id, // In a real setup, we'd join user profile to get name
     status: o.status,
     date: new Date(o.created_at).toLocaleDateString(),
-    amount: o.total_amount
+    amount: o.total_amount,
   }));
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Dashboard Overview</h1>
-          <p className="text-muted-foreground mt-1">
+          <h1 className="text-3xl font-bold tracking-tight">
+            Dashboard Overview
+          </h1>
+          <p className="mt-1 text-muted-foreground">
             Welcome back. Here is what is happening with your store today.
           </p>
         </div>
@@ -75,13 +86,13 @@ export default async function ManagerDashboardPage() {
       {/* KPI Cards */}
       <StatCards kpis={kpis} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* Charts & Analytics */}
-        <div className="col-span-1 lg:col-span-2 flex flex-col gap-6">
+        <div className="col-span-1 flex flex-col gap-6 lg:col-span-2">
           <RevenueChart data={revenueData} />
           <RecentOrdersTable orders={orders} />
         </div>
-        
+
         {/* Alerts & Tasks */}
         <div className="col-span-1 flex flex-col gap-6">
           <InventoryAlerts />

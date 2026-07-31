@@ -22,7 +22,7 @@ export function SearchBar() {
       <Input
         type="search"
         placeholder="Search products..."
-        className="w-full bg-muted/50 pl-9 border-none focus-visible:ring-1 focus-visible:ring-primary"
+        className="w-full border-none bg-muted/50 pl-9 focus-visible:ring-1 focus-visible:ring-primary"
         value={searchQuery}
         onChange={(e) => setSearchQuery(e.target.value)}
       />

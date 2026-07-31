@@ -1,11 +1,14 @@
-import { SEORepository } from '@/repositories/seo.repository';
-import { seoMetadataSchema } from '@/validators/seo.schema';
-import { SEOMetadata } from '@/types/seo.types';
+import { SEORepository } from "@/repositories/seo.repository";
+import { seoMetadataSchema } from "@/validators/seo.schema";
+import { SEOMetadata } from "@/types/seo.types";
 
 const seoRepository = new SEORepository();
 
 export class SEOService {
-  async getMetadataByEntity(entityType: string, entityId: string): Promise<SEOMetadata | null> {
+  async getMetadataByEntity(
+    entityType: string,
+    entityId: string
+  ): Promise<SEOMetadata | null> {
     return await seoRepository.getMetadataByEntity(entityType, entityId);
   }
 

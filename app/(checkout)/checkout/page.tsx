@@ -1,33 +1,37 @@
-import { redirect } from 'next/navigation';
-import { fetchCheckoutSessionAction } from '@/lib/actions/checkout.actions';
-import { fetchCartAction as getCart } from '@/lib/actions/cart.actions';
-import { CheckoutForm } from '@/components/checkout/checkout-form';
-import { OrderSummary } from '@/components/checkout/order-summary';
-import { CheckoutStoreInitializer } from './initializer';
+import { redirect } from "next/navigation";
+import { fetchCheckoutSessionAction } from "@/lib/actions/checkout.actions";
+import { fetchCartAction as getCart } from "@/lib/actions/cart.actions";
+import { CheckoutForm } from "@/components/checkout/checkout-form";
+import { OrderSummary } from "@/components/checkout/order-summary";
+import { CheckoutStoreInitializer } from "./initializer";
 
 export default async function CheckoutPage() {
   const cartRes = await getCart();
-  
+
   if (!cartRes.success || !cartRes.cart || cartRes.cart.items?.length === 0) {
-    redirect('/cart');
+    redirect("/cart");
   }
 
   const sessionRes = await fetchCheckoutSessionAction(cartRes.cart.id);
-  
+
   if (!sessionRes.success || !sessionRes.session) {
-    return <div className="p-12 text-center text-red-500">Error initializing checkout. Please try again.</div>;
+    return (
+      <div className="p-12 text-center text-red-500">
+        Error initializing checkout. Please try again.
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto px-4 py-8 lg:py-12 max-w-6xl">
+    <div className="container mx-auto max-w-6xl px-4 py-8 lg:py-12">
       <CheckoutStoreInitializer cartId={cartRes.cart.id} />
-      
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-16">
+
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-7">
           <CheckoutForm checkoutSessionId={sessionRes.session.id} />
         </div>
-        
-        <div className="lg:col-span-5 order-first lg:order-last mb-8 lg:mb-0">
+
+        <div className="order-first mb-8 lg:order-last lg:col-span-5 lg:mb-0">
           <div className="sticky top-8">
             <OrderSummary />
           </div>

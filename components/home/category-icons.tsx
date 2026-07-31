@@ -18,29 +18,36 @@ const DEFAULT_CATEGORIES: Category[] = [
   { id: "shoes", label: "Shoes", icon: "👟" },
 ];
 
-export function CategoryIcons({ categories = DEFAULT_CATEGORIES }: { categories?: Category[] }) {
-
+export function CategoryIcons({
+  categories = DEFAULT_CATEGORIES,
+}: {
+  categories?: Category[];
+}) {
   return (
-    <section className="w-full py-10 bg-white">
+    <section className="w-full bg-white py-10">
       <div className="container px-4 text-center">
-        <h2 className="text-3xl font-bold text-[#fa5a5a] mb-2">Category</h2>
-        <div className="flex items-center justify-center gap-1 mb-12">
-          <div className="w-2 h-2 rounded-full bg-[#fa5a5a]"></div>
-          <div className="w-12 h-[2px] bg-[#fa5a5a]"></div>
-          <div className="w-2 h-2 rounded-full bg-[#fa5a5a]"></div>
+        <h2 className="mb-2 text-3xl font-bold text-[#fa5a5a]">Category</h2>
+        <div className="mb-12 flex items-center justify-center gap-1">
+          <div className="h-2 w-2 rounded-full bg-[#fa5a5a]"></div>
+          <div className="h-[2px] w-12 bg-[#fa5a5a]"></div>
+          <div className="h-2 w-2 rounded-full bg-[#fa5a5a]"></div>
         </div>
 
         <div className="flex flex-wrap items-center justify-center gap-8 md:gap-16">
           {categories.map((cat) => (
-            <Link 
-              key={cat.id} 
+            <Link
+              key={cat.id}
               href={`/categories/${cat.id}`}
-              className="flex flex-col items-center gap-4 group"
+              className="group flex flex-col items-center gap-4"
             >
-              <div className={`w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center text-3xl md:text-4xl bg-white border-2 transition-all ${cat.active ? 'border-[#fa5a5a] shadow-md shadow-[#fa5a5a]/20' : 'border-transparent group-hover:border-[#fa5a5a]/30'}`}>
+              <div
+                className={`flex h-16 w-16 items-center justify-center rounded-full border-2 bg-white text-3xl transition-all md:h-20 md:w-20 md:text-4xl ${cat.active ? "border-[#fa5a5a] shadow-md shadow-[#fa5a5a]/20" : "border-transparent group-hover:border-[#fa5a5a]/30"}`}
+              >
                 {cat.icon}
               </div>
-              <span className={`font-medium text-sm md:text-base ${cat.active ? 'text-black border-b-2 border-black pb-1' : 'text-[#fa5a5a]'}`}>
+              <span
+                className={`text-sm font-medium md:text-base ${cat.active ? "border-b-2 border-black pb-1 text-black" : "text-[#fa5a5a]"}`}
+              >
                 {cat.label}
               </span>
             </Link>

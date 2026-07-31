@@ -71,7 +71,10 @@ export const createAdminProductAction = createAdminAction(
       ...input,
       status: input.status || "DRAFT",
       isFeatured: input.isFeatured || false,
-      media: input.media?.map((m: any) => ({ ...m, displayOrder: m.displayOrder || 0 }))
+      media: input.media?.map((m: any) => ({
+        ...m,
+        displayOrder: m.displayOrder || 0,
+      })),
     };
     const newProduct = await ProductRepository.createProduct(payload as any);
     revalidatePath("/admin/products");
@@ -87,10 +90,16 @@ export const updateAdminProductAction = createAdminAction(
   z.object({ id: z.string().uuid(), data: CreateProductSchema.partial() }),
   async ({ id, data }) => {
     const payload = {
-        ...data,
-        media: data.media?.map((m: any) => ({ ...m, displayOrder: m.displayOrder || 0 }))
+      ...data,
+      media: data.media?.map((m: any) => ({
+        ...m,
+        displayOrder: m.displayOrder || 0,
+      })),
     };
-    const updatedProduct = await ProductRepository.updateProduct(id, payload as any);
+    const updatedProduct = await ProductRepository.updateProduct(
+      id,
+      payload as any
+    );
     revalidatePath("/admin/products");
     revalidatePath(`/admin/products/${id}/edit`);
     revalidatePath("/(shop)", "layout");
@@ -175,30 +184,20 @@ export const bulkDeleteProductsAction = createAdminAction(
 /**
  * Fetch all categories for forms.
  */
-export const getCategoriesAction = createAdminAction(
-  EmptySchema,
-  async () => {
-    return await CategoryRepository.getCategories();
-  }
-);
+export const getCategoriesAction = createAdminAction(EmptySchema, async () => {
+  return await CategoryRepository.getCategories();
+});
 
 /**
  * Fetch all brands for forms.
  */
-export const getBrandsAction = createAdminAction(
-  EmptySchema,
-  async () => {
-    return await BrandRepository.getBrands();
-  }
-);
+export const getBrandsAction = createAdminAction(EmptySchema, async () => {
+  return await BrandRepository.getBrands();
+});
 
 /**
  * Fetch all tags for forms.
  */
-export const getTagsAction = createAdminAction(
-  EmptySchema,
-  async () => {
-    return await TagRepository.getTags();
-  }
-);
-
+export const getTagsAction = createAdminAction(EmptySchema, async () => {
+  return await TagRepository.getTags();
+});

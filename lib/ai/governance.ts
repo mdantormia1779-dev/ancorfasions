@@ -1,5 +1,5 @@
-import { supabase } from '../supabase';
-import { AIGovernanceAction } from './types';
+import { supabase } from "../supabase";
+import { AIGovernanceAction } from "./types";
 
 export class AIGovernance {
   /**
@@ -11,19 +11,25 @@ export class AIGovernance {
     suggestedByModel: string,
     payload: Record<string, any>,
     confidenceScore: number,
-    requiresManualReviewThreshold: number = 0.90
+    requiresManualReviewThreshold: number = 0.9
   ): Promise<AIGovernanceAction> {
-    
     // Auto-approve if confidence is high enough AND it's not a restricted action
-    const restrictedActions = ['mass_discount', 'bulk_content', 'sensitive_communication'];
-    let status: 'PENDING_REVIEW' | 'APPROVED' = 'PENDING_REVIEW';
-    
-    if (confidenceScore >= requiresManualReviewThreshold && !restrictedActions.includes(actionType)) {
-      status = 'APPROVED';
+    const restrictedActions = [
+      "mass_discount",
+      "bulk_content",
+      "sensitive_communication",
+    ];
+    let status: "PENDING_REVIEW" | "APPROVED" = "PENDING_REVIEW";
+
+    if (
+      confidenceScore >= requiresManualReviewThreshold &&
+      !restrictedActions.includes(actionType)
+    ) {
+      status = "APPROVED";
     }
 
     const { data, error } = await supabase
-      .from('ai_governance_actions')
+      .from("ai_governance_actions")
       .insert({
         action_type: actionType,
         suggested_by_model: suggestedByModel,
@@ -31,7 +37,7 @@ export class AIGovernance {
         confidence_score: confidenceScore,
         status: status,
       })
-      .select('*')
+      .select("*")
       .single();
 
     if (error || !data) {
@@ -51,16 +57,19 @@ export class AIGovernance {
   /**
    * Admin function to manually approve a pending AI action.
    */
-  static async approveAction(actionId: string, adminId: string): Promise<boolean> {
+  static async approveAction(
+    actionId: string,
+    adminId: string
+  ): Promise<boolean> {
     const { error } = await supabase
-      .from('ai_governance_actions')
+      .from("ai_governance_actions")
       .update({
-        status: 'APPROVED',
+        status: "APPROVED",
         reviewed_by: adminId,
         reviewed_at: new Date().toISOString(),
       })
-      .eq('id', actionId);
-      
+      .eq("id", actionId);
+
     return !error;
   }
 }

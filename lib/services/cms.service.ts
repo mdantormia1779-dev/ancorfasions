@@ -1,6 +1,6 @@
-import { CMSRepository } from '@/lib/repositories/cms.repository';
-import { CMSPage, CMSNavigation } from '@/types/cms.types';
-import { BlogPost } from '@/types/blog.types';
+import { CMSRepository } from "@/lib/repositories/cms.repository";
+import { CMSPage, CMSNavigation } from "@/types/cms.types";
+import { BlogPost } from "@/types/blog.types";
 
 export class CMSService {
   private repository: CMSRepository;

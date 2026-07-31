@@ -1,16 +1,16 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { paymentWebhookService } from '@/services/payment-webhook.service';
+import { NextRequest, NextResponse } from "next/server";
+import { paymentWebhookService } from "@/services/payment-webhook.service";
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ provider: string }> }
 ) {
   const { provider: providerCode } = await params;
-  
+
   try {
     const rawBody = await req.text();
     let payload = {};
-    
+
     // Try parse as JSON
     try {
       payload = JSON.parse(rawBody);
@@ -22,7 +22,11 @@ export async function POST(
 
     const headers = Object.fromEntries(req.headers.entries());
 
-    const result = await paymentWebhookService.processWebhook(providerCode, payload, headers);
+    const result = await paymentWebhookService.processWebhook(
+      providerCode,
+      payload,
+      headers
+    );
 
     return NextResponse.json({ success: true, result });
   } catch (error: any) {

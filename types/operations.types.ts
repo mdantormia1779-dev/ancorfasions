@@ -1,9 +1,19 @@
-export type LogLevel = 'INFO' | 'WARN' | 'ERROR' | 'FATAL';
-export type JobStatus = 'IDLE' | 'RUNNING' | 'PAUSED' | 'FAILED';
-export type AlertSeverity = 'INFO' | 'WARNING' | 'CRITICAL' | 'FATAL';
-export type AlertStatus = 'ACTIVE' | 'ACKNOWLEDGED' | 'RESOLVED';
-export type HealthStatus = 'UP' | 'DOWN' | 'DEGRADED';
-export type DashboardType = 'executive' | 'sales' | 'inventory' | 'marketing' | 'crm' | 'support' | 'finance' | 'warehouse' | 'courier' | 'ai';
+export type LogLevel = "INFO" | "WARN" | "ERROR" | "FATAL";
+export type JobStatus = "IDLE" | "RUNNING" | "PAUSED" | "FAILED";
+export type AlertSeverity = "INFO" | "WARNING" | "CRITICAL" | "FATAL";
+export type AlertStatus = "ACTIVE" | "ACKNOWLEDGED" | "RESOLVED";
+export type HealthStatus = "UP" | "DOWN" | "DEGRADED";
+export type DashboardType =
+  | "executive"
+  | "sales"
+  | "inventory"
+  | "marketing"
+  | "crm"
+  | "support"
+  | "finance"
+  | "warehouse"
+  | "courier"
+  | "ai";
 
 export interface AnalyticsEvent {
   id: string;

@@ -1,5 +1,5 @@
 /**
- * Base Request Interface 
+ * Base Request Interface
  * Extended by feature-specific Create/Update DTOs
  */
 export interface BaseRequestDto {

@@ -1,5 +1,5 @@
-import { createClient as createSupabaseClient } from '@supabase/supabase-js';
-import { Database } from '@/types/supabase';
+import { createClient as createSupabaseClient } from "@supabase/supabase-js";
+import { Database } from "@/types/supabase";
 
 /**
  * Enterprise Edge Client
@@ -8,10 +8,10 @@ import { Database } from '@/types/supabase';
  */
 export function createEdgeClient(token?: string) {
   if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_URL is not defined');
+    throw new Error("NEXT_PUBLIC_SUPABASE_URL is not defined");
   }
   if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not defined');
+    throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY is not defined");
   }
 
   const options = token

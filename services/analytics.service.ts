@@ -1,12 +1,15 @@
-import { AnalyticsRepository, DateRange } from '@/repositories/analytics.repository';
+import {
+  AnalyticsRepository,
+  DateRange,
+} from "@/repositories/analytics.repository";
 
 export class AnalyticsService {
   static async getExecutiveSummary(dateRange?: DateRange) {
     try {
       return await AnalyticsRepository.getExecutiveSummary(dateRange);
     } catch (error) {
-      console.error('Failed to get executive summary:', error);
-      throw new Error('Failed to fetch executive analytics');
+      console.error("Failed to get executive summary:", error);
+      throw new Error("Failed to fetch executive analytics");
     }
   }
 
@@ -14,8 +17,8 @@ export class AnalyticsService {
     try {
       return await AnalyticsRepository.getSalesAnalytics(dateRange);
     } catch (error) {
-      console.error('Failed to get sales analytics:', error);
-      throw new Error('Failed to fetch sales analytics');
+      console.error("Failed to get sales analytics:", error);
+      throw new Error("Failed to fetch sales analytics");
     }
   }
 
@@ -23,8 +26,8 @@ export class AnalyticsService {
     try {
       return await AnalyticsRepository.getOrderAnalytics(dateRange);
     } catch (error) {
-      console.error('Failed to get order analytics:', error);
-      throw new Error('Failed to fetch order analytics');
+      console.error("Failed to get order analytics:", error);
+      throw new Error("Failed to fetch order analytics");
     }
   }
 
@@ -32,8 +35,8 @@ export class AnalyticsService {
     try {
       return await AnalyticsRepository.getCustomerAnalytics(dateRange);
     } catch (error) {
-      console.error('Failed to get customer analytics:', error);
-      throw new Error('Failed to fetch customer analytics');
+      console.error("Failed to get customer analytics:", error);
+      throw new Error("Failed to fetch customer analytics");
     }
   }
 
@@ -41,8 +44,8 @@ export class AnalyticsService {
     try {
       return await AnalyticsRepository.getProductAnalytics();
     } catch (error) {
-      console.error('Failed to get product analytics:', error);
-      throw new Error('Failed to fetch product analytics');
+      console.error("Failed to get product analytics:", error);
+      throw new Error("Failed to fetch product analytics");
     }
   }
 
@@ -50,8 +53,8 @@ export class AnalyticsService {
     try {
       return await AnalyticsRepository.getInventoryAnalytics();
     } catch (error) {
-      console.error('Failed to get inventory analytics:', error);
-      throw new Error('Failed to fetch inventory analytics');
+      console.error("Failed to get inventory analytics:", error);
+      throw new Error("Failed to fetch inventory analytics");
     }
   }
 
@@ -59,8 +62,8 @@ export class AnalyticsService {
     try {
       return await AnalyticsRepository.getMarketingAnalytics(dateRange);
     } catch (error) {
-      console.error('Failed to get marketing analytics:', error);
-      throw new Error('Failed to fetch marketing analytics');
+      console.error("Failed to get marketing analytics:", error);
+      throw new Error("Failed to fetch marketing analytics");
     }
   }
 }

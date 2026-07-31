@@ -8,15 +8,19 @@ export const metadata: Metadata = {
   description: "Edit an existing product in your catalog.",
 };
 
-export default async function EditProductPage({ params }: { params: { id: string } }) {
+export default async function EditProductPage({
+  params,
+}: {
+  params: { id: string };
+}) {
   const res = await getAdminProductByIdAction({ id: params.id });
-  
+
   if (!res.success || !res.data) {
     notFound();
   }
 
   return (
-    <div className="max-w-5xl mx-auto py-6">
+    <div className="mx-auto max-w-5xl py-6">
       <ProductForm initialData={res.data} />
     </div>
   );

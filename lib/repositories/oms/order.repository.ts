@@ -1,17 +1,17 @@
-import { createClient } from '@/lib/supabase/server';
-import { Order, OrderStatus } from '@/types/oms';
+import { createClient } from "@/lib/supabase/server";
+import { Order, OrderStatus } from "@/types/oms";
 
 export class OrderRepository {
   async getOrderById(id: string): Promise<Order | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('id', id)
+      .from("orders")
+      .select("*")
+      .eq("id", id)
       .single();
 
     if (error) {
-      console.error('Error fetching order by ID:', error);
+      console.error("Error fetching order by ID:", error);
       return null;
     }
     return data as Order;
@@ -20,13 +20,13 @@ export class OrderRepository {
   async getOrderByNumber(orderNumber: string): Promise<Order | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('orders')
-      .select('*')
-      .eq('order_number', orderNumber)
+      .from("orders")
+      .select("*")
+      .eq("order_number", orderNumber)
       .single();
 
     if (error) {
-      console.error('Error fetching order by number:', error);
+      console.error("Error fetching order by number:", error);
       return null;
     }
     return data as Order;
@@ -39,13 +39,13 @@ export class OrderRepository {
     limit?: number;
   }) {
     const supabase = await createClient();
-    let query = supabase.from('orders').select('*', { count: 'exact' });
+    let query = supabase.from("orders").select("*", { count: "exact" });
 
     if (options?.customerId) {
-      query = query.eq('user_id', options.customerId);
+      query = query.eq("user_id", options.customerId);
     }
     if (options?.status) {
-      query = query.eq('status', options.status);
+      query = query.eq("status", options.status);
     }
 
     const page = options?.page || 1;
@@ -53,7 +53,7 @@ export class OrderRepository {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    query = query.order('created_at', { ascending: false }).range(from, to);
+    query = query.order("created_at", { ascending: false }).range(from, to);
 
     const { data, error, count } = await query;
 
@@ -72,7 +72,7 @@ export class OrderRepository {
   ): Promise<Order> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('orders')
+      .from("orders")
       .insert([orderData])
       .select()
       .single();
@@ -95,9 +95,9 @@ export class OrderRepository {
     }
 
     const { data, error } = await supabase
-      .from('orders')
+      .from("orders")
       .update(updateData)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 

@@ -1,9 +1,16 @@
-'use server';
+"use server";
 
-import { WarehouseService } from '@/services/warehouse.service';
-import { Warehouse, WarehouseZone, WarehouseBin } from '@/types/inventory.types';
+import { WarehouseService } from "@/services/warehouse.service";
+import {
+  Warehouse,
+  WarehouseZone,
+  WarehouseBin,
+} from "@/types/inventory.types";
 
-export async function getAllWarehouses(): Promise<{ data?: Warehouse[]; error?: string }> {
+export async function getAllWarehouses(): Promise<{
+  data?: Warehouse[];
+  error?: string;
+}> {
   try {
     const service = new WarehouseService();
     const data = await service.getAllWarehouses();
@@ -13,7 +20,9 @@ export async function getAllWarehouses(): Promise<{ data?: Warehouse[]; error?: 
   }
 }
 
-export async function getWarehouseById(id: string): Promise<{ data?: Warehouse | null; error?: string }> {
+export async function getWarehouseById(
+  id: string
+): Promise<{ data?: Warehouse | null; error?: string }> {
   try {
     const service = new WarehouseService();
     const data = await service.getWarehouseById(id);
@@ -23,7 +32,9 @@ export async function getWarehouseById(id: string): Promise<{ data?: Warehouse |
   }
 }
 
-export async function createWarehouse(input: Partial<Warehouse>): Promise<{ data?: Warehouse; error?: string }> {
+export async function createWarehouse(
+  input: Partial<Warehouse>
+): Promise<{ data?: Warehouse; error?: string }> {
   try {
     const service = new WarehouseService();
     const data = await service.createWarehouse(input);
@@ -33,7 +44,10 @@ export async function createWarehouse(input: Partial<Warehouse>): Promise<{ data
   }
 }
 
-export async function updateWarehouse(id: string, input: Partial<Warehouse>): Promise<{ data?: Warehouse; error?: string }> {
+export async function updateWarehouse(
+  id: string,
+  input: Partial<Warehouse>
+): Promise<{ data?: Warehouse; error?: string }> {
   try {
     const service = new WarehouseService();
     const data = await service.updateWarehouse(id, input);
@@ -43,7 +57,9 @@ export async function updateWarehouse(id: string, input: Partial<Warehouse>): Pr
   }
 }
 
-export async function getWarehouseZones(warehouseId: string): Promise<{ data?: WarehouseZone[]; error?: string }> {
+export async function getWarehouseZones(
+  warehouseId: string
+): Promise<{ data?: WarehouseZone[]; error?: string }> {
   try {
     const service = new WarehouseService();
     const data = await service.getZones(warehouseId);
@@ -53,7 +69,9 @@ export async function getWarehouseZones(warehouseId: string): Promise<{ data?: W
   }
 }
 
-export async function getZoneBins(zoneId: string): Promise<{ data?: WarehouseBin[]; error?: string }> {
+export async function getZoneBins(
+  zoneId: string
+): Promise<{ data?: WarehouseBin[]; error?: string }> {
   try {
     const service = new WarehouseService();
     const data = await service.getBins(zoneId);

@@ -1,4 +1,4 @@
-import { QueryClient } from '@tanstack/react-query';
+import { QueryClient } from "@tanstack/react-query";
 
 /**
  * Enterprise Optimistic Update Helper
@@ -39,6 +39,9 @@ export function getOptimisticUpdateHelpers<T>(
 /**
  * Standard Cache Invalidator
  */
-export function invalidateEntityCache(queryClient: QueryClient, entityName: string) {
+export function invalidateEntityCache(
+  queryClient: QueryClient,
+  entityName: string
+) {
   return queryClient.invalidateQueries({ queryKey: [entityName] });
 }

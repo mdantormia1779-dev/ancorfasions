@@ -1,17 +1,22 @@
-import { z } from 'zod';
+import { z } from "zod";
 
-export const LogLevelSchema = z.enum(['INFO', 'WARN', 'ERROR', 'FATAL']);
-export const JobStatusSchema = z.enum(['IDLE', 'RUNNING', 'PAUSED', 'FAILED']);
-export const AlertSeveritySchema = z.enum(['INFO', 'WARNING', 'CRITICAL', 'FATAL']);
-export const AlertStatusSchema = z.enum(['ACTIVE', 'ACKNOWLEDGED', 'RESOLVED']);
-export const HealthStatusSchema = z.enum(['UP', 'DOWN', 'DEGRADED']);
+export const LogLevelSchema = z.enum(["INFO", "WARN", "ERROR", "FATAL"]);
+export const JobStatusSchema = z.enum(["IDLE", "RUNNING", "PAUSED", "FAILED"]);
+export const AlertSeveritySchema = z.enum([
+  "INFO",
+  "WARNING",
+  "CRITICAL",
+  "FATAL",
+]);
+export const AlertStatusSchema = z.enum(["ACTIVE", "ACKNOWLEDGED", "RESOLVED"]);
+export const HealthStatusSchema = z.enum(["UP", "DOWN", "DEGRADED"]);
 
 export const AnalyticsEventSchema = z.object({
-  event_category: z.string().min(1, 'Category is required'),
-  event_action: z.string().min(1, 'Action is required'),
+  event_category: z.string().min(1, "Category is required"),
+  event_action: z.string().min(1, "Action is required"),
   user_id: z.string().uuid().optional().nullable(),
   session_id: z.string().uuid().optional().nullable(),
-  url: z.string().url().optional().or(z.literal('')),
+  url: z.string().url().optional().or(z.literal("")),
   payload: z.record(z.any()).default({}),
   metadata: z.record(z.any()).default({}),
 });

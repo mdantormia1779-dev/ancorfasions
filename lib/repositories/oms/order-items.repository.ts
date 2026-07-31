@@ -1,26 +1,28 @@
-import { createClient } from '@/lib/supabase/server';
-import { OrderItem } from '@/types/oms';
+import { createClient } from "@/lib/supabase/server";
+import { OrderItem } from "@/types/oms";
 
 export class OrderItemsRepository {
   async getOrderItems(orderId: string): Promise<OrderItem[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('order_items')
-      .select('*')
-      .eq('order_id', orderId)
-      .order('created_at', { ascending: true });
+      .from("order_items")
+      .select("*")
+      .eq("order_id", orderId)
+      .order("created_at", { ascending: true });
 
     if (error) {
-      console.error('Error fetching order items:', error);
+      console.error("Error fetching order items:", error);
       return [];
     }
     return data as OrderItem[];
   }
 
-  async createOrderItems(items: Omit<OrderItem, 'id' | 'created_at'>[]): Promise<OrderItem[]> {
+  async createOrderItems(
+    items: Omit<OrderItem, "id" | "created_at">[]
+  ): Promise<OrderItem[]> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from('order_items')
+      .from("order_items")
       .insert(items)
       .select();
 

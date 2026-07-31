@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from "@/lib/supabase/server";
 
 export class CategoryRepository {
   /**
@@ -6,12 +6,15 @@ export class CategoryRepository {
    */
   static async getCategories(activeOnly: boolean = true) {
     const supabase = await createClient();
-    let query = supabase.from('categories').select('*').order('display_order', { ascending: true });
-    
+    let query = supabase
+      .from("categories")
+      .select("*")
+      .order("display_order", { ascending: true });
+
     if (activeOnly) {
-      query = query.eq('is_active', true);
+      query = query.eq("is_active", true);
     }
-    
+
     const { data, error } = await query;
     if (error) throw error;
     return data;

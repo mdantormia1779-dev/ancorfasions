@@ -1,13 +1,13 @@
 import { Metadata } from "next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Download, Filter, Plus, Search, Edit, Trash2 } from "lucide-react";
@@ -18,20 +18,55 @@ export const metadata: Metadata = {
 };
 
 const products = [
-  { id: "PRD-1001", name: "Classic Oxford Shirt", category: "Shirts", price: "$125.00", stock: 145, status: "Active" },
-  { id: "PRD-1002", name: "Slim Fit Chinos", category: "Pants", price: "$95.00", stock: 85, status: "Active" },
-  { id: "PRD-1003", name: "Leather Loafers", category: "Shoes", price: "$195.00", stock: 12, status: "Low Stock" },
-  { id: "PRD-1004", name: "Merino Wool Sweater", category: "Knitwear", price: "$150.00", stock: 0, status: "Out of Stock" },
-  { id: "PRD-1005", name: "Silk Tie", category: "Accessories", price: "$65.00", stock: 230, status: "Active" },
+  {
+    id: "PRD-1001",
+    name: "Classic Oxford Shirt",
+    category: "Shirts",
+    price: "$125.00",
+    stock: 145,
+    status: "Active",
+  },
+  {
+    id: "PRD-1002",
+    name: "Slim Fit Chinos",
+    category: "Pants",
+    price: "$95.00",
+    stock: 85,
+    status: "Active",
+  },
+  {
+    id: "PRD-1003",
+    name: "Leather Loafers",
+    category: "Shoes",
+    price: "$195.00",
+    stock: 12,
+    status: "Low Stock",
+  },
+  {
+    id: "PRD-1004",
+    name: "Merino Wool Sweater",
+    category: "Knitwear",
+    price: "$150.00",
+    stock: 0,
+    status: "Out of Stock",
+  },
+  {
+    id: "PRD-1005",
+    name: "Silk Tie",
+    category: "Accessories",
+    price: "$65.00",
+    stock: 230,
+    status: "Active",
+  },
 ];
 
 export default function ProductsPage() {
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Products</h1>
-          <p className="text-muted-foreground mt-1">
+          <p className="mt-1 text-muted-foreground">
             Manage your product catalog and inventory.
           </p>
         </div>
@@ -63,7 +98,7 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      <div className="border rounded-md">
+      <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -80,10 +115,14 @@ export default function ProductsPage() {
               <TableRow key={product.id}>
                 <TableCell className="font-medium">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded bg-muted flex items-center justify-center text-xs text-muted-foreground">Img</div>
+                    <div className="flex h-10 w-10 items-center justify-center rounded bg-muted text-xs text-muted-foreground">
+                      Img
+                    </div>
                     <div>
                       <p>{product.name}</p>
-                      <p className="text-xs text-muted-foreground">{product.id}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {product.id}
+                      </p>
                     </div>
                   </div>
                 </TableCell>
@@ -91,12 +130,19 @@ export default function ProductsPage() {
                 <TableCell>{product.price}</TableCell>
                 <TableCell>{product.stock}</TableCell>
                 <TableCell>
-                  <Badge 
+                  <Badge
                     variant={
-                      product.status === "Active" ? "default" :
-                      product.status === "Low Stock" ? "secondary" : "destructive"
+                      product.status === "Active"
+                        ? "default"
+                        : product.status === "Low Stock"
+                          ? "secondary"
+                          : "destructive"
                     }
-                    className={product.status === "Low Stock" ? 'bg-orange-500 hover:bg-orange-600 text-white' : ''}
+                    className={
+                      product.status === "Low Stock"
+                        ? "bg-orange-500 text-white hover:bg-orange-600"
+                        : ""
+                    }
                   >
                     {product.status}
                   </Badge>

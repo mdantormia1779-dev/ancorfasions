@@ -1,5 +1,9 @@
-import { WarehouseRepository } from '@/repositories/warehouse.repository';
-import { Warehouse, WarehouseZone, WarehouseBin } from '@/types/inventory.types';
+import { WarehouseRepository } from "@/repositories/warehouse.repository";
+import {
+  Warehouse,
+  WarehouseZone,
+  WarehouseBin,
+} from "@/types/inventory.types";
 
 export class WarehouseService {
   private repository: WarehouseRepository;
@@ -20,7 +24,10 @@ export class WarehouseService {
     return await this.repository.createWarehouse(data);
   }
 
-  async updateWarehouse(id: string, data: Partial<Warehouse>): Promise<Warehouse> {
+  async updateWarehouse(
+    id: string,
+    data: Partial<Warehouse>
+  ): Promise<Warehouse> {
     return await this.repository.updateWarehouse(id, data);
   }
 

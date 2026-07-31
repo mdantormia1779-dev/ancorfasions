@@ -1,9 +1,28 @@
-export type PaymentProviderStatus = 'active' | 'inactive' | 'maintenance' | 'deprecated';
-export type PaymentSessionStatus = 'pending' | 'completed' | 'failed' | 'expired' | 'cancelled';
-export type PaymentTransactionStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'refunded' | 'partially_refunded' | 'cancelled';
-export type PaymentWebhookStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'ignored';
-export type PaymentRefundStatus = 'pending' | 'processing' | 'completed' | 'failed' | 'rejected';
-export type PaymentProviderCode = 'sslcommerz' | 'bkash' | 'nagad' | 'rocket' | 'visa' | 'mastercard' | 'cod' | string;
+export type PaymentProviderStatus =
+  "active" | "inactive" | "maintenance" | "deprecated";
+export type PaymentSessionStatus =
+  "pending" | "completed" | "failed" | "expired" | "cancelled";
+export type PaymentTransactionStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "refunded"
+  | "partially_refunded"
+  | "cancelled";
+export type PaymentWebhookStatus =
+  "pending" | "processing" | "completed" | "failed" | "ignored";
+export type PaymentRefundStatus =
+  "pending" | "processing" | "completed" | "failed" | "rejected";
+export type PaymentProviderCode =
+  | "sslcommerz"
+  | "bkash"
+  | "nagad"
+  | "rocket"
+  | "visa"
+  | "mastercard"
+  | "cod"
+  | string;
 
 export interface PaymentProvider {
   id: string;
@@ -82,7 +101,7 @@ export interface PaymentRefund {
 
 export interface PaymentAuditLog {
   id: string;
-  entity_type: 'transaction' | 'session' | 'provider' | 'refund' | 'webhook';
+  entity_type: "transaction" | "session" | "provider" | "refund" | "webhook";
   entity_id: string;
   action: string;
   old_data: Record<string, any> | null;
@@ -109,7 +128,7 @@ export interface PaymentInitResult {
   gatewayUrl: string;
   transactionId?: string;
   referenceNumber?: string;
-  status: 'success' | 'failed' | 'pending';
+  status: "success" | "failed" | "pending";
   error?: string;
 }
 
@@ -137,8 +156,17 @@ export interface RefundResult {
 
 // Provider Base Interface
 export interface IPaymentProviderService {
-  initializePayment(params: CreatePaymentSessionParams): Promise<PaymentInitResult>;
-  verifyPayment(transactionId: string, gatewayData: Record<string, any>): Promise<PaymentVerifyResult>;
+  initializePayment(
+    params: CreatePaymentSessionParams
+  ): Promise<PaymentInitResult>;
+  verifyPayment(
+    transactionId: string,
+    gatewayData: Record<string, any>
+  ): Promise<PaymentVerifyResult>;
   processRefund(params: RefundRequestParams): Promise<RefundResult>;
-  validateWebhookSignature(payload: string, headers: Record<string, any>, signature: string): boolean;
+  validateWebhookSignature(
+    payload: string,
+    headers: Record<string, any>,
+    signature: string
+  ): boolean;
 }

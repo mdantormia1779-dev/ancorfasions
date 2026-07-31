@@ -8,56 +8,56 @@
 // ============================================================================
 
 export type ShipmentStatus =
-  | 'created'
-  | 'pickup_requested'
-  | 'pickup_confirmed'
-  | 'picked_up'
-  | 'in_transit'
-  | 'hub_received'
-  | 'out_for_delivery'
-  | 'delivered'
-  | 'delivery_failed'
-  | 'returned_to_origin'
-  | 'cancelled';
+  | "created"
+  | "pickup_requested"
+  | "pickup_confirmed"
+  | "picked_up"
+  | "in_transit"
+  | "hub_received"
+  | "out_for_delivery"
+  | "delivered"
+  | "delivery_failed"
+  | "returned_to_origin"
+  | "cancelled";
 
 export type CourierProviderCode =
-  | 'steadfast'
-  | 'pathao'
-  | 'redx'
-  | 'paperfly'
-  | 'sundarban'
-  | 'ecourier'
-  | 'dhl'
-  | 'fedex'
-  | 'ups'
-  | 'sandbox';
+  | "steadfast"
+  | "pathao"
+  | "redx"
+  | "paperfly"
+  | "sundarban"
+  | "ecourier"
+  | "dhl"
+  | "fedex"
+  | "ups"
+  | "sandbox";
 
 export type ReturnStatus =
-  | 'requested'
-  | 'approved'
-  | 'rejected'
-  | 'pickup_scheduled'
-  | 'picked_up'
-  | 'in_transit'
-  | 'received'
-  | 'inventory_synced'
-  | 'completed'
-  | 'cancelled';
+  | "requested"
+  | "approved"
+  | "rejected"
+  | "pickup_scheduled"
+  | "picked_up"
+  | "in_transit"
+  | "received"
+  | "inventory_synced"
+  | "completed"
+  | "cancelled";
 
 export type ShippingEventType =
-  | 'shipment_created'
-  | 'courier_assigned'
-  | 'courier_reassigned'
-  | 'pickup_requested'
-  | 'pickup_confirmed'
-  | 'picked_up'
-  | 'status_updated'
-  | 'label_generated'
-  | 'delivered'
-  | 'delivery_failed'
-  | 'returned'
-  | 'cancelled'
-  | 'webhook_received';
+  | "shipment_created"
+  | "courier_assigned"
+  | "courier_reassigned"
+  | "pickup_requested"
+  | "pickup_confirmed"
+  | "picked_up"
+  | "status_updated"
+  | "label_generated"
+  | "delivered"
+  | "delivery_failed"
+  | "returned"
+  | "cancelled"
+  | "webhook_received";
 
 // ============================================================================
 // DOMAIN ENTITIES
@@ -195,7 +195,7 @@ export interface ShipmentTrackingEvent {
 export interface ShipmentLabel {
   id: string;
   shipment_id: string;
-  label_type: 'pdf' | 'zpl' | 'png';
+  label_type: "pdf" | "zpl" | "png";
   label_url: string | null;
   label_data: string | null;
   generated_at: string;
@@ -210,7 +210,7 @@ export interface ShipmentEvent {
   event_type: ShippingEventType;
   payload: Record<string, any>;
   triggered_by: string | null;
-  source: 'system' | 'admin' | 'webhook' | 'customer';
+  source: "system" | "admin" | "webhook" | "customer";
   created_at: string;
 }
 
@@ -242,7 +242,7 @@ export interface ReturnItem {
   product_name: string;
   quantity: number;
   reason: string | null;
-  condition: 'good' | 'damaged' | 'defective' | 'unknown';
+  condition: "good" | "damaged" | "defective" | "unknown";
   restocked: boolean;
   created_at: string;
 }
@@ -285,7 +285,7 @@ export interface ConsignmentResponse {
   trackingCode: string;
   consignmentId: string;
   labelUrl?: string;
-  status: 'created' | 'failed';
+  status: "created" | "failed";
 }
 
 export interface ICourierProvider {
@@ -293,11 +293,20 @@ export interface ICourierProvider {
   readonly name: string;
   readonly isSandbox: boolean;
 
-  createConsignment(request: ConsignmentRequest): Promise<ProviderResponse<ConsignmentResponse>>;
+  createConsignment(
+    request: ConsignmentRequest
+  ): Promise<ProviderResponse<ConsignmentResponse>>;
   cancelConsignment(consignmentId: string): Promise<ProviderResponse<void>>;
-  trackShipment(trackingCode: string): Promise<ProviderResponse<TrackingResult>>;
-  generateLabel(consignmentId: string): Promise<ProviderResponse<{ labelUrl: string; labelData?: string }>>;
-  processWebhook(payload: unknown, signature: string): Promise<ProviderResponse<NormalizedWebhookEvent>>;
+  trackShipment(
+    trackingCode: string
+  ): Promise<ProviderResponse<TrackingResult>>;
+  generateLabel(
+    consignmentId: string
+  ): Promise<ProviderResponse<{ labelUrl: string; labelData?: string }>>;
+  processWebhook(
+    payload: unknown,
+    signature: string
+  ): Promise<ProviderResponse<NormalizedWebhookEvent>>;
 }
 
 export interface ProviderResponse<T = unknown> {
@@ -375,7 +384,7 @@ export interface CreateReturnInput {
     productName: string;
     quantity: number;
     reason?: string;
-    condition?: 'good' | 'damaged' | 'defective' | 'unknown';
+    condition?: "good" | "damaged" | "defective" | "unknown";
   }>;
 }
 
@@ -453,8 +462,14 @@ export interface ShipmentWithDetails extends Shipment {
   tracking_events?: ShipmentTrackingEvent[];
   labels?: ShipmentLabel[];
   events?: ShipmentEvent[];
-  courier?: Pick<CourierProviderRecord, 'id' | 'code' | 'display_name' | 'logo_url'>;
-  zone?: Pick<DeliveryZone, 'id' | 'name' | 'code' | 'estimated_days_min' | 'estimated_days_max'>;
+  courier?: Pick<
+    CourierProviderRecord,
+    "id" | "code" | "display_name" | "logo_url"
+  >;
+  zone?: Pick<
+    DeliveryZone,
+    "id" | "name" | "code" | "estimated_days_min" | "estimated_days_max"
+  >;
   order_number?: string;
 }
 

@@ -1,6 +1,7 @@
-import { createAdminClient } from '../supabase/admin-client';
+import { createAdminClient } from "../supabase/admin-client";
 
-export type AuditEvent = 'CREATE' | 'UPDATE' | 'DELETE' | 'LOGIN' | 'LOGOUT' | 'EXPORT';
+export type AuditEvent =
+  "CREATE" | "UPDATE" | "DELETE" | "LOGIN" | "LOGOUT" | "EXPORT";
 
 export interface AuditLogPayload {
   user_id: string;
@@ -16,7 +17,7 @@ export interface AuditLogPayload {
 /**
  * Enterprise Audit Logger
  * Asynchronously writes high-value operations to a dedicated `audit_logs` table.
- * Uses the Service Role client to bypass RLS, ensuring audit trails cannot be 
+ * Uses the Service Role client to bypass RLS, ensuring audit trails cannot be
  * tampered with by regular users.
  */
 export class AuditLogger {
@@ -29,15 +30,15 @@ export class AuditLogger {
     // In serverless environments, this might need to be awaited or sent to a queue (e.g. Inngest)
     this.writeToDatabase(payload).catch((err) => {
       // Fallback to console if DB insert fails (or forward to Sentry/Datadog)
-      console.error('[AUDIT LOG FAILURE]', err, payload);
+      console.error("[AUDIT LOG FAILURE]", err, payload);
     });
   }
 
   private static async writeToDatabase(payload: AuditLogPayload) {
     const supabaseAdmin = createAdminClient();
-    
+
     // Assumes an `audit_logs` table exists
-    const { error } = await supabaseAdmin.from('audit_logs').insert([
+    const { error } = await supabaseAdmin.from("audit_logs").insert([
       {
         user_id: payload.user_id,
         action: payload.action,
@@ -47,7 +48,7 @@ export class AuditLogger {
         new_data: payload.new_data,
         ip_address: payload.ip_address,
         user_agent: payload.user_agent,
-      }
+      },
     ]);
 
     if (error) {

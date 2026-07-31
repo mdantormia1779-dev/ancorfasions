@@ -1,9 +1,11 @@
 # Anchor Fashion Enterprise E-Commerce
 
 ## Introduction
+
 Anchor Fashion is a robust, enterprise-grade e-commerce platform built with Next.js 16, Supabase, and Tailwind CSS. The architecture is designed for scalability, performance, and maximum security to support a global fashion brand.
 
 ## Technology Stack
+
 - **Frontend**: Next.js 16 (App Router), TypeScript (Strict Mode)
 - **Backend/Database/Auth**: Supabase (PostgreSQL)
 - **Styling & UI**: Tailwind CSS, shadcn/ui, Lucide Icons
@@ -15,6 +17,7 @@ Anchor Fashion is a robust, enterprise-grade e-commerce platform built with Next
 ## Developer Setup Guide & Installation
 
 1. **Clone the Repository**
+
    ```bash
    git clone <repository-url>
    cd anchor-fashion
@@ -22,16 +25,19 @@ Anchor Fashion is a robust, enterprise-grade e-commerce platform built with Next
 
 2. **Install Node.js & Dependencies**
    Ensure you have Node.js (v20+) and pnpm/npm/yarn installed.
+
    ```bash
    npm install
    ```
 
 3. **Environment Setup**
    Copy `.env.example` to `.env.local` and fill in the required keys.
+
    ```bash
    cp .env.example .env.local
    ```
-   *Note: You must have a Supabase project set up with the corresponding Anon Key and URL.*
+
+   _Note: You must have a Supabase project set up with the corresponding Anon Key and URL._
 
 4. **Database Migration**
    Apply the latest Supabase migrations to your local or remote database:
@@ -41,14 +47,14 @@ Anchor Fashion is a robust, enterprise-grade e-commerce platform built with Next
 
 ## Development Commands
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Starts the Next.js local development server on port 3000 |
-| `npm run build` | Builds the application for production |
-| `npm run start` | Starts the Next.js production server |
-| `npm run lint` | Runs ESLint to check for code issues |
-| `npm run format`| Formats codebase using Prettier |
-| `npm run test` | Runs the Jest testing suite |
+| Command          | Description                                              |
+| ---------------- | -------------------------------------------------------- |
+| `npm run dev`    | Starts the Next.js local development server on port 3000 |
+| `npm run build`  | Builds the application for production                    |
+| `npm run start`  | Starts the Next.js production server                     |
+| `npm run lint`   | Runs ESLint to check for code issues                     |
+| `npm run format` | Formats codebase using Prettier                          |
+| `npm run test`   | Runs the Jest testing suite                              |
 
 ## Folder Explanation
 
@@ -97,6 +103,7 @@ The enterprise folder structure enforces a modular, scalable architecture:
 ## Production Optimization
 
 Anchor Fashion implements several layers of production optimizations:
+
 - **Code Splitting & Lazy Loading**: Heavy components are dynamically imported using `next/dynamic`.
 - **Image Optimization**: WebP and AVIF formats are used, alongside long TTL caching.
 - **Progressive Web App (PWA)**: Serwist is integrated for offline caching and service workers.
@@ -124,4 +131,5 @@ Anchor Fashion implements several layers of production optimizations:
 - **Service Worker not updating**: During active development, you may need to clear application data or bypass cache, as Serwist registers the SW immediately.
 
 ---
-*Enterprise E-Commerce Architecture. Copyright © Anchor Fashion 2026. All rights reserved.*
+
+_Enterprise E-Commerce Architecture. Copyright © Anchor Fashion 2026. All rights reserved._

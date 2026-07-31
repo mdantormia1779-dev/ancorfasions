@@ -1,33 +1,33 @@
 export type OrderStatus =
-  | 'draft'
-  | 'pending_payment'
-  | 'payment_processing'
-  | 'paid'
-  | 'confirmed'
-  | 'preparing'
-  | 'picking'
-  | 'packing'
-  | 'ready_for_shipment'
-  | 'shipped'
-  | 'out_for_delivery'
-  | 'delivered'
-  | 'completed'
-  | 'cancelled'
-  | 'refund_requested'
-  | 'refund_approved'
-  | 'refunded'
-  | 'returned'
-  | 'failed';
+  | "draft"
+  | "pending_payment"
+  | "payment_processing"
+  | "paid"
+  | "confirmed"
+  | "preparing"
+  | "picking"
+  | "packing"
+  | "ready_for_shipment"
+  | "shipped"
+  | "out_for_delivery"
+  | "delivered"
+  | "completed"
+  | "cancelled"
+  | "refund_requested"
+  | "refund_approved"
+  | "refunded"
+  | "returned"
+  | "failed";
 
 export type OrderEventType =
-  | 'status_changed'
-  | 'payment_received'
-  | 'note_added'
-  | 'staff_assigned'
-  | 'tracking_updated'
-  | 'refund_processed'
-  | 'return_initiated'
-  | 'system_alert';
+  | "status_changed"
+  | "payment_received"
+  | "note_added"
+  | "staff_assigned"
+  | "tracking_updated"
+  | "refund_processed"
+  | "return_initiated"
+  | "system_alert";
 
 export interface Order {
   id: string;
@@ -116,7 +116,7 @@ export interface OrderInvoice {
   invoice_number: string;
   pdf_url: string | null;
   issued_at: string;
-  status: 'issued' | 'paid' | 'voided';
+  status: "issued" | "paid" | "voided";
   created_at: string;
 }
 
@@ -126,7 +126,7 @@ export interface OrderShipment {
   tracking_number: string | null;
   courier: string | null;
   label_url: string | null;
-  status: 'pending' | 'ready' | 'in_transit' | 'delivered';
+  status: "pending" | "ready" | "in_transit" | "delivered";
   shipped_at: string | null;
   estimated_delivery: string | null;
   created_at: string;
@@ -138,7 +138,7 @@ export interface ReturnRequest {
   order_id: string;
   customer_id: string | null;
   return_number: string;
-  status: 'requested' | 'approved' | 'rejected' | 'received' | 'completed';
+  status: "requested" | "approved" | "rejected" | "received" | "completed";
   reason: string | null;
   created_at: string;
   updated_at: string;
@@ -150,7 +150,7 @@ export interface RefundRequest {
   return_id: string | null;
   amount: number;
   reason: string | null;
-  status: 'pending' | 'approved' | 'processed' | 'failed';
+  status: "pending" | "approved" | "processed" | "failed";
   processed_at: string | null;
   created_at: string;
   updated_at: string;

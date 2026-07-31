@@ -1,18 +1,27 @@
-import { createAdminClient } from '@/lib/supabase/server';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { createAdminClient } from "@/lib/supabase/server";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
 
 export const revalidate = 0;
 
 export default async function TransactionsPage() {
   const supabase = await createAdminClient();
   const { data: transactions, error } = await supabase
-    .from('payment_transactions')
-    .select(`
+    .from("payment_transactions")
+    .select(
+      `
       *,
       payment_providers (name)
-    `)
-    .order('created_at', { ascending: false })
+    `
+    )
+    .order("created_at", { ascending: false })
     .limit(50);
 
   if (error) {
@@ -40,21 +49,37 @@ export default async function TransactionsPage() {
           <TableBody>
             {transactions?.map((txn) => (
               <TableRow key={txn.id}>
-                <TableCell className="font-mono text-xs">{txn.reference_number}</TableCell>
-                <TableCell className="font-mono text-xs">{txn.order_id}</TableCell>
+                <TableCell className="font-mono text-xs">
+                  {txn.reference_number}
+                </TableCell>
+                <TableCell className="font-mono text-xs">
+                  {txn.order_id}
+                </TableCell>
                 <TableCell>{txn.payment_providers?.name}</TableCell>
-                <TableCell>{txn.amount} {txn.currency}</TableCell>
                 <TableCell>
-                  <Badge variant={txn.status === 'completed' ? 'default' : (txn.status === 'failed' ? 'destructive' : 'secondary')}>
+                  {txn.amount} {txn.currency}
+                </TableCell>
+                <TableCell>
+                  <Badge
+                    variant={
+                      txn.status === "completed"
+                        ? "default"
+                        : txn.status === "failed"
+                          ? "destructive"
+                          : "secondary"
+                    }
+                  >
                     {txn.status}
                   </Badge>
                 </TableCell>
-                <TableCell>{new Date(txn.created_at).toLocaleString()}</TableCell>
+                <TableCell>
+                  {new Date(txn.created_at).toLocaleString()}
+                </TableCell>
               </TableRow>
             ))}
             {(!transactions || transactions.length === 0) && (
               <TableRow>
-                <TableCell colSpan={6} className="text-center h-24">
+                <TableCell colSpan={6} className="h-24 text-center">
                   No transactions found.
                 </TableCell>
               </TableRow>

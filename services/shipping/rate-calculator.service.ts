@@ -2,12 +2,12 @@
 // Rate Calculator Service
 // ============================================================================
 
-import { DeliveryZoneRepository } from '@/repositories/delivery-zone.repository';
+import { DeliveryZoneRepository } from "@/repositories/delivery-zone.repository";
 import {
   ShippingChargeCalculation,
   DeliveryZone,
   ShippingRate,
-} from '@/types/shipping.types';
+} from "@/types/shipping.types";
 
 export class RateCalculatorService {
   private zoneRepo: DeliveryZoneRepository;
@@ -19,7 +19,10 @@ export class RateCalculatorService {
   /**
    * Resolve the delivery zone from a customer's district or city.
    */
-  async getZoneByAddress(district: string, city?: string): Promise<DeliveryZone | null> {
+  async getZoneByAddress(
+    district: string,
+    city?: string
+  ): Promise<DeliveryZone | null> {
     return this.zoneRepo.getZoneByAddress(district, city);
   }
 
@@ -56,11 +59,14 @@ export class RateCalculatorService {
     }
 
     // Pick cheapest applicable rate
-    const rate = applicableRates.reduce((a, b) => a.base_rate <= b.base_rate ? a : b);
+    const rate = applicableRates.reduce((a, b) =>
+      a.base_rate <= b.base_rate ? a : b
+    );
 
     // Check free shipping threshold
     const isFreeShipping =
-      rate.free_shipping_above !== null && orderValue >= rate.free_shipping_above;
+      rate.free_shipping_above !== null &&
+      orderValue >= rate.free_shipping_above;
 
     if (isFreeShipping) {
       return {
@@ -79,7 +85,15 @@ export class RateCalculatorService {
     const codCharge = isCOD ? rate.cod_charge : 0;
     const total = baseRate + weightCharge + codCharge;
 
-    return { baseRate, weightCharge, codCharge, total, isFreeShipping: false, zone, rate };
+    return {
+      baseRate,
+      weightCharge,
+      codCharge,
+      total,
+      isFreeShipping: false,
+      zone,
+      rate,
+    };
   }
 
   /**
@@ -93,7 +107,11 @@ export class RateCalculatorService {
   /**
    * Check if free shipping applies.
    */
-  async isFreeShipping(zoneId: string, orderValue: number, isCOD: boolean): Promise<boolean> {
+  async isFreeShipping(
+    zoneId: string,
+    orderValue: number,
+    isCOD: boolean
+  ): Promise<boolean> {
     const rates = await this.zoneRepo.getShippingRates(zoneId);
     return rates.some(
       (r) =>

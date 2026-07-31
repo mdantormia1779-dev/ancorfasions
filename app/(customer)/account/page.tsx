@@ -1,12 +1,13 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Package, Wallet, Award, Clock } from 'lucide-react';
-import Link from 'next/link';
-import { Button } from '@/components/ui/button';
-import { fetchAccountSummaryAction } from '@/app/actions/customer.actions';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Package, Wallet, Award, Clock } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { fetchAccountSummaryAction } from "@/app/actions/customer.actions";
 
 export const metadata = {
-  title: 'My Account | Anchor Fashion',
-  description: 'Manage your enterprise customer account profile, orders, and wallet.',
+  title: "My Account | Anchor Fashion",
+  description:
+    "Manage your enterprise customer account profile, orders, and wallet.",
 };
 
 export default async function AccountOverviewPage() {
@@ -14,9 +15,9 @@ export default async function AccountOverviewPage() {
   const summary = response.data || {
     recentOrders: 0,
     walletBalance: 0,
-    currency: 'BDT',
+    currency: "BDT",
     loyaltyPoints: 0,
-    loyaltyTier: 'MEMBER',
+    loyaltyTier: "MEMBER",
     supportTickets: 0,
   };
 
@@ -24,7 +25,7 @@ export default async function AccountOverviewPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Welcome back!</h1>
-        <p className="text-muted-foreground mt-2">
+        <p className="mt-2 text-muted-foreground">
           Here is a quick overview of your account, orders, and loyalty status.
         </p>
       </div>
@@ -40,15 +41,20 @@ export default async function AccountOverviewPage() {
             <p className="text-xs text-muted-foreground">In the last 30 days</p>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Wallet Balance
+            </CardTitle>
             <Wallet className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {summary.walletBalance.toLocaleString('en-US', { style: 'currency', currency: summary.currency })}
+              {summary.walletBalance.toLocaleString("en-US", {
+                style: "currency",
+                currency: summary.currency,
+              })}
             </div>
             <p className="text-xs text-muted-foreground">Available to spend</p>
           </CardContent>
@@ -61,13 +67,17 @@ export default async function AccountOverviewPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{summary.loyaltyTier}</div>
-            <p className="text-xs text-muted-foreground">{summary.loyaltyPoints} points available</p>
+            <p className="text-xs text-muted-foreground">
+              {summary.loyaltyPoints} points available
+            </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Support Tickets</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Support Tickets
+            </CardTitle>
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -84,19 +94,23 @@ export default async function AccountOverviewPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex justify-between items-center pb-4 border-b">
+              <div className="flex items-center justify-between border-b pb-4">
                 <div>
                   <p className="font-medium">Order #ORD-8821</p>
-                  <p className="text-sm text-muted-foreground">Delivered on Oct 12, 2026</p>
+                  <p className="text-sm text-muted-foreground">
+                    Delivered on Oct 12, 2026
+                  </p>
                 </div>
                 <Button variant="outline" size="sm">
                   <Link href="/account/orders">View</Link>
                 </Button>
               </div>
-              <div className="flex justify-between items-center pb-4 border-b">
+              <div className="flex items-center justify-between border-b pb-4">
                 <div>
                   <p className="font-medium">Wallet Refund</p>
-                  <p className="text-sm text-muted-foreground">Credit of BDT 1,200.00</p>
+                  <p className="text-sm text-muted-foreground">
+                    Credit of BDT 1,200.00
+                  </p>
                 </div>
                 <Button variant="outline" size="sm">
                   <Link href="/account/wallet">View</Link>

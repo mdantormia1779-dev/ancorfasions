@@ -1,5 +1,5 @@
-import { supabase } from '../supabase';
-import { AILogEntry } from './types';
+import { supabase } from "../supabase";
+import { AILogEntry } from "./types";
 
 export class AITelemetry {
   /**
@@ -8,7 +8,7 @@ export class AITelemetry {
   static logRequest(entry: AILogEntry) {
     // Fire and forget
     supabase
-      .from('ai_request_logs')
+      .from("ai_request_logs")
       .insert([
         {
           prompt_id: entry.promptId,
@@ -26,7 +26,7 @@ export class AITelemetry {
       ])
       .then(({ error }) => {
         if (error) {
-          console.error('Failed to log AI telemetry:', error);
+          console.error("Failed to log AI telemetry:", error);
         }
       });
   }
@@ -35,13 +35,21 @@ export class AITelemetry {
    * Extremely rough cost estimation based on standard Gemini 1.5 pricing
    * Update this with real dynamic pricing based on model
    */
-  static estimateCost(model: string, inputTokens: number, outputTokens: number): number {
-    if (model.includes('flash')) {
+  static estimateCost(
+    model: string,
+    inputTokens: number,
+    outputTokens: number
+  ): number {
+    if (model.includes("flash")) {
       // ~$0.35 per 1M input, ~$1.05 per 1M output
-      return (inputTokens / 1_000_000) * 0.35 + (outputTokens / 1_000_000) * 1.05;
-    } else if (model.includes('pro')) {
+      return (
+        (inputTokens / 1_000_000) * 0.35 + (outputTokens / 1_000_000) * 1.05
+      );
+    } else if (model.includes("pro")) {
       // ~$3.50 per 1M input, ~$10.50 per 1M output
-      return (inputTokens / 1_000_000) * 3.50 + (outputTokens / 1_000_000) * 10.50;
+      return (
+        (inputTokens / 1_000_000) * 3.5 + (outputTokens / 1_000_000) * 10.5
+      );
     }
     return 0;
   }

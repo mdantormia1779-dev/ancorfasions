@@ -1,19 +1,19 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
+import React, { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 export function PromptManager() {
   const [prompts, setPrompts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form state
-  const [name, setName] = useState('');
-  const [systemPrompt, setSystemPrompt] = useState('');
-  const [userTemplate, setUserTemplate] = useState('');
+  const [name, setName] = useState("");
+  const [systemPrompt, setSystemPrompt] = useState("");
+  const [userTemplate, setUserTemplate] = useState("");
 
   useEffect(() => {
     fetchPrompts();
@@ -21,7 +21,7 @@ export function PromptManager() {
 
   const fetchPrompts = async () => {
     try {
-      const res = await fetch('/api/ai/prompts');
+      const res = await fetch("/api/ai/prompts");
       const data = await res.json();
       setPrompts(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -33,22 +33,22 @@ export function PromptManager() {
 
   const handleCreate = async () => {
     try {
-      await fetch('/api/ai/prompts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      await fetch("/api/ai/prompts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name,
-          category: 'general',
-          model: 'gemini-1.5-flash',
+          category: "general",
+          model: "gemini-1.5-flash",
           system_prompt: systemPrompt,
           user_prompt_template: userTemplate,
           is_active: true,
         }),
       });
       fetchPrompts();
-      setName('');
-      setSystemPrompt('');
-      setUserTemplate('');
+      setName("");
+      setSystemPrompt("");
+      setUserTemplate("");
     } catch (e) {
       console.error(e);
     }
@@ -63,26 +63,26 @@ export function PromptManager() {
         <CardContent className="space-y-4">
           <div>
             <label className="text-sm font-medium">Prompt Name</label>
-            <Input 
-              placeholder="e.g., product_seo_generator" 
-              value={name} 
-              onChange={(e) => setName(e.target.value)} 
+            <Input
+              placeholder="e.g., product_seo_generator"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
             />
           </div>
           <div>
             <label className="text-sm font-medium">System Prompt</label>
-            <Textarea 
-              placeholder="You are an expert SEO specialist..." 
-              value={systemPrompt} 
-              onChange={(e) => setSystemPrompt(e.target.value)} 
+            <Textarea
+              placeholder="You are an expert SEO specialist..."
+              value={systemPrompt}
+              onChange={(e) => setSystemPrompt(e.target.value)}
             />
           </div>
           <div>
             <label className="text-sm font-medium">User Prompt Template</label>
-            <Textarea 
-              placeholder="Generate SEO for product: {{product_name}}" 
-              value={userTemplate} 
-              onChange={(e) => setUserTemplate(e.target.value)} 
+            <Textarea
+              placeholder="Generate SEO for product: {{product_name}}"
+              value={userTemplate}
+              onChange={(e) => setUserTemplate(e.target.value)}
             />
           </div>
           <Button onClick={handleCreate}>Create Prompt</Button>
@@ -94,18 +94,22 @@ export function PromptManager() {
           <CardTitle>Active Prompts</CardTitle>
         </CardHeader>
         <CardContent>
-          {loading ? <p>Loading...</p> : (
+          {loading ? (
+            <p>Loading...</p>
+          ) : (
             <div className="space-y-4">
-              {prompts.map(p => (
-                <div key={p.id} className="border p-4 rounded-md">
+              {prompts.map((p) => (
+                <div key={p.id} className="rounded-md border p-4">
                   <h4 className="font-semibold">{p.name}</h4>
                   <p className="text-sm text-gray-500">Model: {p.model}</p>
-                  <pre className="mt-2 text-xs bg-gray-100 p-2 rounded truncate">
+                  <pre className="mt-2 truncate rounded bg-gray-100 p-2 text-xs">
                     {p.user_prompt_template}
                   </pre>
                 </div>
               ))}
-              {prompts.length === 0 && <p className="text-sm text-gray-500">No prompts found.</p>}
+              {prompts.length === 0 && (
+                <p className="text-sm text-gray-500">No prompts found.</p>
+              )}
             </div>
           )}
         </CardContent>

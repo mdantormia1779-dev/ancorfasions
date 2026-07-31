@@ -1,6 +1,10 @@
-import { crmRepository } from '@/repositories/crm.repository';
-import { createCRMLeadSchema, updateCRMLeadSchema, createCRMNoteSchema } from '@/schemas/crm.schema';
-import { CRMLead, CRMNote, CommunicationLog } from '@/types/crm.types';
+import { crmRepository } from "@/repositories/crm.repository";
+import {
+  createCRMLeadSchema,
+  updateCRMLeadSchema,
+  createCRMNoteSchema,
+} from "@/schemas/crm.schema";
+import { CRMLead, CRMNote, CommunicationLog } from "@/types/crm.types";
 
 export class CRMService {
   async getCustomers() {
@@ -10,14 +14,17 @@ export class CRMService {
   async getCustomerTimeline(profileId: string) {
     const [notes, logs] = await Promise.all([
       crmRepository.getNotes(profileId),
-      crmRepository.getCommunicationLogs(profileId)
+      crmRepository.getCommunicationLogs(profileId),
     ]);
 
     // Merge and sort notes and logs by created_at descending
     const timeline = [
-      ...notes.map(n => ({ ...n, timeline_type: 'NOTE' })),
-      ...logs.map(l => ({ ...l, timeline_type: 'COMMUNICATION' }))
-    ].sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+      ...notes.map((n) => ({ ...n, timeline_type: "NOTE" })),
+      ...logs.map((l) => ({ ...l, timeline_type: "COMMUNICATION" })),
+    ].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
 
     return timeline;
   }
@@ -38,13 +45,16 @@ export class CRMService {
 
   async convertLead(id: string, profileId: string): Promise<CRMLead> {
     return await crmRepository.updateLead(id, {
-      status: 'converted',
+      status: "converted",
       converted_to_profile_id: profileId,
     });
   }
 
   async addNoteToCustomer(profileId: string, data: unknown): Promise<CRMNote> {
-    const validData = createCRMNoteSchema.parse({ ...data as any, profile_id: profileId });
+    const validData = createCRMNoteSchema.parse({
+      ...(data as any),
+      profile_id: profileId,
+    });
     return await crmRepository.createNote(validData);
   }
 

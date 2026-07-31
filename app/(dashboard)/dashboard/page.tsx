@@ -1,27 +1,38 @@
-import { Metadata } from 'next'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { Metadata } from "next";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
-  title: 'Dashboard',
-  description: 'Overview of your account and activities',
-}
+  title: "Dashboard",
+  description: "Overview of your account and activities",
+};
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/auth/login')
+    redirect("/auth/login");
   }
 
-  const role = user.user_metadata?.role || user.app_metadata?.role || 'CUSTOMER'
+  const role =
+    user.user_metadata?.role || user.app_metadata?.role || "CUSTOMER";
 
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2">
-        <h1 className="text-3xl font-bold tracking-tight">Welcome back, {user.user_metadata?.first_name || 'User'}!</h1>
+        <h1 className="text-3xl font-bold tracking-tight">
+          Welcome back, {user.user_metadata?.first_name || "User"}!
+        </h1>
         <p className="text-muted-foreground">
           Here is an overview of your account.
         </p>
@@ -34,7 +45,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{role}</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="mt-1 text-xs text-muted-foreground">
               Your current access level
             </p>
           </CardContent>
@@ -45,7 +56,7 @@ export default async function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-500">Active</div>
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="mt-1 text-xs text-muted-foreground">
               Your account is fully functional
             </p>
           </CardContent>
@@ -61,18 +72,16 @@ export default async function DashboardPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="text-sm text-muted-foreground flex flex-col items-center justify-center py-8">
+            <div className="flex flex-col items-center justify-center py-8 text-sm text-muted-foreground">
               No recent activity found.
             </div>
           </CardContent>
         </Card>
-        
+
         <Card>
           <CardHeader>
             <CardTitle>Profile Summary</CardTitle>
-            <CardDescription>
-              Your account information
-            </CardDescription>
+            <CardDescription>Your account information</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-2 text-sm">
@@ -85,5 +94,5 @@ export default async function DashboardPage() {
         </Card>
       </div>
     </div>
-  )
+  );
 }

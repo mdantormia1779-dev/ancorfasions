@@ -1,22 +1,22 @@
-import { NextResponse } from 'next/server';
-import { QueueService } from '@/services/jobs/queue.service';
-import { EmailGatewayService } from '@/services/email/email-gateway.service';
+import { NextResponse } from "next/server";
+import { QueueService } from "@/services/jobs/queue.service";
+import { EmailGatewayService } from "@/services/email/email-gateway.service";
 
 // Ensure this route is not cached
-export const dynamic = 'force-dynamic';
+export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
   // Security check: verify this is called by Vercel Cron or an authorized admin
-  const authHeader = req.headers.get('authorization');
+  const authHeader = req.headers.get("authorization");
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   try {
     const jobs = await QueueService.fetchPendingJobs(50);
-    
+
     if (jobs.length === 0) {
-      return NextResponse.json({ message: 'No pending jobs found' });
+      return NextResponse.json({ message: "No pending jobs found" });
     }
 
     let successCount = 0;
@@ -25,16 +25,22 @@ export async function GET(req: Request) {
     for (const job of jobs) {
       try {
         // Dispatch job based on event_type
-        if (job.event_type === 'SEND_TRANSACTIONAL_EMAIL') {
+        if (job.event_type === "SEND_TRANSACTIONAL_EMAIL") {
           // payload: { providerCode: string, request: EmailSendRequest }
           const { providerCode, request } = job.payload;
-          const result = await EmailGatewayService.sendEmail(providerCode || 'resend', request);
-          
+          const result = await EmailGatewayService.sendEmail(
+            providerCode || "resend",
+            request
+          );
+
           if (result.success) {
             await QueueService.markJobCompleted(job.id);
             successCount++;
           } else {
-            await QueueService.markJobFailed(job.id, result.error?.message || 'Unknown Email Error');
+            await QueueService.markJobFailed(
+              job.id,
+              result.error?.message || "Unknown Email Error"
+            );
             failCount++;
           }
         } else {
@@ -49,15 +55,17 @@ export async function GET(req: Request) {
       }
     }
 
-    return NextResponse.json({ 
-      message: 'Queue processed', 
+    return NextResponse.json({
+      message: "Queue processed",
       processed: jobs.length,
       success: successCount,
-      failed: failCount
+      failed: failCount,
     });
-
   } catch (error: any) {
-    console.error('Queue processing error:', error);
-    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
+    console.error("Queue processing error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
   }
 }

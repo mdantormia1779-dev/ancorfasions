@@ -1,5 +1,9 @@
-import { createAdminClient } from '@/lib/supabase/admin-client';
-import { Warehouse, WarehouseZone, WarehouseBin } from '@/types/inventory.types';
+import { createAdminClient } from "@/lib/supabase/admin-client";
+import {
+  Warehouse,
+  WarehouseZone,
+  WarehouseBin,
+} from "@/types/inventory.types";
 
 export class WarehouseRepository {
   private getAdminClient() {
@@ -8,7 +12,10 @@ export class WarehouseRepository {
 
   async getAllWarehouses(): Promise<Warehouse[]> {
     const supabase = this.getAdminClient();
-    const { data, error } = await supabase.from('warehouses').select('*').order('name');
+    const { data, error } = await supabase
+      .from("warehouses")
+      .select("*")
+      .order("name");
     if (error) throw new Error(`Failed to get warehouses: ${error.message}`);
     return data as Warehouse[];
   }
@@ -16,18 +23,19 @@ export class WarehouseRepository {
   async getWarehouseById(id: string): Promise<Warehouse | null> {
     const supabase = this.getAdminClient();
     const { data, error } = await supabase
-      .from('warehouses')
-      .select('*')
-      .eq('id', id)
+      .from("warehouses")
+      .select("*")
+      .eq("id", id)
       .single();
-    if (error && error.code !== 'PGRST116') throw new Error(`Failed to get warehouse: ${error.message}`);
+    if (error && error.code !== "PGRST116")
+      throw new Error(`Failed to get warehouse: ${error.message}`);
     return data as Warehouse | null;
   }
 
   async createWarehouse(warehouseData: Partial<Warehouse>): Promise<Warehouse> {
     const supabase = this.getAdminClient();
     const { data, error } = await supabase
-      .from('warehouses')
+      .from("warehouses")
       .insert(warehouseData)
       .select()
       .single();
@@ -35,12 +43,15 @@ export class WarehouseRepository {
     return data as Warehouse;
   }
 
-  async updateWarehouse(id: string, warehouseData: Partial<Warehouse>): Promise<Warehouse> {
+  async updateWarehouse(
+    id: string,
+    warehouseData: Partial<Warehouse>
+  ): Promise<Warehouse> {
     const supabase = this.getAdminClient();
     const { data, error } = await supabase
-      .from('warehouses')
+      .from("warehouses")
       .update(warehouseData)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
     if (error) throw new Error(`Failed to update warehouse: ${error.message}`);
@@ -50,36 +61,38 @@ export class WarehouseRepository {
   async getZonesByWarehouse(warehouseId: string): Promise<WarehouseZone[]> {
     const supabase = this.getAdminClient();
     const { data, error } = await supabase
-      .from('warehouse_zones')
-      .select('*')
-      .eq('warehouse_id', warehouseId)
-      .order('name');
-    if (error) throw new Error(`Failed to get warehouse zones: ${error.message}`);
+      .from("warehouse_zones")
+      .select("*")
+      .eq("warehouse_id", warehouseId)
+      .order("name");
+    if (error)
+      throw new Error(`Failed to get warehouse zones: ${error.message}`);
     return data as WarehouseZone[];
   }
 
   async getBinsByZone(zoneId: string): Promise<WarehouseBin[]> {
     const supabase = this.getAdminClient();
     const { data, error } = await supabase
-      .from('warehouse_bins')
-      .select('*')
-      .eq('zone_id', zoneId)
-      .order('code'); // code is in the DB schema, though type says 'name'. Let me check the type again... wait.
-    if (error) throw new Error(`Failed to get warehouse bins: ${error.message}`);
+      .from("warehouse_bins")
+      .select("*")
+      .eq("zone_id", zoneId)
+      .order("code"); // code is in the DB schema, though type says 'name'. Let me check the type again... wait.
+    if (error)
+      throw new Error(`Failed to get warehouse bins: ${error.message}`);
     return data as WarehouseBin[];
   }
 
   async getDefaultWarehouse(): Promise<Warehouse | null> {
     const supabase = this.getAdminClient();
     const { data, error } = await supabase
-      .from('warehouses')
-      .select('*')
-      .eq('is_active', true)
-      .order('created_at', { ascending: true })
+      .from("warehouses")
+      .select("*")
+      .eq("is_active", true)
+      .order("created_at", { ascending: true })
       .limit(1)
       .single();
-    
-    if (error && error.code !== 'PGRST116') {
+
+    if (error && error.code !== "PGRST116") {
       throw new Error(`Failed to get default warehouse: ${error.message}`);
     }
     return data as Warehouse | null;

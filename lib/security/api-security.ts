@@ -1,4 +1,4 @@
-import crypto from 'crypto';
+import crypto from "crypto";
 
 const TIMESTAMP_TOLERANCE_MS = 5 * 60 * 1000; // 5 minutes
 
@@ -27,7 +27,7 @@ export const APISecurityService = {
     // e.g. const isReplay = await RedisCache.get(`nonce:${nonce}`);
     // if (isReplay) return false;
     // await RedisCache.set(`nonce:${nonce}`, true, 'PX', TIMESTAMP_TOLERANCE_MS);
-    
+
     return true;
   },
 
@@ -37,10 +37,10 @@ export const APISecurityService = {
    */
   verifySignature(payload: string, secret: string, signature: string): boolean {
     const expectedSignature = crypto
-      .createHmac('sha256', secret)
+      .createHmac("sha256", secret)
       .update(payload)
-      .digest('hex');
-    
+      .digest("hex");
+
     // Timing safe comparison
     try {
       return crypto.timingSafeEqual(
@@ -50,5 +50,5 @@ export const APISecurityService = {
     } catch {
       return false;
     }
-  }
+  },
 };

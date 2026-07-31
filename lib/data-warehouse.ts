@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from "@supabase/supabase-js";
 
 // Types for Data Warehouse Dimension Tables
 export interface DimDate {
@@ -83,13 +83,13 @@ export class DataWarehouseService {
    */
   async getRevenueSummary(startDateKey: number, endDateKey: number) {
     const { data, error } = await this.supabase
-      .from('fact_sales')
-      .select('gross_revenue, net_revenue, gross_profit')
-      .gte('date_key', startDateKey)
-      .lte('date_key', endDateKey);
+      .from("fact_sales")
+      .select("gross_revenue, net_revenue, gross_profit")
+      .gte("date_key", startDateKey)
+      .lte("date_key", endDateKey);
 
     if (error) {
-      console.error('Data Warehouse Query Failed:', error);
+      console.error("Data Warehouse Query Failed:", error);
       throw error;
     }
 
@@ -106,8 +106,10 @@ export class DataWarehouseService {
   /**
    * Inserts a batch of sales facts from the ETL pipeline.
    */
-  async loadFactSales(salesBatch: Omit<FactSales, 'sales_id' | 'created_at'>[]) {
-    const { error } = await this.supabase.from('fact_sales').insert(salesBatch);
+  async loadFactSales(
+    salesBatch: Omit<FactSales, "sales_id" | "created_at">[]
+  ) {
+    const { error } = await this.supabase.from("fact_sales").insert(salesBatch);
     if (error) {
       throw new Error(`Failed to load sales facts: ${error.message}`);
     }

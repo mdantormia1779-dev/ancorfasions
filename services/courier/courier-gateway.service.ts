@@ -2,7 +2,7 @@
 // Courier Gateway Service — Updated to use CourierRegistry
 // ============================================================================
 
-import { CourierRegistry } from './courier-registry';
+import { CourierRegistry } from "./courier-registry";
 import {
   ConsignmentRequest,
   ConsignmentResponse,
@@ -11,7 +11,7 @@ import {
   NormalizedWebhookEvent,
   CourierProviderCode,
   ICourierProvider,
-} from '@/types/shipping.types';
+} from "@/types/shipping.types";
 
 export class CourierGatewayService {
   private static registry = CourierRegistry.getInstance();
@@ -19,7 +19,10 @@ export class CourierGatewayService {
   /**
    * Get provider — with optional fallback on failure
    */
-  private static async getProvider(code: CourierProviderCode, useFallback = false): Promise<ICourierProvider> {
+  private static async getProvider(
+    code: CourierProviderCode,
+    useFallback = false
+  ): Promise<ICourierProvider> {
     try {
       return await this.registry.get(code);
     } catch (err) {
@@ -46,7 +49,9 @@ export class CourierGatewayService {
         // Attempt fallback
         const fallback = await this.registry.getFallback();
         if (fallback && fallback.id !== code) {
-          console.warn(`[CourierGateway] Primary provider '${code}' failed. Attempting fallback '${fallback.id}'`);
+          console.warn(
+            `[CourierGateway] Primary provider '${code}' failed. Attempting fallback '${fallback.id}'`
+          );
           return fallback.createConsignment(request);
         }
       }
@@ -133,12 +138,15 @@ export class CourierGatewayService {
     await this.registry.load(true);
   }
 
-  private static buildError(code: CourierProviderCode, message: string): ProviderResponse<any> {
+  private static buildError(
+    code: CourierProviderCode,
+    message: string
+  ): ProviderResponse<any> {
     return {
       success: false,
       providerId: code,
       timestamp: new Date().toISOString(),
-      error: { code: 'GATEWAY_ERROR', message },
+      error: { code: "GATEWAY_ERROR", message },
     };
   }
 }

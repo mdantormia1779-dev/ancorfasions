@@ -52,7 +52,11 @@ export function AreaChartVariant({
               <stop offset="95%" stopColor={color} stopOpacity={0} />
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
+          <CartesianGrid
+            strokeDasharray="3 3"
+            vertical={false}
+            stroke="#e5e7eb"
+          />
           <XAxis
             dataKey={xDataKey}
             axisLine={false}
@@ -68,9 +72,18 @@ export function AreaChartVariant({
             dx={-10}
           />
           <Tooltip
-            contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)" }}
+            contentStyle={{
+              borderRadius: "8px",
+              border: "none",
+              boxShadow:
+                "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)",
+            }}
             formatter={(value: number) => [formatValue(value), yDataKey]}
-            labelStyle={{ color: "#374151", fontWeight: "bold", marginBottom: "4px" }}
+            labelStyle={{
+              color: "#374151",
+              fontWeight: "bold",
+              marginBottom: "4px",
+            }}
           />
           <Area
             type="monotone"

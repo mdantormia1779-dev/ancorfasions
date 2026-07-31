@@ -1,14 +1,14 @@
-import { Metadata } from 'next'
-import Link from 'next/link'
-import { ForgotPasswordForm } from '@/features/auth/components/forgot-password-form'
-import { buttonVariants } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { ChevronLeft } from 'lucide-react'
+import { Metadata } from "next";
+import Link from "next/link";
+import { ForgotPasswordForm } from "@/features/auth/components/forgot-password-form";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+import { ChevronLeft } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: 'Forgot Password',
-  description: 'Request a password reset',
-}
+  title: "Forgot Password",
+  description: "Request a password reset",
+};
 
 export default function ForgotPasswordPage() {
   return (
@@ -16,8 +16,8 @@ export default function ForgotPasswordPage() {
       <Link
         href="/auth/login"
         className={cn(
-          buttonVariants({ variant: 'ghost' }),
-          'absolute left-4 top-4 md:left-8 md:top-8'
+          buttonVariants({ variant: "ghost" }),
+          "absolute left-4 top-4 md:left-8 md:top-8"
         )}
       >
         <ChevronLeft className="mr-2 h-4 w-4" />
@@ -28,10 +28,11 @@ export default function ForgotPasswordPage() {
           Forgot your password?
         </h1>
         <p className="text-sm text-muted-foreground">
-          Enter your email address and we will send you instructions to reset your password.
+          Enter your email address and we will send you instructions to reset
+          your password.
         </p>
       </div>
       <ForgotPasswordForm />
     </>
-  )
+  );
 }

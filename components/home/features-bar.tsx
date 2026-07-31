@@ -28,22 +28,26 @@ const features = [
 
 export function FeaturesBar() {
   return (
-    <section className={`${jost.className} bg-white border-b border-gray-100`}>
+    <section className={`${jost.className} border-b border-gray-100 bg-white`}>
       <div className="container mx-auto px-4 md:px-6">
-        <div className="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-100">
+        <div className="grid grid-cols-2 divide-x divide-gray-100 md:grid-cols-4">
           {features.map((feature, index) => {
             const Icon = feature.icon;
             return (
               <div
                 key={index}
-                className="flex flex-col md:flex-row items-center justify-center gap-3 px-4 md:px-8 py-6 group hover:bg-[#C9A86A]/5 transition-colors duration-300"
+                className="group flex flex-col items-center justify-center gap-3 px-4 py-6 transition-colors duration-300 hover:bg-[#C9A86A]/5 md:flex-row md:px-8"
               >
-                <div className="w-10 h-10 flex items-center justify-center border border-[#C9A86A]/30 group-hover:border-[#C9A86A] group-hover:bg-[#C9A86A]/10 transition-all duration-300 flex-shrink-0">
-                  <Icon className="w-5 h-5 text-[#C9A86A]" strokeWidth={1.5} />
+                <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center border border-[#C9A86A]/30 transition-all duration-300 group-hover:border-[#C9A86A] group-hover:bg-[#C9A86A]/10">
+                  <Icon className="h-5 w-5 text-[#C9A86A]" strokeWidth={1.5} />
                 </div>
                 <div className="text-center md:text-left">
-                  <span className="font-semibold text-xs tracking-wider uppercase text-[#1A1A1A] block">{feature.title}</span>
-                  <span className="text-[11px] text-gray-400 font-light">{feature.description}</span>
+                  <span className="block text-xs font-semibold uppercase tracking-wider text-[#1A1A1A]">
+                    {feature.title}
+                  </span>
+                  <span className="text-[11px] font-light text-gray-400">
+                    {feature.description}
+                  </span>
                 </div>
               </div>
             );

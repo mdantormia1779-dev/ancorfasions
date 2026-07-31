@@ -41,7 +41,7 @@ export function MegaMenu() {
     <NavigationMenu>
       <NavigationMenuList>
         <NavigationMenuItem>
-          <NavigationMenuTrigger className="bg-transparent hover:bg-transparent text-foreground">
+          <NavigationMenuTrigger className="bg-transparent text-foreground hover:bg-transparent">
             Women
           </NavigationMenuTrigger>
           <NavigationMenuContent>
@@ -56,7 +56,8 @@ export function MegaMenu() {
                       Spring Collection
                     </div>
                     <p className="text-sm leading-tight text-muted-foreground">
-                      Discover the latest trends and essential pieces for the new season.
+                      Discover the latest trends and essential pieces for the
+                      new season.
                     </p>
                   </a>
                 </NavigationMenuLink>
@@ -73,9 +74,9 @@ export function MegaMenu() {
             </ul>
           </NavigationMenuContent>
         </NavigationMenuItem>
-        
+
         <NavigationMenuItem>
-          <NavigationMenuTrigger className="bg-transparent hover:bg-transparent text-foreground">
+          <NavigationMenuTrigger className="bg-transparent text-foreground hover:bg-transparent">
             Men
           </NavigationMenuTrigger>
           <NavigationMenuContent>
@@ -98,7 +99,12 @@ export function MegaMenu() {
 
         <NavigationMenuItem>
           <Link href="/collections/new-in" legacyBehavior passHref>
-            <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), "bg-transparent hover:bg-transparent text-foreground")}>
+            <NavigationMenuLink
+              className={cn(
+                navigationMenuTriggerStyle(),
+                "bg-transparent text-foreground hover:bg-transparent"
+              )}
+            >
               New In
             </NavigationMenuLink>
           </Link>
@@ -106,7 +112,12 @@ export function MegaMenu() {
 
         <NavigationMenuItem>
           <Link href="/collections/sale" legacyBehavior passHref>
-            <NavigationMenuLink className={cn(navigationMenuTriggerStyle(), "bg-transparent hover:bg-transparent text-destructive font-medium")}>
+            <NavigationMenuLink
+              className={cn(
+                navigationMenuTriggerStyle(),
+                "bg-transparent font-medium text-destructive hover:bg-transparent"
+              )}
+            >
               Sale
             </NavigationMenuLink>
           </Link>

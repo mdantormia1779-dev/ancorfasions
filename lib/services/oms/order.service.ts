@@ -1,8 +1,8 @@
-import { OrderRepository } from '@/lib/repositories/oms/order.repository';
-import { OrderItemsRepository } from '@/lib/repositories/oms/order-items.repository';
-import { OrderStatusService } from './order-status.service';
-import { Order, OrderStatus, OrderItem } from '@/types/oms';
-import { CreateOrderInput } from '@/lib/validations/oms';
+import { OrderRepository } from "@/lib/repositories/oms/order.repository";
+import { OrderItemsRepository } from "@/lib/repositories/oms/order-items.repository";
+import { OrderStatusService } from "./order-status.service";
+import { Order, OrderStatus, OrderItem } from "@/types/oms";
+import { CreateOrderInput } from "@/lib/validations/oms";
 
 export class OrderService {
   private orderRepo = new OrderRepository();
@@ -13,11 +13,11 @@ export class OrderService {
     // Generate a secure, sequential order number in a real app,
     // for now using a timestamp-based mock
     const orderNumber = `ORD-${Date.now()}`;
-    
+
     const orderData: Partial<Order> = {
       order_number: orderNumber,
       customer_id: data.customer_id || null,
-      status: 'draft', // Initial state
+      status: "draft", // Initial state
       subtotal: data.subtotal,
       tax_total: data.tax_total,
       shipping_total: data.shipping_total,
@@ -51,14 +51,21 @@ export class OrderService {
     return newOrder;
   }
 
-  async updateOrderStatus(id: string, newStatus: OrderStatus, updatedBy?: string, role?: string): Promise<Order> {
+  async updateOrderStatus(
+    id: string,
+    newStatus: OrderStatus,
+    updatedBy?: string,
+    role?: string
+  ): Promise<Order> {
     const order = await this.orderRepo.getOrderById(id);
     if (!order) {
-      throw new Error('Order not found');
+      throw new Error("Order not found");
     }
 
     if (!this.statusService.canTransition(order.status, newStatus, role)) {
-      throw new Error(`Invalid status transition from ${order.status} to ${newStatus}`);
+      throw new Error(
+        `Invalid status transition from ${order.status} to ${newStatus}`
+      );
     }
 
     return this.orderRepo.updateOrderStatus(id, newStatus, updatedBy);
@@ -67,7 +74,7 @@ export class OrderService {
   async getOrderDetails(id: string) {
     const order = await this.orderRepo.getOrderById(id);
     if (!order) return null;
-    
+
     const items = await this.orderItemsRepo.getOrderItems(id);
     return { ...order, items };
   }

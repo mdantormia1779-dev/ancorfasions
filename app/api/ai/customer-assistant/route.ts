@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import { generateContent } from '@/lib/ai/gemini';
+import { NextResponse } from "next/server";
+import { generateContent } from "@/lib/ai/gemini";
 
 const SYSTEM_PROMPT = `
 You are an expert AI Customer Assistant for Anchor Fashion, a premium fashion brand.
@@ -15,7 +15,10 @@ export async function POST(req: Request) {
     const { messages } = body;
 
     if (!messages || !Array.isArray(messages)) {
-      return NextResponse.json({ error: 'Invalid messages array' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid messages array" },
+        { status: 400 }
+      );
     }
 
     const lastMessage = messages[messages.length - 1].content;
@@ -23,22 +26,25 @@ export async function POST(req: Request) {
     // In a real implementation, we would maintain conversation history.
     // For this route, we generate content based on the last message for simplicity,
     // or use the startChatSession feature if extended.
-    
+
     const response = await generateContent(
-      'gemini-1.5-flash',
+      "gemini-1.5-flash",
       SYSTEM_PROMPT,
       lastMessage
     );
 
     // TODO: Optionally log telemetry for this request in ai_request_logs
-    
+
     return NextResponse.json({
-      role: 'assistant',
+      role: "assistant",
       content: response.text,
-      usage: response.usage
+      usage: response.usage,
     });
   } catch (error: any) {
-    console.error('Customer Assistant Error:', error);
-    return NextResponse.json({ error: 'Failed to process request' }, { status: 500 });
+    console.error("Customer Assistant Error:", error);
+    return NextResponse.json(
+      { error: "Failed to process request" },
+      { status: 500 }
+    );
   }
 }

@@ -1,20 +1,36 @@
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export const metadata = {
-  title: 'Loyalty Program Dashboard | Admin',
+  title: "Loyalty Program Dashboard | Admin",
 };
 
 export default function AdminLoyaltyPage() {
   return (
-    <div className="p-8 space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 p-8">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Loyalty Dashboard</h1>
-          <p className="text-muted-foreground mt-2">
-            Overview of loyalty tiers, points in circulation, and coupon assignments.
+          <h1 className="text-3xl font-bold tracking-tight">
+            Loyalty Dashboard
+          </h1>
+          <p className="mt-2 text-muted-foreground">
+            Overview of loyalty tiers, points in circulation, and coupon
+            assignments.
           </p>
         </div>
         <Button>Create Coupon</Button>
@@ -23,7 +39,9 @@ export default function AdminLoyaltyPage() {
       <div className="grid gap-6 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Points Issued</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Points Issued
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">1.2M</div>
@@ -31,7 +49,9 @@ export default function AdminLoyaltyPage() {
         </Card>
         <Card>
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Total Points Redeemed</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Points Redeemed
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-3xl font-bold">450K</div>
@@ -58,7 +78,9 @@ export default function AdminLoyaltyPage() {
       <Card>
         <CardHeader>
           <CardTitle>Recent Coupon Redemptions</CardTitle>
-          <CardDescription>Track how customers are using loyalty rewards.</CardDescription>
+          <CardDescription>
+            Track how customers are using loyalty rewards.
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
@@ -74,14 +96,18 @@ export default function AdminLoyaltyPage() {
             <TableBody>
               <TableRow>
                 <TableCell className="font-medium">John Doe</TableCell>
-                <TableCell><Badge variant="secondary">VIP20</Badge></TableCell>
+                <TableCell>
+                  <Badge variant="secondary">VIP20</Badge>
+                </TableCell>
                 <TableCell>ORD-8821</TableCell>
                 <TableCell>BDT 450</TableCell>
                 <TableCell>Oct 12, 2026</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell className="font-medium">Jane Smith</TableCell>
-                <TableCell><Badge variant="secondary">WELCOME10</Badge></TableCell>
+                <TableCell>
+                  <Badge variant="secondary">WELCOME10</Badge>
+                </TableCell>
                 <TableCell>ORD-8822</TableCell>
                 <TableCell>BDT 200</TableCell>
                 <TableCell>Oct 11, 2026</TableCell>

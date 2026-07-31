@@ -1,7 +1,15 @@
-export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'lost' | 'converted';
-export type CommunicationType = 'EMAIL' | 'SMS' | 'IN_APP' | 'PUSH' | 'CALL' | 'MEETING';
-export type CommunicationDirection = 'INBOUND' | 'OUTBOUND';
-export type CustomerLifecycleStage = 'PROSPECT' | 'FIRST_TIME_BUYER' | 'REPEAT_CUSTOMER' | 'LOYAL' | 'AT_RISK' | 'CHURNED';
+export type LeadStatus =
+  "new" | "contacted" | "qualified" | "lost" | "converted";
+export type CommunicationType =
+  "EMAIL" | "SMS" | "IN_APP" | "PUSH" | "CALL" | "MEETING";
+export type CommunicationDirection = "INBOUND" | "OUTBOUND";
+export type CustomerLifecycleStage =
+  | "PROSPECT"
+  | "FIRST_TIME_BUYER"
+  | "REPEAT_CUSTOMER"
+  | "LOYAL"
+  | "AT_RISK"
+  | "CHURNED";
 
 export interface CRMCustomer {
   id: string;

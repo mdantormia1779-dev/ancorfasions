@@ -1,4 +1,7 @@
-import { CatalogRepository, ProductListParams } from '@/repositories/catalog.repository';
+import {
+  CatalogRepository,
+  ProductListParams,
+} from "@/repositories/catalog.repository";
 
 export class CatalogService {
   /**

@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 export const PaginationSchema = z.object({
   page: z.number().int().min(1).optional().default(1),
@@ -16,12 +16,17 @@ export const SearchSchema = z.object({
 
 export const UuidSchema = z.string().uuid();
 
-export const DateRangeSchema = z.object({
-  from: z.string().datetime().optional(),
-  to: z.string().datetime().optional(),
-}).refine(data => {
-  if (data.from && data.to) {
-    return new Date(data.from) <= new Date(data.to);
-  }
-  return true;
-}, { message: "'from' date must be before 'to' date" });
+export const DateRangeSchema = z
+  .object({
+    from: z.string().datetime().optional(),
+    to: z.string().datetime().optional(),
+  })
+  .refine(
+    (data) => {
+      if (data.from && data.to) {
+        return new Date(data.from) <= new Date(data.to);
+      }
+      return true;
+    },
+    { message: "'from' date must be before 'to' date" }
+  );

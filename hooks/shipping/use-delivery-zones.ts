@@ -1,18 +1,18 @@
-'use client';
+"use client";
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   fetchDeliveryZonesAction,
   calculateShippingRateAction,
   createDeliveryZoneAction,
   updateDeliveryZoneAction,
   createShippingRateAction,
-} from '@/actions/delivery-zones.actions';
+} from "@/actions/delivery-zones.actions";
 
 export const zoneKeys = {
-  all: ['delivery-zones'] as const,
-  list: () => ['delivery-zones', 'list'] as const,
-  rate: (params: Record<string, any>) => ['shipping-rate', params] as const,
+  all: ["delivery-zones"] as const,
+  list: () => ["delivery-zones", "list"] as const,
+  rate: (params: Record<string, any>) => ["shipping-rate", params] as const,
 };
 
 export function useDeliveryZones() {
@@ -27,13 +27,15 @@ export function useDeliveryZones() {
   });
 }
 
-export function useShippingRate(params: {
-  district: string;
-  city?: string;
-  weightKg?: number;
-  orderValue?: number;
-  isCOD?: boolean;
-} | null) {
+export function useShippingRate(
+  params: {
+    district: string;
+    city?: string;
+    weightKg?: number;
+    orderValue?: number;
+    isCOD?: boolean;
+  } | null
+) {
   return useQuery({
     queryKey: zoneKeys.rate(params ?? {}),
     queryFn: async () => {

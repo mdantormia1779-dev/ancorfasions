@@ -1,12 +1,14 @@
-import { test, expect } from '@playwright/test';
+import { test, expect } from "@playwright/test";
 
-test.describe('Checkout Flow', () => {
+test.describe("Checkout Flow", () => {
   // This is a boilerplate E2E test for the checkout process.
   // In a real application, you would navigate to the product page, add to cart, and proceed to checkout.
-  
-  test('should allow a user to add an item to the cart and reach the checkout page', async ({ page }) => {
+
+  test("should allow a user to add an item to the cart and reach the checkout page", async ({
+    page,
+  }) => {
     // Navigate to a placeholder home page
-    await page.goto('/');
+    await page.goto("/");
 
     // Assuming the page has a title, we check it
     await expect(page).toHaveTitle(/Anchor Fashion/i);

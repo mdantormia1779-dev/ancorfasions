@@ -2,14 +2,14 @@
 // Return Repository
 // ============================================================================
 
-import { createAdminClient } from '@/lib/supabase/admin-client';
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import {
   ReturnRequest,
   ReturnItem,
   ReturnWithItems,
   ReturnFilters,
   PaginatedResult,
-} from '@/types/shipping.types';
+} from "@/types/shipping.types";
 
 export class ReturnRepository {
   private getClient() {
@@ -20,13 +20,13 @@ export class ReturnRepository {
    * Create a return with its items.
    */
   async createReturn(
-    data: Omit<Partial<ReturnRequest>, 'id' | 'created_at' | 'updated_at'>,
-    items: Omit<Partial<ReturnItem>, 'id' | 'return_id' | 'created_at'>[]
+    data: Omit<Partial<ReturnRequest>, "id" | "created_at" | "updated_at">,
+    items: Omit<Partial<ReturnItem>, "id" | "return_id" | "created_at">[]
   ): Promise<ReturnWithItems> {
     const supabase = this.getClient();
 
     const { data: ret, error } = await supabase
-      .from('returns')
+      .from("returns")
       .insert(data as any)
       .select()
       .single();
@@ -35,10 +35,10 @@ export class ReturnRepository {
 
     if (items.length > 0) {
       const { error: itemError } = await supabase
-        .from('return_items')
+        .from("return_items")
         .insert(items.map((item) => ({ ...item, return_id: ret.id })) as any);
 
-      if (itemError) console.error('Failed to insert return items:', itemError);
+      if (itemError) console.error("Failed to insert return items:", itemError);
     }
 
     return this.getReturnWithItems(ret.id) as Promise<ReturnWithItems>;
@@ -54,9 +54,9 @@ export class ReturnRepository {
     const supabase = this.getClient();
 
     const { data: updated, error } = await supabase
-      .from('returns')
+      .from("returns")
       .update(data as any)
-      .eq('id', id)
+      .eq("id", id)
       .select()
       .single();
 
@@ -71,9 +71,9 @@ export class ReturnRepository {
     const supabase = this.getClient();
 
     const { data, error } = await supabase
-      .from('returns')
-      .select('*')
-      .eq('id', id)
+      .from("returns")
+      .select("*")
+      .eq("id", id)
       .maybeSingle();
 
     if (error) throw new Error(`Get return failed: ${error.message}`);
@@ -87,15 +87,18 @@ export class ReturnRepository {
     const supabase = this.getClient();
 
     const { data, error } = await supabase
-      .from('returns')
-      .select(`
+      .from("returns")
+      .select(
+        `
         *,
         items:return_items(*)
-      `)
-      .eq('id', id)
+      `
+      )
+      .eq("id", id)
       .maybeSingle();
 
-    if (error) throw new Error(`Get return with items failed: ${error.message}`);
+    if (error)
+      throw new Error(`Get return with items failed: ${error.message}`);
     return data as ReturnWithItems | null;
   }
 
@@ -106,10 +109,10 @@ export class ReturnRepository {
     const supabase = this.getClient();
 
     const { data, error } = await supabase
-      .from('returns')
-      .select('*')
-      .eq('order_id', orderId)
-      .order('created_at', { ascending: false });
+      .from("returns")
+      .select("*")
+      .eq("order_id", orderId)
+      .order("created_at", { ascending: false });
 
     if (error) throw new Error(`Get returns by order failed: ${error.message}`);
     return (data ?? []) as ReturnRequest[];
@@ -118,26 +121,26 @@ export class ReturnRepository {
   /**
    * List returns with pagination and filters.
    */
-  async listReturns(filters: ReturnFilters): Promise<PaginatedResult<ReturnRequest>> {
+  async listReturns(
+    filters: ReturnFilters
+  ): Promise<PaginatedResult<ReturnRequest>> {
     const supabase = this.getClient();
     const page = filters.page ?? 1;
     const limit = filters.limit ?? 20;
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    let query = supabase
-      .from('returns')
-      .select('*', { count: 'exact' });
+    let query = supabase.from("returns").select("*", { count: "exact" });
 
-    if (filters.status) query = query.eq('status', filters.status);
-    if (filters.dateFrom) query = query.gte('created_at', filters.dateFrom);
-    if (filters.dateTo) query = query.lte('created_at', filters.dateTo);
+    if (filters.status) query = query.eq("status", filters.status);
+    if (filters.dateFrom) query = query.gte("created_at", filters.dateFrom);
+    if (filters.dateTo) query = query.lte("created_at", filters.dateTo);
     if (filters.search) {
       query = query.or(`return_number.ilike.%${filters.search}%`);
     }
 
     const { data, error, count } = await query
-      .order('created_at', { ascending: false })
+      .order("created_at", { ascending: false })
       .range(from, to);
 
     if (error) throw new Error(`List returns failed: ${error.message}`);
@@ -158,9 +161,9 @@ export class ReturnRepository {
     const supabase = this.getClient();
 
     const { data, error } = await supabase
-      .from('return_items')
-      .select('*')
-      .eq('return_id', returnId);
+      .from("return_items")
+      .select("*")
+      .eq("return_id", returnId);
 
     if (error) throw new Error(`Get return items failed: ${error.message}`);
     return (data ?? []) as ReturnItem[];
@@ -172,8 +175,8 @@ export class ReturnRepository {
   async markItemRestocked(returnItemId: string): Promise<void> {
     const supabase = this.getClient();
     await supabase
-      .from('return_items')
+      .from("return_items")
       .update({ restocked: true } as any)
-      .eq('id', returnItemId);
+      .eq("id", returnItemId);
   }
 }

@@ -19,15 +19,17 @@ import {
 } from "@/components/ui/form";
 import { PasswordInput } from "@/components/ui/password-input";
 
-const formSchema = z.object({
-  password: z.string().min(8, {
-    message: "Password must be at least 8 characters.",
-  }),
-  confirmPassword: z.string()
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+const formSchema = z
+  .object({
+    password: z.string().min(8, {
+      message: "Password must be at least 8 characters.",
+    }),
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 export function ResetPasswordForm() {
   const router = useRouter();
@@ -46,7 +48,7 @@ export function ResetPasswordForm() {
     setIsLoading(true);
 
     const { error } = await supabase.auth.updateUser({
-      password: values.password
+      password: values.password,
     });
 
     if (error) {
@@ -70,7 +72,11 @@ export function ResetPasswordForm() {
               <FormItem>
                 <FormLabel>New Password</FormLabel>
                 <FormControl>
-                  <PasswordInput placeholder="Enter new password" {...field} disabled={isLoading} />
+                  <PasswordInput
+                    placeholder="Enter new password"
+                    {...field}
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
@@ -83,7 +89,11 @@ export function ResetPasswordForm() {
               <FormItem>
                 <FormLabel>Confirm New Password</FormLabel>
                 <FormControl>
-                  <PasswordInput placeholder="Confirm new password" {...field} disabled={isLoading} />
+                  <PasswordInput
+                    placeholder="Confirm new password"
+                    {...field}
+                    disabled={isLoading}
+                  />
                 </FormControl>
                 <FormMessage />
               </FormItem>
