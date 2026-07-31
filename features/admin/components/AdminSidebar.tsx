@@ -49,8 +49,8 @@ const navigation: NavGroup[] = [
     icon: Package,
     items: [
       { name: "All Products", href: "/admin/products" },
-      { name: "Categories", href: "/admin/products/categories" },
-      { name: "Brands", href: "/admin/products/brands" },
+      { name: "Categories", href: "/admin/catalog/categories" },
+      { name: "Brands", href: "/admin/catalog/brands" },
       { name: "Collections", href: "/admin/products/collections" },
       { name: "Attributes", href: "/admin/products/attributes" },
       { name: "Reviews", href: "/admin/products/reviews" },
@@ -84,7 +84,7 @@ const navigation: NavGroup[] = [
       { name: "Stock", href: "/admin/inventory/stock" },
       { name: "Warehouses", href: "/admin/inventory/warehouses" },
       { name: "Stock Movement", href: "/admin/inventory/movement" },
-      { name: "Purchase Orders", href: "/admin/inventory/purchase-orders" },
+      { name: "Purchase Orders", href: "/admin/operations/procurement/purchase-orders" },
     ],
   },
   {
@@ -93,7 +93,7 @@ const navigation: NavGroup[] = [
     items: [
       { name: "Coupons", href: "/admin/marketing/coupons" },
       { name: "Promotions", href: "/admin/marketing/promotions" },
-      { name: "Banners", href: "/admin/marketing/banners" },
+      { name: "Banners", href: "/admin/cms/banners" },
       { name: "Newsletter", href: "/admin/marketing/newsletter" },
     ],
   },
@@ -102,7 +102,7 @@ const navigation: NavGroup[] = [
     icon: FileText,
     items: [
       { name: "Pages", href: "/admin/cms/pages" },
-      { name: "Blog", href: "/admin/cms/blog" },
+      { name: "Blog", href: "/admin/cms/blogs" },
       { name: "Media Library", href: "/admin/cms/media" },
       { name: "Menus", href: "/admin/cms/menus" },
     ],
@@ -112,7 +112,7 @@ const navigation: NavGroup[] = [
     icon: Headphones,
     items: [
       { name: "Leads", href: "/admin/crm/leads" },
-      { name: "Support Tickets", href: "/admin/crm/tickets" },
+      { name: "Support Tickets", href: "/admin/support/tickets" },
       { name: "Messages", href: "/admin/crm/messages" },
     ],
   },
@@ -121,16 +121,16 @@ const navigation: NavGroup[] = [
     icon: CreditCard,
     allowedRoles: ["SUPERADMIN", "ADMIN"],
     items: [
-      { name: "Sales Report", href: "/admin/finance/sales" },
+      { name: "Sales Report", href: "/admin/analytics/sales" },
       { name: "Expenses", href: "/admin/finance/expenses" },
-      { name: "Transactions", href: "/admin/finance/transactions" },
+      { name: "Transactions", href: "/admin/payments/transactions" },
     ],
   },
   {
     name: "Shipping",
     icon: Truck,
     items: [
-      { name: "Couriers", href: "/admin/shipping/couriers" },
+      { name: "Couriers", href: "/admin/operations/logistics/couriers" },
       { name: "Tracking", href: "/admin/shipping/tracking" },
       { name: "Shipping Zones", href: "/admin/shipping/zones" },
     ],
@@ -157,7 +157,7 @@ const navigation: NavGroup[] = [
       { name: "Email", href: "/admin/settings/email" },
       { name: "SEO", href: "/admin/settings/seo" },
       { name: "Analytics", href: "/admin/settings/analytics" },
-      { name: "Security", href: "/admin/settings/security" },
+      { name: "Security", href: "/admin/security" },
     ],
   },
 ];
@@ -194,7 +194,7 @@ export const AdminSidebar = ({
     >
       <div className="flex items-center justify-between border-b border-slate-100 p-5">
         <Link href="/admin" className="flex items-center gap-2">
-          <AnchorFashionLogo />
+          <AnchorFashionLogo noLink={true} />
           <span className="hidden text-lg font-semibold tracking-tight">
             Admin
           </span>

@@ -6,12 +6,13 @@ export const metadata: Metadata = {
   title: "Coming Soon | Anchor Fashion Admin",
 };
 
-export default function AdminPlaceholderPage({
+export default async function AdminPlaceholderPage({
   params,
 }: {
-  params: { slug: string[] };
+  params: Promise<{ slug: string[] }>;
 }) {
-  const path = params.slug.join("/");
+  const { slug } = await params;
+  const path = slug.join("/");
 
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">

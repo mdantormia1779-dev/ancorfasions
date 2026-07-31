@@ -13,9 +13,11 @@ const jost = Jost({ subsets: ["latin"], weight: ["400", "500"] });
 export const AnchorFashionLogo = ({
   className,
   isLoading = false,
+  noLink = false,
 }: {
   className?: string;
   isLoading?: boolean;
+  noLink?: boolean;
 }) => {
   const [mounted, setMounted] = useState(false);
 
@@ -23,17 +25,8 @@ export const AnchorFashionLogo = ({
     setMounted(true);
   }, []);
 
-  return (
-    <Link
-      href="/"
-      className={`flex select-none items-center ${className || ""}`}
-      aria-label="Anchor Fashion Home"
-      style={{
-        maxWidth: "280px",
-        verticalAlign: "middle",
-        boxSizing: "border-box",
-      }}
-    >
+  const innerContent = (
+    <>
       <style>{`
         .af-draw-gold {
           fill: #C9A86A;
@@ -139,6 +132,26 @@ export const AnchorFashionLogo = ({
         <path d="M 35 112 L 125 112" className="af-draw-line" fill="none" />
         <path d="M 290 112 L 380 112" className="af-draw-line" fill="none" />
       </svg>
+    </>
+  );
+
+  const containerProps = {
+    className: `flex select-none items-center ${className || ""}`,
+    "aria-label": "Anchor Fashion Home",
+    style: {
+      maxWidth: "280px",
+      verticalAlign: "middle",
+      boxSizing: "border-box",
+    },
+  };
+
+  if (noLink) {
+    return <div {...containerProps}>{innerContent}</div>;
+  }
+
+  return (
+    <Link href="/" {...containerProps}>
+      {innerContent}
     </Link>
   );
 };
