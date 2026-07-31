@@ -4,7 +4,8 @@ import withSerwistInit from "@serwist/next";
 const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
   swDest: "public/sw.js",
-  disable: process.env.NODE_ENV === "development",
+  // Only enable the service worker in production to avoid Turbopack conflicts in dev
+  disable: process.env.NODE_ENV !== "production",
 });
 
 const nextConfig: NextConfig = {
