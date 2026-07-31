@@ -77,7 +77,7 @@ export function SalesTrendChart({
                 axisLine={false}
                 tick={{ fill: "#64748b", fontSize: 12 }}
                 tickFormatter={(value) => {
-                  const date = new Date(value);
+                  const date = new Date(value as string);
                   return `${date.getMonth() + 1}/${date.getDate()}`;
                 }}
               />
@@ -86,7 +86,7 @@ export function SalesTrendChart({
                 axisLine={false}
                 tick={{ fill: "#64748b", fontSize: 12 }}
                 tickFormatter={(value) =>
-                  `$${value >= 1000 ? (value / 1000).toFixed(1) + "k" : value}`
+                  `$${(value as number) >= 1000 ? ((value as number) / 1000).toFixed(1) + "k" : value}`
                 }
               />
               <Tooltip
@@ -99,7 +99,7 @@ export function SalesTrendChart({
                   `$${(value as number).toFixed(2)}`,
                   "Revenue",
                 ]}
-                labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                labelFormatter={(label) => new Date(label as string).toLocaleDateString()}
               />
               <Area
                 type="monotone"

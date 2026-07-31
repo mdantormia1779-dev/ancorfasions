@@ -68,7 +68,7 @@ export function AreaChartVariant({
             axisLine={false}
             tickLine={false}
             tick={{ fill: "#6b7280", fontSize: 12 }}
-            tickFormatter={(value) => formatValue(value)}
+            tickFormatter={(value) => formatValue(value as number)}
             dx={-10}
           />
           <Tooltip
