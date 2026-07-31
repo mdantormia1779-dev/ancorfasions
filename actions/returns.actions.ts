@@ -19,8 +19,8 @@ type ActionResponse<T = void> =
   | { success: false; error: string };
 
 async function getCurrentUser() {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
     const { data: { user } } = await supabase.auth.getUser();
     return user;
   } catch {

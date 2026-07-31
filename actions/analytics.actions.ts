@@ -36,8 +36,8 @@ export async function getDashboardSnapshot(
   type: DashboardType,
   timeframe: string = 'daily'
 ): Promise<{ data?: DashboardSnapshot | null; error?: string }> {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
     
     const { data, error } = await supabase
       .from('dashboard_snapshots')
@@ -85,8 +85,8 @@ export async function getAnalyticsEvents(
   category?: string,
   limit: number = 100
 ): Promise<{ data?: AnalyticsEvent[]; error?: string }> {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
     let query = supabase.from('analytics_events').select('*').order('created_at', { ascending: false }).limit(limit);
     
     if (category) {

@@ -79,8 +79,8 @@ export async function clearCartAction(cartId: string) {
 }
 
 export async function mergeGuestCartAction() {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) return { success: false, error: 'User not logged in' };

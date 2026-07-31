@@ -6,8 +6,8 @@ import { createClient } from '@/lib/supabase/server';
  * The client-side PaymentProvidersForm POSTs here.
  */
 export async function POST(req: Request) {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
 
     // Verify admin session
     const { data: { user }, error: authError } = await supabase.auth.getUser();

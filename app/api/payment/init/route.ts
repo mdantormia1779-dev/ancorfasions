@@ -23,8 +23,8 @@ export async function GET(req: Request) {
     return NextResponse.redirect(new URL('/checkout/failed?reason=missing_params', req.url));
   }
 
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
 
     // 1. Fetch the order
     const { data: order, error: orderError } = await supabase

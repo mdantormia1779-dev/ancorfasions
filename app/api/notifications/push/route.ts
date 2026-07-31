@@ -3,8 +3,8 @@ import { createClient } from '@/lib/supabase/server'; // Using the authenticated
 
 // Assuming we get the user from auth session
 export async function POST(req: Request) {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {
@@ -41,8 +41,8 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
     const { data: { session } } = await supabase.auth.getSession();
 
     if (!session) {

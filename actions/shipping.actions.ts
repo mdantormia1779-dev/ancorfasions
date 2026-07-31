@@ -33,8 +33,8 @@ type ActionResponse<T = void> =
 // Get current admin user
 // ---------------------------------------------------------------------------
 async function getCurrentUserId(): Promise<string | undefined> {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
     const { data: { user } } = await supabase.auth.getUser();
     return user?.id;
   } catch {

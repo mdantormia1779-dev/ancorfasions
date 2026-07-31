@@ -52,8 +52,8 @@ export function createProtectedAction<Input, Output>(
   handler: (parsedInput: Input, ctx: ProtectedActionContext) => Promise<Output>
 ) {
   return async (input: Input): Promise<ActionState<Output>> => {
+    const supabase = await createClient();
     try {
-      const supabase = await createClient();
       const { data: { user }, error: authError } = await supabase.auth.getUser();
 
       if (authError || !user) {
@@ -89,8 +89,8 @@ export function createAdminAction<Input, Output>(
   handler: (parsedInput: Input, ctx: ProtectedActionContext) => Promise<Output>
 ) {
   return async (input: Input): Promise<ActionState<Output>> => {
+    const supabase = await createClient();
     try {
-      const supabase = await createClient();
       const { data: { user }, error: authError } = await supabase.auth.getUser();
 
       if (authError || !user) {

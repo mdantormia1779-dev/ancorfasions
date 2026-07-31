@@ -41,8 +41,8 @@ const DEFAULTS: { store_info: StoreInfo; social_links: SocialLinks } = {
 };
 
 export async function getStoreInfo(): Promise<StoreInfo> {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
     const { data } = await supabase
       .from('settings')
       .select('value')
@@ -55,8 +55,8 @@ export async function getStoreInfo(): Promise<StoreInfo> {
 }
 
 export async function getSocialLinks(): Promise<SocialLinks> {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
     const { data } = await supabase
       .from('settings')
       .select('value')
@@ -69,8 +69,8 @@ export async function getSocialLinks(): Promise<SocialLinks> {
 }
 
 export async function updateStoreInfo(info: StoreInfo) {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
     const { error } = await supabase.from('settings').upsert(
       { key: 'store_info', value: info, description: 'Global store contact and branding info' },
       { onConflict: 'key' }
@@ -83,8 +83,8 @@ export async function updateStoreInfo(info: StoreInfo) {
 }
 
 export async function updateSocialLinks(links: SocialLinks) {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
     const { error } = await supabase.from('settings').upsert(
       { key: 'social_links', value: links, description: 'Store social media profile URLs' },
       { onConflict: 'key' }

@@ -67,8 +67,8 @@ export async function recordHealthCheck(data: unknown): Promise<{ success?: bool
 }
 
 export async function getSystemAlerts(limit: number = 50): Promise<{ data?: any[]; error?: string }> {
-  try {
-    const supabase = await createClient();
+  const supabase = await createClient();
+    try {
     const { data, error } = await supabase
       .from('system_alerts')
       .select('*')
