@@ -95,8 +95,8 @@ export function SalesTrendChart({
                   border: "none",
                   boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                 }}
-                formatter={(value: number) => [
-                  `$${value.toFixed(2)}`,
+                formatter={(value) => [
+                  `$${(value as number).toFixed(2)}`,
                   "Revenue",
                 ]}
                 labelFormatter={(label) => new Date(label).toLocaleDateString()}
