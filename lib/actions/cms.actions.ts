@@ -29,8 +29,8 @@ const DEFAULT_SLIDES: HeroSlide[] = [
 ];
 
 export async function getHeroSlides(): Promise<HeroSlide[]> {
+  const supabase = await createClient();
   try {
-    const supabase = await createClient();
     // Join homepage_sections with homepage_hero to get active hero slides
     const { data: sections } = await supabase
       .from('homepage_sections')
@@ -65,8 +65,8 @@ export async function getHeroSlides(): Promise<HeroSlide[]> {
 }
 
 export async function getPromoSections(): Promise<PromoBanner[]> {
+  const supabase = await createClient();
   try {
-    const supabase = await createClient();
     const now = new Date().toISOString();
     const { data } = await supabase
       .from('homepage_promotions')

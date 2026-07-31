@@ -13,8 +13,8 @@ export interface ProductListParams {
 
 export const CatalogRepository = {
   async getCategories() {
+    const supabase = await createClient();
     try {
-      const supabase = await createClient();
       const { data, error } = await supabase
         .from('categories')
         .select('*')
@@ -33,8 +33,8 @@ export const CatalogRepository = {
   },
 
   async getFeaturedProducts(limit = 4) {
+    const supabase = await createClient();
     try {
-      const supabase = await createClient();
       const { data, error } = await supabase
         .from('products')
         .select(`
