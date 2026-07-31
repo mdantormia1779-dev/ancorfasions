@@ -33,6 +33,7 @@ type NavGroup = {
   icon: any;
   href?: string; // If it's a direct link
   items?: NavItem[]; // If it has sub-items
+  allowedRoles?: string[];
 };
 
 const navigation: NavGroup[] = [
@@ -113,6 +114,7 @@ const navigation: NavGroup[] = [
   {
     name: "Finance",
     icon: CreditCard,
+    allowedRoles: ["SUPERADMIN", "ADMIN"],
     items: [
       { name: "Sales Report", href: "/admin/finance/sales" },
       { name: "Expenses", href: "/admin/finance/expenses" },
@@ -131,6 +133,7 @@ const navigation: NavGroup[] = [
   {
     name: "Users & Roles",
     icon: ShieldCheck,
+    allowedRoles: ["SUPERADMIN", "ADMIN"],
     items: [
       { name: "Admin Users", href: "/admin/users/admins" },
       { name: "Managers", href: "/admin/users/managers" },
@@ -141,6 +144,7 @@ const navigation: NavGroup[] = [
   {
     name: "Settings",
     icon: Settings,
+    allowedRoles: ["SUPERADMIN", "ADMIN"],
     items: [
       { name: "General", href: "/admin/settings/general" },
       { name: "Store", href: "/admin/settings/store" },
@@ -153,11 +157,16 @@ const navigation: NavGroup[] = [
   },
 ];
 
-export const AdminSidebar = ({ className }: { className?: string }) => {
+export const AdminSidebar = ({ className, role = "CUSTOMER" }: { className?: string, role?: string }) => {
   const pathname = usePathname();
 
+  const filteredNavigation = navigation.filter(nav => {
+    if (!nav.allowedRoles) return true;
+    return nav.allowedRoles.includes(role);
+  });
+
   // Determine which accordion items should be open by default based on current path
-  const defaultOpenValues = navigation
+  const defaultOpenValues = filteredNavigation
     .filter(nav => nav.items?.some(item => pathname === item.href || pathname.startsWith(`${item.href}/`)))
     .map(nav => nav.name);
 
@@ -173,7 +182,7 @@ export const AdminSidebar = ({ className }: { className?: string }) => {
       <ScrollArea className="flex-1 py-4">
         <nav className="px-3 space-y-1">
           <Accordion type="multiple" defaultValue={defaultOpenValues} className="w-full">
-            {navigation.map((group) => {
+            {filteredNavigation.map((group) => {
               const Icon = group.icon;
 
               // If it's a single link without children

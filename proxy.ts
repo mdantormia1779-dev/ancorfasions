@@ -7,7 +7,7 @@ export async function proxy(request: NextRequest) {
   const pathname = url.pathname
 
   // Update the session to ensure cookies are refreshed.
-  const { supabaseResponse, user } = await updateSession(request)
+  const { supabaseResponse, user, supabase } = await updateSession(request)
 
   // CSP: Content Security Policy
   // Note: For Next.js App Router, script-src 'self' 'unsafe-eval' 'unsafe-inline' is often required in dev,
@@ -53,7 +53,7 @@ export async function proxy(request: NextRequest) {
   }
 
   // Protect Auth Routes (redirect logged-in users away from /login)
-  const isAuthRoute = pathname.startsWith('/login') || pathname.startsWith('/register') || pathname.startsWith('/forgot-password') || pathname.startsWith('/reset-password')
+  const isAuthRoute = pathname.startsWith('/auth/login') || pathname.startsWith('/auth/register') || pathname.startsWith('/auth/forgot-password') || pathname.startsWith('/auth/reset-password')
 
   if (user && isAuthRoute) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
@@ -70,13 +70,29 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith('/inventory')
 
   if (!user && isProtectedRoute) {
-    const redirectUrl = new URL('/login', request.url)
+    const redirectUrl = new URL('/auth/login', request.url)
     redirectUrl.searchParams.set('next', pathname)
     return NextResponse.redirect(redirectUrl)
   }
 
-  // Define user role properly
-  const role = user?.user_metadata?.role || user?.app_metadata?.role || 'CUSTOMER'
+  // Define user role — first check JWT claims, then fall back to DB profiles table
+  let role = user?.user_metadata?.role || user?.app_metadata?.role || ''
+
+  // If JWT doesn't have a role (e.g. after SQL update without re-login), query DB directly
+  if (user && !role) {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('role_id, roles(name)')
+        .eq('id', user.id)
+        .single()
+      role = (profile?.roles as any)?.name || 'CUSTOMER'
+    } catch {
+      role = 'CUSTOMER'
+    }
+  }
+
+  if (!role) role = 'CUSTOMER'
 
   // Role-Based Route Protection for Admin Routes
   if (user && pathname.startsWith('/admin')) {

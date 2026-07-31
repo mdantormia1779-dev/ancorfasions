@@ -6,17 +6,15 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Plus } from 'lucide-react';
 import { format } from 'date-fns';
 
+import { getInventoryMovements } from '@/actions/inventory.actions';
+
 export const metadata: Metadata = {
   title: 'Stock Transfers | Anchor Fashion',
 };
 
 export default async function TransfersPage() {
-  const supabase = await createClient();
-  const { data: transfers } = await supabase
-    .from('stock_ledger')
-    .select('*, variants(sku, name)')
-    .eq('movement_type', 'INTERNAL_TRANSFER')
-    .order('created_at', { ascending: false });
+  const { data: transfers } = await getInventoryMovements(1, 100);
+  const internalTransfers = transfers?.filter(t => t.movement_type === 'TRANSFER');
 
   return (
     <div className="space-y-6">
@@ -47,19 +45,19 @@ export default async function TransfersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transfers?.map((transfer) => (
+              {internalTransfers?.map((transfer) => (
                 <TableRow key={transfer.id}>
                   <TableCell>{format(new Date(transfer.created_at), 'PP')}</TableCell>
-                  <TableCell className="font-medium">{transfer.variants?.sku || 'N/A'}</TableCell>
-                  <TableCell>{transfer.variants?.name || 'N/A'}</TableCell>
+                  <TableCell className="font-medium">{transfer.variant_id || 'N/A'}</TableCell>
+                  <TableCell>{transfer.movement_type}</TableCell>
                   <TableCell>{Math.abs(transfer.quantity)}</TableCell>
-                  <TableCell>{transfer.reference_type} - {transfer.reference_id}</TableCell>
+                  <TableCell>{transfer.reason_code || 'N/A'}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="outline" size="sm">Details</Button>
                   </TableCell>
                 </TableRow>
               ))}
-              {(!transfers || transfers.length === 0) && (
+              {(!internalTransfers || internalTransfers.length === 0) && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center py-6 text-muted-foreground">
                     No stock transfers found.

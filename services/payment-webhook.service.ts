@@ -44,7 +44,11 @@ export class PaymentWebhookService {
           const order = await orderRepo.getOrderById(result.orderId);
           if (order && order.items) {
             const inventoryService = new InventoryService();
-            const warehouseId = '00000000-0000-0000-0000-000000000001';
+            const { WarehouseService } = require('./warehouse.service');
+            const warehouseService = new WarehouseService();
+            const defaultWarehouse = await warehouseService.getDefaultWarehouse();
+            const warehouseId = defaultWarehouse?.id || '00000000-0000-0000-0000-000000000001';
+            
             for (const item of order.items) {
               try {
                 await inventoryService.releaseStock(item.variant_id, warehouseId, item.quantity);

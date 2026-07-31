@@ -66,10 +66,11 @@ export async function processCheckoutAction(cartId: string, checkoutSessionId: s
     const guestEmail = parsedData.information.email;
 
     // Create Order
+    // The OrderService uses the checkout session to retrieve all necessary data
     const order = await OrderService.placeOrder(
       cartId,
-      userId,
-      guestEmail,
+      userId || null,
+      guestEmail || null,
       parsedData,
       checkoutSessionId
     );
@@ -81,8 +82,8 @@ export async function processCheckoutAction(cartId: string, checkoutSessionId: s
       paymentPayload = OrderService.generatePaymentPayload(
         order,
         name,
-        guestEmail,
-        parsedData.information.shipping_address.phone
+        parsedData.information.email,
+        parsedData.information.shipping_address.phone || ""
       );
     }
 

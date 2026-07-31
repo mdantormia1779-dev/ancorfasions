@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { CustomerAddress } from '@/types/customer.types';
-import { createAddressAction } from '@/app/actions/customer.actions';
+import { createAddressAction, deleteAddressAction } from '@/app/actions/customer.actions';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -32,6 +32,17 @@ export function AddressBook({ addresses }: AddressBookProps) {
         setIsOpen(false);
       } catch (error) {
         toast.error('Failed to add address');
+      }
+    });
+  };
+
+  const handleDelete = (id: string) => {
+    startTransition(async () => {
+      try {
+        await deleteAddressAction(id);
+        toast.success('Address deleted successfully');
+      } catch (error) {
+        toast.error('Failed to delete address');
       }
     });
   };
@@ -133,7 +144,7 @@ export function AddressBook({ addresses }: AddressBookProps) {
               </CardContent>
               <CardFooter className="pt-0 justify-end gap-2">
                 <Button variant="outline" size="sm">Edit</Button>
-                <Button variant="destructive" size="sm">Delete</Button>
+                <Button variant="destructive" size="sm" onClick={() => handleDelete(address.id)} disabled={isPending}>Delete</Button>
               </CardFooter>
             </Card>
           ))

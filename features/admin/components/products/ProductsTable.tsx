@@ -158,7 +158,7 @@ export function ProductsTable({
             <>
               <span className="text-sm text-slate-500 mr-2">{selectedIds.length} selected</span>
               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger>
                   <Button variant="outline">Bulk Actions</Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
@@ -242,22 +242,18 @@ export function ProductsTable({
                   </TableCell>
                   <TableCell className="text-right pr-4">
                     <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
+                      <DropdownMenuTrigger>
                         <Button variant="ghost" className="h-8 w-8 p-0">
                           <span className="sr-only">Open menu</span>
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuItem asChild>
-                          <Link href={`/admin/products/${product.id}/edit`}>
-                            <Edit2 className="mr-2 h-4 w-4" /> Edit
-                          </Link>
+                        <DropdownMenuItem onClick={() => router.push(`/admin/products/${product.id}/edit`)}>
+                          <Edit2 className="mr-2 h-4 w-4" /> Edit
                         </DropdownMenuItem>
-                        <DropdownMenuItem asChild>
-                          <a href={`/products/${product.slug}`} target="_blank" rel="noopener noreferrer">
-                            <Eye className="mr-2 h-4 w-4" /> View in Store
-                          </a>
+                        <DropdownMenuItem onClick={() => window.open(`/products/${product.slug}`, '_blank', 'noopener,noreferrer')}>
+                          <Eye className="mr-2 h-4 w-4" /> View in Store
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => handleDuplicate(product.id)} disabled={isDuplicating === product.id}>
                           <Copy className="mr-2 h-4 w-4" /> Duplicate

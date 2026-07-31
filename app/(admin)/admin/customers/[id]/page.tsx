@@ -1,6 +1,3 @@
-'use client';
-
-import { useParams } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,23 +13,30 @@ import {
   MoreVertical,
   Activity
 } from 'lucide-react';
+import { fetchCustomerDetailsAction } from '@/app/actions/crm/customer.actions';
 
-export default function CustomerProfilePage() {
-  const params = useParams();
-  const customerId = params.id as string;
+export default async function CustomerProfilePage({ params }: { params: { id: string } }) {
+  const customerId = params.id;
+  const { success, data, error } = await fetchCustomerDetailsAction(customerId);
 
-  // Mock data
+  if (!success || !data) {
+    return <div className="p-8 text-red-500">Error loading customer details: {error}</div>;
+  }
+
+  const { profile, ticketsCount, tier, points, ltv, segments } = data;
   const customer = {
-    name: 'Eleanor Vance',
-    email: 'eleanor@example.com',
-    phone: '+1 (555) 123-4567',
-    avatar: 'https://i.pravatar.cc/150?u=eleanor',
-    tier: 'Platinum',
-    points: 12450,
-    ltv: '$12,450.00',
-    joinDate: 'Oct 12, 2024',
-    segments: ['VIP Customers', 'Summer Sale 2026', 'Frequent Buyers']
+    name: profile.first_name ? `${profile.first_name} ${profile.last_name || ''}` : 'Unknown Customer',
+    email: profile.email,
+    phone: profile.phone || 'No phone',
+    avatar: profile.avatar_url || `https://ui-avatars.com/api/?name=${profile.first_name || 'User'}`,
+    tier,
+    points,
+    ltv,
+    joinDate: new Date(profile.created_at).toLocaleDateString(),
+    segments
   };
+
+
 
   return (
     <div className="space-y-6">
@@ -100,8 +104,8 @@ export default function CustomerProfilePage() {
             <MessageSquare className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground mt-1">1 currently open</p>
+            <div className="text-2xl font-bold">{ticketsCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Check support history for details</p>
           </CardContent>
         </Card>
       </div>

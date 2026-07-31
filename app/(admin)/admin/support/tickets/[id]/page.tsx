@@ -7,21 +7,31 @@ import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Send, Clock, User, CheckCircle, Reply } from "lucide-react";
 import Link from "next/link";
+import { getTicketDetailsAction } from "@/app/actions/support/ticket.actions";
 
 export default async function SupportTicketDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  
+  const { data: ticket, error } = await getTicketDetailsAction(id);
+  
+  if (error || !ticket) {
+    return <div className="p-8 text-red-500">Failed to load ticket details: {error || 'Ticket not found'}</div>;
+  }
+
+  const customer = ticket.customer_profiles || {};
+  const messages = ticket.ticket_messages || [];
   
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold tracking-tight">Ticket {id}</h1>
-            <Badge variant="default">Open</Badge>
-            <Badge variant="destructive">High Priority</Badge>
+            <h1 className="text-3xl font-bold tracking-tight">Ticket {ticket.id.substring(0, 8)}</h1>
+            <Badge variant="default" className="capitalize">{ticket.status.replace(/_/g, ' ')}</Badge>
+            <Badge variant={ticket.priority === 'critical' ? 'destructive' : 'secondary'} className="capitalize">{ticket.priority} Priority</Badge>
           </div>
-          <p className="text-muted-foreground mt-1">
-            Subject: Order missing items
+          <p className="text-muted-foreground mt-1 text-lg">
+            {ticket.subject}
           </p>
         </div>
         <div className="flex gap-2">
@@ -42,37 +52,32 @@ export default async function SupportTicketDetailPage({ params }: { params: Prom
               <CardTitle>Conversation</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              {/* Customer Message */}
-              <div className="flex gap-4">
-                <Avatar>
-                  <AvatarFallback>MS</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-semibold text-sm">Michael Scott (Customer)</span>
-                    <span className="text-xs text-muted-foreground">Oct 24, 10:42 AM</span>
+              {messages.length === 0 ? (
+                <div className="text-muted-foreground text-sm">No messages yet.</div>
+              ) : (
+                messages.map((msg: any) => (
+                  <div key={msg.id} className={`flex gap-4 ${msg.sender_type === 'AGENT' ? 'flex-row-reverse' : ''}`}>
+                    <Avatar>
+                      {msg.sender_type === 'AGENT' ? (
+                        <AvatarFallback className="bg-primary/10 text-primary">A</AvatarFallback>
+                      ) : (
+                        <AvatarFallback>{customer.first_name?.charAt(0) || 'C'}</AvatarFallback>
+                      )}
+                    </Avatar>
+                    <div className="flex-1 space-y-2">
+                      <div className={`flex justify-between items-center ${msg.sender_type === 'AGENT' ? 'flex-row-reverse' : ''}`}>
+                        <span className="font-semibold text-sm">
+                          {msg.sender_type === 'AGENT' ? 'Support Agent' : `${customer.first_name || 'Customer'}`}
+                        </span>
+                        <span className="text-xs text-muted-foreground">{new Date(msg.created_at).toLocaleString()}</span>
+                      </div>
+                      <div className={`p-4 rounded-lg text-sm ${msg.sender_type === 'AGENT' ? 'bg-primary text-primary-foreground rounded-tr-none' : 'bg-slate-100 rounded-tl-none text-slate-800'}`}>
+                        {msg.body}
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-4 bg-slate-100 rounded-lg rounded-tl-none text-sm text-slate-800">
-                    Hello, I received my order #8832 today but the blue dress I ordered is completely missing from the package! Can you please look into this? I need it for an event this weekend.
-                  </div>
-                </div>
-              </div>
-
-              {/* Agent Reply */}
-              <div className="flex gap-4 flex-row-reverse">
-                <Avatar>
-                  <AvatarFallback className="bg-primary/10 text-primary">SJ</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 space-y-2">
-                  <div className="flex justify-between items-center flex-row-reverse">
-                    <span className="font-semibold text-sm">Sarah Jenkins (Support Agent)</span>
-                    <span className="text-xs text-muted-foreground">Oct 24, 11:15 AM</span>
-                  </div>
-                  <div className="p-4 bg-primary text-primary-foreground rounded-lg rounded-tr-none text-sm">
-                    Hi Michael, I am so sorry about that! Let me check the fulfillment records right now. It is possible it was split into two shipments. I will get back to you in just a moment.
-                  </div>
-                </div>
-              </div>
+                ))
+              )}
             </CardContent>
             <Separator />
             <CardFooter className="pt-6">
@@ -103,19 +108,19 @@ export default async function SupportTicketDetailPage({ params }: { params: Prom
             <CardContent className="space-y-4 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Assigned To</span>
-                <span className="font-medium">Sarah Jenkins</span>
+                <span className="font-medium">{ticket.assigned_agent_id ? 'Assigned' : 'Unassigned'}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">SLA Target</span>
-                <span className="font-medium text-rose-500">Breaches in 2h</span>
+                <span className="font-medium text-rose-500">{ticket.sla_breach_at ? new Date(ticket.sla_breach_at).toLocaleString() : 'N/A'}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Channel</span>
-                <span className="font-medium">Email</span>
+                <span className="text-muted-foreground">Category</span>
+                <span className="font-medium capitalize">{ticket.category}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Tags</span>
-                <span className="font-medium">Fulfillment, Missing</span>
+                <span className="text-muted-foreground">Created</span>
+                <span className="font-medium">{new Date(ticket.created_at).toLocaleDateString()}</span>
               </div>
             </CardContent>
           </Card>
@@ -127,27 +132,25 @@ export default async function SupportTicketDetailPage({ params }: { params: Prom
             <CardContent className="space-y-4 text-sm">
               <div className="flex items-center gap-3 mb-2">
                 <Avatar className="h-10 w-10">
-                  <AvatarFallback>MS</AvatarFallback>
+                  <AvatarFallback>{customer.first_name?.charAt(0) || 'C'}</AvatarFallback>
                 </Avatar>
                 <div>
-                  <p className="font-medium">Michael Scott</p>
-                  <p className="text-xs text-muted-foreground">VIP Customer</p>
+                  <p className="font-medium">{customer.first_name} {customer.last_name}</p>
+                  <p className="text-xs text-muted-foreground">{customer.email}</p>
                 </div>
               </div>
               <Separator />
               <div className="pt-2 space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Total Orders</span>
-                  <span className="font-medium">24</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Lifetime Value</span>
-                  <span className="font-medium">$4,520.00</span>
+                  <span className="text-muted-foreground">Phone</span>
+                  <span className="font-medium">{customer.phone || 'N/A'}</span>
                 </div>
               </div>
-              <Button variant="outline" className="w-full mt-2" size="sm">
-                View Full Profile
-              </Button>
+              <Link href={`/admin/customers/${ticket.profile_id}`}>
+                <Button variant="outline" className="w-full mt-2" size="sm">
+                  View Full Profile
+                </Button>
+              </Link>
             </CardContent>
           </Card>
           
@@ -156,16 +159,18 @@ export default async function SupportTicketDetailPage({ params }: { params: Prom
               <CardTitle className="text-lg">Related Order</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="font-medium text-blue-600 hover:underline cursor-pointer">Order #8832</span>
-                <Badge variant="outline">Delivered</Badge>
-              </div>
-              <div className="text-muted-foreground">
-                Placed on Oct 20, 2024
-              </div>
-              <Button variant="secondary" className="w-full mt-2" size="sm">
-                Open Order Details
-              </Button>
+              {ticket.order_id ? (
+                <>
+                  <div className="flex justify-between items-center">
+                    <span className="font-medium text-blue-600 hover:underline cursor-pointer">Order {ticket.order_id}</span>
+                  </div>
+                  <Button variant="secondary" className="w-full mt-2" size="sm">
+                    Open Order Details
+                  </Button>
+                </>
+              ) : (
+                <div className="text-muted-foreground">No related order.</div>
+              )}
             </CardContent>
           </Card>
         </div>

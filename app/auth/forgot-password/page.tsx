@@ -14,7 +14,7 @@ export default function ForgotPasswordPage() {
   return (
     <>
       <Link
-        href="/login"
+        href="/auth/login"
         className={cn(
           buttonVariants({ variant: 'ghost' }),
           'absolute left-4 top-4 md:left-8 md:top-8'

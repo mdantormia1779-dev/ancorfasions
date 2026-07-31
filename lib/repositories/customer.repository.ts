@@ -121,4 +121,100 @@ export class CustomerRepository {
       throw new Error(`Failed to mark notification as read: ${error.message}`);
     }
   }
+
+  // --- Reviews ---
+  async getReviews(userId: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('reviews')
+      .select('*, product:products(*)')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  }
+
+  // --- Support Tickets ---
+  async getTickets(userId: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+    if (error) throw error;
+    return data;
+  }
+
+  async createTicket(ticket: any) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .insert(ticket)
+      .select()
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  async getTicketDetails(ticketId: string, userId: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select('*')
+      .eq('id', ticketId)
+      .eq('user_id', userId)
+      .single();
+    if (error) throw error;
+    return data;
+  }
+
+  // --- Login History & Security ---
+  async getLoginHistory(userId: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('login_history')
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(20);
+    
+    // In case the table uses attempted_at instead of created_at, fallback to it if created_at fails
+    if (error) {
+      const { data: fallbackData, error: fallbackError } = await supabase
+        .from('login_history')
+        .select('*')
+        .eq('user_id', userId)
+        .order('attempted_at', { ascending: false })
+        .limit(20);
+      if (fallbackError) throw fallbackError;
+      return fallbackData;
+    }
+    return data;
+  }
+
+  async getActiveSessions(userId: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('active_sessions')
+      .select('*')
+      .eq('user_id', userId)
+      .order('last_active_at', { ascending: false });
+    if (error) {
+        // Just return empty array if active_sessions doesn't exist
+        return [];
+    }
+    return data;
+  }
+
+  // --- Wishlist ---
+  async getWishlists(userId: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('wishlists')
+      .select('*, items:wishlist_items(*, product:products(*))')
+      .eq('user_id', userId);
+    if (error) throw error;
+    return data;
+  }
 }

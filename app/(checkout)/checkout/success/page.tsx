@@ -81,7 +81,7 @@ export default async function CheckoutSuccessPage({ searchParams }: { searchPara
             <Link href="/account/orders">View My Orders</Link>
           </Button>
           <Button asChild>
-            <Link href="/shop">Continue Shopping</Link>
+            <Link href="/products">Continue Shopping</Link>
           </Button>
         </div>
       </div>

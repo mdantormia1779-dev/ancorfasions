@@ -32,7 +32,7 @@ export default async function VerifyEmailPage({
             {error || 'The verification link is invalid or has expired.'}
           </p>
           <Link
-            href="/login"
+            href="/auth/login"
             className={cn(buttonVariants({ variant: 'default' }), 'mt-4')}
           >
             Return to Sign In
@@ -48,7 +48,7 @@ export default async function VerifyEmailPage({
             A verification link has been sent to your email address.
           </p>
           <Link
-            href="/login"
+            href="/auth/login"
             className={cn(buttonVariants({ variant: 'outline' }), 'mt-4')}
           >
             Back to login

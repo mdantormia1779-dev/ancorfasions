@@ -88,6 +88,7 @@
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "autoprefixer": "^10.4.20",
+    "baseline-browser-mapping": "^2.11.8",
     "eslint": "^9.0.0",
     "eslint-config-next": "16.0.0",
     "postcss": "^8.4.41",

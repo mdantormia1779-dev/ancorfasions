@@ -117,3 +117,50 @@ export interface CustomerDevice {
   last_active: string;
   created_at: string;
 }
+
+
+
+export interface LoginHistory {
+  id: string;
+  user_id: string;
+  email: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  device_fingerprint: string | null;
+  location: string | null;
+  status: 'SUCCESS' | 'FAILURE' | 'BLOCKED' | 'FAILED';
+  failure_reason: string | null;
+  attempted_at?: string; 
+  created_at?: string;
+}
+
+export interface ActiveSession {
+  id: string;
+  user_id: string;
+  token_hash: string;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_at: string;
+  last_active_at: string;
+  expires_at: string;
+}
+
+export interface Wishlist {
+  id: string;
+  user_id: string;
+  name: string;
+  is_default: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface WishlistItem {
+  id: string;
+  wishlist_id: string | null;
+  user_id: string | null;
+  product_id: string;
+  variant_id: string | null;
+  added_at?: string;
+  created_at?: string;
+}
+

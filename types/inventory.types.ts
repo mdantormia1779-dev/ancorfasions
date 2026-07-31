@@ -1,3 +1,12 @@
+export interface Warehouse {
+  id: string;
+  name: string;
+  type: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface WarehouseZone {
   id: string;
   warehouse_id: string;
@@ -11,7 +20,7 @@ export interface WarehouseZone {
 export interface WarehouseBin {
   id: string;
   zone_id: string;
-  name: string;
+  code: string;
   barcode: string;
   capacity_volume: number;
   capacity_weight: number;

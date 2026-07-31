@@ -2,6 +2,7 @@ import { OrderRepository } from '@/repositories/order.repository';
 import { CartService } from './cart.service';
 import { CheckoutService } from './checkout.service';
 import { InventoryService } from './inventory.service';
+import { WarehouseService } from './warehouse.service';
 import { Order, OrderAddress, OrderItem, PaymentPayload } from '@/types/checkout.types';
 
 export class OrderService {
@@ -9,12 +10,14 @@ export class OrderService {
   private cartService: CartService;
   private checkoutService: CheckoutService;
   private inventoryService: InventoryService;
+  private warehouseService: WarehouseService;
 
   constructor() {
     this.orderRepository = new OrderRepository();
     this.cartService = new CartService();
     this.checkoutService = new CheckoutService();
     this.inventoryService = new InventoryService();
+    this.warehouseService = new WarehouseService();
   }
 
   /**
@@ -62,10 +65,10 @@ export class OrderService {
       });
     }
 
-    // In a real app, calculate shipping dynamically based on method/zone
-    const shippingFee = session.shipping_method === 'EXPRESS' ? 120 : 60;
-    const discountAmount = 0; // In a real app, calculate coupon discount
-    const totalAmount = subtotal + shippingFee - discountAmount;
+    const shippingFee = session.shipping_method === 'home_delivery_outside' ? 150 : 100;
+    const discountAmount = 0; // Coupon logic
+    const taxAmount = subtotal * 0.15;
+    const totalAmount = subtotal + shippingFee + taxAmount - discountAmount;
 
     const orderNumber = this.generateOrderNumber();
     const idempotencyKey = `order-${sessionId}`;
@@ -98,11 +101,12 @@ export class OrderService {
     const order = await this.orderRepository.createOrder(orderData, orderItems, shippingAddress, billingAddress);
 
     // 3. Reserve Stock
+    const defaultWarehouse = await this.warehouseService.getDefaultWarehouse();
+    const warehouseId = defaultWarehouse?.id || '00000000-0000-0000-0000-000000000001';
+    
     for (const item of cart.items) {
       if (!item.product) continue;
       try {
-        // We use a dummy warehouse ID for now as per MVP requirements
-        const warehouseId = '00000000-0000-0000-0000-000000000001';
         await this.inventoryService.reserveStock(item.variant_id || item.product_id || '', warehouseId, item.quantity);
       } catch (error) {
         console.error(`Failed to reserve stock for variant ${item.variant_id}`, error);

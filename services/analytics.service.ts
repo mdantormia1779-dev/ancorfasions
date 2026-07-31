@@ -37,6 +37,15 @@ export class AnalyticsService {
     }
   }
 
+  static async getProductAnalytics() {
+    try {
+      return await AnalyticsRepository.getProductAnalytics();
+    } catch (error) {
+      console.error('Failed to get product analytics:', error);
+      throw new Error('Failed to fetch product analytics');
+    }
+  }
+
   static async getInventoryAnalytics() {
     try {
       return await AnalyticsRepository.getInventoryAnalytics();

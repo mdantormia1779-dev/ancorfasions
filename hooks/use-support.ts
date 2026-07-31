@@ -8,9 +8,11 @@ import {
   createTicketAction,
   updateTicketAction,
   assignTicketAction,
-  addTicketMessageAction,
-  getKnowledgeBaseAction,
   getAvailableAgentsAction
+} from '@/app/actions/support/ticket.actions';
+import {
+  addTicketMessageAction,
+  getKnowledgeBaseAction
 } from '@/actions/support.actions';
 
 export function useTickets() {

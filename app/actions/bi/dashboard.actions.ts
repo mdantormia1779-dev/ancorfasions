@@ -6,7 +6,8 @@ const dashboardRepo = new DashboardRepository();
 
 export async function fetchDashboardRevenueAction(days = 7) {
   try {
-    const data = await dashboardRepo.getDailyRevenue(days);
+    const rawData = await dashboardRepo.getDailyRevenue(days);
+    const data = rawData || [];
     
     // Format for charts (e.g. { name: 'Mon', revenue: 45000 })
     const formattedData = data.map((d: any) => {

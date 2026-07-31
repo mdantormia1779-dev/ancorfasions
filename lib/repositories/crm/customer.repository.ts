@@ -160,4 +160,29 @@ export class CustomerRepository {
       loyaltyMembers: loyaltyMembers || 0
     };
   }
+
+  async getProfile(id: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('customer_profiles')
+      .select('*')
+      .eq('id', id)
+      .single();
+    if (error) return null;
+    return data;
+  }
+
+  async getTickets(id: string) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select('*')
+      .eq('customer_id', id);
+    if (error) return [];
+    return data;
+  }
+
+  async getLoginHistory(id: string) {
+    return [];
+  }
 }

@@ -3,6 +3,9 @@
 import { z } from "zod";
 import { createAdminAction } from "../safe-action";
 import { ProductRepository } from "@/lib/repositories/catalog/product.repository";
+import { CategoryRepository } from "@/lib/repositories/catalog/category.repository";
+import { BrandRepository } from "@/lib/repositories/catalog/brand.repository";
+import { TagRepository } from "@/lib/repositories/catalog/tag.repository";
 import { CreateProductSchema } from "@/types/catalog.types";
 import { revalidatePath } from "next/cache";
 
@@ -31,6 +34,8 @@ const BulkUpdateStatusSchema = z.object({
 const BulkDeleteSchema = z.object({
   ids: z.array(z.string().uuid()),
 });
+
+const EmptySchema = z.object({});
 
 // ============================================================================
 // ACTIONS
@@ -62,7 +67,13 @@ export const getAdminProductByIdAction = createAdminAction(
 export const createAdminProductAction = createAdminAction(
   CreateProductSchema,
   async (input) => {
-    const newProduct = await ProductRepository.createProduct(input);
+    const payload = {
+      ...input,
+      status: input.status || "DRAFT",
+      isFeatured: input.isFeatured || false,
+      media: input.media?.map((m: any) => ({ ...m, displayOrder: m.displayOrder || 0 }))
+    };
+    const newProduct = await ProductRepository.createProduct(payload as any);
     revalidatePath("/admin/products");
     revalidatePath("/(shop)", "layout"); // Bust cache on frontend
     return newProduct;
@@ -75,7 +86,11 @@ export const createAdminProductAction = createAdminAction(
 export const updateAdminProductAction = createAdminAction(
   z.object({ id: z.string().uuid(), data: CreateProductSchema.partial() }),
   async ({ id, data }) => {
-    const updatedProduct = await ProductRepository.updateProduct(id, data);
+    const payload = {
+        ...data,
+        media: data.media?.map((m: any) => ({ ...m, displayOrder: m.displayOrder || 0 }))
+    };
+    const updatedProduct = await ProductRepository.updateProduct(id, payload as any);
     revalidatePath("/admin/products");
     revalidatePath(`/admin/products/${id}/edit`);
     revalidatePath("/(shop)", "layout");
@@ -108,17 +123,18 @@ export const duplicateAdminProductAction = createAdminAction(
     const copyData = {
       name: `${original.name} (Copy)`,
       slug: `${original.slug}-copy-${Date.now()}`,
-      shortDescription: original.short_description || "",
+      shortDescription: original.shortDescription || "",
       description: original.description || "",
-      categoryId: original.category_id,
-      brandId: original.brand_id || undefined,
-      basePrice: original.base_price,
+      categoryId: original.categoryId,
+      brandId: original.brandId || undefined,
+      basePrice: original.basePrice,
       sku: original.sku ? `${original.sku}-COPY` : undefined,
       status: "DRAFT" as const, // Always draft on copy
+      isFeatured: false,
       // ... we could copy SEO and Media too, but keeping it simple for now
     };
 
-    const newProduct = await ProductRepository.createProduct(copyData);
+    const newProduct = await ProductRepository.createProduct(copyData as any);
     revalidatePath("/admin/products");
     return newProduct;
   }
@@ -155,3 +171,34 @@ export const bulkDeleteProductsAction = createAdminAction(
     return { success: true, count: ids.length };
   }
 );
+
+/**
+ * Fetch all categories for forms.
+ */
+export const getCategoriesAction = createAdminAction(
+  EmptySchema,
+  async () => {
+    return await CategoryRepository.getCategories();
+  }
+);
+
+/**
+ * Fetch all brands for forms.
+ */
+export const getBrandsAction = createAdminAction(
+  EmptySchema,
+  async () => {
+    return await BrandRepository.getBrands();
+  }
+);
+
+/**
+ * Fetch all tags for forms.
+ */
+export const getTagsAction = createAdminAction(
+  EmptySchema,
+  async () => {
+    return await TagRepository.getTags();
+  }
+);
+

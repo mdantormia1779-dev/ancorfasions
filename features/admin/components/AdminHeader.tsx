@@ -1,7 +1,7 @@
 "use client";
 
-import { Bell, Search, User, Menu, ChevronRight } from "lucide-react";
-import { usePathname } from "next/navigation";
+import { Bell, Search, User, Menu, ChevronRight, LogOut, Settings } from "lucide-react";
+import { usePathname, useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,13 +14,42 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { AdminSidebar } from "./AdminSidebar";
+import { createClient } from "@/lib/supabase/client";
+import type { User as SupabaseUser } from "@supabase/supabase-js";
+import { toast } from "sonner";
 
-export const AdminHeader = () => {
+interface AdminHeaderProps {
+  user: SupabaseUser;
+  role?: string;
+}
+
+export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
   const pathname = usePathname();
-  
+  const router = useRouter();
+  const supabase = createClient();
+
   // Create a simple breadcrumb from the pathname
   const paths = pathname.split('/').filter(Boolean);
-  
+
+  // Get initials from user name or email
+  const firstName = user.user_metadata?.first_name || '';
+  const lastName = user.user_metadata?.last_name || '';
+  const initials = firstName && lastName
+    ? `${firstName[0]}${lastName[0]}`.toUpperCase()
+    : user.email?.slice(0, 2).toUpperCase() || 'AD';
+  const displayName = firstName && lastName ? `${firstName} ${lastName}` : user.email || 'Admin User';
+
+  async function handleLogout() {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Failed to log out. Please try again.");
+      return;
+    }
+    toast.success("Logged out successfully.");
+    router.push("/auth/login");
+    router.refresh();
+  }
+
   return (
     <header className="sticky top-0 z-30 flex h-14 lg:h-[60px] w-full items-center justify-between border-b bg-white/80 backdrop-blur-md px-4 lg:px-6 shadow-sm">
       <div className="flex flex-1 items-center gap-4">
@@ -35,7 +64,7 @@ export const AdminHeader = () => {
           </SheetTrigger>
           <SheetContent side="left" className="p-0 w-64 border-r-0">
             <SheetTitle className="sr-only">Menu</SheetTitle>
-            <AdminSidebar className="border-r-0 shadow-none w-full" />
+            <AdminSidebar className="border-r-0 shadow-none w-full" role={role} />
           </SheetContent>
         </Sheet>
 
@@ -75,23 +104,35 @@ export const AdminHeader = () => {
           <span className="sr-only">Notifications</span>
         </Button>
         
-        {/* User Profile */}
+        {/* User Profile Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-tr from-slate-800 to-slate-700 hover:opacity-90 transition-opacity focus:outline-none ring-2 ring-transparent focus:ring-slate-200">
-            <span className="text-xs font-medium text-white">AD</span>
+            <span className="text-xs font-medium text-white">{initials}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
             <DropdownMenuLabel>
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Admin User</p>
-                <p className="text-xs leading-none text-muted-foreground">admin@anchorfashion.com</p>
+                <p className="text-sm font-medium leading-none">{displayName}</p>
+                <p className="text-xs leading-none text-muted-foreground">{user.email}</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
+              <User className="mr-2 h-4 w-4" />
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">
+              <Settings className="mr-2 h-4 w-4" />
+              Settings
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-red-600">Log out</DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Log out
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

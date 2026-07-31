@@ -1,61 +1,94 @@
 import { Metadata } from 'next';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
+import { Download, Printer, FileText } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { AnalyticsFilters } from '@/features/analytics/components/AnalyticsFilters';
-import { FileText, Download, Printer } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 
 export const metadata: Metadata = {
-  title: 'Reports | Anchor Fashion',
+  title: 'Reports & Exports | Anchor Fashion Analytics',
+  description: 'Generate and export custom BI reports',
 };
 
-export default function ReportsPage() {
-  const reports = [
-    { id: 'sales', name: 'Sales Report', description: 'Comprehensive breakdown of all sales within the selected period.', format: 'CSV / Excel' },
-    { id: 'inventory', name: 'Inventory Report', description: 'Current stock levels, low stock alerts, and value.', format: 'CSV / Excel' },
-    { id: 'customer', name: 'Customer Report', description: 'Detailed list of new and returning customers.', format: 'CSV' },
-    { id: 'order', name: 'Order Fulfillment Report', description: 'Status of all orders and processing times.', format: 'CSV / Excel' },
-  ];
+export const dynamic = 'force-dynamic';
 
+export default async function ReportsPage() {
+  
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Custom Reports</h1>
-        <p className="text-muted-foreground">
-          Generate, export, and print customized business reports.
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Custom Reports</h1>
+          <p className="text-muted-foreground">
+            Generate, print, and export CSV/Excel reports.
+          </p>
+        </div>
       </div>
       
-      <AnalyticsFilters showExport={false} />
+      <AnalyticsFilters />
 
-      <div className="grid gap-4 md:grid-cols-2">
-        {reports.map((report) => (
-          <Card key={report.id}>
-            <CardHeader className="flex flex-row items-start justify-between pb-2">
-              <div>
-                <CardTitle className="text-lg">{report.name}</CardTitle>
-                <CardDescription>{report.description}</CardDescription>
-              </div>
-              <div className="p-2 bg-primary/10 text-primary rounded-md">
-                <FileText className="h-5 w-5" />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 mt-4">
-                <Button variant="default" size="sm" className="gap-2">
-                  <Download className="h-4 w-4" /> Export {report.format.split('/')[0].trim()}
-                </Button>
-                {report.format.includes('Excel') && (
-                  <Button variant="outline" size="sm" className="gap-2">
-                    <Download className="h-4 w-4" /> Export Excel
-                  </Button>
-                )}
-                <Button variant="ghost" size="sm" className="gap-2">
-                  <Printer className="h-4 w-4" /> Print
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              Sales & Revenue Report
+            </CardTitle>
+            <CardDescription>Comprehensive daily breakdown of all sales</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Includes dates, gross revenue, net profit, total orders, and average order values.</p>
+          </CardContent>
+          <CardFooter className="flex gap-2">
+            <Button variant="outline" size="sm" className="w-full">
+              <Download className="w-4 h-4 mr-2" /> CSV
+            </Button>
+            <Button variant="outline" size="sm" className="w-full">
+              <Printer className="w-4 h-4 mr-2" /> Print
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              Customer Segment Report
+            </CardTitle>
+            <CardDescription>Export customer profiles & LTV data</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Includes emails, registration dates, total spend, and marketing opt-ins.</p>
+          </CardContent>
+          <CardFooter className="flex gap-2">
+            <Button variant="outline" size="sm" className="w-full">
+              <Download className="w-4 h-4 mr-2" /> CSV
+            </Button>
+            <Button variant="outline" size="sm" className="w-full">
+              <Printer className="w-4 h-4 mr-2" /> Print
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-primary" />
+              Inventory Valuation Report
+            </CardTitle>
+            <CardDescription>Current stock levels and value</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">Includes SKUs, quantities, low stock alerts, and COGS estimations.</p>
+          </CardContent>
+          <CardFooter className="flex gap-2">
+            <Button variant="outline" size="sm" className="w-full">
+              <Download className="w-4 h-4 mr-2" /> CSV
+            </Button>
+            <Button variant="outline" size="sm" className="w-full">
+              <Printer className="w-4 h-4 mr-2" /> Print
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     </div>
   );

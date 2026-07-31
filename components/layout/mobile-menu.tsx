@@ -68,7 +68,7 @@ export function MobileMenu() {
         <div className="p-4 border-t bg-muted/30">
           <div className="flex flex-col gap-3 text-sm">
             <Link href="/account/profile" className="font-medium hover:underline">My Account</Link>
-            <Link href="/track-order" className="font-medium hover:underline">Track Order</Link>
+            <Link href="/track" className="font-medium hover:underline">Track Order</Link>
             <Link href="/contact" className="font-medium hover:underline">Support</Link>
           </div>
         </div>

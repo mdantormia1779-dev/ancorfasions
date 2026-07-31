@@ -21,19 +21,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getPages } from '@/actions/cms.actions';
 
 export const metadata = {
   title: 'Page Manager | CMS',
 };
 
-const dummyPages = [
-  { id: '1', title: 'Summer Collection 2026', slug: 'summer-2026', type: 'landing_page', status: 'published', updated_at: '2026-07-24T10:00:00Z' },
-  { id: '2', title: 'Homepage', slug: 'home', type: 'homepage', status: 'published', updated_at: '2026-07-25T08:00:00Z' },
-  { id: '3', title: 'About Us', slug: 'about-us', type: 'static_page', status: 'review', updated_at: '2026-07-23T14:30:00Z' },
-  { id: '4', title: 'Fall Preview', slug: 'fall-preview', type: 'landing_page', status: 'draft', updated_at: '2026-07-25T09:15:00Z' },
-];
+export default async function PageManager() {
+  const pages = await getPages();
 
-export default function PageManager() {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -42,7 +38,9 @@ export default function PageManager() {
           <p className="text-muted-foreground mt-1">Manage landing pages, homepage, and static content.</p>
         </div>
         <div className="flex gap-2">
-          <Button><Plus className="mr-2 h-4 w-4" /> Create Page</Button>
+          <Link href="/admin/cms/pages/new">
+            <Button><Plus className="mr-2 h-4 w-4" /> Create Page</Button>
+          </Link>
         </div>
       </div>
 
@@ -68,25 +66,19 @@ export default function PageManager() {
               <TableRow>
                 <TableHead>Title</TableHead>
                 <TableHead>Path / Slug</TableHead>
-                <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Last Updated</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {dummyPages.map((page) => (
+              {pages.map((page) => (
                 <TableRow key={page.id}>
                   <TableCell className="font-medium">{page.title}</TableCell>
                   <TableCell className="text-muted-foreground">/{page.slug}</TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="capitalize">
-                      {page.type.replace('_', ' ')}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
                     <Badge 
-                      variant={page.status === 'published' ? 'default' : page.status === 'review' ? 'secondary' : 'outline'}
+                      variant={page.status === 'published' ? 'default' : 'outline'}
                     >
                       {page.status}
                     </Badge>
@@ -105,12 +97,14 @@ export default function PageManager() {
                       <DropdownMenuContent align="end">
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem>
-                           <Link href={`/admin/cms/pages/${page.id}/builder`} className="cursor-pointer">
-                             <LayoutTemplate className="mr-2 h-4 w-4" /> Visual Builder
+                           <Link href={`/admin/cms/pages/${page.id}`} className="cursor-pointer w-full flex items-center">
+                             <Edit className="mr-2 h-4 w-4" /> Edit Settings
                            </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem>
-                          <Edit className="mr-2 h-4 w-4" /> Edit Settings
+                           <Link href={`/admin/cms/pages/${page.id}/builder`} className="cursor-pointer w-full flex items-center">
+                             <LayoutTemplate className="mr-2 h-4 w-4" /> Visual Builder
+                           </Link>
                         </DropdownMenuItem>
                         <DropdownMenuItem>
                           <Eye className="mr-2 h-4 w-4" /> Preview
@@ -124,6 +118,13 @@ export default function PageManager() {
                   </TableCell>
                 </TableRow>
               ))}
+              {pages.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                    No pages found. Create your first page.
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>

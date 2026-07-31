@@ -94,7 +94,7 @@ export class ProductRepository {
   static async createProduct(input: CreateProductInput) {
     const supabase = await createClient();
 
-    const { seo, tags, media, ...productData } = input;
+    const { seo, tags, media, variants, ...productData } = input;
 
     // We need to use an RPC or just transaction equivalent if available. 
     // Since Supabase JS doesn't have native multi-table transactions out of the box,
@@ -168,6 +168,22 @@ export class ProductRepository {
        await supabase.from('product_media').insert(mediaInserts);
     }
 
+    // 5. Create Variants
+    if (variants && variants.length > 0) {
+      const variantInserts = variants.map(v => ({
+        product_id: productId,
+        sku: v.sku,
+        barcode: v.barcode,
+        price_override: v.priceOverride,
+        sale_price: v.salePrice,
+        weight: v.weight,
+        dimensions: v.dimensions,
+        is_active: v.isActive,
+        attributes: v.attributes,
+      }));
+      await supabase.from('variants').insert(variantInserts);
+    }
+
     return this.getProductById(productId);
   }
 
@@ -176,7 +192,7 @@ export class ProductRepository {
    */
   static async updateProduct(id: string, input: Partial<CreateProductInput>) {
     const supabase = await createClient();
-    const { seo, tags, media, ...productData } = input;
+    const { seo, tags, media, variants, ...productData } = input;
 
     // 1. Update Product
     if (Object.keys(productData).length > 0) {
@@ -235,6 +251,55 @@ export class ProductRepository {
             structured_data: seo.structuredData,
             keywords: seo.keywords,
         });
+      }
+    }
+
+    // 3. Update Tags
+    if (tags !== undefined) {
+      // Simple strategy: delete existing and re-insert
+      await supabase.from('product_tags').delete().eq('product_id', id);
+      if (tags.length > 0) {
+        const tagInserts = tags.map(tagId => ({
+          product_id: id,
+          tag_id: tagId,
+        }));
+        await supabase.from('product_tags').insert(tagInserts);
+      }
+    }
+
+    // 4. Update Media
+    if (media !== undefined) {
+      await supabase.from('product_media').delete().eq('product_id', id);
+      if (media.length > 0) {
+        const mediaInserts = media.map(m => ({
+           product_id: id,
+           url: m.url,
+           url_webp: m.urlWebp,
+           alt_text: m.altText,
+           display_order: m.displayOrder,
+           is_primary: m.isPrimary,
+           media_type: m.mediaType
+        }));
+        await supabase.from('product_media').insert(mediaInserts);
+      }
+    }
+
+    // 5. Update Variants
+    if (variants !== undefined) {
+      await supabase.from('variants').delete().eq('product_id', id);
+      if (variants.length > 0) {
+        const variantInserts = variants.map(v => ({
+          product_id: id,
+          sku: v.sku,
+          barcode: v.barcode,
+          price_override: v.priceOverride,
+          sale_price: v.salePrice,
+          weight: v.weight,
+          dimensions: v.dimensions,
+          is_active: v.isActive,
+          attributes: v.attributes,
+        }));
+        await supabase.from('variants').insert(variantInserts);
       }
     }
 

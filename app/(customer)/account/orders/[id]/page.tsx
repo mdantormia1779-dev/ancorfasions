@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Package, Truck, Home } from 'lucide-react';
+import { ArrowLeft, Package, Truck, Home, Download, XCircle, RefreshCcw } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 
 export const metadata: Metadata = {
@@ -46,6 +46,25 @@ export default async function OrderDetailsPage({ params }: { params: { id: strin
         <Badge variant={order.status === 'COMPLETED' || order.status === 'DELIVERED' ? 'default' : 'secondary'} className="text-sm">
           {order.status.replace(/_/g, ' ')}
         </Badge>
+        <div className="flex-1"></div>
+        <div className="flex gap-2">
+          <Button variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />
+            Invoice
+          </Button>
+          {(order.status === 'PENDING' || order.status === 'PROCESSING') && (
+            <Button variant="destructive" size="sm">
+              <XCircle className="w-4 h-4 mr-2" />
+              Cancel Order
+            </Button>
+          )}
+          {(order.status === 'COMPLETED' || order.status === 'DELIVERED') && (
+            <Button variant="outline" size="sm">
+              <RefreshCcw className="w-4 h-4 mr-2" />
+              Return Item
+            </Button>
+          )}
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

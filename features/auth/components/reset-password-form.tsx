@@ -56,7 +56,7 @@ export function ResetPasswordForm() {
     }
 
     toast.success("Password has been reset successfully!");
-    router.push("/login");
+    router.push("/auth/login");
   }
 
   return (

@@ -41,10 +41,10 @@ export default function AIControlCenterPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <DataCard title="Total Token Usage" value="4.2M" description="This billing cycle" icon={Cpu} />
-        <DataCard title="Estimated Cost" value="$12.45" description="Current cycle API costs" icon={Coins} />
-        <DataCard title="Active Prompts" value="24" description="In production" icon={MessageSquareCode} />
-        <DataCard title="API Fallbacks" value="0" description="No fallbacks triggered today" icon={ShieldAlert} className="border-emerald-500/20" />
+        <DataCard title="Total Token Usage" value="4.2M" description="This billing cycle" icon={<Cpu className="h-4 w-4 text-slate-500" />} />
+        <DataCard title="Estimated Cost" value="$12.45" description="Current cycle API costs" icon={<Coins className="h-4 w-4 text-slate-500" />} />
+        <DataCard title="Active Prompts" value="24" description="In production" icon={<MessageSquareCode className="h-4 w-4 text-slate-500" />} />
+        <DataCard title="API Fallbacks" value="0" description="No fallbacks triggered today" icon={<ShieldAlert className="h-4 w-4 text-slate-500" />} className="border-emerald-500/20" />
       </div>
 
       <Tabs defaultValue="configuration" className="space-y-6">

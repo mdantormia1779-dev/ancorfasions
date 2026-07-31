@@ -69,4 +69,35 @@ export class CustomerService {
   async markNotificationAsRead(id: string, userId: string): Promise<void> {
     return this.repository.markNotificationAsRead(id, userId);
   }
+
+  async getReviews(userId: string) {
+    return this.repository.getReviews(userId);
+  }
+
+  async getTickets(userId: string) {
+    return this.repository.getTickets(userId);
+  }
+
+  async createTicket(userId: string, ticketData: any) {
+    return this.repository.createTicket({
+      ...ticketData,
+      user_id: userId
+    });
+  }
+
+  async getTicketDetails(ticketId: string, userId: string) {
+    return this.repository.getTicketDetails(ticketId, userId);
+  }
+
+  async getLoginHistory(userId: string) {
+    return this.repository.getLoginHistory(userId);
+  }
+
+  async getActiveSessions(userId: string) {
+    return this.repository.getActiveSessions(userId);
+  }
+
+  async getWishlists(userId: string) {
+    return this.repository.getWishlists(userId);
+  }
 }

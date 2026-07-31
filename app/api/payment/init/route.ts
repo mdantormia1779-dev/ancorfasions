@@ -79,14 +79,37 @@ export async function GET(req: Request) {
         ? 'https://tokenized.sandbox.bka.sh/v1.2.0-beta'
         : 'https://tokenized.pay.bka.sh/v1.2.0-beta';
 
-      // For now, we log the intent and redirect to a holding page
-      console.log('[Payment Init] bKash payment initiated for order:', order.order_number);
-      console.log('[Payment Init] Would call:', bkashApiBase, 'with merchantId:', credentials.merchant_id);
+      const tokenResponse = await fetch(`${bkashApiBase}/tokenized/checkout/token/grant`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', username: credentials.username, password: credentials.password },
+        body: JSON.stringify({ app_key: credentials.app_key, app_secret: credentials.app_secret })
+      });
+      
+      const tokenData = await tokenResponse.json();
 
-      // TODO: Implement actual bKash API call here
-      return NextResponse.redirect(
-        new URL(`/checkout/success?order_id=${orderId}&notice=bkash_pending`, req.url)
-      );
+      if (tokenData && tokenData.id_token) {
+        const paymentResponse = await fetch(`${bkashApiBase}/tokenized/checkout/create`, {
+          method: 'POST',
+          headers: { 
+            'Content-Type': 'application/json', 
+            'Authorization': tokenData.id_token,
+            'X-APP-Key': credentials.app_key 
+          },
+          body: JSON.stringify({
+            amount: order.total_amount.toString(),
+            currency: 'BDT',
+            intent: 'sale',
+            merchantInvoiceNumber: order.order_number
+          })
+        });
+        
+        const paymentData = await paymentResponse.json();
+        if (paymentData && paymentData.bkashURL) {
+          return NextResponse.redirect(paymentData.bkashURL);
+        }
+      }
+
+      return NextResponse.redirect(new URL(`/checkout/failed?reason=bkash_init_failed`, req.url));
     }
 
     if (method === 'SSLCOMMERZ') {
@@ -103,12 +126,101 @@ export async function GET(req: Request) {
         ? 'https://sandbox.sslcommerz.com/gwprocess/v4/api.php'
         : 'https://securepay.sslcommerz.com/gwprocess/v4/api.php';
 
-      console.log('[Payment Init] SSLCommerz payment initiated for order:', order.order_number);
-      console.log('[Payment Init] Would POST to:', sslBase, 'with storeId:', credentials.store_id);
+      const formData = new URLSearchParams();
+      formData.append('store_id', credentials.store_id);
+      formData.append('store_passwd', credentials.store_passwd);
+      formData.append('total_amount', order.total_amount.toString());
+      formData.append('currency', 'BDT');
+      formData.append('tran_id', order.order_number);
+      formData.append('success_url', `${appUrl}/api/webhooks/sslcommerz/success`);
+      formData.append('fail_url', `${appUrl}/api/webhooks/sslcommerz/fail`);
+      formData.append('cancel_url', `${appUrl}/api/webhooks/sslcommerz/cancel`);
+      formData.append('cus_name', order.customer_email || 'Guest');
+      formData.append('cus_email', order.customer_email || 'guest@example.com');
+      formData.append('cus_phone', '01700000000');
+      formData.append('shipping_method', 'NO');
+      formData.append('product_name', 'Clothing');
+      formData.append('product_category', 'Fashion');
+      formData.append('product_profile', 'general');
 
-      // TODO: Implement actual SSLCommerz API call here
+      const sslResponse = await fetch(sslBase, {
+        method: 'POST',
+        body: formData,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        }
+      });
+      
+      const sslData = await sslResponse.json();
+      if (sslData && sslData.GatewayPageURL) {
+        return NextResponse.redirect(sslData.GatewayPageURL);
+      }
+
+      return NextResponse.redirect(new URL(`/checkout/failed?reason=ssl_init_failed`, req.url));
+    }
+
+    if (method === 'STRIPE') {
+      const stripeRes = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${credentials.secret_key}`,
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: new URLSearchParams({
+          'payment_method_types[0]': 'card',
+          'line_items[0][price_data][currency]': 'bdt',
+          'line_items[0][price_data][product_data][name]': `Order ${order.order_number}`,
+          'line_items[0][price_data][unit_amount]': Math.round(order.total_amount * 100).toString(),
+          'line_items[0][quantity]': '1',
+          'mode': 'payment',
+          'success_url': `${appUrl}/checkout/success?order_id=${order.id}`,
+          'cancel_url': `${appUrl}/checkout/failed?reason=cancelled`
+        })
+      });
+      
+      const stripeData = await stripeRes.json();
+      if (stripeData && stripeData.url) {
+        return NextResponse.redirect(stripeData.url);
+      }
+      return NextResponse.redirect(new URL(`/checkout/failed?reason=stripe_init_failed`, req.url));
+    }
+
+    if (method === 'PAYPAL') {
+      const paypalBase = credentials.sandbox === 'true' ? 'https://api-m.sandbox.paypal.com' : 'https://api-m.paypal.com';
+      const auth = Buffer.from(`${credentials.client_id}:${credentials.client_secret}`).toString('base64');
+      
+      const tokenRes = await fetch(`${paypalBase}/v1/oauth2/token`, {
+        method: 'POST',
+        headers: { 'Authorization': `Basic ${auth}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'grant_type=client_credentials'
+      });
+      const { access_token } = await tokenRes.json();
+
+      const orderRes = await fetch(`${paypalBase}/v2/checkout/orders`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${access_token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          intent: 'CAPTURE',
+          purchase_units: [{ amount: { currency_code: 'USD', value: (order.total_amount / 110).toFixed(2) } }],
+          application_context: {
+            return_url: `${appUrl}/checkout/success?order_id=${order.id}`,
+            cancel_url: `${appUrl}/checkout/failed?reason=cancelled`
+          }
+        })
+      });
+      const paypalData = await orderRes.json();
+      const approveLink = paypalData.links?.find((link: any) => link.rel === 'approve');
+      if (approveLink) {
+        return NextResponse.redirect(approveLink.href);
+      }
+      return NextResponse.redirect(new URL(`/checkout/failed?reason=paypal_init_failed`, req.url));
+    }
+
+    if (method === 'NAGAD') {
+      // Nagad requires RSA signature for real implementation which requires a dedicated crypto module
+      // This is a boilerplate redirect until the crypto utility is ready.
       return NextResponse.redirect(
-        new URL(`/checkout/success?order_id=${orderId}&notice=ssl_pending`, req.url)
+        new URL(`/checkout/success?order_id=${orderId}&notice=nagad_pending_crypto`, req.url)
       );
     }
 

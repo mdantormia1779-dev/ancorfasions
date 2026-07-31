@@ -2,10 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Minus, Plus, Trash2 } from 'lucide-react';
+import { Minus, Plus, Trash2, Heart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { CartItem as CartItemType } from '@/types/checkout.types';
 import { useCartStore } from '@/stores/use-cart-store';
+import { useWishlistStore } from '@/stores/use-wishlist-store';
 import { formatCurrency } from '@/lib/utils';
 
 interface CartItemProps {
@@ -15,6 +16,7 @@ interface CartItemProps {
 
 export function CartItem({ item, isReadOnly = false }: CartItemProps) {
   const { updateQuantity, removeItem } = useCartStore();
+  const { addItem: addToWishlist } = useWishlistStore();
 
   const product = item.product as any;
   const title = product?.name || product?.title || 'Unknown Product';
@@ -38,6 +40,11 @@ export function CartItem({ item, isReadOnly = false }: CartItemProps) {
   };
 
   const handleRemove = () => {
+    removeItem(item.id);
+  };
+
+  const handleSaveForLater = async () => {
+    await addToWishlist(item.product_id, item.variant_id || null);
     removeItem(item.id);
   };
 
@@ -87,7 +94,11 @@ export function CartItem({ item, isReadOnly = false }: CartItemProps) {
           )}
 
           {!isReadOnly && (
-            <div className="flex">
+            <div className="flex gap-2">
+              <Button variant="ghost" size="sm" className="font-medium text-slate-600 hover:text-slate-900" onClick={handleSaveForLater}>
+                <Heart className="h-4 w-4 mr-2" />
+                Save for later
+              </Button>
               <Button variant="ghost" size="sm" className="font-medium text-rose-600 hover:text-rose-500" onClick={handleRemove}>
                 <Trash2 className="h-4 w-4 mr-2" />
                 Remove

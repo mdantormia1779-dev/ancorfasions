@@ -1,62 +1,82 @@
 import { Metadata } from 'next';
-import { AnalyticsService } from '@/services/analytics.service';
+import { ShoppingBag, XCircle, RotateCcw, Box } from 'lucide-react';
 import { StatCard } from '@/features/analytics/components/StatCard';
 import { AnalyticsFilters } from '@/features/analytics/components/AnalyticsFilters';
-import { StatusDistributionChart } from '@/features/analytics/components/Charts';
+import { StatusDistributionChart, SimplePieChart } from '@/features/analytics/components/Charts';
+import { getOrderAnalyticsAction } from '@/app/actions/analytics/dashboard.actions';
 import { subDays } from 'date-fns';
-import { ShoppingCart, PackageCheck, Clock } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Order Analytics | Anchor Fashion',
+  title: 'Order Analytics | Anchor Fashion Analytics',
+  description: 'Fulfillment and order status analytics',
 };
 
 export const dynamic = 'force-dynamic';
 
-export default async function OrderAnalyticsPage({ searchParams }: { searchParams: { from?: string; to?: string } }) {
-  const from = searchParams.from ? new Date(searchParams.from) : subDays(new Date(), 30);
-  const to = searchParams.to ? new Date(searchParams.to) : new Date();
+export default async function OrderAnalyticsPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
+  const resolvedSearchParams = await searchParams;
+  const from = resolvedSearchParams.from ? new Date(resolvedSearchParams.from) : subDays(new Date(), 30);
+  const to = resolvedSearchParams.to ? new Date(resolvedSearchParams.to) : new Date();
   
-  const orderAnalytics = await AnalyticsService.getOrderAnalytics({ from, to });
-  
-  const delivered = orderAnalytics.statuses.find(s => s.name === 'DELIVERED')?.value || 0;
-  const fulfillmentRate = orderAnalytics.total > 0 ? (delivered / orderAnalytics.total) * 100 : 0;
+  const { data: orders, error } = await getOrderAnalyticsAction({ from, to });
+
+  if (error || !orders) {
+    return <div className="p-8 text-red-500">Failed to load order analytics: {error}</div>;
+  }
+
+  const pendingOrders = (orders.statusCounts['pending'] || 0) + (orders.statusCounts['processing'] || 0);
+  const shippedOrders = orders.statusCounts['shipped'] || 0;
+  const deliveredOrders = orders.statusCounts['delivered'] || 0;
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Order Analytics</h1>
-        <p className="text-muted-foreground">
-          Track order volume, fulfillment rates, and statuses.
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Order Analytics</h1>
+          <p className="text-muted-foreground">
+            Fulfillment pipelines, returns, and refund statistics.
+          </p>
+        </div>
       </div>
       
       <AnalyticsFilters />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Total Orders" 
-          value={orderAnalytics.total.toLocaleString()}
-          icon={<ShoppingCart className="w-4 h-4" />}
+          value={orders.total.toLocaleString()}
+          icon={<ShoppingBag className="w-4 h-4" />}
         />
         <StatCard 
-          title="Fulfillment Rate" 
-          value={`${fulfillmentRate.toFixed(1)}%`}
-          icon={<PackageCheck className="w-4 h-4" />}
-          trend={2.4}
+          title="Pending Fulfillment" 
+          value={pendingOrders.toLocaleString()}
+          icon={<Box className="w-4 h-4" />}
         />
         <StatCard 
-          title="Avg. Processing Time" 
-          value="1.2 Days"
-          icon={<Clock className="w-4 h-4" />}
-          trend={-5.0} // Negative processing time is good, but usually we map green to good. 
+          title="Returns & Cancellations" 
+          value={orders.refundStatistics.count.toLocaleString()}
+          icon={<RotateCcw className="w-4 h-4 text-red-500" />}
+        />
+        <StatCard 
+          title="Refunded Amount" 
+          value={`$${orders.refundStatistics.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          icon={<XCircle className="w-4 h-4 text-red-500" />}
         />
       </div>
-
-      <div className="grid gap-4 md:grid-cols-1">
+      
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2 mt-6">
         <StatusDistributionChart 
           title="Orders by Status" 
           description="Distribution of orders across fulfillment stages"
-          data={orderAnalytics.statuses}
+          data={orders.statuses}
+        />
+        <SimplePieChart 
+          title="Order Success Rate" 
+          data={[
+            { name: 'Successful (Delivered/Shipped)', value: shippedOrders + deliveredOrders },
+            { name: 'In Progress', value: pendingOrders },
+            { name: 'Failed (Returned/Cancelled)', value: orders.refundStatistics.count }
+          ]}
         />
       </div>
     </div>

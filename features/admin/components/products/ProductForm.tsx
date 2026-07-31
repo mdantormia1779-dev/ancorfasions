@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useForm } from "react-hook-form";
+import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
+import { Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -27,8 +28,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { CreateProductSchema, Product } from "@/types/catalog.types";
-import { createAdminProductAction, updateAdminProductAction } from "@/lib/actions/admin/products.actions";
+import { 
+  createAdminProductAction, 
+  updateAdminProductAction,
+  getCategoriesAction,
+  getBrandsAction,
+  getTagsAction
+} from "@/lib/actions/admin/products.actions";
 
 type ProductFormValues = z.infer<typeof CreateProductSchema>;
 
@@ -39,6 +47,23 @@ interface ProductFormProps {
 export function ProductForm({ initialData }: ProductFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [brands, setBrands] = useState<any[]>([]);
+  const [tags, setTags] = useState<any[]>([]);
+
+  useEffect(() => {
+    async function loadData() {
+      const [catsRes, brandsRes, tagsRes] = await Promise.all([
+        getCategoriesAction({}),
+        getBrandsAction({}),
+        getTagsAction({})
+      ]);
+      if (catsRes.success && catsRes.data) setCategories(catsRes.data);
+      if (brandsRes.success && brandsRes.data) setBrands(brandsRes.data);
+      if (tagsRes.success && tagsRes.data) setTags(tagsRes.data);
+    }
+    loadData();
+  }, []);
 
   const defaultValues: Partial<ProductFormValues> = {
     name: initialData?.name || "",
@@ -49,12 +74,27 @@ export function ProductForm({ initialData }: ProductFormProps) {
     sku: initialData?.sku || "",
     barcode: initialData?.barcode || "",
     status: initialData?.status || "DRAFT",
-    categoryId: initialData?.categoryId || "00000000-0000-0000-0000-000000000000", // Need a real ID
+    categoryId: initialData?.categoryId || "",
+    brandId: initialData?.brandId || "",
+    isFeatured: initialData?.isFeatured || false,
+    variants: initialData?.variants || [],
+    media: initialData?.media || [],
+    seo: initialData?.seo || { metaTitle: "", metaDescription: "", keywords: [] },
   };
 
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(CreateProductSchema),
     defaultValues,
+  });
+
+  const { fields: variantFields, append: appendVariant, remove: removeVariant } = useFieldArray({
+    control: form.control,
+    name: "variants",
+  });
+
+  const { fields: mediaFields, append: appendMedia, remove: removeMedia } = useFieldArray({
+    control: form.control,
+    name: "media",
   });
 
   const onSubmit = async (data: ProductFormValues) => {
@@ -165,9 +205,192 @@ export function ProductForm({ initialData }: ProductFormProps) {
                     </FormItem>
                   )}
                 />
+
+                <FormField
+                  control={form.control}
+                  name="description"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Full Description</FormLabel>
+                      <FormControl>
+                        <Textarea className="min-h-[120px]" placeholder="Detailed product description..." {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
               </CardContent>
             </Card>
 
+            <Card className="border-slate-200/60 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Product Media (Images)</CardTitle>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => appendMedia({ url: "", displayOrder: mediaFields.length, isPrimary: mediaFields.length === 0, mediaType: "IMAGE" })}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add Image URL
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {mediaFields.map((field, index) => (
+                  <div key={field.id} className="flex gap-4 items-end border p-4 rounded-md relative">
+                    <FormField
+                      control={form.control}
+                      name={`media.${index}.url`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>Image URL</FormLabel>
+                          <FormControl>
+                            <Input placeholder="https://example.com/image.jpg" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`media.${index}.altText`}
+                      render={({ field }) => (
+                        <FormItem className="flex-1">
+                          <FormLabel>Alt Text</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Front view of tie" {...field} value={field.value || ""} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`media.${index}.isPrimary`}
+                      render={({ field }) => (
+                        <FormItem className="flex flex-col items-center justify-center pb-2">
+                          <FormLabel>Primary?</FormLabel>
+                          <FormControl>
+                            <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <Button type="button" variant="ghost" size="icon" onClick={() => removeMedia(index)} className="text-red-500 mb-0.5">
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+                {mediaFields.length === 0 && (
+                  <p className="text-sm text-slate-500 text-center py-4">No media added yet.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200/60 shadow-sm">
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="text-lg">Product Variants</CardTitle>
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => appendVariant({ sku: "", isActive: true })}
+                >
+                  <Plus className="h-4 w-4 mr-2" /> Add Variant
+                </Button>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {variantFields.map((field, index) => (
+                  <div key={field.id} className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end border p-4 rounded-md relative">
+                    <FormField
+                      control={form.control}
+                      name={`variants.${index}.sku`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Variant SKU</FormLabel>
+                          <FormControl>
+                            <Input placeholder="SKU-RED-M" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`variants.${index}.priceOverride`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Price Override</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" {...field} value={field.value || ""} onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <FormField
+                      control={form.control}
+                      name={`variants.${index}.salePrice`}
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Sale Price</FormLabel>
+                          <FormControl>
+                            <Input type="number" step="0.01" {...field} value={field.value || ""} onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                    <div className="flex items-center justify-end pb-1">
+                      <Button type="button" variant="ghost" size="sm" onClick={() => removeVariant(index)} className="text-red-500">
+                        Remove
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+                {variantFields.length === 0 && (
+                  <p className="text-sm text-slate-500 text-center py-4">No variants added yet.</p>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card className="border-slate-200/60 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">Search Engine Optimization (SEO)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="seo.metaTitle"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Meta Title</FormLabel>
+                      <FormControl>
+                        <Input placeholder="SEO Title" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="seo.metaDescription"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Meta Description</FormLabel>
+                      <FormControl>
+                        <Textarea placeholder="SEO Description" {...field} value={field.value || ""} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Right Sidebar Column */}
+          <div className="space-y-6">
             <Card className="border-slate-200/60 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg">Pricing</CardTitle>
@@ -188,10 +411,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
                 />
               </CardContent>
             </Card>
-          </div>
 
-          {/* Right Sidebar Column */}
-          <div className="space-y-6">
             <Card className="border-slate-200/60 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg">Status & Organization</CardTitle>
@@ -222,14 +442,65 @@ export function ProductForm({ initialData }: ProductFormProps) {
 
                 <FormField
                   control={form.control}
+                  name="isFeatured"
+                  render={({ field }) => (
+                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                        <FormLabel>Featured</FormLabel>
+                        <FormDescription>Show on homepage</FormDescription>
+                      </div>
+                      <FormControl>
+                        <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
                   name="categoryId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Category ID</FormLabel>
-                      <FormControl>
-                        <Input placeholder="UUID" {...field} />
-                      </FormControl>
-                      <FormDescription>Temporarily manual until category select is built</FormDescription>
+                      <FormLabel>Category</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {categories.map((cat) => (
+                            <SelectItem key={cat.id} value={cat.id}>
+                              {cat.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="brandId"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Brand</FormLabel>
+                      <Select onValueChange={field.onChange} defaultValue={field.value || undefined}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a brand" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {brands.map((brand) => (
+                            <SelectItem key={brand.id} value={brand.id}>
+                              {brand.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}

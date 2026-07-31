@@ -1,5 +1,5 @@
-'use client';
 import Link from 'next/link';
+import { getTicketsAction } from '@/app/actions/support/ticket.actions';
 
 import {
   Table,
@@ -22,50 +22,15 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Input } from '@/components/ui/input';
 
-const tickets = [
-  {
-    id: 'TKT-1042',
-    subject: 'Order missing items',
-    customer: 'Michael Scott',
-    priority: 'High',
-    status: 'Open',
-    assignedTo: 'Sarah Jenkins',
-    updatedAt: '10 mins ago',
-    sla: 'Breaching in 2h',
-  },
-  {
-    id: 'TKT-1041',
-    subject: 'Return request for dress',
-    customer: 'Pam Beesly',
-    priority: 'Medium',
-    status: 'In Progress',
-    assignedTo: 'Mike Ross',
-    updatedAt: '1 hour ago',
-    sla: 'Safe',
-  },
-  {
-    id: 'TKT-1040',
-    subject: 'Cannot apply coupon code',
-    customer: 'Jim Halpert',
-    priority: 'Low',
-    status: 'Waiting on Customer',
-    assignedTo: 'Unassigned',
-    updatedAt: '3 hours ago',
-    sla: 'Safe',
-  },
-  {
-    id: 'TKT-1039',
-    subject: 'Website error during checkout',
-    customer: 'Dwight Schrute',
-    priority: 'Critical',
-    status: 'Open',
-    assignedTo: 'Tech Support',
-    updatedAt: 'Just now',
-    sla: 'Breached',
-  }
-];
 
-export default function TicketManagementPage() {
+
+export default async function TicketManagementPage() {
+  const { data: rawTickets, error } = await getTicketsAction();
+  const tickets = rawTickets || [];
+
+  if (error) {
+    return <div className="p-8 text-red-500">Failed to load tickets: {error}</div>;
+  }
   return (
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -90,7 +55,7 @@ export default function TicketManagementPage() {
         <CardHeader>
           <CardTitle>All Tickets</CardTitle>
           <CardDescription>
-            Showing 4 of 84 open tickets.
+            Showing {tickets.length} open tickets.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -110,50 +75,45 @@ export default function TicketManagementPage() {
               <TableBody>
                 {tickets.map((ticket) => (
                   <TableRow key={ticket.id}>
-                    <TableCell className="font-medium font-mono">{ticket.id}</TableCell>
+                    <TableCell className="font-medium font-mono">{ticket.id.substring(0, 8)}</TableCell>
                     <TableCell>
                       <div className="font-medium">{ticket.subject}</div>
-                      <div className="text-xs text-muted-foreground">{ticket.customer}</div>
+                      <div className="text-xs text-muted-foreground">{ticket.customer_profiles?.first_name || 'Customer'}</div>
                     </TableCell>
                     <TableCell>
                       <Badge variant={
-                        ticket.priority === 'Critical' ? 'destructive' :
-                        ticket.priority === 'High' ? 'default' :
-                        ticket.priority === 'Medium' ? 'secondary' : 'outline'
-                      }>
+                        ticket.priority === 'critical' ? 'destructive' :
+                        ticket.priority === 'high' ? 'default' :
+                        ticket.priority === 'medium' ? 'secondary' : 'outline'
+                      } className="capitalize">
                         {ticket.priority}
                       </Badge>
-                      {ticket.sla === 'Breached' && (
+                      {ticket.priority === 'critical' && ticket.status !== 'resolved' && ticket.status !== 'closed' && (
                         <div className="flex items-center text-[10px] text-rose-500 mt-1 font-bold">
-                          <AlertCircle className="h-3 w-3 mr-1" /> SLA Breached
-                        </div>
-                      )}
-                      {ticket.sla.startsWith('Breaching') && (
-                        <div className="flex items-center text-[10px] text-amber-500 mt-1 font-bold">
-                          <Clock className="h-3 w-3 mr-1" /> {ticket.sla}
+                          <AlertCircle className="h-3 w-3 mr-1" /> SLA Risk
                         </div>
                       )}
                     </TableCell>
                     <TableCell>
-                      <Badge variant="outline">{ticket.status}</Badge>
+                      <Badge variant="outline" className="capitalize">{ticket.status.replace(/_/g, ' ')}</Badge>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        {ticket.assignedTo !== 'Unassigned' ? (
+                        {ticket.assigned_agent_id ? (
                           <>
                             <Avatar className="h-6 w-6">
                               <AvatarFallback className="text-[10px]">
-                                {ticket.assignedTo.substring(0, 2).toUpperCase()}
+                                {ticket.assigned_agent_id.substring(0, 2).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
-                            <span className="text-sm">{ticket.assignedTo}</span>
+                            <span className="text-sm">Assigned</span>
                           </>
                         ) : (
                           <span className="text-sm text-muted-foreground italic">Unassigned</span>
                         )}
                       </div>
                     </TableCell>
-                    <TableCell className="text-muted-foreground text-sm">{ticket.updatedAt}</TableCell>
+                    <TableCell className="text-muted-foreground text-sm">{new Date(ticket.updated_at).toLocaleDateString()}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger>

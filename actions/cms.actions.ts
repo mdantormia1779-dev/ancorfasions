@@ -39,3 +39,30 @@ export async function getGlobalSections(): Promise<CMSSection[]> {
 export async function getNavigation(location: string): Promise<CMSNavigation | null> {
   return await cmsService.getNavigation(location);
 }
+
+// Media
+export async function getMedia() {
+  const { createClient } = await import('@/lib/supabase/server');
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('cms_media').select('*').order('created_at', { ascending: false });
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+// Banners
+export async function getBanners() {
+  const { createClient } = await import('@/lib/supabase/server');
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('cms_banners').select('*').order('created_at', { ascending: false });
+  if (error && error.code !== '42P01') throw new Error(error.message);
+  return data || [];
+}
+
+// SEO
+export async function getSeoSettings() {
+  const { createClient } = await import('@/lib/supabase/server');
+  const supabase = await createClient();
+  const { data, error } = await supabase.from('cms_seo_redirects').select('*').limit(10);
+  if (error && error.code !== '42P01') throw new Error(error.message);
+  return data || [];
+}

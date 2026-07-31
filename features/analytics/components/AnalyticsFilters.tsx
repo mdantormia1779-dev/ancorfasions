@@ -7,6 +7,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, DownloadIcon, FilterIcon, RefreshCwIcon } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 import { useState, useTransition } from 'react';
+import { DateRange } from 'react-day-picker';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
@@ -16,12 +17,12 @@ export function AnalyticsFilters({ showExport = true }: { showExport?: boolean }
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
   
-  const [dateRange, setDateRange] = useState<{ from?: Date; to?: Date } | undefined>({
+  const [dateRange, setDateRange] = useState<DateRange | undefined>({
     from: searchParams.get('from') ? new Date(searchParams.get('from') as string) : subDays(new Date(), 30),
     to: searchParams.get('to') ? new Date(searchParams.get('to') as string) : new Date(),
   });
 
-  const updateFilters = (range: { from?: Date; to?: Date }) => {
+  const updateFilters = (range: DateRange | undefined) => {
     const params = new URLSearchParams(searchParams.toString());
     
     if (range?.from) {
@@ -77,14 +78,13 @@ export function AnalyticsFilters({ showExport = true }: { showExport?: boolean }
           </PopoverTrigger>
           <PopoverContent className="w-auto p-0" align="start">
             <Calendar
-              initialFocus
               mode="range"
               defaultMonth={dateRange?.from}
               selected={dateRange}
               onSelect={(range) => {
-                setDateRange(range as { from?: Date; to?: Date });
+                setDateRange(range as DateRange);
                 if (range?.from && range?.to) {
-                  updateFilters(range as { from?: Date; to?: Date });
+                  updateFilters(range as DateRange);
                 }
               }}
               numberOfMonths={2}

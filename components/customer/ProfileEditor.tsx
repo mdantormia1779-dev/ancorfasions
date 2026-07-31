@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from '@/components/ui/card';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { toast } from 'sonner';
 
 interface ProfileEditorProps {
@@ -36,7 +37,18 @@ export function ProfileEditor({ profile }: ProfileEditorProps) {
         <CardTitle>Profile Information</CardTitle>
       </CardHeader>
       <form onSubmit={handleSubmit}>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-6">
+          <div className="flex items-center space-x-4">
+            <Avatar className="w-20 h-20">
+              <AvatarImage src={profile?.avatar_url || ''} alt={profile?.first_name || 'Avatar'} />
+              <AvatarFallback>{profile?.first_name?.charAt(0) || 'U'}</AvatarFallback>
+            </Avatar>
+            <div>
+              <Button type="button" variant="outline" size="sm">Upload Avatar</Button>
+              <p className="text-xs text-muted-foreground mt-2">JPG, GIF or PNG. Max size of 2MB.</p>
+            </div>
+          </div>
+          
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="first_name">First Name</Label>

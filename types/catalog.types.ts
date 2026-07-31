@@ -122,6 +122,7 @@ export const CreateProductSchema = ProductSchema.omit({
   seo: ProductSeoSchema.omit({ id: true, productId: true }).optional().nullable(),
   tags: z.array(z.string().uuid()).optional(), // Tag IDs
   media: z.array(ProductMediaSchema.omit({ id: true, productId: true })).optional(),
+  variants: z.array(ProductVariantSchema.omit({ id: true, productId: true })).optional(),
 });
 
 export type CreateProductInput = z.infer<typeof CreateProductSchema>;

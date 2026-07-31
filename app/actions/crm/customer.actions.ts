@@ -49,3 +49,35 @@ export async function fetchCRMSummaryAction() {
     }};
   }
 }
+
+export async function fetchCustomerDetailsAction(id: string) {
+  try {
+    const profile = await customerRepo.getProfile(id);
+    if (!profile) return { success: false, error: 'Customer not found' };
+
+    // In a real app we'd fetch actual LTV, tickets count, etc.
+    // For now we'll augment the profile with some stats
+    const [tickets, loginHistory] = await Promise.all([
+      customerRepo.getTickets(id),
+      customerRepo.getLoginHistory(id)
+    ]);
+
+    return { 
+      success: true, 
+      data: {
+        profile,
+        ticketsCount: tickets?.length || 0,
+        tickets: tickets || [],
+        loginHistory: loginHistory || [],
+        // Mocking some CRM specific data for the UI
+        tier: 'Gold',
+        points: 5400,
+        ltv: '$3,200.00',
+        segments: ['Active', 'Summer Campaign']
+      }
+    };
+  } catch (error: any) {
+    console.error("fetchCustomerDetailsAction error:", error);
+    return { success: false, error: error.message };
+  }
+}

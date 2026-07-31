@@ -46,7 +46,7 @@ export function LoginForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: values.email,
       password: values.password,
     });
@@ -58,7 +58,23 @@ export function LoginForm() {
     }
 
     toast.success("Successfully logged in!");
-    router.push("/");
+
+    // Role-based redirect after login
+    const role = data.user?.user_metadata?.role || data.user?.app_metadata?.role || 'CUSTOMER';
+    const ADMIN_ROLES = ['SUPERADMIN', 'ADMIN'];
+    const MANAGER_ROLES = ['MANAGER', 'WAREHOUSE_MANAGER', 'MARKETING_MANAGER', 'FINANCE_MANAGER'];
+
+    if (ADMIN_ROLES.includes(role)) {
+      router.push("/admin");
+    } else if (MANAGER_ROLES.includes(role)) {
+      router.push("/manager");
+    } else {
+      // Check for a ?next= param in the URL for post-login redirect
+      const params = new URLSearchParams(window.location.search);
+      const next = params.get('next');
+      router.push(next || "/dashboard");
+    }
+
     router.refresh();
   }
 

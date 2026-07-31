@@ -1,11 +1,18 @@
 'use client';
 
 import { useCartStore } from '@/stores/use-cart-store';
+import { useCheckoutStore } from '@/stores/use-checkout-store';
 import { formatCurrency } from '@/lib/utils';
 import Image from 'next/image';
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
 
 export function OrderSummary() {
   const { cart } = useCartStore();
+  const { formData } = useCheckoutStore();
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string, discount: number } | null>(null);
 
   const items = cart?.items || [];
   
@@ -14,9 +21,26 @@ export function OrderSummary() {
     return sum + (price * item.quantity);
   }, 0);
 
-  const shippingFee = subtotal > 0 ? 100 : 0; // Hardcoded shipping rule for now
-  const discount = 0;
-  const total = subtotal + shippingFee - discount;
+  const shippingMethod = formData.shipping?.shipping_method;
+  const shippingFee = subtotal > 0 ? (shippingMethod === 'home_delivery_outside' ? 150 : 100) : 0;
+  const tax = subtotal > 0 ? subtotal * 0.15 : 0; // 15% VAT
+  const discount = appliedCoupon ? appliedCoupon.discount : 0;
+  const total = subtotal + shippingFee + tax - discount;
+
+  const handleApplyCoupon = () => {
+    if (!couponCode.trim()) return;
+    // Mock coupon logic: 'WELCOME10' gives 10% off
+    if (couponCode.toUpperCase() === 'WELCOME10') {
+      setAppliedCoupon({ code: 'WELCOME10', discount: subtotal * 0.10 });
+    } else {
+      alert('Invalid coupon code');
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setAppliedCoupon(null);
+    setCouponCode('');
+  };
 
   return (
     <div className="bg-slate-50 dark:bg-slate-900 rounded-lg p-6 border">
@@ -50,6 +74,26 @@ export function OrderSummary() {
           );
         })}
       </div>
+
+      <div className="mb-6 border-t pt-6">
+        <h3 className="text-sm font-medium mb-3">Gift Card or Discount Code</h3>
+        {appliedCoupon ? (
+          <div className="flex justify-between items-center bg-green-50 text-green-700 px-3 py-2 rounded-md text-sm border border-green-200">
+            <span className="font-medium">{appliedCoupon.code}</span>
+            <button onClick={handleRemoveCoupon} className="hover:text-green-900 underline text-xs">Remove</button>
+          </div>
+        ) : (
+          <div className="flex gap-2">
+            <Input 
+              placeholder="Code (Try WELCOME10)" 
+              value={couponCode} 
+              onChange={(e) => setCouponCode(e.target.value)} 
+              className="flex-1"
+            />
+            <Button variant="secondary" onClick={handleApplyCoupon}>Apply</Button>
+          </div>
+        )}
+      </div>
       
       <div className="space-y-3 pt-6 border-t text-sm">
         <div className="flex justify-between">
@@ -59,6 +103,10 @@ export function OrderSummary() {
         <div className="flex justify-between">
           <span className="text-slate-500">Shipping</span>
           <span className="font-medium">{shippingFee > 0 ? formatCurrency(shippingFee) : 'Free'}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-slate-500">Estimated Tax (15%)</span>
+          <span className="font-medium">{formatCurrency(tax)}</span>
         </div>
         {discount > 0 && (
           <div className="flex justify-between text-green-600">

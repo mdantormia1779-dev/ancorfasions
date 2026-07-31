@@ -1,6 +1,4 @@
-"use client";
-
-import { LucideIcon } from "lucide-react";
+import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -12,7 +10,7 @@ interface DataCardProps {
     value: number;
     isPositive: boolean;
   };
-  icon: LucideIcon;
+  icon: ReactNode;
   className?: string;
 }
 
@@ -21,7 +19,7 @@ export function DataCard({
   value,
   description,
   trend,
-  icon: Icon,
+  icon,
   className,
 }: DataCardProps) {
   return (
@@ -31,7 +29,7 @@ export function DataCard({
           {title}
         </CardTitle>
         <div className="h-8 w-8 rounded-full bg-slate-50 flex items-center justify-center border border-slate-100">
-          <Icon className="h-4 w-4 text-slate-700" />
+          {icon}
         </div>
       </CardHeader>
       <CardContent>

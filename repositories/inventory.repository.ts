@@ -172,4 +172,100 @@ export class InventoryRepository {
       notes: `Adjusted from ${inv.quantity_available} to ${newAvailable}`
     });
   }
+
+  /**
+   * Get stock movements (paginated)
+   */
+  async getMovements(page: number = 1, limit: number = 20, warehouseId?: string, variantId?: string): Promise<{ data: InventoryMovement[], total: number }> {
+    const supabase = this.getAdminClient();
+    const from = (page - 1) * limit;
+    const to = from + limit - 1;
+
+    let query = supabase.from('stock_movements').select('*', { count: 'exact' });
+    if (warehouseId) query = query.eq('warehouse_id', warehouseId);
+    if (variantId) query = query.eq('variant_id', variantId);
+
+    const { data, error, count } = await query.order('created_at', { ascending: false }).range(from, to);
+    if (error) throw new Error(`Failed to fetch movements: ${error.message}`);
+
+    return {
+      data: (data ?? []) as InventoryMovement[],
+      total: count ?? 0
+    };
+  }
+
+  /**
+   * Transfer stock between warehouses
+   */
+  async transferStock(variantId: string, fromWarehouseId: string, toWarehouseId: string, quantity: number, reason: string, notes?: string): Promise<void> {
+    const supabase = this.getAdminClient();
+    
+    // Check if sufficient stock in fromWarehouseId
+    const { data: fromStock, error: fetchError } = await supabase
+      .from('inventory_levels')
+      .select('id, quantity_available')
+      .eq('variant_id', variantId)
+      .eq('warehouse_id', fromWarehouseId)
+      .single();
+
+    if (fetchError || !fromStock) throw new Error(`Inventory not found in source warehouse`);
+    if (fromStock.quantity_available < quantity) throw new Error(`Insufficient stock in source warehouse`);
+
+    // Check if toWarehouseId has inventory record, if not, create it
+    const { data: toStock, error: fetchToError } = await supabase
+      .from('inventory_levels')
+      .select('id, quantity_available')
+      .eq('variant_id', variantId)
+      .eq('warehouse_id', toWarehouseId)
+      .maybeSingle();
+
+    if (fetchToError) throw new Error(`Error fetching destination inventory: ${fetchToError.message}`);
+
+    // Update fromWarehouseId
+    const { error: updateFromError } = await supabase
+      .from('inventory_levels')
+      .update({ quantity_available: fromStock.quantity_available - quantity })
+      .eq('id', fromStock.id);
+
+    if (updateFromError) throw new Error(`Failed to deduct from source: ${updateFromError.message}`);
+
+    // Update or Insert toWarehouseId
+    if (toStock) {
+      const { error: updateToError } = await supabase
+        .from('inventory_levels')
+        .update({ quantity_available: toStock.quantity_available + quantity })
+        .eq('id', toStock.id);
+      if (updateToError) throw new Error(`Failed to add to destination: ${updateToError.message}`);
+    } else {
+      const { error: insertToError } = await supabase
+        .from('inventory_levels')
+        .insert({
+          variant_id: variantId,
+          warehouse_id: toWarehouseId,
+          quantity_available: quantity
+        });
+      if (insertToError) throw new Error(`Failed to insert to destination: ${insertToError.message}`);
+    }
+
+    // Record movement out
+    await this.recordMovement({
+      variant_id: variantId,
+      warehouse_id: fromWarehouseId,
+      movement_type: 'TRANSFER',
+      quantity: -quantity,
+      to_warehouse_id: toWarehouseId,
+      reason_code: reason,
+      notes: notes || `Transferred to warehouse ${toWarehouseId}`
+    });
+
+    // Record movement in
+    await this.recordMovement({
+      variant_id: variantId,
+      warehouse_id: toWarehouseId,
+      movement_type: 'TRANSFER',
+      quantity: quantity,
+      reason_code: reason,
+      notes: notes || `Received from warehouse ${fromWarehouseId}`
+    });
+  }
 }

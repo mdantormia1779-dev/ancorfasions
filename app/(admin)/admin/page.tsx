@@ -64,28 +64,28 @@ export default async function AdminDashboardPage() {
           value={formatCurrency(kpis.revenue.value)}
           trend={kpis.revenue.trend}
           description="vs last 7 days"
-          icon={DollarSign}
+          icon={<DollarSign className="h-4 w-4 text-slate-700" />}
         />
         <DataCard
           title="Total Orders"
           value={kpis.orders.value.toLocaleString()}
           trend={kpis.orders.trend}
           description="vs last 7 days"
-          icon={ShoppingBag}
+          icon={<ShoppingBag className="h-4 w-4 text-slate-700" />}
         />
         <DataCard
           title="Average Order Value"
           value={formatCurrency(kpis.aov.value)}
           trend={kpis.aov.trend}
           description="vs last 7 days"
-          icon={CreditCard}
+          icon={<CreditCard className="h-4 w-4 text-slate-700" />}
         />
         <DataCard
           title="New Customers"
           value={kpis.newCustomers.value.toLocaleString()}
           trend={kpis.newCustomers.trend}
           description="vs last 7 days"
-          icon={UserPlus}
+          icon={<UserPlus className="h-4 w-4 text-slate-700" />}
         />
       </div>
 

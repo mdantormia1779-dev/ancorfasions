@@ -99,9 +99,12 @@ export class ShippingService {
     // Reduce stock when shipped
     if (status === 'in_transit') {
       const { InventoryService } = require('@/services/inventory.service');
+      const { WarehouseService } = require('@/services/warehouse.service');
       const inventoryService = new InventoryService();
-      // Dummy warehouse ID
-      const warehouseId = '00000000-0000-0000-0000-000000000001';
+      const warehouseService = new WarehouseService();
+      
+      const defaultWarehouse = await warehouseService.getDefaultWarehouse();
+      const warehouseId = defaultWarehouse?.id || '00000000-0000-0000-0000-000000000001';
       
       for (const item of shipment.items || []) {
         try {

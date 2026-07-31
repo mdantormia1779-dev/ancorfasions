@@ -1,61 +1,79 @@
 import { Metadata } from 'next';
-import { AnalyticsService } from '@/services/analytics.service';
+import { Users, UserPlus, UserCheck, Activity } from 'lucide-react';
 import { StatCard } from '@/features/analytics/components/StatCard';
 import { AnalyticsFilters } from '@/features/analytics/components/AnalyticsFilters';
-import { SalesTrendChart } from '@/features/analytics/components/Charts';
+import { SalesTrendChart, SimplePieChart } from '@/features/analytics/components/Charts';
+import { getCustomerAnalyticsAction } from '@/app/actions/analytics/dashboard.actions';
 import { subDays } from 'date-fns';
-import { Users, UserPlus, HeartHandshake } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Customer Analytics | Anchor Fashion',
+  title: 'Customer Analytics | Anchor Fashion Analytics',
+  description: 'Customer demographics and retention analytics',
 };
 
 export const dynamic = 'force-dynamic';
 
-export default async function CustomerAnalyticsPage({ searchParams }: { searchParams: { from?: string; to?: string } }) {
-  const from = searchParams.from ? new Date(searchParams.from) : subDays(new Date(), 30);
-  const to = searchParams.to ? new Date(searchParams.to) : new Date();
+export default async function CustomerAnalyticsPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
+  const resolvedSearchParams = await searchParams;
+  const from = resolvedSearchParams.from ? new Date(resolvedSearchParams.from) : subDays(new Date(), 30);
+  const to = resolvedSearchParams.to ? new Date(resolvedSearchParams.to) : new Date();
   
-  const customerAnalytics = await AnalyticsService.getCustomerAnalytics({ from, to });
-  
-  const newCustomers = customerAnalytics.customerGrowth.reduce((acc, curr) => acc + curr.customers, 0);
+  const { data: customers, error } = await getCustomerAnalyticsAction({ from, to });
+
+  if (error || !customers) {
+    return <div className="p-8 text-red-500">Failed to load customer analytics: {error}</div>;
+  }
+
+  const mappedGrowth = customers.customerGrowth.map((c: any) => ({
+    date: c.date,
+    revenue: c.customers // reusing the revenue chart for customer growth trend
+  }));
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Customer Analytics</h1>
-        <p className="text-muted-foreground">
-          Analyze customer growth, retention, and lifetime value.
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Customer Analytics</h1>
+          <p className="text-muted-foreground">
+            Retention, lifetime value, and segmentation.
+          </p>
+        </div>
       </div>
       
       <AnalyticsFilters />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Total Customers" 
-          value={customerAnalytics.totalCustomers.toLocaleString()}
+          value={customers.totalCustomers.toLocaleString()}
           icon={<Users className="w-4 h-4" />}
         />
         <StatCard 
           title="New Customers" 
-          value={newCustomers.toLocaleString()}
-          icon={<UserPlus className="w-4 h-4" />}
-          trend={8.4}
+          value={customers.newCustomers.toLocaleString()}
+          icon={<UserPlus className="w-4 h-4 text-emerald-500" />}
         />
         <StatCard 
-          title="Returning Rate" 
-          value="42.5%"
-          icon={<HeartHandshake className="w-4 h-4" />}
-          trend={1.2} 
+          title="Returning Customers" 
+          value={customers.returningCustomers.toLocaleString()}
+          icon={<UserCheck className="w-4 h-4 text-blue-500" />}
+        />
+        <StatCard 
+          title="Average LTV" 
+          value={`$${customers.averageLifetimeValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          icon={<Activity className="w-4 h-4" />}
         />
       </div>
-
-      <div className="grid gap-4 md:grid-cols-1">
+      
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2 mt-6">
         <SalesTrendChart 
           title="Customer Growth" 
-          description="New customer acquisitions over time"
-          data={customerAnalytics.customerGrowth.map(c => ({ date: c.date, revenue: c.customers }))}
+          description="New registrations over time"
+          data={mappedGrowth}
+        />
+        <SimplePieChart 
+          title="Customer Segmentation" 
+          data={customers.customerSegments}
         />
       </div>
     </div>

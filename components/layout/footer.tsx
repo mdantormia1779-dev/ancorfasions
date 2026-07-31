@@ -76,12 +76,12 @@ export function Footer() {
           <div>
             <h4 className="font-medium mb-6 uppercase tracking-widest text-sm">Shop</h4>
             <ul className="space-y-4 text-sm text-zinc-400">
-              <li><Link href="/women" className="hover:text-white transition-colors">Women's Collection</Link></li>
-              <li><Link href="/men" className="hover:text-white transition-colors">Men's Collection</Link></li>
-              <li><Link href="/kids" className="hover:text-white transition-colors">Kids & Baby</Link></li>
-              <li><Link href="/accessories" className="hover:text-white transition-colors">Accessories</Link></li>
-              <li><Link href="/new-arrivals" className="hover:text-white transition-colors">New Arrivals</Link></li>
-              <li><Link href="/sale" className="text-red-400 hover:text-red-300 transition-colors">Special Offers</Link></li>
+              <li><Link href="/categories/women" className="hover:text-white transition-colors">Women's Collection</Link></li>
+              <li><Link href="/categories/men" className="hover:text-white transition-colors">Men's Collection</Link></li>
+              <li><Link href="/categories" className="hover:text-white transition-colors">Kids & Baby</Link></li>
+              <li><Link href="/categories/accessories" className="hover:text-white transition-colors">Accessories</Link></li>
+              <li><Link href="/products?sort=newest" className="hover:text-white transition-colors">New Arrivals</Link></li>
+              <li><Link href="/categories/sale" className="text-red-400 hover:text-red-300 transition-colors">Special Offers</Link></li>
             </ul>
           </div>
 
@@ -91,9 +91,9 @@ export function Footer() {
             <ul className="space-y-4 text-sm text-zinc-400">
               <li><Link href="/account" className="hover:text-white transition-colors">My Account</Link></li>
               <li><Link href="/track" className="hover:text-white transition-colors">Track Order</Link></li>
-              <li><Link href="/shipping" className="hover:text-white transition-colors">Shipping & Delivery</Link></li>
-              <li><Link href="/returns" className="hover:text-white transition-colors">Returns & Exchanges</Link></li>
-              <li><Link href="/faq" className="hover:text-white transition-colors">FAQs</Link></li>
+              <li><Link href="/contact" className="hover:text-white transition-colors">Shipping & Delivery</Link></li>
+              <li><Link href="/contact" className="hover:text-white transition-colors">Returns & Exchanges</Link></li>
+              <li><Link href="/contact" className="hover:text-white transition-colors">FAQs</Link></li>
               <li><Link href="/contact" className="hover:text-white transition-colors">Contact Us</Link></li>
             </ul>
           </div>
@@ -103,8 +103,8 @@ export function Footer() {
             <h4 className="font-medium mb-6 uppercase tracking-widest text-sm">Company</h4>
             <ul className="space-y-4 text-sm text-zinc-400">
               <li><Link href="/about" className="hover:text-white transition-colors">About Anchor</Link></li>
-              <li><Link href="/careers" className="hover:text-white transition-colors">Careers</Link></li>
-              <li><Link href="/stores" className="hover:text-white transition-colors">Store Locator</Link></li>
+              <li><Link href="/contact" className="hover:text-white transition-colors">Careers</Link></li>
+              <li><Link href="/contact" className="hover:text-white transition-colors">Store Locator</Link></li>
               <li><Link href="/privacy" className="hover:text-white transition-colors">Privacy Policy</Link></li>
               <li><Link href="/terms" className="hover:text-white transition-colors">Terms & Conditions</Link></li>
             </ul>

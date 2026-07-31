@@ -97,7 +97,7 @@ export function ForgotPasswordForm() {
       </Form>
       <div className="text-center text-sm">
         Remember your password?{" "}
-        <Link href="/login" className="font-medium text-primary hover:underline">
+        <Link href="/auth/login" className="font-medium text-primary hover:underline">
           Sign in
         </Link>
       </div>

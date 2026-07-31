@@ -131,10 +131,94 @@ export async function fetchAccountSummaryAction() {
         currency: walletRes.data?.currency || 'BDT',
         loyaltyPoints: loyaltyRes.data?.points_balance || 0,
         loyaltyTier: loyaltyRes.data?.tier || 'MEMBER',
-        supportTickets: 0 // Mocked for now, can be connected to support_tickets if needed
+        supportTickets: 0 // Can be replaced by actual count
       }
     };
   } catch (error: any) {
     return { success: false, error: error.message };
   }
 }
+
+export async function deleteAddressAction(id: string) {
+  try {
+    const userId = await getUserId();
+    await customerService.deleteAddress(id, userId);
+    revalidatePath('/account/addresses');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+// --- Customer Portal Actions ---
+
+export async function fetchReviewsAction() {
+  try {
+    const userId = await getUserId();
+    const reviews = await customerService.getReviews(userId);
+    return { success: true, data: reviews };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function fetchTicketsAction() {
+  try {
+    const userId = await getUserId();
+    const tickets = await customerService.getTickets(userId);
+    return { success: true, data: tickets };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function createTicketAction(formData: FormData) {
+  try {
+    const userId = await getUserId();
+    const subject = formData.get('subject') as string;
+    const description = formData.get('description') as string;
+    
+    await customerService.createTicket(userId, {
+      subject,
+      description,
+      status: 'OPEN',
+      priority: 'NORMAL'
+    });
+    
+    revalidatePath('/account/support');
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function fetchTicketDetailsAction(ticketId: string) {
+  try {
+    const userId = await getUserId();
+    const ticket = await customerService.getTicketDetails(ticketId, userId);
+    return { success: true, data: ticket };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function fetchLoginHistoryAction() {
+  try {
+    const userId = await getUserId();
+    const history = await customerService.getLoginHistory(userId);
+    return { success: true, data: history };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function fetchActiveSessionsAction() {
+  try {
+    const userId = await getUserId();
+    const sessions = await customerService.getActiveSessions(userId);
+    return { success: true, data: sessions };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+

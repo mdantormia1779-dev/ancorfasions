@@ -1,58 +1,82 @@
 import { Metadata } from 'next';
-import { AnalyticsService } from '@/services/analytics.service';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { DollarSign, CreditCard, Truck, ListFilter } from 'lucide-react';
 import { StatCard } from '@/features/analytics/components/StatCard';
 import { AnalyticsFilters } from '@/features/analytics/components/AnalyticsFilters';
-import { SalesTrendChart } from '@/features/analytics/components/Charts';
+import { SalesTrendChart, SimplePieChart, StatusDistributionChart } from '@/features/analytics/components/Charts';
+import { getSalesAnalyticsAction } from '@/app/actions/analytics/dashboard.actions';
 import { subDays } from 'date-fns';
-import { BarChart3, TrendingUp, DollarSign } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Sales Analytics | Anchor Fashion',
+  title: 'Sales Analytics | Anchor Fashion Analytics',
+  description: 'Deep dive into sales performance',
 };
 
 export const dynamic = 'force-dynamic';
 
-export default async function SalesAnalyticsPage({ searchParams }: { searchParams: { from?: string; to?: string } }) {
-  const from = searchParams.from ? new Date(searchParams.from) : subDays(new Date(), 30);
-  const to = searchParams.to ? new Date(searchParams.to) : new Date();
+export default async function SalesAnalyticsPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
+  const resolvedSearchParams = await searchParams;
+  const from = resolvedSearchParams.from ? new Date(resolvedSearchParams.from) : subDays(new Date(), 30);
+  const to = resolvedSearchParams.to ? new Date(resolvedSearchParams.to) : new Date();
   
-  const salesAnalytics = await AnalyticsService.getSalesAnalytics({ from, to });
+  const { data: sales, error } = await getSalesAnalyticsAction({ from, to });
+
+  if (error || !sales) {
+    return <div className="p-8 text-red-500">Failed to load sales analytics: {error}</div>;
+  }
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Sales Analytics</h1>
-        <p className="text-muted-foreground">
-          Detailed breakdown of revenue and sales trends.
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Sales Analytics</h1>
+          <p className="text-muted-foreground">
+            Revenue breakdowns, payment methods, and category trends.
+          </p>
+        </div>
       </div>
       
       <AnalyticsFilters />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
           title="Total Sales" 
-          value={`$${salesAnalytics.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={`$${sales.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={<DollarSign className="w-4 h-4" />}
         />
         <StatCard 
-          title="Average Daily Sales" 
-          value={`$${(salesAnalytics.totalSales / (salesAnalytics.dailySales.length || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon={<BarChart3 className="w-4 h-4" />}
+          title="Daily Average" 
+          value={`$${(sales.totalSales / (sales.dailySales.length || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          icon={<DollarSign className="w-4 h-4" />}
         />
         <StatCard 
-          title="Growth Rate" 
-          value={`+12.5%`}
-          icon={<TrendingUp className="w-4 h-4" />}
-          trend={12.5}
+          title="Top Payment Method" 
+          value={sales.paymentMethodSales.length > 0 ? sales.paymentMethodSales.sort((a,b)=>b.value-a.value)[0].name : 'N/A'}
+          icon={<CreditCard className="w-4 h-4" />}
+        />
+        <StatCard 
+          title="Top Shipping Method" 
+          value={sales.shippingMethodSales.length > 0 ? sales.shippingMethodSales.sort((a,b)=>b.value-a.value)[0].name : 'N/A'}
+          icon={<Truck className="w-4 h-4" />}
+        />
+      </div>
+      
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1 mt-6">
+        <SalesTrendChart 
+          title="Sales Trend" 
+          description="Daily sales performance"
+          data={sales.dailySales}
         />
       </div>
 
-      <div className="grid gap-4 md:grid-cols-1">
-        <SalesTrendChart 
-          title="Sales Trend" 
-          description="Revenue over the selected time period"
-          data={salesAnalytics.dailySales}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2 mt-6">
+        <SimplePieChart 
+          title="Sales by Payment Method" 
+          data={sales.paymentMethodSales}
+        />
+        <SimplePieChart 
+          title="Sales by Shipping Method" 
+          data={sales.shippingMethodSales}
         />
       </div>
     </div>

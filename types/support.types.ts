@@ -21,6 +21,11 @@ export interface SupportAgent {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  auth_users?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+  };
 }
 
 export interface SLAPolicy {
@@ -54,6 +59,13 @@ export interface SupportTicket {
   closed_at?: string;
   created_at: string;
   updated_at: string;
+  customer_profiles?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    phone?: string;
+  };
+  ticket_messages?: TicketMessage[];
 }
 
 export interface TicketAssignment {

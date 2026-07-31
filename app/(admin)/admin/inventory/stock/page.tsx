@@ -46,6 +46,8 @@ export default async function StockControlPage() {
                 <TableHead>Warehouse</TableHead>
                 <TableHead className="text-right">Available</TableHead>
                 <TableHead className="text-right">Reserved</TableHead>
+                <TableHead className="text-right">Damaged</TableHead>
+                <TableHead className="text-right">Returned</TableHead>
                 <TableHead className="text-right">Incoming</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -66,6 +68,8 @@ export default async function StockControlPage() {
                   <TableCell>{item.warehouses?.name || 'N/A'}</TableCell>
                   <TableCell className="text-right font-semibold">{item.quantity_available}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{item.quantity_reserved}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{item.quantity_damaged}</TableCell>
+                  <TableCell className="text-right text-muted-foreground">{item.quantity_returned}</TableCell>
                   <TableCell className="text-right text-muted-foreground">{item.quantity_incoming}</TableCell>
                   <TableCell className="text-right">
                     <Button variant="outline" size="sm">Adjust</Button>
@@ -74,7 +78,7 @@ export default async function StockControlPage() {
               ))}
               {(!inventory || inventory.length === 0) && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-6 text-muted-foreground">
+                  <TableCell colSpan={9} className="text-center py-6 text-muted-foreground">
                     No inventory records found.
                   </TableCell>
                 </TableRow>

@@ -1,56 +1,76 @@
 import { Metadata } from 'next';
-import { AnalyticsService } from '@/services/analytics.service';
+import { Megaphone, Mail, Percent, Tag } from 'lucide-react';
 import { StatCard } from '@/features/analytics/components/StatCard';
 import { AnalyticsFilters } from '@/features/analytics/components/AnalyticsFilters';
+import { StatusDistributionChart } from '@/features/analytics/components/Charts';
+import { getMarketingAnalyticsAction } from '@/app/actions/analytics/dashboard.actions';
 import { subDays } from 'date-fns';
-import { Megaphone, TicketPercent, Coins } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Marketing Analytics | Anchor Fashion',
+  title: 'Marketing Analytics | Anchor Fashion Analytics',
+  description: 'Campaigns, coupons, and conversion tracking',
 };
 
 export const dynamic = 'force-dynamic';
 
-export default async function MarketingAnalyticsPage({ searchParams }: { searchParams: { from?: string; to?: string } }) {
-  const from = searchParams.from ? new Date(searchParams.from) : subDays(new Date(), 30);
-  const to = searchParams.to ? new Date(searchParams.to) : new Date();
+export default async function MarketingAnalyticsPage({ searchParams }: { searchParams: Promise<{ from?: string; to?: string }> }) {
+  const resolvedSearchParams = await searchParams;
+  const from = resolvedSearchParams.from ? new Date(resolvedSearchParams.from) : subDays(new Date(), 30);
+  const to = resolvedSearchParams.to ? new Date(resolvedSearchParams.to) : new Date();
   
-  const marketingAnalytics = await AnalyticsService.getMarketingAnalytics({ from, to });
+  const { data: marketing, error } = await getMarketingAnalyticsAction({ from, to });
+
+  if (error || !marketing) {
+    return <div className="p-8 text-red-500">Failed to load marketing analytics: {error}</div>;
+  }
+
+  const formattedCoupons = marketing.topCoupons.map((c: any) => ({
+    name: c.code,
+    value: c.uses
+  }));
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Marketing Analytics</h1>
-        <p className="text-muted-foreground">
-          Track campaign performance and coupon usage.
-        </p>
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Marketing Analytics</h1>
+          <p className="text-muted-foreground">
+            Campaign performance, ROI, and customer engagement.
+          </p>
+        </div>
       </div>
       
       <AnalyticsFilters />
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
-          title="Active Campaigns" 
-          value="4"
-          icon={<Megaphone className="w-4 h-4" />}
-          description="Currently running marketing campaigns"
+          title="Conversion Rate" 
+          value={`${marketing.conversionRate}%`}
+          icon={<Percent className="w-4 h-4" />}
         />
         <StatCard 
           title="Coupons Redeemed" 
-          value={marketingAnalytics.couponsUsed.toLocaleString()}
-          icon={<TicketPercent className="w-4 h-4" />}
-          trend={5.2}
+          value={marketing.couponsUsed.toLocaleString()}
+          icon={<Tag className="w-4 h-4" />}
         />
         <StatCard 
-          title="Total Discount Given" 
-          value={`$${marketingAnalytics.totalDiscountGiven.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon={<Coins className="w-4 h-4" />}
+          title="Discount Given" 
+          value={`$${marketing.totalDiscountGiven.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          icon={<Tag className="w-4 h-4 text-red-500" />}
+        />
+        <StatCard 
+          title="Newsletter Subs" 
+          value={marketing.newsletterSubscribers.toLocaleString()}
+          icon={<Mail className="w-4 h-4" />}
         />
       </div>
-
-      <div className="mt-8 p-8 border rounded-lg bg-muted/20 text-center">
-        <h3 className="text-lg font-medium mb-2">Campaign Performance Chart</h3>
-        <p className="text-muted-foreground text-sm">More detailed campaign metrics will be available in the next sprint.</p>
+      
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-1 mt-6">
+        <StatusDistributionChart 
+          title="Top Performing Coupons" 
+          description="Most used coupon codes during the selected period"
+          data={formattedCoupons}
+        />
       </div>
     </div>
   );

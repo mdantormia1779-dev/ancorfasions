@@ -1,65 +1,149 @@
 import { Metadata } from 'next';
-import { AnalyticsService } from '@/services/analytics.service';
+import { Package, AlertTriangle, XCircle, TrendingUp } from 'lucide-react';
 import { StatCard } from '@/features/analytics/components/StatCard';
 import { SimplePieChart } from '@/features/analytics/components/Charts';
-import { Package, PackageMinus, PackageX } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { RefreshCwIcon } from 'lucide-react';
+import { getProductAnalyticsAction } from '@/app/actions/analytics/dashboard.actions';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 export const metadata: Metadata = {
-  title: 'Inventory Analytics | Anchor Fashion',
+  title: 'Inventory Analytics | Anchor Fashion Analytics',
+  description: 'Product performance and inventory tracking',
 };
 
 export const dynamic = 'force-dynamic';
 
 export default async function InventoryAnalyticsPage() {
-  const inventoryAnalytics = await AnalyticsService.getInventoryAnalytics();
-  
-  const inStock = inventoryAnalytics.stockLevels.find(s => s.name === 'In Stock')?.value || 0;
-  const lowStock = inventoryAnalytics.stockLevels.find(s => s.name === 'Low Stock')?.value || 0;
-  const outOfStock = inventoryAnalytics.stockLevels.find(s => s.name === 'Out of Stock')?.value || 0;
+  const { data: analytics, error } = await getProductAnalyticsAction();
+
+  if (error || !analytics) {
+    return <div className="p-8 text-red-500">Failed to load inventory analytics: {error}</div>;
+  }
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center mb-6">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Inventory Analytics</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Product & Inventory Analytics</h1>
           <p className="text-muted-foreground">
-            Monitor stock levels, turnover, and forecasting.
+            Stock levels, top-performing products, and inventory health.
           </p>
         </div>
-        <Button variant="outline" size="icon">
-          <RefreshCwIcon className="h-4 w-4" />
-        </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard 
-          title="Healthy Stock Items" 
-          value={inStock.toLocaleString()}
+          title="Total Inventory Items" 
+          value={analytics.totalItems.toLocaleString()}
           icon={<Package className="w-4 h-4" />}
-          description="Items well above reorder point"
         />
         <StatCard 
-          title="Low Stock Items" 
-          value={lowStock.toLocaleString()}
-          icon={<PackageMinus className="w-4 h-4" />}
-          description="Items needing immediate reorder"
+          title="In Stock" 
+          value={analytics.stockLevels.find((s: any) => s.name === 'In Stock')?.value.toLocaleString() || '0'}
+          icon={<TrendingUp className="w-4 h-4 text-emerald-500" />}
         />
         <StatCard 
-          title="Out of Stock Items" 
-          value={outOfStock.toLocaleString()}
-          icon={<PackageX className="w-4 h-4" />}
-          description="Items completely depleted"
+          title="Low Stock" 
+          value={analytics.lowStockProducts.toLocaleString()}
+          icon={<AlertTriangle className="w-4 h-4 text-amber-500" />}
+        />
+        <StatCard 
+          title="Out of Stock" 
+          value={analytics.outOfStockProducts.toLocaleString()}
+          icon={<XCircle className="w-4 h-4 text-red-500" />}
         />
       </div>
-
-      <div className="grid gap-4 md:grid-cols-2">
+      
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-3 mt-6">
         <SimplePieChart 
-          title="Stock Level Distribution" 
-          description="Overview of current inventory health"
-          data={inventoryAnalytics.stockLevels}
+          title="Stock Distribution" 
+          className="col-span-1"
+          data={analytics.stockLevels}
         />
+        
+        <Card className="col-span-2">
+          <CardHeader>
+            <CardTitle>Top Best Sellers</CardTitle>
+            <CardDescription>Highest revenue generating products</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product Name</TableHead>
+                  <TableHead className="text-right">Qty Sold</TableHead>
+                  <TableHead className="text-right">Revenue</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {analytics.bestSellers.map((item: any) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell className="text-right">{item.quantitySold}</TableCell>
+                    <TableCell className="text-right">${item.revenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</TableCell>
+                  </TableRow>
+                ))}
+                {analytics.bestSellers.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={3} className="text-center text-muted-foreground py-4">No sales data available</TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2 mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Most Viewed Products</CardTitle>
+            <CardDescription>Products with the highest traffic</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product Name</TableHead>
+                  <TableHead className="text-right">Views</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {analytics.mostViewedProducts.map((item: any) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell className="text-right">{item.views?.toLocaleString() || 0}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
+        
+        <Card>
+          <CardHeader>
+            <CardTitle>Worst Sellers</CardTitle>
+            <CardDescription>Products with the lowest sales volume</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product Name</TableHead>
+                  <TableHead className="text-right">Qty Sold</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {analytics.worstSellers.map((item: any) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell className="text-right">{item.quantitySold}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

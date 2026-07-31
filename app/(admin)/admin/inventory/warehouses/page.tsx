@@ -2,16 +2,17 @@ import { Metadata } from 'next';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { createClient } from '@/lib/supabase/server';
-import { Plus } from 'lucide-react';
+import { Plus, Eye } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { getAllWarehouses } from '@/actions/warehouse.actions';
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: 'Warehouse Management | Anchor Fashion',
 };
 
 export default async function WarehousesPage() {
-  const supabase = await createClient();
-  const { data: warehouses } = await supabase.from('warehouses').select('*').order('name');
+  const { data: warehouses } = await getAllWarehouses();
 
   return (
     <div className="space-y-6">
@@ -43,10 +44,15 @@ export default async function WarehousesPage() {
               {warehouses?.map((wh) => (
                 <TableRow key={wh.id}>
                   <TableCell className="font-medium">{wh.name}</TableCell>
-                  <TableCell>{wh.location || 'N/A'}</TableCell>
+                  <TableCell>{wh.type || 'N/A'}</TableCell>
                   <TableCell>{wh.is_active ? 'Active' : 'Inactive'}</TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm">Manage Zones</Button>
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/admin/inventory/warehouses/${wh.id}`}>
+                        <Eye className="w-4 h-4 mr-2" />
+                        View
+                      </Link>
+                    </Button>
                   </TableCell>
                 </TableRow>
               ))}
