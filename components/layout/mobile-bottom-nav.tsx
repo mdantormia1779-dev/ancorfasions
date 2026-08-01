@@ -49,9 +49,9 @@ export function MobileBottomNav({ user }: { user: any }) {
 
         {/* Profile Tab */}
         <Link
-          href={user ? "/account/profile" : "/login"}
+          href={user ? "/account/profile" : "/auth/login"}
           className={`group inline-flex flex-col items-center justify-center px-5 transition-colors hover:bg-gray-50 ${
-            pathname.includes("/account") || pathname === "/login"
+            pathname.includes("/account") || pathname === "/auth/login"
               ? "text-primary"
               : "text-gray-500 hover:text-gray-900"
           }`}
@@ -66,9 +66,9 @@ export function MobileBottomNav({ user }: { user: any }) {
           ) : (
             <User
               className={`mb-1 h-5 w-5 ${
-                pathname === "/login" ? "fill-primary text-primary" : ""
+                pathname === "/auth/login" ? "fill-primary text-primary" : ""
               }`}
-              strokeWidth={pathname === "/login" ? 2.5 : 2}
+              strokeWidth={pathname === "/auth/login" ? 2.5 : 2}
             />
           )}
           <span className="text-[10px] uppercase tracking-wide">

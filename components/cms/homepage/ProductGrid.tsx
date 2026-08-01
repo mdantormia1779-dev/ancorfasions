@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface ProductGridProps {
   title: string;
@@ -58,10 +59,12 @@ export function ProductGrid({ title, products = [] }: ProductGridProps) {
         {displayProducts.map((product) => (
           <div key={product.id} className="group relative flex flex-col">
             <div className="relative mb-4 aspect-[4/5] overflow-hidden bg-gray-100">
-              <img
+              <Image
                 src={product.image}
                 alt={product.name}
-                className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+                fill
+                sizes="(max-width: 640px) 50vw, (max-width: 768px) 33vw, 25vw"
+                className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
               />
               {/* Quick Add overlay */}
               <div className="absolute inset-x-0 bottom-0 flex justify-center bg-gradient-to-t from-black/50 to-transparent p-4 opacity-0 transition-opacity duration-300 group-hover:opacity-100">

@@ -301,25 +301,25 @@ export function Footer() {
           {/* Social Media */}
           <div className="flex gap-4">
             <Link
-              href="#"
+              href="/"
               className="rounded-full bg-white/10 p-2 transition-colors hover:bg-primary hover:text-white"
             >
               <span className="sr-only">Facebook</span>
             </Link>
             <Link
-              href="#"
+              href="/"
               className="rounded-full bg-white/10 p-2 transition-colors hover:bg-primary hover:text-white"
             >
               <span className="sr-only">Instagram</span>
             </Link>
             <Link
-              href="#"
+              href="/"
               className="rounded-full bg-white/10 p-2 transition-colors hover:bg-primary hover:text-white"
             >
               <span className="sr-only">Twitter</span>
             </Link>
             <Link
-              href="#"
+              href="/"
               className="rounded-full bg-white/10 p-2 transition-colors hover:bg-primary hover:text-white"
             >
               <span className="sr-only">Youtube</span>

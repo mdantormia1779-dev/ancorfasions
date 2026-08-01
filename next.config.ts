@@ -1,6 +1,8 @@
 import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
 
+process.env.SERWIST_SUPPRESS_TURBOPACK_WARNING = "1";
+
 const withSerwist = withSerwistInit({
   swSrc: "app/sw.ts",
   swDest: "public/sw.js",
@@ -43,15 +45,14 @@ const nextConfig: NextConfig = {
           },
         ],
       },
-      {
-        source: "/_next/image(.*)",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "public, max-age=31536000, immutable",
-          },
-        ],
-      },
+
+    ];
+  },
+  async redirects() {
+    return [
+      { source: "/shop", destination: "/products", permanent: true },
+      { source: "/customer", destination: "/account", permanent: true },
+      { source: "/orders", destination: "/account/orders", permanent: true },
     ];
   },
 };

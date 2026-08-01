@@ -72,6 +72,7 @@ export function ExploreCollections({ categories }: { categories: Category[] }) {
                   src={category.icon_url || placeholders[index]}
                   alt={category.name}
                   fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
                   className="object-cover transition-transform ease-out [transition-duration:10000ms] group-hover:scale-110"
                 />
               </Link>

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Heart, ShoppingBag } from "lucide-react";
 import { Product } from "@/types/product";
 import { Button } from "@/components/ui/button";
@@ -25,10 +26,12 @@ export function ProductCard({ product }: ProductCardProps) {
         >
           <span className="sr-only">View {product.name}</span>
         </Link>
-        <img
+        <Image
           src={product.thumbnail}
           alt={product.name}
-          className="h-full w-full object-cover object-center transition-transform duration-500 group-hover:scale-105"
+          fill
+          className="object-cover object-center transition-transform duration-500 group-hover:scale-105"
+          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
         />
 
         {/* Badges */}

@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import Image from "next/image";
 
 export const metadata: Metadata = {
   title: "Categories | Anchor Fashion",
@@ -51,10 +52,12 @@ export default function CategoriesPage() {
             className="group relative block overflow-hidden rounded-lg"
           >
             <div className="aspect-[4/5]">
-              <img
+              <Image
                 src={category.image}
                 alt={category.name}
-                className="absolute inset-0 h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+                fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
+                className="object-cover transition-transform duration-500 group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-black/30 transition-colors group-hover:bg-black/40" />
               <div className="absolute inset-0 flex flex-col items-center justify-center text-white">

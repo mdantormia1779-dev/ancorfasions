@@ -301,7 +301,7 @@ export function StoreHeader({
 
             {/* Account */}
             <Link
-              href={user ? "/account/profile" : "/login"}
+              href={user ? "/account/profile" : "/auth/login"}
               className="p-2 text-gray-700 transition-colors hover:text-black"
               aria-label="Account"
             >

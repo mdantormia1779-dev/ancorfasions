@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { HomepageHero } from "@/types/cms";
 
 interface HeroSectionProps {
@@ -21,10 +22,13 @@ export function HeroSection({ data }: HeroSectionProps) {
             src={data.media_url}
           />
         ) : (
-          <img
+          <Image
             src={data.media_url}
             alt={data.headline || "Hero image"}
-            className="h-full w-full object-cover"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover"
           />
         )}
       </div>

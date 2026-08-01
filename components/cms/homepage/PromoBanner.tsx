@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { HomepagePromotion } from "@/types/cms";
 
 interface PromoBannerProps {
@@ -37,16 +38,22 @@ export function PromoBanner({ data }: PromoBannerProps) {
 
         {/* Media */}
         <div className="relative order-1 h-[300px] w-full md:order-2 md:h-[500px]">
-          <picture>
-            {data.image_mobile && (
-              <source media="(max-width: 768px)" srcSet={data.image_mobile} />
-            )}
-            <img
-              src={data.image_desktop}
+          {data.image_mobile && (
+            <Image
+              src={data.image_mobile}
               alt={data.title || "Promotional Banner"}
-              className="absolute inset-0 h-full w-full object-cover"
+              fill
+              sizes="(max-width: 768px) 100vw"
+              className="object-cover md:hidden"
             />
-          </picture>
+          )}
+          <Image
+            src={data.image_desktop}
+            alt={data.title || "Promotional Banner"}
+            fill
+            sizes="(max-width: 768px) 100vw, 50vw"
+            className={`object-cover ${data.image_mobile ? "hidden md:block" : ""}`}
+          />
         </div>
       </div>
     </section>

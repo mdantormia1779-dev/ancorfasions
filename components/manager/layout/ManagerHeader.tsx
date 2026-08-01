@@ -8,14 +8,32 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuGroup,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { ManagerSidebar } from "./ManagerSidebar";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 export function ManagerHeader() {
+  const router = useRouter();
+  const supabase = createClient();
+
+  async function handleLogout() {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast.error("Failed to log out. Please try again.");
+      return;
+    }
+    toast.success("Logged out successfully.");
+    router.push("/auth/login");
+    router.refresh();
+  }
+
   return (
     <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-muted/40 px-4 backdrop-blur-md lg:h-[60px] lg:px-6">
       <Sheet>
@@ -73,19 +91,28 @@ export function ManagerHeader() {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">Manager User</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  operations@anchorfashion.com
-                </p>
-              </div>
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">Manager User</p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    operations@anchorfashion.com
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Profile</DropdownMenuItem>
-            <DropdownMenuItem>Settings</DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/account/profile")}>
+              Profile
+            </DropdownMenuItem>
+            <DropdownMenuItem className="cursor-pointer">Settings</DropdownMenuItem>
             <DropdownMenuSeparator />
-            <DropdownMenuItem>Logout</DropdownMenuItem>
+            <DropdownMenuItem
+              className="cursor-pointer text-red-600 focus:bg-red-50 focus:text-red-600"
+              onClick={handleLogout}
+            >
+              Logout
+            </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
       </div>

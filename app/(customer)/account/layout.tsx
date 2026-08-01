@@ -12,7 +12,9 @@ import {
   Ticket,
   Star,
   Bell,
+  LogOut,
 } from "lucide-react";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 export const dynamic = "force-dynamic";
 
@@ -58,6 +60,10 @@ export default async function AccountLayout({
                 <span>{item.label}</span>
               </Link>
             ))}
+            
+            <div className="my-4 border-t border-slate-200"></div>
+            
+            <LogoutButton />
           </nav>
         </aside>
 

@@ -86,6 +86,7 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
                   src={imageUrl}
                   alt={slide.headline ?? `Banner ${index + 1}`}
                   fill
+                  sizes="100vw"
                   className={`object-cover object-center transition-transform ease-out [transition-duration:10s] ${
                     isActive ? "scale-105" : "scale-100"
                   }`}

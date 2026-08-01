@@ -1,11 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { CreateProductInput, Product } from "@/types/catalog.types";
+import { cache } from "react";
 
 export class ProductRepository {
   /**
    * Retrieves a paginated list of products with optional filtering.
    */
-  static async getProducts({
+  static getProducts = cache(async ({
     page = 1,
     limit = 20,
     search,
@@ -19,7 +20,7 @@ export class ProductRepository {
     categoryId?: string;
     brandId?: string;
     status?: string;
-  }) {
+  }) => {
     const supabase = await createClient();
     const offset = (page - 1) * limit;
 
@@ -63,12 +64,12 @@ export class ProductRepository {
       page,
       limit,
     };
-  }
+  });
 
   /**
    * Retrieves a single product by ID with all relationships.
    */
-  static async getProductById(id: string): Promise<Product | null> {
+  static getProductById = cache(async (id: string): Promise<Product | null> => {
     const supabase = await createClient();
 
     const { data, error } = await supabase
@@ -91,7 +92,7 @@ export class ProductRepository {
     }
 
     return data as unknown as Product;
-  }
+  });
 
   /**
    * Creates a new product along with SEO and tags.

@@ -26,12 +26,14 @@ import {
   Clock,
   Truck,
   MoreHorizontal,
+  Eye,
 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuGroup,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -215,8 +217,12 @@ export default function PurchaseOrdersPage() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>View Details</DropdownMenuItem>
+                        <DropdownMenuGroup>
+                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        </DropdownMenuGroup>
+                        <DropdownMenuItem>
+                          <Eye className="mr-2 h-4 w-4" /> View Details
+                        </DropdownMenuItem>
                         <DropdownMenuItem>Download PDF</DropdownMenuItem>
                         <DropdownMenuSeparator />
                         {po.status === "SENT" ||

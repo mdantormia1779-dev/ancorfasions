@@ -48,9 +48,9 @@ export function MegaMenu() {
             <ul className="grid gap-3 p-6 md:w-[400px] lg:w-[600px] lg:grid-cols-[.75fr_1fr]">
               <li className="row-span-3">
                 <NavigationMenuLink>
-                  <a
+                  <Link
                     className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
-                    href="/categories/women-featured"
+                    href="/products?collection=spring"
                   >
                     <div className="mb-2 mt-4 text-lg font-medium">
                       Spring Collection
@@ -59,7 +59,7 @@ export function MegaMenu() {
                       Discover the latest trends and essential pieces for the
                       new season.
                     </p>
-                  </a>
+                  </Link>
                 </NavigationMenuLink>
               </li>
               {components.map((component) => (
@@ -98,7 +98,7 @@ export function MegaMenu() {
         </NavigationMenuItem>
 
         <NavigationMenuItem>
-          <Link href="/collections/new-in" legacyBehavior passHref>
+          <Link href="/products?sort=newest" legacyBehavior passHref>
             <NavigationMenuLink
               className={cn(
                 navigationMenuTriggerStyle(),
@@ -111,7 +111,7 @@ export function MegaMenu() {
         </NavigationMenuItem>
 
         <NavigationMenuItem>
-          <Link href="/collections/sale" legacyBehavior passHref>
+          <Link href="/products?sale=true" legacyBehavior passHref>
             <NavigationMenuLink
               className={cn(
                 navigationMenuTriggerStyle(),

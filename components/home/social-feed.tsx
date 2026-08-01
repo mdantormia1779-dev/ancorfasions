@@ -20,7 +20,7 @@ export function SocialFeed() {
             </span>
           </div>
           <Link
-            href="#"
+            href="/"
             className="group flex items-center text-sm font-medium text-gray-900 transition-colors hover:text-primary"
           >
             View More on Instagram
@@ -35,7 +35,7 @@ export function SocialFeed() {
           {images.map((src, index) => (
             <Link
               key={index}
-              href="#"
+              href="/"
               className="group relative aspect-square w-full overflow-hidden rounded-sm bg-gray-100"
             >
               <Image

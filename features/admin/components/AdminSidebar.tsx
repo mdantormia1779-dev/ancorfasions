@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/accordion";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { AnchorFashionLogo } from "@/components/shared/logo";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 type NavItem = {
   name: string;
@@ -305,6 +306,7 @@ export const AdminSidebar = ({
       </ScrollArea>
 
       <div className="border-t border-slate-100 bg-slate-50/50 p-4">
+        <LogoutButton className="mb-4 w-full" />
         <div className="flex items-center gap-3 px-2 text-xs font-medium text-slate-500">
           <span>v1.0.0-enterprise</span>
         </div>

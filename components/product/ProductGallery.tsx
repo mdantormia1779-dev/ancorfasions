@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import Image from "next/image";
 
 interface ProductGalleryProps {
   images: string[];
@@ -32,10 +33,12 @@ export function ProductGallery({ images }: ProductGalleryProps) {
                 : "border-transparent opacity-70 hover:opacity-100"
             }`}
           >
-            <img
+            <Image
               src={img}
               alt={`Thumbnail ${idx + 1}`}
-              className="h-full w-full object-cover"
+              fill
+              sizes="80px"
+              className="object-cover"
             />
           </button>
         ))}
@@ -44,16 +47,23 @@ export function ProductGallery({ images }: ProductGalleryProps) {
       {/* Main Image */}
       <div className="relative aspect-[3/4] w-full flex-1 overflow-hidden bg-zinc-50">
         <AnimatePresence mode="wait">
-          <motion.img
+          <motion.div
             key={currentIndex}
-            src={images[currentIndex]}
-            alt={`Product image ${currentIndex + 1}`}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
-            className="h-full w-full object-cover object-center"
-          />
+            className="absolute inset-0"
+          >
+            <Image
+              src={images[currentIndex]}
+              alt={`Product image ${currentIndex + 1}`}
+              fill
+              priority
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="object-cover object-center"
+            />
+          </motion.div>
         </AnimatePresence>
       </div>
     </div>

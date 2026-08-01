@@ -17,6 +17,7 @@ import {
   Settings,
 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { LogoutButton } from "@/components/auth/logout-button";
 
 const sidebarNavItems = [
   {
@@ -120,6 +121,9 @@ export function ManagerSidebar() {
             })}
           </nav>
         </ScrollArea>
+        <div className="border-t p-4">
+          <LogoutButton className="w-full justify-center" />
+        </div>
       </div>
     </div>
   );

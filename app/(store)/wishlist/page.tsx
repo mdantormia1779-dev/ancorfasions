@@ -3,6 +3,7 @@ import { fetchWishlistAction } from "@/actions/wishlist.actions";
 import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
 
@@ -48,11 +49,15 @@ export default async function WishlistPage() {
             {/* In a real scenario, use ProductCard component */}
             <div className="mb-4 flex aspect-[3/4] items-center justify-center rounded-md bg-secondary">
               {item.product?.main_image_url ? (
-                <img
-                  src={item.product.main_image_url}
-                  alt={item.product.title}
-                  className="h-full w-full rounded-md object-cover"
-                />
+                <div className="relative h-full w-full">
+                  <Image
+                    src={item.product.main_image_url}
+                    alt={item.product.title}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    className="rounded-md object-cover"
+                  />
+                </div>
               ) : (
                 <span className="text-sm text-muted-foreground">No Image</span>
               )}

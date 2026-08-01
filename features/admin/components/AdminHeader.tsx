@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import {
   Bell,
   Search,
@@ -17,6 +18,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuGroup,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -137,18 +139,20 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
             <span className="text-xs font-medium text-white">{initials}</span>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  {displayName}
-                </p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  {user.email}
-                </p>
-              </div>
-            </DropdownMenuLabel>
+            <DropdownMenuGroup>
+              <DropdownMenuLabel>
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {displayName}
+                  </p>
+                  <p className="text-xs leading-none text-muted-foreground">
+                    {user.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/account/profile")}>
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>

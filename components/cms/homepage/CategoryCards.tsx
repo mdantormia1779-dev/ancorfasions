@@ -1,5 +1,6 @@
 import React from "react";
 import Link from "next/link";
+import Image from "next/image";
 
 interface CategoryCardsProps {
   // This would receive data from homepage_featured_categories
@@ -40,10 +41,12 @@ export function CategoryCards({ categories = [] }: CategoryCardsProps) {
             href={category.url}
             className="group relative block aspect-[3/4] w-full overflow-hidden bg-gray-100"
           >
-            <img
+            <Image
               src={category.image}
               alt={category.name}
-              className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-110"
+              fill
+              className="absolute inset-0 object-cover transition-transform duration-700 group-hover:scale-110"
+              sizes="(max-width: 768px) 100vw, 33vw"
             />
             {/* Gradient Overlay for text readability */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />

@@ -10,8 +10,6 @@ export async function proxy(request: NextRequest) {
   const { supabaseResponse, user, supabase } = await updateSession(request);
 
   // CSP: Content Security Policy
-  // Note: For Next.js App Router, script-src 'self' 'unsafe-eval' 'unsafe-inline' is often required in dev,
-  // but we tighten it for production.
   const cspHeader = `
     default-src 'self';
     script-src 'self' 'unsafe-eval' 'unsafe-inline' https://www.googletagmanager.com https://www.google-analytics.com https://connect.facebook.net;
@@ -43,10 +41,7 @@ export async function proxy(request: NextRequest) {
 
   // API Gateway Logic for External API Routes
   if (pathname.startsWith("/api/v1/")) {
-    // Basic API Key Validation
     const apiKey = request.headers.get("x-api-key");
-
-    // Webhook paths might use a different validation (e.g. signature), skip api key check if it's a webhook
     if (!pathname.startsWith("/api/v1/webhooks/")) {
       if (!apiKey) {
         return NextResponse.json(
@@ -55,15 +50,12 @@ export async function proxy(request: NextRequest) {
         );
       }
     }
-
-    // Rate Limiting headers (Mocked for middleware, actual implementation in Redis/DB)
     supabaseResponse.headers.set("X-RateLimit-Limit", "100");
     supabaseResponse.headers.set("X-RateLimit-Remaining", "99");
-
     return supabaseResponse;
   }
 
-  // Protect Auth Routes (redirect logged-in users away from /login)
+  // Protect Auth Routes
   const isAuthRoute =
     pathname.startsWith("/auth/login") ||
     pathname.startsWith("/auth/register") ||
@@ -74,7 +66,7 @@ export async function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
 
-  // Protect Dashboard / Internal Routes
+  // Protect Internal and Customer Routes
   const isProtectedRoute =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/admin") ||
@@ -83,18 +75,25 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/orders") ||
     pathname.startsWith("/cms") ||
     pathname.startsWith("/crm") ||
-    pathname.startsWith("/inventory");
+    pathname.startsWith("/inventory") ||
+    pathname.startsWith("/account") ||
+    pathname.startsWith("/customer");
 
-  if (!user && isProtectedRoute) {
+  // Protect Internal API Routes as well (everything in /api/ except /api/v1 which is handled above)
+  const isInternalApiRoute = pathname.startsWith("/api/") && !pathname.startsWith("/api/v1/");
+  
+  if (!user && (isProtectedRoute || isInternalApiRoute)) {
+    if (isInternalApiRoute) {
+       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     const redirectUrl = new URL("/auth/login", request.url);
     redirectUrl.searchParams.set("next", pathname);
     return NextResponse.redirect(redirectUrl);
   }
 
-  // Define user role — first check JWT claims, then fall back to DB profiles table
+  // Role resolution
   let role = user?.user_metadata?.role || user?.app_metadata?.role || "";
 
-  // If JWT doesn't have a role (e.g. after SQL update without re-login), query DB directly
   if (user && !role) {
     try {
       const { data: profile } = await supabase
@@ -110,21 +109,30 @@ export async function proxy(request: NextRequest) {
 
   if (!role) role = "CUSTOMER";
 
-  // Role-Based Route Protection for Admin Routes
-  if (user && pathname.startsWith("/admin")) {
+  // Role-Based Route Protection for Admin Routes (including API)
+  if (user && (pathname.startsWith("/admin") || pathname.startsWith("/api/admin"))) {
     if (!ADMIN_ROLES.includes(role)) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
 
-  // Role-Based Route Protection for Manager Routes and CRM/CMS/Inventory
-  const isManagerRoute =
+  // Role-Based Route Protection for Manager Routes (including API)
+  const isManagerPath =
     pathname.startsWith("/manager") ||
     pathname.startsWith("/cms") ||
     pathname.startsWith("/crm") ||
-    pathname.startsWith("/inventory");
-  if (user && isManagerRoute) {
+    pathname.startsWith("/inventory") ||
+    pathname.startsWith("/api/manager") ||
+    pathname.startsWith("/api/cms");
+
+  if (user && isManagerPath) {
     if (!MANAGER_ROLES.includes(role)) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+      }
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
   }
@@ -134,7 +142,6 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    // Match all paths except static files, images, and api internal routes if needed
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

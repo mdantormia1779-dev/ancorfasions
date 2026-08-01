@@ -142,7 +142,7 @@ export const AnchorFashionLogo = ({
       maxWidth: "280px",
       verticalAlign: "middle",
       boxSizing: "border-box",
-    },
+    } as React.CSSProperties,
   };
 
   if (noLink) {
