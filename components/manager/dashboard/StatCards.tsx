@@ -1,6 +1,7 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+import { formatCurrency } from "@/lib/utils"; Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   DollarSign,
   ShoppingBag,
@@ -22,10 +23,7 @@ interface StatCardsProps {
 
 export function StatCards({ kpis }: StatCardsProps) {
   const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(val);
+    formatCurrency(val);
   const data = kpis || {
     revenue: { value: 0, trend: { value: 0, isPositive: true } },
     orders: { value: 0, trend: { value: 0, isPositive: true } },

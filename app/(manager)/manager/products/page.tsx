@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Download, Filter, Plus, Search, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { ProductRepository } from "@/lib/repositories/catalog/product.repository";
+import { formatCurrency } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Products | Manager Dashboard",
@@ -31,11 +32,7 @@ export default async function ProductsPage({
   const products = res.products || [];
 
   const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-BD", {
-      style: "currency",
-      currency: "BDT",
-      maximumFractionDigits: 0,
-    }).format(val);
+    formatCurrency(val);
 
   return (
     <div className="flex flex-col gap-6">

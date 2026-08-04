@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useCartStore } from "@/stores/use-cart-store";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 interface FloatingPurchaseCardProps {
   productId: string;
@@ -38,11 +39,7 @@ export function FloatingPurchaseCard({
   }, []);
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-BD", {
-      style: "currency",
-      currency: "BDT",
-      maximumFractionDigits: 0,
-    }).format(price);
+    return formatCurrency(price);
   };
 
   const handleAddToCart = async () => {

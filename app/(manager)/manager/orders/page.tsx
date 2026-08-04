@@ -16,6 +16,7 @@ import { Download, Filter, Search } from "lucide-react";
 import Link from "next/link";
 import { useOrders } from "@/hooks/oms/use-orders";
 import { OrderStatus } from "@/types/oms";
+import { formatCurrency } from "@/lib/utils";
 
 export default function OrdersPage() {
   const [page, setPage] = useState(1);
@@ -120,11 +121,7 @@ export default function OrdersPage() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    {new Intl.NumberFormat("en-BD", {
-                      style: "currency",
-                      currency: "BDT",
-                      maximumFractionDigits: 0,
-                    }).format(order.grand_total)}
+                    {formatCurrency(order.grand_total)}
                   </TableCell>
                   <TableCell className="text-right">
                     <Button variant="ghost" size="sm" asChild>

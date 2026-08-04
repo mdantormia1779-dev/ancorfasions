@@ -10,6 +10,7 @@ const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500"] });
 import { useWishlistStore } from "@/stores/use-wishlist-store";
 import { useCartStore } from "@/stores/use-cart-store";
 import { cn } from "@/lib/utils";
+import { formatCurrency } from "@/lib/utils";
 
 interface ProductCardProps {
   product: any;
@@ -124,11 +125,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
         </Link>
         <div className="flex items-center justify-center">
           <span className="text-sm font-medium text-gray-900">
-            {new Intl.NumberFormat("en-BD", {
-              style: "currency",
-              currency: "BDT",
-              maximumFractionDigits: 0,
-            }).format(product.base_price || 0)}
+            {formatCurrency(product.base_price || 0)}
           </span>
         </div>
       </div>

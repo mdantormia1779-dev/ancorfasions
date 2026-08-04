@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Heart, ShoppingBag } from "lucide-react";
 import { Product } from "@/types/product";
 import { Button } from "@/components/ui/button";
+import { formatCurrency } from "@/lib/utils";
 
 interface ProductCardProps {
   product: Product;
@@ -10,11 +11,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product }: ProductCardProps) {
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-BD", {
-      style: "currency",
-      currency: "BDT",
-      maximumFractionDigits: 0,
-    }).format(price);
+    return formatCurrency(price);
   };
 
   return (

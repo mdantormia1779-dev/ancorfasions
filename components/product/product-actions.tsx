@@ -6,6 +6,7 @@ import { useCartStore } from "@/stores/use-cart-store";
 import { useWishlistStore } from "@/stores/use-wishlist-store";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
+import { formatCurrency } from "@/lib/utils";
 
 interface ProductActionsProps {
   productId: string;
@@ -71,11 +72,7 @@ export function ProductActions({
   };
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-BD", {
-      style: "currency",
-      currency: "BDT",
-      maximumFractionDigits: 0,
-    }).format(price);
+    return formatCurrency(price);
   };
 
   return (

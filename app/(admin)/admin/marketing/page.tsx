@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { fetchAdminMarketingStatsAction, fetchDashboardCampaignsAction } from "@/app/actions/manager/marketing.actions";
+import { formatCurrency } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Marketing Automation | Admin Dashboard",
@@ -67,7 +68,7 @@ export default async function MarketingDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT" }).format(stats.revenue)}
+              {formatCurrency(stats.revenue)}
             </div>
             <p className="mt-1 flex items-center text-xs text-emerald-500">
               <ArrowUpRight className="mr-1 h-3 w-3" />

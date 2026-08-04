@@ -9,6 +9,7 @@ import { FloatingPurchaseCard } from "@/components/product/floating-purchase-car
 import { ProductViewTracker } from "@/components/product/product-view-tracker";
 import { notFound } from "next/navigation";
 import { Jost } from "next/font/google";
+import { formatCurrency } from "@/lib/utils";
 
 const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
@@ -60,11 +61,7 @@ export default async function ProductDetailPage({
   }
 
   const formatPrice = (price: number) => {
-    return new Intl.NumberFormat("en-BD", {
-      style: "currency",
-      currency: "BDT",
-      maximumFractionDigits: 0,
-    }).format(price);
+    return formatCurrency(price);
   };
 
   const jsonLd = {

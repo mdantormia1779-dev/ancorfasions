@@ -19,6 +19,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ArrowRight } from "lucide-react";
 import Link from "next/link";
+import { formatCurrency } from "@/lib/utils";
 
 interface OrderData {
   id: string;
@@ -82,10 +83,7 @@ export function RecentOrdersTable({ orders = [] }: { orders?: OrderData[] }) {
                   <TableCell>{order.date}</TableCell>
                   <TableCell className="text-right">
                     {typeof order.amount === "number"
-                      ? new Intl.NumberFormat("en-US", {
-                          style: "currency",
-                          currency: "USD",
-                        }).format(order.amount)
+                      ? formatCurrency(order.amount)
                       : order.amount}
                   </TableCell>
                 </TableRow>

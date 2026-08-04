@@ -8,9 +8,10 @@ import { cn } from "@/lib/utils";
 
 interface LogoutButtonProps {
   className?: string;
+  hideText?: boolean;
 }
 
-export function LogoutButton({ className }: LogoutButtonProps) {
+export function LogoutButton({ className, hideText }: LogoutButtonProps) {
   const router = useRouter();
   const supabase = createClient();
 
@@ -28,13 +29,15 @@ export function LogoutButton({ className }: LogoutButtonProps) {
   return (
     <button
       onClick={handleLogout}
+      title={hideText ? "Log out" : undefined}
       className={cn(
-        "flex w-full items-center space-x-3 rounded-lg px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700",
+        "flex w-full items-center rounded-lg px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700",
+        !hideText && "space-x-3",
         className
       )}
     >
-      <LogOut className="h-5 w-5" />
-      <span>Log out</span>
+      <LogOut className="h-5 w-5 flex-shrink-0" />
+      {!hideText && <span>Log out</span>}
     </button>
   );
 }

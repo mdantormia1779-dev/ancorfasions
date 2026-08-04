@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import {
+import { formatCurrency } from "@/lib/utils"; useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -60,10 +61,7 @@ export function ProductsTable({
   const [searchQuery, setSearchQuery] = useState("");
 
   const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-    }).format(val);
+    formatCurrency(val);
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {

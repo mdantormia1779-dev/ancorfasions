@@ -7,9 +7,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { MoreHorizontal, Package } from "lucide-react";
 import Image from "next/image";
+import { formatCurrency } from "@/lib/utils";
 
 const formatCurrency = (val: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
+  formatCurrency(val);
 
 export function TopSellersTable({ data = [] }: { data?: any[] }) {
   return (
