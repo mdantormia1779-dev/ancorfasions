@@ -4,9 +4,9 @@ import { CustomerRepository } from "@/lib/repositories/crm/customer.repository";
 
 const customerRepo = new CustomerRepository();
 
-export async function fetchCustomersAction(limit?: number) {
+export async function fetchCustomersAction(limit?: number, search?: string) {
   try {
-    const data = await customerRepo.getCustomerProfiles(limit);
+    const data = await customerRepo.getCustomerProfiles(limit, search);
     return { success: true, data };
   } catch (error: any) {
     console.error("fetchCustomersAction error:", error);

@@ -71,8 +71,8 @@ export class OrderService {
     return this.orderRepo.updateOrderStatus(id, newStatus, updatedBy);
   }
 
-  async getOrderDetails(id: string) {
-    const order = await this.orderRepo.getOrderById(id);
+  async getOrderDetails(id: string, supabaseClient?: any) {
+    const order = await this.orderRepo.getOrderById(id, supabaseClient);
     if (!order) return null;
 
     const items = await this.orderItemsRepo.getOrderItems(id);

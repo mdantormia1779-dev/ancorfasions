@@ -11,7 +11,7 @@ import {
   upsertHeroSlide,
   deleteHeroSlide,
   HeroSlide,
-} from "@/lib/actions/cms.actions";
+} from "@/actions/cms.actions";
 import {
   Plus,
   Trash2,
@@ -29,8 +29,8 @@ const SLIDE_FALLBACKS = [
 ];
 
 type EditSlide = Partial<HeroSlide> & {
-  media_url: string;
-  cta_url: string;
+  image_url: string;
+  link_url: string;
   isNew?: boolean;
 };
 
@@ -41,14 +41,11 @@ export function BannersManager({
 }) {
   const [slides, setSlides] = useState<EditSlide[]>(
     initialSlides.length > 0
-      ? initialSlides
+      ? initialSlides as EditSlide[]
       : SLIDE_FALLBACKS.map((url, i) => ({
           id: `default-${i}`,
-          media_url: url,
-          cta_url: "/products",
-          headline: null,
-          subheadline: null,
-          cta_text: null,
+          image_url: url,
+          link_url: "/products",
           display_order: i,
         }))
   );
@@ -58,11 +55,8 @@ export function BannersManager({
   const addNewSlide = () => {
     const newSlide: EditSlide = {
       id: `new-${Date.now()}`,
-      media_url: "",
-      cta_url: "/products",
-      headline: null,
-      subheadline: null,
-      cta_text: null,
+      image_url: "",
+      link_url: "/products",
       display_order: slides.length,
       isNew: true,
     };
@@ -75,18 +69,15 @@ export function BannersManager({
   };
 
   const saveSlide = (slide: EditSlide) => {
-    if (!slide.media_url) {
+    if (!slide.image_url) {
       toast.error("Image URL is required.");
       return;
     }
     startTransition(async () => {
       const result = await upsertHeroSlide({
         id: slide.isNew ? undefined : (slide.id as string),
-        media_url: slide.media_url,
-        cta_url: slide.cta_url,
-        headline: slide.headline,
-        subheadline: slide.subheadline,
-        cta_text: slide.cta_text,
+        image_url: slide.image_url,
+        link_url: slide.link_url,
       });
       if (result.success) {
         toast.success("Banner saved successfully!");
@@ -204,11 +195,11 @@ export function BannersManager({
                       </Label>
                       <Input
                         id={`img-${slide.id}`}
-                        value={slide.media_url}
+                        value={slide.image_url}
                         onChange={(e) =>
                           updateSlide(
                             slide.id as string,
-                            "media_url",
+                            "image_url",
                             e.target.value
                           )
                         }
@@ -226,97 +217,41 @@ export function BannersManager({
                       </Label>
                       <Input
                         id={`cta-${slide.id}`}
-                        value={slide.cta_url}
+                        value={slide.link_url}
                         onChange={(e) =>
                           updateSlide(
                             slide.id as string,
-                            "cta_url",
+                            "link_url",
                             e.target.value
                           )
                         }
                         placeholder="/products or /categories/sale"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label htmlFor={`headline-${slide.id}`}>
-                        Headline (optional)
-                      </Label>
-                      <Input
-                        id={`headline-${slide.id}`}
-                        value={slide.headline ?? ""}
-                        onChange={(e) =>
-                          updateSlide(
-                            slide.id as string,
-                            "headline",
-                            e.target.value || null
-                          )
-                        }
-                        placeholder="Summer Collection 2026"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor={`sub-${slide.id}`}>
-                        Sub-headline (optional)
-                      </Label>
-                      <Input
-                        id={`sub-${slide.id}`}
-                        value={slide.subheadline ?? ""}
-                        onChange={(e) =>
-                          updateSlide(
-                            slide.id as string,
-                            "subheadline",
-                            e.target.value || null
-                          )
-                        }
-                        placeholder="Explore the latest trends"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor={`ctabtn-${slide.id}`}>
-                        Button Text (optional)
-                      </Label>
-                      <Input
-                        id={`ctabtn-${slide.id}`}
-                        value={slide.cta_text ?? ""}
-                        onChange={(e) =>
-                          updateSlide(
-                            slide.id as string,
-                            "cta_text",
-                            e.target.value || null
-                          )
-                        }
-                        placeholder="Shop Now"
-                      />
-                    </div>
                   </div>
                 </div>
               ) : (
                 <div className="flex items-start gap-4">
-                  {slide.media_url && (
+                  {slide.image_url && (
                     <div className="relative h-20 w-32 flex-shrink-0 overflow-hidden rounded-md border bg-muted">
                       <Image
-                        src={slide.media_url}
-                        alt={slide.headline ?? `Slide ${index + 1}`}
+                        src={slide.image_url}
+                        alt={`Slide ${index + 1}`}
                         fill
                         className="object-cover"
-                        onError={() => {}}
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/images/placeholder.jpg"; // Use a safe local fallback
+                        }}
                       />
                     </div>
                   )}
                   <div className="flex-1 space-y-1 text-sm">
-                    {slide.headline && (
-                      <p className="font-semibold">{slide.headline}</p>
-                    )}
-                    {slide.subheadline && (
-                      <p className="text-muted-foreground">
-                        {slide.subheadline}
-                      </p>
-                    )}
                     <div className="flex items-center gap-1 text-xs text-muted-foreground">
                       <ExternalLink className="h-3 w-3" />
-                      <span>{slide.cta_url}</span>
+                      <span>{slide.link_url}</span>
                     </div>
-                    {!slide.media_url && (
+                    {!slide.image_url && (
                       <p className="text-xs text-amber-500">
                         ⚠ No image configured
                       </p>

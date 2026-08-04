@@ -1,20 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getAiInsightsAction } from "@/app/actions/analytics/dashboard.actions";
 
 export function AiDecisionSupport() {
   const [insights, setInsights] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/analytics/ai-insights", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ context: "daily-rollup" }),
-    })
-      .then((res) => res.json())
-      .then((json) => setInsights(json))
-      .catch((err) => console.error(err));
+    getAiInsightsAction()
+      .then((res) => {
+        if (res.success) {
+          setInsights(res.data);
+        } else {
+          setError(res.error || "Failed to load insights");
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Failed to fetch insights");
+      });
   }, []);
+
+  if (error) {
+    return (
+      <div className="flex h-[400px] flex-col items-center justify-center gap-4 rounded-xl border border-red-100 bg-red-50 p-6 shadow-sm">
+        <p className="text-red-600 font-medium">⚠️ {error}</p>
+        <button onClick={() => window.location.reload()} className="text-sm text-red-500 underline">Retry</button>
+      </div>
+    );
+  }
 
   if (!insights) {
     return (

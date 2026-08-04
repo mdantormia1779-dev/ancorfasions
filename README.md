@@ -124,6 +124,13 @@ Anchor Fashion implements several layers of production optimizations:
 4. The `vercel.json` file is pre-configured with strict security headers (HSTS, Permissions-Policy, etc.).
 5. Click **Deploy**.
 
+## Enterprise Documentation
+
+For detailed architecture blueprints, audit reports, and security guidelines, please refer to our documentation hub:
+- **[Architecture Audits](./docs/architecture-audit/)**: Contains routing, database, and security compliance reports.
+- **[Final CTO Report](./docs/FINAL_CTO_REPORT.md)**: Master blueprint and infrastructure topology.
+- **[Operations Manual](./docs/OPERATIONS_MANUAL.md)**: DevOps and CI/CD operations.
+
 ## Troubleshooting
 
 - **Build Fails (OOM)**: If memory errors occur, ensure Next.js compiler limits are respected, and check the `.tsbuildinfo` cache.

@@ -1,5 +1,4 @@
-"use client";
-
+import { Metadata } from "next";
 import {
   Card,
   CardContent,
@@ -19,8 +18,21 @@ import {
   Play,
 } from "lucide-react";
 import Link from "next/link";
+import { fetchAdminMarketingStatsAction, fetchDashboardCampaignsAction } from "@/app/actions/manager/marketing.actions";
 
-export default function MarketingDashboardPage() {
+export const metadata: Metadata = {
+  title: "Marketing Automation | Admin Dashboard",
+};
+
+export default async function MarketingDashboardPage() {
+  const [statsRes, campaignsRes] = await Promise.all([
+    fetchAdminMarketingStatsAction(),
+    fetchDashboardCampaignsAction(undefined, 5)
+  ]);
+
+  const stats = statsRes.data || { revenue: 0, openRate: 0, ctr: 0, automations: { total: 0, running: 0, scheduled: 0 } };
+  const campaigns = campaignsRes.data || [];
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -33,10 +45,10 @@ export default function MarketingDashboardPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
+          <Button variant="outline" asChild>
             <Link href="/admin/marketing/automations">Manage Automations</Link>
           </Button>
-          <Button>
+          <Button asChild>
             <Link href="/admin/marketing/campaigns">
               <Plus className="mr-2 h-4 w-4" />
               New Campaign
@@ -54,10 +66,12 @@ export default function MarketingDashboardPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">$124,592.00</div>
+            <div className="text-2xl font-bold">
+              {new Intl.NumberFormat("en-BD", { style: "currency", currency: "BDT" }).format(stats.revenue)}
+            </div>
             <p className="mt-1 flex items-center text-xs text-emerald-500">
               <ArrowUpRight className="mr-1 h-3 w-3" />
-              +14.5% attributed revenue
+              Real-time attribution
             </p>
           </CardContent>
         </Card>
@@ -70,10 +84,9 @@ export default function MarketingDashboardPage() {
             <Mail className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">42.8%</div>
-            <p className="mt-1 flex items-center text-xs text-emerald-500">
-              <ArrowUpRight className="mr-1 h-3 w-3" />
-              +2.1% from industry avg
+            <div className="text-2xl font-bold">{stats.openRate.toFixed(1)}%</div>
+            <p className="mt-1 flex items-center text-xs text-muted-foreground">
+              Based on active campaigns
             </p>
           </CardContent>
         </Card>
@@ -86,10 +99,9 @@ export default function MarketingDashboardPage() {
             <Smartphone className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8.4%</div>
-            <p className="mt-1 flex items-center text-xs text-emerald-500">
-              <ArrowUpRight className="mr-1 h-3 w-3" />
-              +0.8% from last month
+            <div className="text-2xl font-bold">{stats.ctr.toFixed(1)}%</div>
+            <p className="mt-1 flex items-center text-xs text-muted-foreground">
+              Based on active campaigns
             </p>
           </CardContent>
         </Card>
@@ -102,9 +114,9 @@ export default function MarketingDashboardPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold">{stats.automations.total}</div>
             <p className="mt-1 text-xs text-muted-foreground">
-              3 running, 9 scheduled
+              {stats.automations.running} running, {stats.automations.scheduled} scheduled
             </p>
           </CardContent>
         </Card>
@@ -120,57 +132,35 @@ export default function MarketingDashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-8">
-              <div className="flex items-center">
-                <div className="mr-4 rounded-full bg-primary/10 p-2">
-                  <Mail className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    Summer Clearance Final Call
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Sent 2 days ago to VIP Segment
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-bold">$14,500</div>
-                  <div className="text-xs text-muted-foreground">48% Open</div>
-                </div>
-              </div>
-              <div className="flex items-center">
-                <div className="mr-4 rounded-full bg-primary/10 p-2">
-                  <Smartphone className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    Flash Sale Push Notification
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Sent 4 days ago to All App Users
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-bold">$8,230</div>
-                  <div className="text-xs text-muted-foreground">12% Click</div>
-                </div>
-              </div>
-              <div className="flex items-center">
-                <div className="mr-4 rounded-full bg-primary/10 p-2">
-                  <Mail className="h-4 w-4 text-primary" />
-                </div>
-                <div className="flex-1 space-y-1">
-                  <p className="text-sm font-medium leading-none">
-                    New Fall Collection Preview
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Sent 1 week ago to All Subscribers
-                  </p>
-                </div>
-                <div className="text-right">
-                  <div className="text-sm font-bold">$32,100</div>
-                  <div className="text-xs text-muted-foreground">52% Open</div>
-                </div>
-              </div>
+              {campaigns.length === 0 ? (
+                <div className="text-center text-muted-foreground py-4">No recent campaigns.</div>
+              ) : (
+                campaigns.map((campaign: any) => (
+                  <div key={campaign.id} className="flex items-center">
+                    <div className="mr-4 rounded-full bg-primary/10 p-2">
+                      {campaign.type === 'push' || campaign.type === 'sms' ? (
+                        <Smartphone className="h-4 w-4 text-primary" />
+                      ) : (
+                        <Mail className="h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                    <div className="flex-1 space-y-1">
+                      <p className="text-sm font-medium leading-none">
+                        {campaign.name}
+                      </p>
+                      <p className="text-xs text-muted-foreground capitalize">
+                        Status: {campaign.status}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm font-bold capitalize">{campaign.type}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(campaign.created_at).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </CardContent>
         </Card>

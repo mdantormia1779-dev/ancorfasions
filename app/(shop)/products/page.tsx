@@ -3,8 +3,11 @@ import { ProductListParams } from "@/repositories/catalog.repository";
 import { CatalogService } from "@/lib/services/catalog.service";
 import { ProductCard } from "@/components/product/product-card";
 import { ProductFilters } from "@/components/product/product-filters";
+import { InfiniteScrollGrid } from "@/components/product/infinite-scroll-grid";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
+import { Jost } from "next/font/google";
+
+const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500"] });
 import { SlidersHorizontal, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,
@@ -38,36 +41,51 @@ export default async function ProductsPage({
 
   // Fetch data in parallel
   const [{ data: products, count }, categories] = await Promise.all([
-    CatalogService.getProducts({ category, search, sortBy, limit: 12 }),
+    CatalogService.getProducts({ category, search, sortBy, limit: 50 }),
     CatalogService.getCategories(),
   ]);
 
   return (
-    <div className="container py-8 md:py-12">
+    <div className={`${jost.className} container py-12 md:py-20`}>
       {/* Header Area */}
-      <div className="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">All Products</h1>
-          <p className="mt-1 text-muted-foreground">
-            Showing {products.length} {count ? `of ${count}` : ""} results
-          </p>
+      <div className="mb-12 flex flex-col items-center justify-center gap-6 text-center md:mb-16">
+        <h1 className="text-4xl font-light tracking-tight text-[#1A1A1A] md:text-5xl lg:text-6xl">
+          Shop Collection
+        </h1>
+        <p className="text-sm text-gray-500">
+          Showing {products.length} {count && count > 50 ? `of ${count}` : ""} results
+        </p>
+      </div>
+
+      {/* Quick Filter Chips */}
+      <div className="mb-8 flex flex-wrap gap-2 md:justify-center">
+        <Link href="/products" className={`rounded-full border px-4 py-1.5 text-xs transition-colors ${!category ? 'bg-black text-white border-black' : 'border-gray-200 text-gray-600 hover:border-black'}`}>
+          All
+        </Link>
+        {categories.slice(0, 5).map((cat: any) => (
+          <Link key={cat.slug} href={`/products?category=${cat.slug}`} className={`rounded-full border px-4 py-1.5 text-xs transition-colors ${category === cat.slug ? 'bg-black text-white border-black' : 'border-gray-200 text-gray-600 hover:border-black'}`}>
+            {cat.name}
+          </Link>
+        ))}
+      </div>
+
+      <div className="mb-8 flex flex-col justify-between gap-4 border-b border-gray-100 pb-4 md:flex-row md:items-end">
+        <div className="flex items-center gap-4">
+          <span className="text-xs font-semibold uppercase tracking-widest text-gray-500">Filter By</span>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Mobile Filter Trigger */}
           <Sheet>
-            <SheetTrigger>
-              <Button
-                variant="outline"
-                className="flex items-center gap-2 md:hidden"
-              >
+            <SheetTrigger asChild>
+              <button className="flex items-center gap-2 border-b border-transparent pb-1 text-xs font-semibold uppercase tracking-widest text-[#1A1A1A] transition-colors hover:border-black md:hidden">
                 <SlidersHorizontal className="h-4 w-4" />
                 Filters
-              </Button>
+              </button>
             </SheetTrigger>
             <SheetContent
-              side="left"
-              className="w-[300px] overflow-y-auto pt-10 sm:w-[400px]"
+              side="bottom"
+              className="h-[80vh] overflow-y-auto rounded-t-2xl pt-10"
             >
               <ProductFilters categories={categories} brands={[]} />
             </SheetContent>
@@ -75,21 +93,16 @@ export default async function ProductsPage({
 
           {/* Sort Dropdown */}
           <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Button
-                variant="outline"
-                className="flex w-full items-center justify-between gap-2 md:w-auto"
-              >
-                Sort by:{" "}
-                {sort === "price_asc"
-                  ? "Price: Low to High"
-                  : sort === "price_desc"
-                    ? "Price: High to Low"
-                    : sort === "rating"
-                      ? "Top Rated"
-                      : "Newest"}{" "}
-                <ChevronDown className="h-4 w-4" />
-              </Button>
+            <DropdownMenuTrigger className="flex items-center justify-between gap-2 border-b border-transparent pb-1 text-xs font-semibold uppercase tracking-widest text-[#1A1A1A] transition-colors hover:border-black outline-none">
+              Sort by:{" "}
+              {sort === "price_asc"
+                ? "Price: Low to High"
+                : sort === "price_desc"
+                  ? "Price: High to Low"
+                  : sort === "rating"
+                    ? "Top Rated"
+                    : "Newest"}{" "}
+              <ChevronDown className="h-3 w-3" />
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-[200px]">
               <DropdownMenuItem>
@@ -127,12 +140,12 @@ export default async function ProductsPage({
 
       <div className="grid grid-cols-1 gap-8 md:grid-cols-4 lg:grid-cols-5">
         {/* Sidebar Desktop */}
-        <aside className="hidden min-h-[500px] border-r pr-6 md:col-span-1 md:block">
+        <aside className="hidden min-h-[500px] pr-6 md:col-span-1 md:block">
           <Suspense
             fallback={
               <div className="space-y-4">
-                <div className="h-4 w-1/2 animate-pulse rounded bg-muted"></div>
-                <div className="h-32 animate-pulse rounded bg-muted"></div>
+                <div className="h-4 w-1/2 animate-pulse bg-gray-100"></div>
+                <div className="h-32 animate-pulse bg-gray-100"></div>
               </div>
             }
           >
@@ -143,11 +156,7 @@ export default async function ProductsPage({
         {/* Product Grid */}
         <div className="md:col-span-3 lg:col-span-4">
           {products.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 md:gap-6 lg:grid-cols-3 xl:grid-cols-4">
-              {products.map((product: any) => (
-                <ProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            <InfiniteScrollGrid products={products} initialCount={12} />
           ) : (
             <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 py-20 text-center">
               <h3 className="mb-2 text-xl font-semibold">No products found</h3>
@@ -155,15 +164,6 @@ export default async function ProductsPage({
                 We couldn't find any products matching your current filters. Try
                 adjusting your search criteria.
               </p>
-            </div>
-          )}
-
-          {/* Pagination Placeholder */}
-          {count && count > 12 && (
-            <div className="mt-12 flex justify-center">
-              <Button variant="outline" className="px-8">
-                Load More
-              </Button>
             </div>
           )}
         </div>

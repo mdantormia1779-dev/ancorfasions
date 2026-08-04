@@ -9,39 +9,45 @@ import { LiveKpiCard } from "@/components/admin/analytics/kpi/LiveKpiCard";
 import { AreaChartVariant } from "@/components/admin/analytics/charts/AreaChartVariant";
 import { DollarSign, Percent, TrendingDown, Wallet } from "lucide-react";
 import { getSalesTrends } from "@/lib/analytics/queries";
+import { AnalyticsRepository } from "@/repositories/analytics.repository";
+import { formatCurrency } from "@/lib/utils";
 
 export const revalidate = 60;
 
 export default async function FinanceAnalyticsPage() {
   const trends = await getSalesTrends();
+  const summary = await AnalyticsRepository.getExecutiveSummary();
+
+  const operatingExpenses = summary.grossProfit - summary.netProfit;
+  const profitMargin = summary.totalRevenue > 0 ? (summary.netProfit / summary.totalRevenue) * 100 : 0;
 
   return (
     <div className="space-y-6">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <LiveKpiCard
           title="Gross Profit"
-          value="$85,240"
+          value={formatCurrency(summary.grossProfit)}
           icon={<DollarSign />}
-          trend={14.1}
+          trend={summary.revenueTrend} // Proxying revenue trend for gross profit trend
         />
         <LiveKpiCard
           title="Profit Margin"
-          value="68.5%"
+          value={`${profitMargin.toFixed(1)}%`}
           icon={<Percent />}
-          trend={1.2}
+          trend={0} // Complex to calculate prev margin without deep dive, keeping neutral for now
         />
         <LiveKpiCard
           title="Operating Expenses"
-          value="$24,500"
+          value={formatCurrency(operatingExpenses)}
           icon={<TrendingDown />}
-          trend={-5.4}
+          trend={0}
           invertColors
         />
         <LiveKpiCard
-          title="Net Cash Flow"
-          value="$60,740"
+          title="Net Profit"
+          value={formatCurrency(summary.netProfit)}
           icon={<Wallet />}
-          trend={8.9}
+          trend={summary.revenueTrend} // Proxying revenue trend
         />
       </div>
 

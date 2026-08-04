@@ -1,15 +1,25 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getCustomReportAction } from "@/app/actions/analytics/dashboard.actions";
 
 export function CustomReportBuilder() {
   const [report, setReport] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/analytics/bi?type=custom-report")
-      .then((res) => res.json())
-      .then((json) => setReport(json))
-      .catch((err) => console.error(err));
+    getCustomReportAction()
+      .then((res) => {
+        if (res.success) {
+          setReport(res.data);
+        } else {
+          setError(res.error || "Failed to load report");
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Failed to fetch report");
+      });
   }, []);
 
   return (
@@ -45,6 +55,12 @@ export function CustomReportBuilder() {
           </span>
         </div>
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-lg border border-red-100 bg-red-50 p-4 text-sm text-red-600">
+          ⚠️ {error}
+        </div>
+      )}
 
       {report && (
         <div className="mt-8 overflow-hidden rounded-lg border border-gray-200 shadow-sm">

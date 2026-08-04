@@ -14,6 +14,7 @@ import { useState, useRef, useEffect } from "react";
 import { AnchorFashionLogo } from "@/components/shared/logo";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ADMIN_ROLES, MANAGER_ROLES } from "@/lib/constants/auth";
 
 const baseNavLinks = [
   { label: "Home", href: "/" },
@@ -127,9 +128,33 @@ export function StoreHeader({
 }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [isScrollingDown, setIsScrollingDown] = useState(false);
+  const lastScrollY = useRef(0);
+
+  const role = user?.user_metadata?.role || user?.app_metadata?.role || "CUSTOMER";
+  const accountHref = !user
+    ? "/auth/login"
+    : ADMIN_ROLES.includes(role)
+      ? "/admin"
+      : MANAGER_ROLES.includes(role)
+        ? "/dashboard"
+        : "/account/profile";
 
   useEffect(() => {
     setMounted(true);
+    
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+        setIsScrollingDown(true);
+      } else {
+        setIsScrollingDown(false);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   // Dynamically build navLinks by inserting Clothing and Accessories with DB categories
@@ -236,7 +261,11 @@ export function StoreHeader({
           "🚚 Free Shipping On Orders Over ৳999 | Easy Returns & Exchanges"}
       </div>
 
-      <header className="sticky top-0 z-50 w-full border-b border-gray-100 bg-white shadow-[0_2px_20px_rgba(0,0,0,0.06)]">
+      <header 
+        className={`sticky top-0 z-50 w-full border-b border-gray-100 bg-white/85 backdrop-blur-md shadow-sm transition-transform duration-300 ${
+          isScrollingDown ? "-translate-y-full" : "translate-y-0"
+        }`}
+      >
         <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
           {/* Mobile Hamburger — only rendered after mount to prevent hydration mismatch */}
           {mounted ? (
@@ -301,7 +330,7 @@ export function StoreHeader({
 
             {/* Account */}
             <Link
-              href={user ? "/account/profile" : "/auth/login"}
+              href={accountHref}
               className="p-2 text-gray-700 transition-colors hover:text-black"
               aria-label="Account"
             >
@@ -346,30 +375,31 @@ export function StoreHeader({
         </div>
       </header>
 
-      {/* Search Overlay */}
+      {/* Premium Full-Screen Search Overlay */}
       {searchOpen && (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/60 px-4 pt-24 backdrop-blur-sm">
-          <div className="w-full max-w-2xl rounded-sm bg-white shadow-2xl">
-            <div className="flex items-center border-b border-gray-100 px-4 py-3">
-              <Search className="h-5 w-5 flex-shrink-0 text-gray-400" />
+        <div className="fixed inset-0 z-[100] flex flex-col bg-white/95 px-4 pt-16 backdrop-blur-xl transition-all animate-in fade-in duration-300 md:px-12 md:pt-24 lg:px-24">
+          <div className="mx-auto w-full max-w-5xl">
+            <div className="flex w-full items-center justify-between border-b-2 border-black/10 pb-4 transition-colors focus-within:border-black">
+              <Search className="h-6 w-6 flex-shrink-0 text-gray-400 md:h-8 md:w-8" />
               <input
                 autoFocus
                 type="text"
-                placeholder="Search for dresses, tops, bags..."
-                className="flex-1 px-4 py-1 text-base text-gray-800 placeholder-gray-400 focus:outline-none"
+                placeholder="Search for elegant pieces..."
+                className="flex-1 bg-transparent px-4 py-2 font-serif text-2xl text-gray-900 placeholder-gray-300 focus:outline-none md:text-4xl"
               />
               <button
                 onClick={() => setSearchOpen(false)}
-                className="p-1 text-gray-400 transition-colors hover:text-black"
+                className="group flex items-center justify-center p-2 text-gray-400 transition-colors hover:text-black"
               >
-                <X className="h-5 w-5" />
+                <X className="h-8 w-8 transition-transform duration-300 group-hover:rotate-90" />
               </button>
             </div>
-            <div className="px-6 py-4">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-gray-400">
-                Popular Searches
+            
+            <div className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <p className="mb-6 text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+                Popular Categories
               </p>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-3">
                 {[
                   "Dresses",
                   "Kurtas",
@@ -382,9 +412,10 @@ export function StoreHeader({
                     key={term}
                     href={`/search?q=${term.toLowerCase()}`}
                     onClick={() => setSearchOpen(false)}
-                    className="rounded-sm bg-gray-50 px-3 py-1.5 text-xs font-medium text-gray-700 transition-colors hover:bg-black hover:text-white"
+                    className="group relative px-2 py-1 text-sm font-medium text-gray-600 transition-colors hover:text-black md:text-base"
                   >
-                    {term}
+                    <span className="relative z-10">{term}</span>
+                    <span className="absolute bottom-0 left-0 h-[1px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
                   </Link>
                 ))}
               </div>

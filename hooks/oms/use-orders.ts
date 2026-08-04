@@ -4,6 +4,7 @@ import { fetchOrdersAction } from "@/app/actions/oms/order.actions";
 export function useOrders(params: {
   customerId?: string;
   status?: any;
+  search?: string;
   page?: number;
   limit?: number;
 }) {

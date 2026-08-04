@@ -2,8 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { Order, OrderStatus } from "@/types/oms";
 
 export class OrderRepository {
-  async getOrderById(id: string): Promise<Order | null> {
-    const supabase = await createClient();
+  async getOrderById(id: string, supabaseClient?: any): Promise<Order | null> {
+    const supabase = supabaseClient || await createClient();
     const { data, error } = await supabase
       .from("orders")
       .select("*")
@@ -17,8 +17,8 @@ export class OrderRepository {
     return data as Order;
   }
 
-  async getOrderByNumber(orderNumber: string): Promise<Order | null> {
-    const supabase = await createClient();
+  async getOrderByNumber(orderNumber: string, supabaseClient?: any): Promise<Order | null> {
+    const supabase = supabaseClient || await createClient();
     const { data, error } = await supabase
       .from("orders")
       .select("*")
@@ -35,17 +35,21 @@ export class OrderRepository {
   async getOrders(options?: {
     customerId?: string;
     status?: OrderStatus;
+    search?: string;
     page?: number;
     limit?: number;
-  }) {
-    const supabase = await createClient();
+  }, supabaseClient?: any) {
+    const supabase = supabaseClient || await createClient();
     let query = supabase.from("orders").select("*", { count: "exact" });
 
     if (options?.customerId) {
-      query = query.eq("user_id", options.customerId);
+      query = query.eq("customer_id", options.customerId); // Fixed bug here from user_id to customer_id if any
     }
     if (options?.status) {
       query = query.eq("status", options.status);
+    }
+    if (options?.search) {
+      query = query.ilike("order_number", `%${options.search}%`);
     }
 
     const page = options?.page || 1;

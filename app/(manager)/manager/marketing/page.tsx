@@ -3,18 +3,26 @@ import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Tag, Zap, Mail, BellRing } from "lucide-react";
+import { fetchManagerMarketingStatsAction, fetchDashboardCampaignsAction } from "@/app/actions/manager/marketing.actions";
 
 export const metadata: Metadata = {
   title: "Marketing | Manager Dashboard",
 };
 
-export default function MarketingPage() {
+export default async function MarketingPage() {
+  const [statsRes, campaignsRes] = await Promise.all([
+    fetchManagerMarketingStatsAction(),
+    fetchDashboardCampaignsAction("running", 5)
+  ]);
+
+  const stats = statsRes.data || { activeCoupons: 0, upcomingSales: 0, draftEmails: 0, pushSentToday: 0 };
+  const campaigns = campaignsRes.data || [];
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -45,7 +53,7 @@ export default function MarketingPage() {
               Manage discount codes and auto-applied discounts.
             </p>
             <div className="flex items-center justify-between text-sm font-medium">
-              <span>Active: 5</span>
+              <span>Active: {stats.activeCoupons}</span>
               <span className="text-indigo-600">Manage &rarr;</span>
             </div>
           </CardContent>
@@ -63,7 +71,7 @@ export default function MarketingPage() {
               Schedule limited-time sales and countdowns.
             </p>
             <div className="flex items-center justify-between text-sm font-medium">
-              <span>Upcoming: 1</span>
+              <span>Upcoming: {stats.upcomingSales}</span>
               <span className="text-orange-600">Manage &rarr;</span>
             </div>
           </CardContent>
@@ -83,7 +91,7 @@ export default function MarketingPage() {
               Draft and schedule newsletters and promo emails.
             </p>
             <div className="flex items-center justify-between text-sm font-medium">
-              <span>Drafts: 2</span>
+              <span>Drafts: {stats.draftEmails}</span>
               <span className="text-blue-600">Manage &rarr;</span>
             </div>
           </CardContent>
@@ -103,7 +111,7 @@ export default function MarketingPage() {
               Send alerts to customers with the mobile app/PWA.
             </p>
             <div className="flex items-center justify-between text-sm font-medium">
-              <span>Sent today: 0</span>
+              <span>Sent today: {stats.pushSentToday}</span>
               <span className="text-green-600">Manage &rarr;</span>
             </div>
           </CardContent>
@@ -114,45 +122,36 @@ export default function MarketingPage() {
       <Card>
         <CardContent className="p-0">
           <div className="divide-y">
-            <div className="flex items-center justify-between p-4">
-              <div>
-                <h3 className="font-medium">Summer Clearance Sale</h3>
-                <p className="text-sm text-muted-foreground">
-                  Up to 50% off on summer collections
-                </p>
+            {campaigns.length === 0 ? (
+              <div className="p-6 text-center text-muted-foreground">
+                No active campaigns running right now.
               </div>
-              <div className="flex items-center gap-4">
-                <Badge
-                  variant="default"
-                  className="bg-green-500 hover:bg-green-600"
-                >
-                  Active
-                </Badge>
-                <span className="text-sm text-muted-foreground">
-                  Ends in 2 days
-                </span>
-                <Button variant="ghost" size="sm">
-                  Edit
-                </Button>
-              </div>
-            </div>
-            <div className="flex items-center justify-between p-4">
-              <div>
-                <h3 className="font-medium">
-                  Welcome Series - New Subscribers
-                </h3>
-                <p className="text-sm text-muted-foreground">
-                  Automated email drip campaign
-                </p>
-              </div>
-              <div className="flex items-center gap-4">
-                <Badge variant="secondary">Automated</Badge>
-                <span className="text-sm text-muted-foreground">Ongoing</span>
-                <Button variant="ghost" size="sm">
-                  Edit
-                </Button>
-              </div>
-            </div>
+            ) : (
+              campaigns.map((campaign: any) => (
+                <div key={campaign.id} className="flex items-center justify-between p-4">
+                  <div>
+                    <h3 className="font-medium">{campaign.name}</h3>
+                    <p className="text-sm text-muted-foreground capitalize">
+                      {campaign.type} Campaign
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <Badge
+                      variant="default"
+                      className="bg-green-500 hover:bg-green-600"
+                    >
+                      {campaign.status}
+                    </Badge>
+                    <span className="text-sm text-muted-foreground">
+                      Started: {new Date(campaign.created_at).toLocaleDateString()}
+                    </span>
+                    <Button variant="ghost" size="sm">
+                      Edit
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </CardContent>
       </Card>

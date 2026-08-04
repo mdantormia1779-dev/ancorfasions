@@ -12,26 +12,41 @@ export class AnalyticsRepository {
   static async getExecutiveSummary(dateRange?: DateRange) {
     const supabase = await createClient();
 
-    // Revenue and Orders from BI Rollup if available, otherwise from orders table
-    let revenueQuery = supabase.from("bi_daily_revenue_rollup").select("*");
+    let periodDays = 30;
+    let currentFrom = new Date();
+    currentFrom.setDate(currentFrom.getDate() - 30);
+    let currentTo = new Date();
+    
     if (dateRange) {
-      revenueQuery = revenueQuery
-        .gte("date", dateRange.from.toISOString().split("T")[0])
-        .lte("date", dateRange.to.toISOString().split("T")[0]);
+      currentFrom = dateRange.from;
+      currentTo = dateRange.to;
+      periodDays = Math.max(1, Math.round((currentTo.getTime() - currentFrom.getTime()) / (1000 * 60 * 60 * 24)));
     }
 
-    const { data: rollups } = await revenueQuery;
+    const previousFrom = new Date(currentFrom);
+    previousFrom.setDate(previousFrom.getDate() - periodDays);
+    
+    const currentFromStr = currentFrom.toISOString().split("T")[0];
+    const currentToStr = currentTo.toISOString().split("T")[0];
+    const previousFromStr = previousFrom.toISOString().split("T")[0];
+
+    // Revenue and Orders from BI Rollup if available, otherwise from orders table
+    const { data: allRollups } = await supabase.from("bi_daily_revenue_rollup").select("*")
+        .gte("date", previousFromStr)
+        .lte("date", currentToStr);
+
+    const rollups = allRollups?.filter(r => r.date >= currentFromStr) || [];
+    const previousRollups = allRollups?.filter(r => r.date >= previousFromStr && r.date < currentFromStr) || [];
 
     // Customers
-    let customersQuery = supabase
+    const { data: allCustomers } = await supabase
       .from("customer_profiles")
-      .select("id, created_at, status");
-    if (dateRange) {
-      customersQuery = customersQuery
-        .gte("created_at", dateRange.from.toISOString())
-        .lte("created_at", dateRange.to.toISOString());
-    }
-    const { data: customers } = await customersQuery;
+      .select("id, created_at, status")
+      .gte("created_at", previousFrom.toISOString())
+      .lte("created_at", currentTo.toISOString());
+
+    const customers = allCustomers?.filter(c => new Date(c.created_at) >= currentFrom) || [];
+    const previousCustomers = allCustomers?.filter(c => new Date(c.created_at) >= previousFrom && new Date(c.created_at) < currentFrom) || [];
 
     // Products
     const { count: productsCount } = await supabase
@@ -42,13 +57,13 @@ export class AnalyticsRepository {
     const { data: inventory } = await supabase
       .from("inventory_levels")
       .select("quantity_available");
-    const { data: products } = await supabase
-      .from("products")
-      .select("id, price");
 
     let totalRevenue = 0;
     let totalOrders = 0;
     let totalProfit = 0;
+
+    let prevTotalRevenue = 0;
+    let prevTotalOrders = 0;
 
     // Calculate today, week, month, year based on rollups
     const now = new Date();
@@ -82,26 +97,49 @@ export class AnalyticsRepository {
       if (r.date >= yearAgoStr) yearlyRevenue += r.total_revenue || 0;
     });
 
+    previousRollups?.forEach((r) => {
+      prevTotalRevenue += r.total_revenue || 0;
+      prevTotalOrders += r.total_orders || 0;
+    });
+
     // Fallback if rollups are empty: query orders directly
-    if (!rollups || rollups.length === 0) {
+    if (!allRollups || allRollups.length === 0) {
       const { data: orders } = await supabase
         .from("orders")
         .select("total_amount, status, created_at");
       if (orders) {
         orders.forEach((o) => {
           if (o.status !== "CANCELLED" && o.status !== "RETURNED") {
-            totalRevenue += o.total_amount || 0;
-            totalOrders++;
-            totalProfit += (o.total_amount || 0) * 0.35; // Estimated profit margin
+            const isCurrent = new Date(o.created_at) >= currentFrom;
+            if (isCurrent) {
+              totalRevenue += o.total_amount || 0;
+              totalOrders++;
+              totalProfit += (o.total_amount || 0) * 0.35; // Estimated profit margin
+            } else {
+              prevTotalRevenue += o.total_amount || 0;
+              prevTotalOrders++;
+            }
           }
         });
       }
     }
 
     const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+    const prevAverageOrderValue = prevTotalOrders > 0 ? prevTotalRevenue / prevTotalOrders : 0;
+    
     const totalCustomers = customers?.length || 0;
-    const activeCustomers =
-      customers?.filter((c) => c.status === "active").length || totalCustomers; // Fallback to all if status not present
+    const prevTotalCustomers = previousCustomers?.length || 0;
+    
+    const ordersPerCustomerVal = totalCustomers > 0 ? totalOrders / totalCustomers : 0;
+    const prevOrdersPerCustomer = prevTotalCustomers > 0 ? prevTotalOrders / prevTotalCustomers : 0;
+    
+    // Instead of using 'status', we calculate active customers as those who made an order in the current period
+    const { data: recentOrders } = await supabase
+      .from("orders")
+      .select("customer_id")
+      .gte("created_at", currentFrom.toISOString());
+      
+    const activeCustomers = new Set(recentOrders?.map(o => o.customer_id).filter(Boolean)).size || 0;
 
     const totalInventoryValue =
       (inventory?.reduce(
@@ -112,8 +150,14 @@ export class AnalyticsRepository {
     const grossProfit = totalProfit; // Simplification
     const netProfit = totalProfit * 0.8; // Simplification (after taxes/expenses)
 
+    const calcTrend = (curr: number, prev: number) => {
+      if (prev === 0) return curr > 0 ? 100 : 0;
+      return Number((((curr - prev) / prev) * 100).toFixed(1));
+    };
+
     return {
       totalRevenue,
+      revenueTrend: calcTrend(totalRevenue, prevTotalRevenue),
       todaysRevenue,
       weeklyRevenue,
       monthlyRevenue,
@@ -121,10 +165,15 @@ export class AnalyticsRepository {
       grossProfit,
       netProfit,
       totalOrders,
+      ordersTrend: calcTrend(totalOrders, prevTotalOrders),
       totalCustomers,
+      customersTrend: calcTrend(totalCustomers, prevTotalCustomers),
       activeCustomers,
       productsCount: productsCount || 0,
       averageOrderValue,
+      aovTrend: calcTrend(averageOrderValue, prevAverageOrderValue),
+      ordersPerCustomer: Number(ordersPerCustomerVal.toFixed(1)),
+      opcTrend: calcTrend(ordersPerCustomerVal, prevOrdersPerCustomer),
       inventoryValue: totalInventoryValue,
       revenueHistory:
         rollups?.map((r) => ({ name: r.date, total: r.total_revenue })) || [],
@@ -457,7 +506,6 @@ export class AnalyticsRepository {
       totalDiscountGiven,
       newsletterSubscribers,
       topCoupons,
-      conversionRate: 3.2, // Static for now as we don't have visitor tracking table here
     };
   }
 

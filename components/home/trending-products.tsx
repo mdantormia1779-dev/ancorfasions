@@ -101,7 +101,7 @@ export function TrendingProducts({ products }: { products: any[] }) {
                     key={product.id}
                     className="group flex flex-[0_0_80%] cursor-pointer flex-col transition-all sm:flex-[0_0_50%] md:flex-[0_0_33.33%] lg:flex-[0_0_25%]"
                   >
-                    <div className="relative mb-5 aspect-[3/4] w-full overflow-hidden bg-gray-50">
+                    <div className="relative mb-5 aspect-[4/5] w-full overflow-hidden bg-gray-50">
                       <Link
                         href={`/product/${product.slug}`}
                         className="block h-full w-full"
@@ -120,23 +120,16 @@ export function TrendingProducts({ products }: { products: any[] }) {
                         />
                       </Link>
 
-                      {/* Elegant Slide-up Actions */}
-                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 flex translate-y-full justify-center gap-2 bg-gradient-to-t from-black/20 to-transparent p-4 transition-transform duration-500 ease-out group-hover:pointer-events-auto group-hover:translate-y-0">
+                      {/* Sleek Bottom Action Bar */}
+                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 flex translate-y-full justify-center transition-transform duration-500 ease-out group-hover:pointer-events-auto group-hover:translate-y-0">
                         <button
                           onClick={() =>
                             toast.success(`${product.name} added to cart!`)
                           }
-                          className="flex flex-1 items-center justify-center gap-2 bg-white py-3 text-xs font-bold uppercase tracking-widest text-black shadow-sm transition-colors hover:bg-black hover:text-white"
+                          className="flex w-full items-center justify-center gap-2 bg-black/90 py-3 text-xs font-semibold uppercase tracking-widest text-white backdrop-blur-md transition-colors hover:bg-black"
                         >
-                          Add to Cart
+                          <ShoppingBag className="h-4 w-4" /> Add to Cart
                         </button>
-                        <Link
-                          href={`/product/${product.slug}`}
-                          className="flex w-12 items-center justify-center bg-white text-black shadow-sm transition-colors hover:bg-black hover:text-white"
-                          aria-label="View Product"
-                        >
-                          <Eye className="h-5 w-5" strokeWidth={1.5} />
-                        </Link>
                       </div>
 
                       {/* Wishlist Heart */}
@@ -156,7 +149,7 @@ export function TrendingProducts({ products }: { products: any[] }) {
                       href={`/product/${product.slug}`}
                       className="flex flex-col px-2"
                     >
-                      <span className="mb-2 text-[10px] font-bold uppercase tracking-[0.2em] text-[#C9A86A]">
+                      <span className="mb-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#C9A86A]">
                         {brandName}
                       </span>
                       <h3

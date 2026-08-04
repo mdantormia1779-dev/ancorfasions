@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { ProductActions } from "./product-actions";
 import { Ruler } from "lucide-react";
 
@@ -26,12 +25,18 @@ interface ProductVariantSelectorProps {
   productId: string;
   baseStockQuantity: number;
   variants: Variant[];
+  productName?: string;
+  productPrice?: number;
+  productImage?: string;
 }
 
 export function ProductVariantSelector({
   productId,
   baseStockQuantity,
   variants,
+  productName,
+  productPrice,
+  productImage,
 }: ProductVariantSelectorProps) {
   // Simple implementation: Assuming 'Size' is the main varying attribute for now.
   // We can group by attribute name if there are multiple (Color, Size).
@@ -71,20 +76,37 @@ export function ProductVariantSelector({
               <Ruler className="h-4 w-4" /> Size Guide
             </button>
           </div>
-          <div className="grid grid-cols-4 gap-3">
-            {sizes.map(({ variantId, size, stock }) => (
-              <Button
-                key={variantId}
-                variant={
-                  selectedVariantId === variantId ? "default" : "outline"
-                }
-                className={`h-12 w-full text-sm font-medium uppercase tracking-wider ${stock <= 0 ? "line-through opacity-50" : ""}`}
-                onClick={() => setSelectedVariantId(variantId)}
-                disabled={stock <= 0}
-              >
-                {size}
-              </Button>
-            ))}
+          <div className="grid grid-cols-4 gap-3 sm:grid-cols-5">
+            {sizes.map(({ variantId, size, stock }) => {
+              const isSelected = selectedVariantId === variantId;
+              const isAvailable = stock > 0;
+              return (
+                <button
+                  key={variantId}
+                  onClick={() => setSelectedVariantId(variantId)}
+                  disabled={!isAvailable}
+                  className={`relative flex h-12 w-full items-center justify-center border text-sm font-medium uppercase tracking-wider transition-colors ${
+                    isSelected
+                      ? "border-black bg-black text-white"
+                      : isAvailable
+                        ? "border-gray-200 bg-white text-gray-900 hover:border-black"
+                        : "cursor-not-allowed border-gray-200 bg-gray-50 text-gray-400"
+                  }`}
+                >
+                  {size}
+                  {!isAvailable && (
+                    <svg
+                      className="absolute inset-0 h-full w-full stroke-gray-300"
+                      viewBox="0 0 100 100"
+                      preserveAspectRatio="none"
+                      strokeWidth="1"
+                    >
+                      <line x1="0" y1="100" x2="100" y2="0" />
+                    </svg>
+                  )}
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
@@ -94,6 +116,9 @@ export function ProductVariantSelector({
           productId={productId}
           selectedVariantId={selectedVariantId}
           disabled={isOutOfStock}
+          productName={productName}
+          productPrice={productPrice}
+          productImage={productImage}
         />
       </div>
     </div>

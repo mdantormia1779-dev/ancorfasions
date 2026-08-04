@@ -137,7 +137,7 @@ export class ProductRepository {
 
     // 2. Create SEO
     if (seo) {
-      await supabase.from("product_seo").insert({
+      const { error: seoError } = await supabase.from("product_seo").insert({
         product_id: productId,
         meta_title: seo.metaTitle,
         meta_description: seo.metaDescription,
@@ -149,6 +149,7 @@ export class ProductRepository {
         structured_data: seo.structuredData,
         keywords: seo.keywords,
       });
+      if (seoError) throw new Error(`Failed to create product SEO: ${seoError.message}`);
     }
 
     // 3. Link Tags
@@ -157,7 +158,8 @@ export class ProductRepository {
         product_id: productId,
         tag_id: tagId,
       }));
-      await supabase.from("product_tags").insert(tagInserts);
+      const { error: tagsError } = await supabase.from("product_tags").insert(tagInserts);
+      if (tagsError) throw new Error(`Failed to link product tags: ${tagsError.message}`);
     }
 
     // 4. Create Media
@@ -171,7 +173,8 @@ export class ProductRepository {
         is_primary: m.isPrimary,
         media_type: m.mediaType,
       }));
-      await supabase.from("product_media").insert(mediaInserts);
+      const { error: mediaError } = await supabase.from("product_media").insert(mediaInserts);
+      if (mediaError) throw new Error(`Failed to create product media: ${mediaError.message}`);
     }
 
     // 5. Create Variants
@@ -187,7 +190,8 @@ export class ProductRepository {
         is_active: v.isActive,
         attributes: v.attributes,
       }));
-      await supabase.from("variants").insert(variantInserts);
+      const { error: variantsError } = await supabase.from("variants").insert(variantInserts);
+      if (variantsError) throw new Error(`Failed to create product variants: ${variantsError.message}`);
     }
 
     return this.getProductById(productId);
@@ -230,14 +234,18 @@ export class ProductRepository {
 
     // 2. Update SEO (Upsert)
     if (seo) {
-      const { data: existingSeo } = await supabase
+      const { data: existingSeo, error: existingSeoError } = await supabase
         .from("product_seo")
         .select("id")
         .eq("product_id", id)
         .single();
+        
+      if (existingSeoError && existingSeoError.code !== "PGRST116") {
+        throw new Error(`Failed to check existing SEO: ${existingSeoError.message}`);
+      }
 
       if (existingSeo) {
-        await supabase
+        const { error: seoUpdateError } = await supabase
           .from("product_seo")
           .update({
             meta_title: seo.metaTitle,
@@ -251,8 +259,9 @@ export class ProductRepository {
             keywords: seo.keywords,
           })
           .eq("product_id", id);
+        if (seoUpdateError) throw new Error(`Failed to update product SEO: ${seoUpdateError.message}`);
       } else {
-        await supabase.from("product_seo").insert({
+        const { error: seoInsertError } = await supabase.from("product_seo").insert({
           product_id: id,
           meta_title: seo.metaTitle,
           meta_description: seo.metaDescription,
@@ -264,25 +273,29 @@ export class ProductRepository {
           structured_data: seo.structuredData,
           keywords: seo.keywords,
         });
+        if (seoInsertError) throw new Error(`Failed to insert product SEO: ${seoInsertError.message}`);
       }
     }
 
     // 3. Update Tags
     if (tags !== undefined) {
       // Simple strategy: delete existing and re-insert
-      await supabase.from("product_tags").delete().eq("product_id", id);
+      const { error: deleteTagsError } = await supabase.from("product_tags").delete().eq("product_id", id);
+      if (deleteTagsError) throw new Error(`Failed to delete old product tags: ${deleteTagsError.message}`);
       if (tags.length > 0) {
         const tagInserts = tags.map((tagId) => ({
           product_id: id,
           tag_id: tagId,
         }));
-        await supabase.from("product_tags").insert(tagInserts);
+        const { error: insertTagsError } = await supabase.from("product_tags").insert(tagInserts);
+        if (insertTagsError) throw new Error(`Failed to insert new product tags: ${insertTagsError.message}`);
       }
     }
 
     // 4. Update Media
     if (media !== undefined) {
-      await supabase.from("product_media").delete().eq("product_id", id);
+      const { error: deleteMediaError } = await supabase.from("product_media").delete().eq("product_id", id);
+      if (deleteMediaError) throw new Error(`Failed to delete old product media: ${deleteMediaError.message}`);
       if (media.length > 0) {
         const mediaInserts = media.map((m) => ({
           product_id: id,
@@ -293,13 +306,15 @@ export class ProductRepository {
           is_primary: m.isPrimary,
           media_type: m.mediaType,
         }));
-        await supabase.from("product_media").insert(mediaInserts);
+        const { error: insertMediaError } = await supabase.from("product_media").insert(mediaInserts);
+        if (insertMediaError) throw new Error(`Failed to insert new product media: ${insertMediaError.message}`);
       }
     }
 
     // 5. Update Variants
     if (variants !== undefined) {
-      await supabase.from("variants").delete().eq("product_id", id);
+      const { error: deleteVariantsError } = await supabase.from("variants").delete().eq("product_id", id);
+      if (deleteVariantsError) throw new Error(`Failed to delete old product variants: ${deleteVariantsError.message}`);
       if (variants.length > 0) {
         const variantInserts = variants.map((v) => ({
           product_id: id,
@@ -312,7 +327,8 @@ export class ProductRepository {
           is_active: v.isActive,
           attributes: v.attributes,
         }));
-        await supabase.from("variants").insert(variantInserts);
+        const { error: insertVariantsError } = await supabase.from("variants").insert(variantInserts);
+        if (insertVariantsError) throw new Error(`Failed to insert new product variants: ${insertVariantsError.message}`);
       }
     }
 

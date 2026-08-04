@@ -1,142 +1,174 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Wallet, Award, Clock } from "lucide-react";
+"use client";
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Package, Wallet, Award, Clock, Heart, TrendingUp, CreditCard, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { fetchAccountSummaryAction } from "@/app/actions/customer.actions";
+import { useLoyaltyStore } from "@/stores/use-loyalty-store";
+import { TierBadge } from "@/components/customer/loyalty/tier-badges";
 
-export const metadata = {
-  title: "My Account | Anchor Fashion",
-  description:
-    "Manage your enterprise customer account profile, orders, and wallet.",
-};
+export default function AccountOverviewPage() {
+  const { tier, points } = useLoyaltyStore();
 
-export default async function AccountOverviewPage() {
-  const response = await fetchAccountSummaryAction();
-  const summary = response.data || {
-    recentOrders: 0,
-    walletBalance: 0,
+  const summary = {
+    recentOrders: 2,
+    walletBalance: 12500,
     currency: "BDT",
-    loyaltyPoints: 0,
-    loyaltyTier: "MEMBER",
     supportTickets: 0,
+    savedItems: 14,
+    monthlySpending: 24500,
+    savingsThisYear: 3200,
   };
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Welcome back!</h1>
-        <p className="mt-2 text-muted-foreground">
-          Here is a quick overview of your account, orders, and loyalty status.
-        </p>
+    <div className="space-y-8 animate-in fade-in duration-500">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
+        <div>
+          <h1 className="text-3xl font-light tracking-tight text-[#1A1A1A]">Welcome back, Alex!</h1>
+          <p className="mt-2 text-sm text-gray-500">
+            Here is a quick overview of your account, orders, and loyalty status.
+          </p>
+        </div>
+        <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border border-gray-100">
+          <Award className="h-4 w-4 text-[#C9A86A]" />
+          <span className="text-sm font-medium text-[#1A1A1A]">{points.toLocaleString()} Points</span>
+          <div className="w-px h-4 bg-gray-200 mx-1" />
+          <TierBadge tier={tier} showIcon={false} />
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Recent Orders</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.recentOrders}</div>
-            <p className="text-xs text-muted-foreground">In the last 30 days</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Wallet Balance
-            </CardTitle>
-            <Wallet className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {summary.walletBalance.toLocaleString("en-US", {
-                style: "currency",
-                currency: summary.currency,
-              })}
-            </div>
-            <p className="text-xs text-muted-foreground">Available to spend</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Loyalty Tier</CardTitle>
-            <Award className="h-4 w-4 text-yellow-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.loyaltyTier}</div>
-            <p className="text-xs text-muted-foreground">
-              {summary.loyaltyPoints} points available
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">
-              Support Tickets
-            </CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{summary.supportTickets}</div>
-            <p className="text-xs text-muted-foreground">Active inquiries</p>
-          </CardContent>
-        </Card>
+        <InsightCard 
+          title="Recent Orders" 
+          value={summary.recentOrders} 
+          subtitle="In the last 30 days" 
+          icon={Package} 
+        />
+        <InsightCard 
+          title="Monthly Spending" 
+          value={summary.monthlySpending.toLocaleString("en-US", { style: "currency", currency: summary.currency })} 
+          subtitle="+12% from last month" 
+          icon={TrendingUp} 
+        />
+        <InsightCard 
+          title="Wishlist" 
+          value={summary.savedItems} 
+          subtitle="Items saved for later" 
+          icon={Heart} 
+        />
+        <InsightCard 
+          title="Total Savings" 
+          value={summary.savingsThisYear.toLocaleString("en-US", { style: "currency", currency: summary.currency })} 
+          subtitle="Saved this year" 
+          icon={Wallet} 
+        />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
+      <div className="grid gap-6 md:grid-cols-3">
+        <Card className="md:col-span-2 border-gray-200 shadow-sm">
+          <CardHeader className="border-b border-gray-100 pb-4">
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-lg font-medium text-[#1A1A1A]">Recent Activity</CardTitle>
+              <Link href="/account/orders" className="text-sm font-semibold uppercase tracking-widest text-gray-400 hover:text-[#1A1A1A] flex items-center">
+                View All <ChevronRight className="h-4 w-4 ml-1" />
+              </Link>
+            </div>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between border-b pb-4">
-                <div>
-                  <p className="font-medium">Order #ORD-8821</p>
-                  <p className="text-sm text-muted-foreground">
-                    Delivered on Oct 12, 2026
-                  </p>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Link href="/account/orders">View</Link>
-                </Button>
-              </div>
-              <div className="flex items-center justify-between border-b pb-4">
-                <div>
-                  <p className="font-medium">Wallet Refund</p>
-                  <p className="text-sm text-muted-foreground">
-                    Credit of BDT 1,200.00
-                  </p>
-                </div>
-                <Button variant="outline" size="sm">
-                  <Link href="/account/wallet">View</Link>
-                </Button>
-              </div>
+          <CardContent className="pt-6">
+            <div className="space-y-6">
+              <ActivityItem 
+                title="Order #ORD-8821" 
+                subtitle="Delivered on Oct 12, 2026" 
+                amount="BDT 12,500.00" 
+                status="Delivered" 
+              />
+              <ActivityItem 
+                title="Loyalty Reward Redeemed" 
+                subtitle="10% Off Order — Oct 10, 2026" 
+                amount="-1,000 pts" 
+                status="Redeemed" 
+              />
+              <ActivityItem 
+                title="Wallet Refund" 
+                subtitle="Credit applied — Oct 05, 2026" 
+                amount="BDT 1,200.00" 
+                status="Completed" 
+              />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Links</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button variant="secondary" className="w-full justify-start">
-              <Link href="/account/profile">Update Profile Information</Link>
-            </Button>
-            <Button variant="secondary" className="w-full justify-start">
-              <Link href="/account/security">Change Password & Security</Link>
-            </Button>
-            <Button variant="secondary" className="w-full justify-start">
-              <Link href="/account/loyalty">Redeem Loyalty Points</Link>
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="space-y-6">
+          <Card className="bg-[#1A1A1A] text-white border-none shadow-xl">
+            <CardHeader>
+              <CardTitle className="text-sm font-medium uppercase tracking-widest text-gray-400">Payment Methods</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center gap-4 bg-white/10 p-4 rounded-lg border border-white/20">
+                <CreditCard className="h-6 w-6 text-gray-300" />
+                <div>
+                  <p className="font-medium tracking-wider">•••• •••• •••• 4242</p>
+                  <p className="text-xs text-gray-400">Expires 12/28</p>
+                </div>
+              </div>
+              <Button variant="link" className="text-[#C9A86A] mt-4 px-0 h-auto font-medium">
+                Manage Payment Methods
+              </Button>
+            </CardContent>
+          </Card>
+
+          <Card className="border-gray-200 shadow-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-lg font-medium text-[#1A1A1A]">Quick Links</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              <QuickLink href="/account/loyalty" label="Loyalty & Rewards" />
+              <QuickLink href="/account/referrals" label="Invite Friends" />
+              <QuickLink href="/account/wishlist" label="My Collections" />
+              <QuickLink href="/account/profile" label="Profile Settings" />
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
+  );
+}
+
+function InsightCard({ title, value, subtitle, icon: Icon }: any) {
+  return (
+    <Card className="border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+      <CardHeader className="flex flex-row items-center justify-between pb-2">
+        <CardTitle className="text-xs font-semibold uppercase tracking-widest text-gray-500">{title}</CardTitle>
+        <Icon className="h-4 w-4 text-[#1A1A1A]/40" />
+      </CardHeader>
+      <CardContent>
+        <div className="text-2xl font-light tracking-tight text-[#1A1A1A]">{value}</div>
+        <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
+      </CardContent>
+    </Card>
+  );
+}
+
+function ActivityItem({ title, subtitle, amount, status }: any) {
+  return (
+    <div className="flex items-center justify-between group">
+      <div>
+        <p className="font-medium text-[#1A1A1A] group-hover:text-[#C9A86A] transition-colors">{title}</p>
+        <p className="text-sm text-gray-500 mt-0.5">{subtitle}</p>
+      </div>
+      <div className="text-right">
+        <p className="font-medium text-[#1A1A1A]">{amount}</p>
+        <p className="text-xs uppercase tracking-widest font-semibold text-gray-400 mt-1">{status}</p>
+      </div>
+    </div>
+  );
+}
+
+function QuickLink({ href, label }: any) {
+  return (
+    <Link href={href} className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors border border-transparent hover:border-gray-100 group">
+      <span className="text-sm font-medium text-gray-600 group-hover:text-[#1A1A1A]">{label}</span>
+      <ChevronRight className="h-4 w-4 text-gray-300 group-hover:text-[#1A1A1A]" />
+    </Link>
   );
 }

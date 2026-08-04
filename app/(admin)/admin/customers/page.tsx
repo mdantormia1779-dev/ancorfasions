@@ -16,8 +16,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { CustomerSearch } from "@/features/crm/components/customer-search";
 import { CustomerSegmentsTable } from "@/features/crm/components/CustomerSegmentsTable";
 import { CustomersList } from "@/features/crm/components/CustomersList";
 import { LoyaltyTiers } from "@/features/crm/components/LoyaltyTiers";
@@ -28,10 +28,15 @@ import {
   fetchCRMSummaryAction,
 } from "@/app/actions/crm/customer.actions";
 
-export default async function CRMDashboardPage() {
+export default async function CRMDashboardPage({
+  searchParams,
+}: {
+  searchParams: { q?: string };
+}) {
+  const { q } = await searchParams;
   const [customersRes, segmentsRes, loyaltyRes, summaryRes] = await Promise.all(
     [
-      fetchCustomersAction(),
+      fetchCustomersAction(20, q),
       fetchCustomerSegmentsAction(),
       fetchLoyaltyStatsAction(),
       fetchCRMSummaryAction(),
@@ -134,13 +139,7 @@ export default async function CRMDashboardPage() {
       </div>
 
       <div className="flex items-center space-x-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search customers by name, email, or ID..."
-            className="bg-background pl-8"
-          />
-        </div>
+        <CustomerSearch />
       </div>
 
       <Tabs defaultValue="customers" className="space-y-4">

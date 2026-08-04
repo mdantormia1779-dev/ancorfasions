@@ -27,7 +27,7 @@ export function ProductCard({ product }: ProductCardProps) {
           <span className="sr-only">View {product.name}</span>
         </Link>
         <Image
-          src={product.thumbnail}
+          src={product.thumbnail || "https://placehold.co/600x800/eaeaea/black?text=No+Image"}
           alt={product.name}
           fill
           className="object-cover object-center transition-transform duration-500 group-hover:scale-105"

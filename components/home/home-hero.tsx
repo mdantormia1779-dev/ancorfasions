@@ -16,13 +16,15 @@ type HeroSlide = {
   headline?: string | null;
   subheadline?: string | null;
   cta_text?: string | null;
+  isVideo?: boolean;
 };
 
 const DEFAULT_SLIDES: HeroSlide[] = [
   {
     id: 1,
     ctaHref: "/products?sort=newest",
-    image: "/images/home/hero-banner.png",
+    image: "https://videos.pexels.com/video-files/5192138/5192138-uhd_2160_4096_25fps.mp4",
+    isVideo: true,
   },
   {
     id: 2,
@@ -82,16 +84,31 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
               style={{ transform: `translateX(${(index - current) * 100}%)` }}
             >
               <div className="absolute inset-0 h-full w-full overflow-hidden bg-[#111]">
-                <Image
-                  src={imageUrl}
-                  alt={slide.headline ?? `Banner ${index + 1}`}
-                  fill
-                  sizes="100vw"
-                  className={`object-cover object-center transition-transform ease-out [transition-duration:10s] ${
-                    isActive ? "scale-105" : "scale-100"
-                  }`}
-                  priority={index === 0}
-                />
+                {slide.isVideo ? (
+                  <video
+                    src={imageUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    preload={index === 0 ? "auto" : "none"}
+                    className={`h-full w-full object-cover object-center transition-transform ease-out [transition-duration:20s] ${
+                      isActive ? "scale-110" : "scale-100"
+                    }`}
+                    poster="/images/home/hero-banner.png"
+                  />
+                ) : (
+                  <Image
+                    src={imageUrl}
+                    alt={slide.headline ?? `Banner ${index + 1}`}
+                    fill
+                    sizes="100vw"
+                    className={`object-cover object-center transition-transform ease-out [transition-duration:20s] ${
+                      isActive ? "scale-110" : "scale-100"
+                    }`}
+                    priority={index === 0}
+                  />
+                )}
                 {/* Premium Gradient Overlay */}
                 <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
                 <div className="pointer-events-none absolute inset-0 bg-black/10" />
@@ -106,20 +123,20 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
                 )}
                 {slide.headline && (
                   <h1
-                    className={`${jost.className} mb-8 max-w-4xl text-5xl font-light leading-[1.05] tracking-tight opacity-0 drop-shadow-sm delay-500 duration-1000 animate-in fade-in slide-in-from-bottom-8 fill-mode-forwards md:text-7xl lg:text-8xl`}
+                    className={`${jost.className} mb-10 max-w-4xl text-5xl font-extralight leading-[1.1] tracking-tight opacity-0 drop-shadow-sm delay-500 duration-1000 animate-in fade-in slide-in-from-bottom-8 fill-mode-forwards md:text-7xl lg:text-8xl`}
                   >
                     {slide.headline}
                   </h1>
                 )}
                 <Link
                   href={ctaHref}
-                  className="group relative flex items-center justify-center gap-3 overflow-hidden border border-white bg-transparent px-12 py-4 text-white opacity-0 transition-all delay-700 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards hover:scale-[1.02] hover:border-[#C9A86A]"
+                  className="group relative flex items-center justify-center gap-3 overflow-hidden border border-white bg-transparent px-14 py-4 text-white opacity-0 transition-all delay-700 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards hover:bg-white hover:text-black"
                 >
-                  <span className="relative z-10 text-xs font-bold uppercase tracking-[0.3em] transition-colors group-hover:text-[#C9A86A]">
+                  <span className="relative z-10 text-xs font-bold uppercase tracking-[0.25em] transition-colors">
                     {slide.cta_text || "Discover More"}
                   </span>
                   <svg
-                    className="relative z-10 h-4 w-4 transition-all group-hover:translate-x-1 group-hover:text-[#C9A86A]"
+                    className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -131,7 +148,6 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
                       d="M17 8l4 4m0 0l-4 4m4-4H3"
                     />
                   </svg>
-                  <div className="absolute inset-0 origin-left scale-x-0 transform bg-[#C9A86A]/10 transition-transform duration-500 ease-out group-hover:scale-x-100" />
                 </Link>
               </div>
             </div>

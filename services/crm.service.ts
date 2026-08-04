@@ -62,6 +62,10 @@ export class CRMService {
     // Basic validation could be added here
     return await crmRepository.createCommunicationLog(data as any);
   }
+
+  async getCommunicationLogs(): Promise<CommunicationLog[]> {
+    return await crmRepository.getCommunicationLogs();
+  }
 }
 
 export const crmService = new CRMService();

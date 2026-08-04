@@ -4,7 +4,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { Heart, ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Jost } from "next/font/google";
+
+const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500"] });
 import { useWishlistStore } from "@/stores/use-wishlist-store";
 import { useCartStore } from "@/stores/use-cart-store";
 import { cn } from "@/lib/utils";
@@ -47,104 +49,88 @@ export function ProductCard({ product, className }: ProductCardProps) {
   return (
     <div
       className={cn(
-        "group relative flex flex-col gap-3 rounded-lg border bg-card p-4 transition-all hover:shadow-md",
+        `${jost.className} group relative flex flex-col gap-4 bg-white transition-all`,
         className
       )}
     >
-      <div className="relative aspect-square overflow-hidden rounded-md bg-muted">
+      <div className="relative aspect-[4/5] overflow-hidden bg-[#F7F7F7]">
         <Link
-          href={`/products/${product.slug}`}
+          href={`/product/${product.slug}`}
           className="block h-full w-full"
         >
           <Image
             src={primaryImage}
             alt={product.name}
             fill
-            className="object-cover transition-transform duration-300 group-hover:scale-105"
+            className="object-cover transition-transform duration-700 ease-out group-hover:scale-105"
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           />
         </Link>
 
         {/* Badges */}
-        <div className="absolute left-2 top-2 flex flex-col gap-2">
-          {product.status === "NEW" && <Badge variant="default">New</Badge>}
+        <div className="absolute left-3 top-3 flex flex-col gap-2">
+          {product.status === "NEW" && (
+            <span className="border border-black bg-white px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-black shadow-sm">
+              New
+            </span>
+          )}
+          {product.average_rating > 4.5 && (
+            <span className="bg-[#C9A86A] px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-white shadow-sm">
+              Best Seller
+            </span>
+          )}
           {product.discount > 0 && (
-            <Badge variant="destructive">-{product.discount}%</Badge>
+            <span className="border border-black bg-black px-2 py-1 text-[9px] font-bold uppercase tracking-widest text-white shadow-sm">
+              -{product.discount}%
+            </span>
           )}
         </div>
 
-        {/* Quick Actions */}
-        <div className="absolute right-2 top-2 flex flex-col gap-2 opacity-0 transition-opacity group-hover:opacity-100">
-          <Button
-            variant="secondary"
-            size="icon"
-            className="h-8 w-8 rounded-full shadow-sm"
+        {/* Wishlist Action */}
+        <div className="absolute right-3 top-3 opacity-100 transition-opacity md:opacity-0 md:group-hover:opacity-100">
+          <button
             onClick={handleToggleWishlist}
+            className="flex h-8 w-8 items-center justify-center bg-white shadow-sm transition-transform hover:scale-110"
           >
             <Heart
-              className={cn("h-4 w-4", isWished && "fill-primary text-primary")}
+              className={cn("h-4 w-4 text-black", isWished && "fill-black")}
+              strokeWidth={1.5}
             />
             <span className="sr-only">Wishlist</span>
-          </Button>
+          </button>
         </div>
 
-        <div className="absolute bottom-2 left-2 right-2 opacity-0 transition-opacity group-hover:opacity-100">
-          <Button
-            variant="default"
-            className="h-9 w-full shadow-sm"
+        {/* Quick Add Bar */}
+        <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 flex translate-y-full justify-center transition-transform duration-500 ease-out group-hover:pointer-events-auto group-hover:translate-y-0">
+          <button
             onClick={handleQuickAdd}
+            className="flex w-full items-center justify-center gap-2 bg-black/90 py-3 text-xs font-semibold uppercase tracking-widest text-white backdrop-blur-md transition-colors hover:bg-black"
           >
-            <ShoppingCart className="mr-2 h-4 w-4" />
-            Quick Add
-          </Button>
+            Add To Cart
+          </button>
         </div>
       </div>
 
-      <div className="flex flex-1 flex-col gap-1">
-        <div className="flex items-start justify-between gap-2">
-          <div>
-            {product.brands?.name && (
-              <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                {product.brands.name}
-              </p>
-            )}
-            <Link href={`/products/${product.slug}`}>
-              <h3 className="line-clamp-2 font-medium leading-tight transition-colors hover:text-primary">
-                {product.name}
-              </h3>
-            </Link>
-          </div>
-          <div className="text-right">
-            <p className="font-semibold">
-              ${Number(product.base_price).toFixed(2)}
-            </p>
-          </div>
-        </div>
-
-        {product.average_rating > 0 && (
-          <div className="mt-auto flex items-center gap-1 pt-2">
-            <div className="flex items-center text-amber-400">
-              {Array.from({ length: 5 }).map((_, i) => (
-                <svg
-                  key={i}
-                  className={cn(
-                    "h-3 w-3",
-                    i < Math.floor(product.average_rating)
-                      ? "fill-current"
-                      : "fill-muted text-muted"
-                  )}
-                  xmlns="http://www.w3.org/2000/svg"
-                  viewBox="0 0 24 24"
-                >
-                  <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                </svg>
-              ))}
-            </div>
-            <span className="ml-1 text-xs text-muted-foreground">
-              ({product.average_rating})
-            </span>
-          </div>
+      <div className="flex flex-col text-center">
+        {product.brands?.name && (
+          <span className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
+            {product.brands.name}
+          </span>
         )}
+        <Link href={`/product/${product.slug}`}>
+          <h3 className="mb-2 truncate text-sm font-medium text-gray-900 transition-colors group-hover:text-black">
+            {product.name}
+          </h3>
+        </Link>
+        <div className="flex items-center justify-center">
+          <span className="text-sm font-medium text-gray-900">
+            {new Intl.NumberFormat("en-BD", {
+              style: "currency",
+              currency: "BDT",
+              maximumFractionDigits: 0,
+            }).format(product.base_price || 0)}
+          </span>
+        </div>
       </div>
     </div>
   );

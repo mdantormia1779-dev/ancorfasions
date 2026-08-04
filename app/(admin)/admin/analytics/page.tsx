@@ -121,31 +121,31 @@ export default async function AnalyticsHubPage({
           title="Total Revenue"
           value={`$${executiveSummary.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={<DollarSign className="h-4 w-4" />}
-          trend={12.5}
+          trend={executiveSummary.revenueTrend}
         />
         <StatCard
           title="Total Orders"
           value={executiveSummary.totalOrders.toLocaleString()}
           icon={<ShoppingCart className="h-4 w-4" />}
-          trend={8.2}
+          trend={executiveSummary.ordersTrend}
         />
         <StatCard
           title="Avg. Order Value"
           value={`$${executiveSummary.averageOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
           icon={<TrendingUp className="h-4 w-4" />}
-          trend={-2.1}
+          trend={executiveSummary.aovTrend}
         />
         <StatCard
           title="Total Customers"
           value={executiveSummary.totalCustomers.toLocaleString()}
           icon={<Users className="h-4 w-4" />}
-          trend={15.4}
+          trend={executiveSummary.customersTrend}
         />
         <StatCard
-          title="Conversion Rate"
-          value={`3.2%`}
-          icon={<Percent className="h-4 w-4" />}
-          trend={0.5}
+          title="Orders per Customer"
+          value={executiveSummary.ordersPerCustomer.toString()}
+          icon={<Users className="h-4 w-4" />}
+          trend={executiveSummary.opcTrend}
         />
         <StatCard
           title="Products Count"

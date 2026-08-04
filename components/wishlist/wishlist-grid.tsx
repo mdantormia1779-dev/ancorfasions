@@ -79,6 +79,20 @@ export function WishlistGrid() {
               >
                 <Trash2 className="h-4 w-4" />
               </button>
+
+              {/* Mock Badges for UI */}
+              <div className="absolute left-2 top-2 flex flex-col gap-1.5">
+                {item.id.includes("1") && (
+                  <span className="bg-rose-500 text-white text-[9px] font-bold uppercase tracking-widest px-2 py-1 shadow-sm">
+                    Price Drop
+                  </span>
+                )}
+                {item.id.includes("2") && (
+                  <span className="bg-[#1A1A1A] text-white text-[9px] font-bold uppercase tracking-widest px-2 py-1 shadow-sm">
+                    Back in Stock
+                  </span>
+                )}
+              </div>
             </div>
 
             <div className="mb-4 space-y-1">
@@ -92,7 +106,7 @@ export function WishlistGrid() {
             </div>
 
             <Button
-              className="w-full"
+              className="w-full bg-[#1A1A1A] hover:bg-black text-white text-xs font-bold uppercase tracking-widest"
               onClick={() => moveToCart(item.id, item.product_id)}
             >
               <ShoppingCart className="mr-2 h-4 w-4" />

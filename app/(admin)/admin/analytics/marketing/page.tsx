@@ -60,11 +60,7 @@ export default async function MarketingAnalyticsPage({
       <AnalyticsFilters />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <StatCard
-          title="Conversion Rate"
-          value={`${marketing.conversionRate}%`}
-          icon={<Percent className="h-4 w-4" />}
-        />
+
         <StatCard
           title="Coupons Redeemed"
           value={marketing.couponsUsed.toLocaleString()}

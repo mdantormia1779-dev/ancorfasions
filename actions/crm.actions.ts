@@ -71,3 +71,12 @@ export async function addCustomerNoteAction(profileId: string, data: unknown) {
     return { error: error.message };
   }
 }
+
+export async function getCommunicationLogsAction() {
+  try {
+    const logs = await crmService.getCommunicationLogs();
+    return { data: logs };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}

@@ -3,21 +3,29 @@ import { LoyaltyTier } from "@/features/crm/components/LoyaltyTiers";
 import { CustomerLifecycleStage } from "@/features/crm/components/CustomersList";
 
 export class CustomerRepository {
-  async getCustomerProfiles(limit = 10) {
+  async getCustomerProfiles(limit = 10, search?: string) {
     const supabase = await createClient();
 
     // We fetch from crm_customers if available, or fallback to customer_profiles joined with loyalty
     // The view crm_customers is created in 20260729000000_enterprise_crm_and_support.sql
-    const { data, error } = await supabase
+    let query = supabase
       .from("crm_customers")
       .select("*")
       .order("health_score", { ascending: false })
       .limit(limit);
 
+    if (search) {
+      // Remove commas from search string to prevent PostgREST syntax errors in .or()
+      const sanitizedSearch = search.replace(/,/g, '');
+      query = query.or(`first_name.ilike.%${sanitizedSearch}%,last_name.ilike.%${sanitizedSearch}%,email.ilike.%${sanitizedSearch}%`);
+    }
+
+    const { data, error } = await query;
+
     if (error) {
       console.error("Error fetching customers:", error);
       // Fallback if view doesn't exist or isn't accessible
-      const { data: fallback, error: fallbackError } = await supabase
+      let fallbackQuery = supabase
         .from("customer_profiles")
         .select(
           `
@@ -30,20 +38,34 @@ export class CustomerRepository {
         )
         .limit(limit);
 
-      if (fallbackError) throw fallbackError;
+      if (search) {
+        fallbackQuery = fallbackQuery.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%`);
+      }
 
-      // Map fallback to expected schema
-      return (fallback || []).map((c: any) => ({
-        id: c.id,
-        first_name: c.first_name,
-        last_name: c.last_name,
-        email: c.auth_users?.email || "N/A",
-        is_vip: c.is_vip,
-        customer_lifecycle_stage: "PROSPECT",
-        health_score: 50,
-        total_support_tickets: 0,
-        last_interaction_at: new Date().toISOString(),
-      }));
+      try {
+        const { data: fallback, error: fallbackError } = await fallbackQuery;
+
+        if (fallbackError) {
+          console.error("Fallback query error:", fallbackError);
+          return [];
+        }
+
+        // Map fallback to expected schema
+        return (fallback || []).map((c: any) => ({
+          id: c.id,
+          first_name: c.first_name,
+          last_name: c.last_name,
+          email: c.auth_users?.email || "N/A",
+          is_vip: c.is_vip,
+          customer_lifecycle_stage: "PROSPECT",
+          health_score: 50,
+          total_support_tickets: 0,
+          last_interaction_at: new Date().toISOString(),
+        }));
+      } catch (err) {
+        console.error("Unexpected error in fallback query:", err);
+        return [];
+      }
     }
 
     return data;
@@ -165,21 +187,17 @@ export class CustomerRepository {
   async getCRMSummary() {
     const supabase = await createClient();
 
-    const { count: totalCustomers, error: err1 } = await supabase
-      .from("customer_profiles")
-      .select("*", { count: "exact", head: true });
+    const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
 
-    const { count: newCustomers, error: err2 } = await supabase
-      .from("customer_profiles")
-      .select("*", { count: "exact", head: true })
-      .gte(
-        "created_at",
-        new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-      );
-
-    const { count: loyaltyMembers, error: err3 } = await supabase
-      .from("loyalty_accounts")
-      .select("*", { count: "exact", head: true });
+    const [
+      { count: totalCustomers },
+      { count: newCustomers },
+      { count: loyaltyMembers }
+    ] = await Promise.all([
+      supabase.from("customer_profiles").select("*", { count: "exact", head: true }),
+      supabase.from("customer_profiles").select("*", { count: "exact", head: true }).gte("created_at", thirtyDaysAgo),
+      supabase.from("loyalty_accounts").select("*", { count: "exact", head: true })
+    ]);
 
     return {
       totalCustomers: totalCustomers || 0,

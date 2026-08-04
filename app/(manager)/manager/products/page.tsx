@@ -12,55 +12,31 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Download, Filter, Plus, Search, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
+import { ProductRepository } from "@/lib/repositories/catalog/product.repository";
 
 export const metadata: Metadata = {
   title: "Products | Manager Dashboard",
 };
 
-const products = [
-  {
-    id: "PRD-1001",
-    name: "Classic Oxford Shirt",
-    category: "Shirts",
-    price: "$125.00",
-    stock: 145,
-    status: "Active",
-  },
-  {
-    id: "PRD-1002",
-    name: "Slim Fit Chinos",
-    category: "Pants",
-    price: "$95.00",
-    stock: 85,
-    status: "Active",
-  },
-  {
-    id: "PRD-1003",
-    name: "Leather Loafers",
-    category: "Shoes",
-    price: "$195.00",
-    stock: 12,
-    status: "Low Stock",
-  },
-  {
-    id: "PRD-1004",
-    name: "Merino Wool Sweater",
-    category: "Knitwear",
-    price: "$150.00",
-    stock: 0,
-    status: "Out of Stock",
-  },
-  {
-    id: "PRD-1005",
-    name: "Silk Tie",
-    category: "Accessories",
-    price: "$65.00",
-    stock: 230,
-    status: "Active",
-  },
-];
+export default async function ProductsPage({
+  searchParams,
+}: {
+  searchParams: { search?: string; page?: string };
+}) {
+  const search = searchParams.search || "";
+  const page = parseInt(searchParams.page || "1", 10);
 
-export default function ProductsPage() {
+  // Fetch real data from the database
+  const res = await ProductRepository.getProducts({ search, page, limit: 20 });
+  const products = res.products || [];
+
+  const formatCurrency = (val: number) =>
+    new Intl.NumberFormat("en-BD", {
+      style: "currency",
+      currency: "BDT",
+      maximumFractionDigits: 0,
+    }).format(val);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -76,7 +52,7 @@ export default function ProductsPage() {
             Export
           </Button>
           <Button>
-            <Link href="/manager/products/new">
+            <Link href="/manager/products/new" className="flex items-center">
               <Plus className="mr-2 h-4 w-4" />
               Add Product
             </Link>
@@ -98,7 +74,7 @@ export default function ProductsPage() {
         </Button>
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
@@ -111,54 +87,76 @@ export default function ProductsPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {products.map((product) => (
-              <TableRow key={product.id}>
-                <TableCell className="font-medium">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded bg-muted text-xs text-muted-foreground">
-                      Img
-                    </div>
-                    <div>
-                      <p>{product.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {product.id}
-                      </p>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell>{product.category}</TableCell>
-                <TableCell>{product.price}</TableCell>
-                <TableCell>{product.stock}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      product.status === "Active"
-                        ? "default"
-                        : product.status === "Low Stock"
-                          ? "secondary"
-                          : "destructive"
-                    }
-                    className={
-                      product.status === "Low Stock"
-                        ? "bg-orange-500 text-white hover:bg-orange-600"
-                        : ""
-                    }
-                  >
-                    {product.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <div className="flex justify-end gap-2">
-                    <Button variant="ghost" size="icon">
-                      <Edit className="h-4 w-4 text-muted-foreground" />
-                    </Button>
-                    <Button variant="ghost" size="icon">
-                      <Trash2 className="h-4 w-4 text-destructive" />
-                    </Button>
-                  </div>
+            {products.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center">
+                  No products found.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              products.map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded bg-muted text-xs text-muted-foreground overflow-hidden">
+                        {(product as any).media?.[0]?.url ? (
+                          <img 
+                            src={(product as any).media[0].url} 
+                            alt={product.name}
+                            className="h-full w-full object-cover"
+                          />
+                        ) : (
+                          "Img"
+                        )}
+                      </div>
+                      <div>
+                        <p>{product.name}</p>
+                        <p className="text-xs text-muted-foreground">
+                          SKU: {product.sku || "N/A"}
+                        </p>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {(product as any).category?.name || "Uncategorized"}
+                  </TableCell>
+                  <TableCell>{formatCurrency((product as any).base_price || 0)}</TableCell>
+                  <TableCell>
+                    <span className="text-sm text-muted-foreground">Tracked</span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        product.status === "ACTIVE"
+                          ? "default"
+                          : product.status === "ARCHIVED"
+                            ? "secondary"
+                            : "outline"
+                      }
+                      className={
+                        product.status === "ACTIVE"
+                          ? "bg-emerald-500 hover:bg-emerald-600"
+                          : ""
+                      }
+                    >
+                      {product.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="icon" asChild>
+                        <Link href={`/manager/products/${product.id}/edit`}>
+                          <Edit className="h-4 w-4 text-muted-foreground" />
+                        </Link>
+                      </Button>
+                      <Button variant="ghost" size="icon">
+                        <Trash2 className="h-4 w-4 text-destructive" />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>

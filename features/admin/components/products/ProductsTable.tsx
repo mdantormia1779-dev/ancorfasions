@@ -147,11 +147,11 @@ export function ProductsTable({
       <div className="flex flex-col justify-between gap-4 sm:flex-row">
         <div className="flex items-center gap-2">
           <div className="relative w-full max-w-sm">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-slate-400" />
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground/80" />
             <Input
               type="search"
               placeholder="Search products..."
-              className="w-full bg-white pl-9"
+              className="w-full bg-card text-card-foregroundpl-9"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => {
@@ -178,7 +178,7 @@ export function ProductsTable({
         <div className="flex items-center gap-2">
           {selectedIds.length > 0 ? (
             <>
-              <span className="mr-2 text-sm text-slate-500">
+              <span className="mr-2 text-sm text-muted-foreground">
                 {selectedIds.length} selected
               </span>
               <DropdownMenu>
@@ -214,7 +214,7 @@ export function ProductsTable({
         </div>
       </div>
 
-      <div className="rounded-md border border-slate-200 bg-white">
+      <div className="rounded-md border border-border bg-card text-card-foreground">
         <Table>
           <TableHeader>
             <TableRow>
@@ -258,7 +258,7 @@ export function ProductsTable({
                       <span className="font-medium text-slate-900">
                         {product.name}
                       </span>
-                      <span className="text-xs text-slate-500">
+                      <span className="text-xs text-muted-foreground">
                         SKU: {product.sku || "N/A"}
                       </span>
                     </div>
@@ -275,7 +275,7 @@ export function ProductsTable({
                     {product.status === "DRAFT" && (
                       <Badge
                         variant="outline"
-                        className="border-slate-200 bg-slate-100 text-slate-700"
+                        className="border-border bg-slate-100 text-foreground/90"
                       >
                         Draft
                       </Badge>
@@ -291,7 +291,7 @@ export function ProductsTable({
                   </TableCell>
                   <TableCell>
                     {/* Assuming we calculate total inventory from variants, or just placeholder for now */}
-                    <span className="text-sm text-slate-600">Tracked</span>
+                    <span className="text-sm text-muted-foreground">Tracked</span>
                   </TableCell>
                   <TableCell>
                     <span className="text-sm font-medium text-slate-900">
@@ -299,7 +299,7 @@ export function ProductsTable({
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-sm text-slate-600">
+                    <span className="text-sm text-muted-foreground">
                       {(product as any).category?.name || "Uncategorized"}
                     </span>
                   </TableCell>
@@ -353,7 +353,7 @@ export function ProductsTable({
           </TableBody>
         </Table>
       </div>
-      <div className="text-center text-xs text-slate-500">
+      <div className="text-center text-xs text-muted-foreground">
         Showing {products.length} of {totalCount} products
       </div>
     </div>

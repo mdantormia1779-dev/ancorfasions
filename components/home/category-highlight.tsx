@@ -21,7 +21,7 @@ const categories = [
     subtitle: "Tailored to Perfection",
     link: "/categories/formals",
     image:
-      "https://images.unsplash.com/photo-1594938298598-70f90fe271bc?w=800&q=80",
+      "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80",
     size: "small",
   },
   {
@@ -80,6 +80,7 @@ export function CategoryHighlight() {
                 src={categories[0].image}
                 alt={categories[0].title}
                 fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 className="object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-80 transition-opacity group-hover:opacity-100" />
@@ -107,6 +108,7 @@ export function CategoryHighlight() {
                   src={categories[2].image}
                   alt={categories[2].title}
                   fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className="object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-80 transition-opacity group-hover:opacity-100" />
@@ -127,6 +129,7 @@ export function CategoryHighlight() {
                   src={categories[3].image}
                   alt={categories[3].title}
                   fill
+                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                   className="object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-80 transition-opacity group-hover:opacity-100" />
@@ -152,6 +155,7 @@ export function CategoryHighlight() {
                 src={categories[1].image}
                 alt={categories[1].title}
                 fill
+                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                 className="object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-80 transition-opacity group-hover:opacity-100" />

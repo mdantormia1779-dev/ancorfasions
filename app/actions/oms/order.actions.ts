@@ -9,7 +9,8 @@ import {
   createOrderSchema,
 } from "@/lib/validations/oms";
 import { revalidatePath } from "next/cache";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { ADMIN_ROLES } from "@/lib/constants/auth";
 
 const orderService = new OrderService();
 const orderRepo = new OrderRepository();
@@ -54,7 +55,18 @@ export async function updateOrderStatusAction(input: UpdateOrderStatusInput) {
 
 export async function getOrderDetailsAction(id: string) {
   try {
-    const details = await orderService.getOrderDetails(id);
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    let clientToUse = supabase;
+    if (user) {
+      const role = user.user_metadata?.role || user.app_metadata?.role || "CUSTOMER";
+      if (ADMIN_ROLES.includes(role)) {
+        clientToUse = await createAdminClient();
+      }
+    }
+
+    const details = await orderService.getOrderDetails(id, clientToUse);
     return { success: true, data: details };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -64,11 +76,26 @@ export async function getOrderDetailsAction(id: string) {
 export async function fetchOrdersAction(params: {
   customerId?: string;
   status?: any;
+  search?: string;
   page?: number;
   limit?: number;
 }) {
   try {
-    const orders = await orderRepo.getOrders(params);
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    let clientToUse = supabase;
+    if (user) {
+      const role = user.user_metadata?.role || user.app_metadata?.role || "CUSTOMER";
+      if (ADMIN_ROLES.includes(role)) {
+        clientToUse = await createAdminClient();
+      } else {
+        // Enforce customer can only query their own orders
+        params.customerId = user.id;
+      }
+    }
+
+    const orders = await orderRepo.getOrders(params, clientToUse);
     return { success: true, data: orders };
   } catch (error: any) {
     return { success: false, error: error.message };

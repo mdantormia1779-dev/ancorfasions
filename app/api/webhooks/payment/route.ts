@@ -23,11 +23,11 @@ export async function POST(req: Request) {
 
     // Ideally, we fetch the secret for this specific provider from config/DB here
     // For abstraction, we assume WebhookService handles this or we pass it
-    // const secret = process.env[`${provider.toUpperCase()}_WEBHOOK_SECRET`];
+    const secret = process.env[`${provider.toUpperCase()}_WEBHOOK_SECRET`];
 
-    // if (!WebhookService.verifySignature(rawPayload, signature || '', secret || '')) {
-    //   return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
-    // }
+    if (!WebhookService.verifySignature(rawPayload, signature || '', secret || '')) {
+      return NextResponse.json({ error: 'Invalid signature' }, { status: 401 });
+    }
 
     const payload = JSON.parse(rawPayload);
     const headers = {}; // Mock headers

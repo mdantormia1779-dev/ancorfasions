@@ -66,14 +66,14 @@ export function ExploreCollections({ categories }: { categories: Category[] }) {
             <div key={category.id} className="group flex flex-col">
               <Link
                 href={`/categories/${category.slug}`}
-                className="relative mb-6 aspect-[3/4] w-full overflow-hidden bg-gray-50"
+                className="relative mb-6 aspect-[3/4] w-full overflow-hidden bg-gray-50 after:absolute after:inset-0 after:bg-black/0 after:transition-colors after:duration-500 group-hover:after:bg-black/10"
               >
                 <Image
                   src={category.icon_url || placeholders[index]}
                   alt={category.name}
                   fill
                   sizes="(max-width: 768px) 100vw, (max-width: 1200px) 33vw, 33vw"
-                  className="object-cover transition-transform ease-out [transition-duration:10000ms] group-hover:scale-110"
+                  className="object-cover transition-transform ease-out [transition-duration:10000ms] group-hover:scale-105"
                 />
               </Link>
               <div className="flex flex-col items-center text-center">

@@ -22,7 +22,7 @@ export function MobileBottomNav({ user }: { user: any }) {
   ];
 
   return (
-    <div className="fixed bottom-0 left-0 z-50 h-16 w-full border-t border-gray-200 bg-white shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] md:hidden">
+    <div className="fixed bottom-0 left-0 z-50 h-[72px] w-full border-t border-gray-100 bg-white/90 backdrop-blur-md pb-safe md:hidden">
       <div className="mx-auto grid h-full max-w-lg grid-cols-5 font-medium">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -30,17 +30,17 @@ export function MobileBottomNav({ user }: { user: any }) {
             <Link
               key={item.href}
               href={item.href}
-              className={`group inline-flex flex-col items-center justify-center px-5 transition-colors hover:bg-gray-50 ${
-                isActive ? "text-primary" : "text-gray-500 hover:text-gray-900"
+              className={`group inline-flex flex-col items-center justify-center px-2 py-1 transition-colors ${
+                isActive ? "text-[#1A1A1A]" : "text-gray-400 hover:text-[#1A1A1A]"
               }`}
             >
               <item.icon
-                className={`mb-1 h-5 w-5 ${
-                  isActive ? "fill-primary text-primary" : ""
+                className={`mb-1.5 h-6 w-6 transition-transform duration-300 ${
+                  isActive ? "text-[#1A1A1A] scale-110" : ""
                 }`}
-                strokeWidth={isActive ? 2.5 : 2}
+                strokeWidth={isActive ? 2 : 1.5}
               />
-              <span className="text-[10px] uppercase tracking-wide">
+              <span className={`text-[9px] uppercase tracking-widest transition-colors ${isActive ? 'font-bold text-[#1A1A1A]' : 'font-medium'}`}>
                 {item.label}
               </span>
             </Link>
@@ -50,14 +50,14 @@ export function MobileBottomNav({ user }: { user: any }) {
         {/* Profile Tab */}
         <Link
           href={user ? "/account/profile" : "/auth/login"}
-          className={`group inline-flex flex-col items-center justify-center px-5 transition-colors hover:bg-gray-50 ${
+          className={`group inline-flex flex-col items-center justify-center px-2 py-1 transition-colors ${
             pathname.includes("/account") || pathname === "/auth/login"
-              ? "text-primary"
-              : "text-gray-500 hover:text-gray-900"
+              ? "text-[#1A1A1A]"
+              : "text-gray-400 hover:text-[#1A1A1A]"
           }`}
         >
           {user ? (
-            <Avatar className="mb-1 h-6 w-6 border border-gray-200">
+            <Avatar className={`mb-1.5 h-6 w-6 border-2 transition-transform duration-300 ${pathname.includes("/account") ? "border-[#1A1A1A] scale-110" : "border-transparent"}`}>
               <AvatarImage src={user.user_metadata?.avatar_url} />
               <AvatarFallback className="bg-primary/10 text-[10px] font-bold text-primary">
                 {getInitials(user.user_metadata?.full_name, user.email)}
@@ -65,13 +65,13 @@ export function MobileBottomNav({ user }: { user: any }) {
             </Avatar>
           ) : (
             <User
-              className={`mb-1 h-5 w-5 ${
-                pathname === "/auth/login" ? "fill-primary text-primary" : ""
+              className={`mb-1.5 h-6 w-6 transition-transform duration-300 ${
+                pathname === "/auth/login" ? "text-[#1A1A1A] scale-110" : ""
               }`}
-              strokeWidth={pathname === "/auth/login" ? 2.5 : 2}
+              strokeWidth={pathname === "/auth/login" ? 2 : 1.5}
             />
           )}
-          <span className="text-[10px] uppercase tracking-wide">
+          <span className={`text-[9px] uppercase tracking-widest transition-colors ${pathname.includes("/account") || pathname === "/auth/login" ? 'font-bold text-[#1A1A1A]' : 'font-medium'}`}>
             {user ? "Profile" : "Login"}
           </span>
         </Link>

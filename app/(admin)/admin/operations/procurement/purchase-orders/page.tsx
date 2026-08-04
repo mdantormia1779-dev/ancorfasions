@@ -43,60 +43,7 @@ export const metadata: Metadata = {
   description: "Manage Procurement and Purchase Orders",
 };
 
-// Mock data for development
-const mockPurchaseOrders = [
-  {
-    id: "1",
-    poNumber: "PO-2026-07-001",
-    supplier: "Zhejiang Textiles Co.",
-    destination: "Central Hub - Dhaka",
-    items: 1200,
-    totalValue: 45000,
-    status: "DRAFT",
-    expectedDate: null,
-  },
-  {
-    id: "2",
-    poNumber: "PO-2026-07-002",
-    supplier: "Dhaka Leather Mills",
-    destination: "Central Hub - Dhaka",
-    items: 500,
-    totalValue: 12500,
-    status: "SENT",
-    expectedDate: "2026-08-01",
-  },
-  {
-    id: "3",
-    poNumber: "PO-2026-06-045",
-    supplier: "Guangzhou Garments Ltd",
-    destination: "Regional Hub - Chattogram",
-    items: 3000,
-    totalValue: 120000,
-    status: "PARTIAL_RECEIPT",
-    expectedDate: "2026-07-20",
-  },
-  {
-    id: "4",
-    poNumber: "PO-2026-06-042",
-    supplier: "Narayanganj Knitwear",
-    destination: "Central Hub - Dhaka",
-    items: 800,
-    totalValue: 16000,
-    status: "FULFILLED",
-    expectedDate: "2026-07-15",
-  },
-  {
-    id: "5",
-    poNumber: "PO-2026-07-005",
-    supplier: "Surat Fabrics Group",
-    destination: "Fulfillment Center - Sylhet",
-    items: 450,
-    totalValue: 9800,
-    status: "PENDING_APPROVAL",
-    expectedDate: null,
-  },
-];
-
+// Removed mock data
 const getStatusBadge = (status: string) => {
   switch (status) {
     case "DRAFT":
@@ -137,7 +84,11 @@ const getStatusBadge = (status: string) => {
   }
 };
 
-export default function PurchaseOrdersPage() {
+import { PurchaseOrderRepository } from "@/lib/repositories/inventory/purchase-order.repository";
+
+export default async function PurchaseOrdersPage() {
+  const purchaseOrders = await PurchaseOrderRepository.getPurchaseOrders();
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -193,54 +144,65 @@ export default function PurchaseOrdersPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockPurchaseOrders.map((po) => (
-                <TableRow key={po.id}>
-                  <TableCell className="font-medium">{po.poNumber}</TableCell>
-                  <TableCell>{po.supplier}</TableCell>
-                  <TableCell className="text-muted-foreground">
-                    {po.destination}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {po.items.toLocaleString()}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    ${po.totalValue.toLocaleString()}
-                  </TableCell>
-                  <TableCell>{po.expectedDate || "TBD"}</TableCell>
-                  <TableCell>{getStatusBadge(po.status)}</TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuGroup>
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        </DropdownMenuGroup>
-                        <DropdownMenuItem>
-                          <Eye className="mr-2 h-4 w-4" /> View Details
-                        </DropdownMenuItem>
-                        <DropdownMenuItem>Download PDF</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        {po.status === "SENT" ||
-                        po.status === "PARTIAL_RECEIPT" ? (
-                          <DropdownMenuItem className="font-medium text-blue-600">
-                            Receive Goods (GRN)
-                          </DropdownMenuItem>
-                        ) : null}
-                        {po.status === "PENDING_APPROVAL" ? (
-                          <DropdownMenuItem className="font-medium text-emerald-600">
-                            Approve PO
-                          </DropdownMenuItem>
-                        ) : null}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+              {purchaseOrders.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="h-32 text-center text-muted-foreground">
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <p>No purchase orders found.</p>
+                    </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                purchaseOrders.map((po: any) => (
+                  <TableRow key={po.id}>
+                    <TableCell className="font-medium">{po.po_number}</TableCell>
+                    <TableCell className="max-w-[150px] truncate">{po.supplier_id}</TableCell>
+                    <TableCell className="text-muted-foreground max-w-[150px] truncate">
+                      {po.destination_warehouse_id}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      {/* items column doesn't exist directly on PO table, leaving empty for now */}
+                      -
+                    </TableCell>
+                    <TableCell className="text-right">
+                      ${po.total_amount?.toLocaleString() || "0.00"}
+                    </TableCell>
+                    <TableCell>{po.expected_delivery_date ? new Date(po.expected_delivery_date).toLocaleDateString() : "TBD"}</TableCell>
+                    <TableCell>{getStatusBadge(po.status)}</TableCell>
+                    <TableCell className="text-right">
+                      <DropdownMenu>
+                        <DropdownMenuTrigger>
+                          <Button variant="ghost" className="h-8 w-8 p-0">
+                            <span className="sr-only">Open menu</span>
+                            <MoreHorizontal className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuGroup>
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                          </DropdownMenuGroup>
+                          <DropdownMenuItem>
+                            <Eye className="mr-2 h-4 w-4" /> View Details
+                          </DropdownMenuItem>
+                          <DropdownMenuItem>Download PDF</DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {po.status === "SENT" ||
+                          po.status === "PARTIAL_RECEIPT" ? (
+                            <DropdownMenuItem className="font-medium text-blue-600">
+                              Receive Goods (GRN)
+                            </DropdownMenuItem>
+                          ) : null}
+                          {po.status === "PENDING_APPROVAL" ? (
+                            <DropdownMenuItem className="font-medium text-emerald-600">
+                              Approve PO
+                            </DropdownMenuItem>
+                          ) : null}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

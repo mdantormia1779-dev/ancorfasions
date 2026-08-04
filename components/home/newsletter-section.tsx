@@ -56,20 +56,20 @@ export function NewsletterSection() {
           {/* Form */}
           <form
             onSubmit={handleSubmit}
-            className="mx-auto flex w-full max-w-md gap-0"
+            className="mx-auto flex w-full max-w-md flex-col gap-4 sm:flex-row sm:gap-0"
           >
             <input
               type="email"
               name="email"
-              placeholder="your@email.com"
+              placeholder="Enter your email address"
               required
-              className="flex-1 border border-r-0 border-gray-200 bg-white px-5 py-4 text-sm text-[#1A1A1A] transition-colors placeholder:text-gray-400 focus:border-[#C9A86A] focus:outline-none"
+              className="flex-1 border-b border-black/20 bg-transparent px-2 py-4 text-sm text-[#1A1A1A] transition-colors placeholder:text-gray-400 focus:border-black focus:outline-none"
             />
             <button
               type="submit"
-              className="flex flex-shrink-0 items-center gap-2 whitespace-nowrap bg-[#1A1A1A] px-6 py-4 text-xs font-bold uppercase tracking-[0.25em] text-white transition-colors duration-300 hover:bg-[#C9A86A]"
+              className="group flex flex-shrink-0 items-center justify-center gap-2 whitespace-nowrap border-b border-black/20 bg-transparent px-4 py-4 text-xs font-bold uppercase tracking-[0.2em] text-[#1A1A1A] transition-all hover:border-black"
             >
-              Subscribe <ArrowRight className="h-3.5 w-3.5" />
+              Subscribe <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
             </button>
           </form>
 

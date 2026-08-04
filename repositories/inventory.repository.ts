@@ -177,6 +177,70 @@ export class InventoryRepository {
   }
 
   /**
+   * Get inventory dashboard data (with SKU, Product Name, and Warehouse Name)
+   */
+  async getInventoryDashboard(limit = 20, search?: string) {
+    const supabase = this.getAdminClient();
+
+    let query = supabase
+      .from("inventory_levels")
+      .select(`
+        id,
+        quantity_available,
+        quantity_reserved,
+        variant:variants(sku, product:products(name)),
+        warehouse:warehouses(name)
+      `, { count: "exact" })
+      .order("created_at", { ascending: false })
+      .limit(limit);
+
+    // Note: Filtering heavily nested relations in postgREST might be limited without an RPC,
+    // but we can try basic filtering or skip filtering at db level if it errors.
+    // Assuming we want a basic list for the dashboard.
+    
+    // In a real enterprise app, an RPC or dedicated View should be used to allow efficient searching
+    // across joined tables. Since this is an MVP fix, we'll fetch without deep search or let PostgREST
+    // do its best.
+    
+    const { data, error, count } = await query;
+    if (error) {
+      console.error("Error fetching inventory dashboard:", error);
+      throw error;
+    }
+
+    // Process data to match flat dashboard needs
+    const processed = (data || []).map((item: any) => ({
+      id: item.id,
+      sku: item.variant?.sku || "Unknown SKU",
+      name: item.variant?.product?.name || "Unknown Product",
+      warehouse: item.warehouse?.name || "Unknown Warehouse",
+      available: item.quantity_available,
+      reserved: item.quantity_reserved,
+      status: item.quantity_available === 0 ? "Out of Stock" : item.quantity_available < 10 ? "Low Stock" : "In Stock"
+    }));
+
+    // If search is provided, filter in memory for MVP since nested PostgREST OR filtering is complex
+    let filtered = processed;
+    if (search) {
+      const s = search.toLowerCase();
+      filtered = processed.filter(p => p.sku.toLowerCase().includes(s) || p.name.toLowerCase().includes(s));
+    }
+
+    const totalInStock = processed.reduce((acc, curr) => acc + curr.available, 0);
+    const lowStockCount = processed.filter(p => p.status === "Low Stock").length;
+    const outOfStockCount = processed.filter(p => p.status === "Out of Stock").length;
+
+    return {
+      items: filtered,
+      stats: {
+        totalItems: totalInStock,
+        lowStock: lowStockCount,
+        outOfStock: outOfStockCount,
+      }
+    };
+  }
+
+  /**
    * Adjust stock manually
    */
   async adjustStock(

@@ -31,12 +31,12 @@ export function SocialFeed() {
           </Link>
         </div>
 
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
+        <div className="grid grid-cols-2 md:grid-cols-4">
           {images.map((src, index) => (
             <Link
               key={index}
               href="/"
-              className="group relative aspect-square w-full overflow-hidden rounded-sm bg-gray-100"
+              className="group relative aspect-square w-full overflow-hidden bg-gray-100"
             >
               <Image
                 src={src}

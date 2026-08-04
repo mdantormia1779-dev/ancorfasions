@@ -60,8 +60,8 @@ export async function getExecutiveKpis() {
 export async function getSalesTrends() {
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("bi_sales_mart")
-    .select("date, total_sales, gross_profit")
+    .from("bi_daily_revenue_rollup")
+    .select("date, total_revenue, total_profit")
     .order("date", { ascending: true })
     .limit(30);
 
@@ -75,8 +75,8 @@ export async function getSalesTrends() {
       month: "short",
       day: "numeric",
     }),
-    sales: Number(day.total_sales),
-    profit: Number(day.gross_profit),
+    sales: Number(day.total_revenue),
+    profit: Number(day.total_profit),
   }));
 }
 

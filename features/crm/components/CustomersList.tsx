@@ -8,6 +8,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
+import { TierBadge } from "@/components/customer/loyalty/tier-badges";
+import { LoyaltyTier } from "@/stores/use-loyalty-store";
 
 export type CustomerLifecycleStage =
   | "PROSPECT"
@@ -40,7 +42,7 @@ export const CustomersList = ({ customers = [] }: CustomersListProps) => {
         <TableHeader>
           <TableRow>
             <TableHead>Customer</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>Loyalty & Tags</TableHead>
             <TableHead>Lifecycle Stage</TableHead>
             <TableHead className="text-right">Health Score</TableHead>
           </TableRow>
@@ -67,16 +69,18 @@ export const CustomersList = ({ customers = [] }: CustomersListProps) => {
                   </div>
                 </TableCell>
                 <TableCell>
-                  {customer.is_vip ? (
-                    <Badge
-                      variant="default"
-                      className="bg-amber-500 hover:bg-amber-600"
-                    >
-                      VIP
-                    </Badge>
-                  ) : (
-                    <Badge variant="outline">Standard</Badge>
-                  )}
+                  <div className="flex flex-col gap-2 items-start">
+                    {customer.is_vip ? (
+                      <TierBadge tier="Platinum" />
+                    ) : (
+                      <TierBadge tier={(customer.health_score > 80 ? "Gold" : "Silver") as LoyaltyTier} />
+                    )}
+                    <div className="flex gap-1 flex-wrap">
+                      <span className="text-[9px] uppercase tracking-widest font-bold bg-gray-100 px-1.5 py-0.5 rounded text-gray-500">
+                        {customer.total_support_tickets > 2 ? "High Touch" : "Self Service"}
+                      </span>
+                    </div>
+                  </div>
                 </TableCell>
                 <TableCell>
                   <Badge variant="secondary" className="capitalize">

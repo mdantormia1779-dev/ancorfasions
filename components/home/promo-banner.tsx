@@ -22,7 +22,7 @@ export function PromoBanner({
   return (
     <section className="w-full bg-[#FAFAFA] py-16 md:py-24">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="group flex min-h-[500px] flex-col items-stretch overflow-hidden border border-gray-100 bg-white shadow-sm md:min-h-[600px] md:flex-row">
+        <div className="group flex min-h-[500px] flex-col items-stretch overflow-hidden md:min-h-[700px] md:flex-row">
           {/* Left Side: High-Resolution Image */}
           <div className="relative min-h-[400px] w-full overflow-hidden md:min-h-full md:w-1/2">
             <Image
@@ -34,7 +34,7 @@ export function PromoBanner({
           </div>
 
           {/* Right Side: Editorial Content */}
-          <div className="relative flex w-full items-center justify-center bg-white p-12 md:w-1/2 md:p-20">
+          <div className="relative flex w-full items-center justify-center bg-[#1A1A1A] p-12 md:w-1/2 md:p-20">
             {/* Decorative Gold Frame */}
             <div className="pointer-events-none absolute inset-8 hidden border border-[#C9A86A]/20 md:block" />
 
@@ -44,12 +44,12 @@ export function PromoBanner({
               </span>
 
               <h2
-                className={`${jost.className} mb-8 text-4xl font-light leading-[1.1] tracking-tight text-[#1A1A1A] md:text-5xl lg:text-6xl`}
+                className={`${jost.className} mb-8 text-4xl font-light leading-[1.1] tracking-tight text-white md:text-5xl lg:text-6xl`}
               >
                 {title}
               </h2>
 
-              <p className="mb-10 max-w-sm text-sm leading-relaxed text-gray-500">
+              <p className="mb-10 max-w-sm text-sm leading-relaxed text-gray-400">
                 Elevate your wardrobe with our latest curated collection.
                 Exclusive pieces designed for the modern individual who values
                 both aesthetics and comfort.
@@ -57,12 +57,12 @@ export function PromoBanner({
 
               <Link
                 href={ctaLink}
-                className="group/btn relative inline-flex items-center justify-center overflow-hidden bg-[#1A1A1A] px-10 py-4 text-xs font-bold uppercase tracking-widest text-white transition-all hover:bg-black"
+                className="group/btn relative inline-flex items-center justify-center overflow-hidden bg-white px-10 py-4 text-xs font-bold uppercase tracking-widest text-[#1A1A1A] transition-all hover:bg-[#C9A86A] hover:text-white"
               >
                 <span className="relative z-10 transition-transform group-hover/btn:-translate-y-12">
                   {ctaText}
                 </span>
-                <span className="absolute inset-0 z-10 flex translate-y-12 items-center justify-center text-[#C9A86A] transition-transform group-hover/btn:translate-y-0">
+                <span className="absolute inset-0 z-10 flex translate-y-12 items-center justify-center text-white transition-transform group-hover/btn:translate-y-0">
                   {ctaText}
                 </span>
               </Link>

@@ -87,23 +87,26 @@ export class CartRepository {
 
       if (existingItem) {
         // Update quantity
-        await supabase
+        const { error } = await supabase
           .from("cart_items")
           .update({ quantity: existingItem.quantity + item.quantity })
           .eq("id", existingItem.id);
+        if (error) throw new Error(`Failed to update cart item: ${error.message}`);
       } else {
         // Insert new item linked to user cart
-        await supabase.from("cart_items").insert({
+        const { error } = await supabase.from("cart_items").insert({
           cart_id: userCart.id,
           product_id: item.product_id,
           variant_id: item.variant_id,
           quantity: item.quantity,
         });
+        if (error) throw new Error(`Failed to add cart item: ${error.message}`);
       }
     }
 
     // 4. Delete guest cart
-    await supabase.from("carts").delete().eq("id", guestCart.id);
+    const { error } = await supabase.from("carts").delete().eq("id", guestCart.id);
+    if (error) throw new Error(`Failed to delete guest cart: ${error.message}`);
   }
 
   /**
@@ -130,7 +133,10 @@ export class CartRepository {
       query = query.is("variant_id", null);
     }
 
-    const { data: existingItem } = await query.single();
+    const { data: existingItem, error: fetchError } = await query.single();
+    if (fetchError && fetchError.code !== "PGRST116") {
+      throw new Error(`Failed to fetch cart item: ${fetchError.message}`);
+    }
 
     if (existingItem) {
       // Update quantity

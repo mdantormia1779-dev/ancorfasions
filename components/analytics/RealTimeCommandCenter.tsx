@@ -1,16 +1,35 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { getExecutiveSummaryAction } from "@/app/actions/analytics/dashboard.actions";
 
 export function RealTimeCommandCenter() {
   const [data, setData] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/analytics/bi?type=sales-rollup")
-      .then((res) => res.json())
-      .then((json) => setData(json.data))
-      .catch((err) => console.error(err));
+    getExecutiveSummaryAction()
+      .then((res) => {
+        if (res.success) {
+          setData(res.data);
+        } else {
+          setError(res.error || "Failed to load data");
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        setError("Failed to fetch analytics data");
+      });
   }, []);
+
+  if (error) {
+    return (
+      <div className="flex h-[200px] flex-col items-center justify-center rounded-xl border border-red-100 bg-red-50 p-6 shadow-sm">
+        <p className="text-red-600 font-medium">⚠️ {error}</p>
+        <button onClick={() => window.location.reload()} className="mt-4 text-sm text-red-500 underline">Retry</button>
+      </div>
+    );
+  }
 
   if (!data) {
     return (
@@ -43,56 +62,56 @@ export function RealTimeCommandCenter() {
       <div className="grid grid-cols-1 divide-y divide-gray-100 md:grid-cols-3 md:divide-x md:divide-y-0">
         <div className="p-6 transition-colors hover:bg-gray-50">
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-500">
-            Today's Revenue
+            Period Revenue
           </p>
           <div className="mt-4 flex items-baseline gap-2">
             <span className="text-4xl font-bold text-gray-900">
-              ৳{data.today.revenue.toLocaleString()}
+              ৳{(data.totalRevenue || 0).toLocaleString()}
             </span>
             <span
-              className={`text-sm font-bold ${data.growth.revenue >= 0 ? "text-green-600" : "text-red-600"}`}
+              className={`text-sm font-bold ${data.revenueTrend >= 0 ? "text-green-600" : "text-red-600"}`}
             >
-              {data.growth.revenue >= 0 ? "+" : ""}
-              {data.growth.revenue}%
+              {data.revenueTrend >= 0 ? "+" : ""}
+              {data.revenueTrend}%
             </span>
           </div>
-          <p className="mt-2 text-xs text-gray-400">vs yesterday</p>
+          <p className="mt-2 text-xs text-gray-400">vs previous period</p>
         </div>
 
         <div className="p-6 transition-colors hover:bg-gray-50">
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-500">
-            Live Orders
+            Total Orders
           </p>
           <div className="mt-4 flex items-baseline gap-2">
             <span className="text-4xl font-bold text-gray-900">
-              {data.today.orders.toLocaleString()}
+              {(data.totalOrders || 0).toLocaleString()}
             </span>
             <span
-              className={`text-sm font-bold ${data.growth.orders >= 0 ? "text-green-600" : "text-red-600"}`}
+              className={`text-sm font-bold ${data.ordersTrend >= 0 ? "text-green-600" : "text-red-600"}`}
             >
-              {data.growth.orders >= 0 ? "+" : ""}
-              {data.growth.orders}%
+              {data.ordersTrend >= 0 ? "+" : ""}
+              {data.ordersTrend}%
             </span>
           </div>
-          <p className="mt-2 text-xs text-gray-400">vs yesterday</p>
+          <p className="mt-2 text-xs text-gray-400">vs previous period</p>
         </div>
 
         <div className="p-6 transition-colors hover:bg-gray-50">
           <p className="text-sm font-semibold uppercase tracking-wider text-gray-500">
-            Active Visitors
+            Active Customers
           </p>
           <div className="mt-4 flex items-baseline gap-2">
             <span className="text-4xl font-bold text-gray-900">
-              {data.today.visitors.toLocaleString()}
+              {(data.activeCustomers || 0).toLocaleString()}
             </span>
             <span
-              className={`text-sm font-bold ${data.growth.visitors >= 0 ? "text-green-600" : "text-red-600"}`}
+              className={`text-sm font-bold ${data.customersTrend >= 0 ? "text-green-600" : "text-red-600"}`}
             >
-              {data.growth.visitors >= 0 ? "+" : ""}
-              {data.growth.visitors}%
+              {data.customersTrend >= 0 ? "+" : ""}
+              {data.customersTrend}%
             </span>
           </div>
-          <p className="mt-2 text-xs text-gray-400">vs yesterday</p>
+          <p className="mt-2 text-xs text-gray-400">vs previous period</p>
         </div>
       </div>
     </div>

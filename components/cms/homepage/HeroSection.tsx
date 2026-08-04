@@ -19,11 +19,11 @@ export function HeroSection({ data }: HeroSectionProps) {
             loop
             playsInline
             className="h-full w-full object-cover"
-            src={data.media_url}
+            src={data.media_url || ""}
           />
         ) : (
           <Image
-            src={data.media_url}
+            src={data.media_url || "https://placehold.co/1920x1080/eaeaea/black?text=Hero"}
             alt={data.headline || "Hero image"}
             fill
             priority

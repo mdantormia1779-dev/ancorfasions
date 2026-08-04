@@ -13,7 +13,10 @@ import { PromoBanner } from "@/components/home/promo-banner";
 import { TrendingProducts } from "@/components/home/trending-products";
 import { Testimonials } from "@/components/home/testimonials";
 import { TrustBar } from "@/components/home/trust-bar";
-import { getHeroSlides } from "@/lib/actions/cms.actions";
+import { TrustStrip } from "@/components/home/trust-strip";
+import { RecentlyViewedHome } from "@/components/home/recently-viewed-home";
+import { PersonalizedSection } from "@/components/home/personalized-section";
+import { getHeroSlides } from "@/actions/cms.actions";
 import { FadeIn } from "@/components/ui/fade-in";
 
 export const metadata = {
@@ -43,7 +46,10 @@ export default async function HomePage() {
       {/* 1. Immersive Hero Banner */}
       <HomeHero slides={heroSlides} />
 
-      {/* 2. Features Bar */}
+      {/* 2. Trust Strip (Premium E-commerce) */}
+      <TrustStrip />
+
+      {/* 3. Features Bar */}
       <FadeIn delay={0.1} direction="none">
         <FeaturesBar />
       </FadeIn>
@@ -58,7 +64,7 @@ export default async function HomePage() {
         <PremiumShades />
       </FadeIn>
 
-      <div className="space-y-32 py-16 md:space-y-40 md:py-32">
+      <div className="space-y-32 py-20 md:space-y-48 md:py-32 lg:py-40">
         {/* 5. The Collection Grid */}
         <FadeIn>
           <ExploreCollections categories={categories} />
@@ -67,6 +73,19 @@ export default async function HomePage() {
         {/* 6. New Arrivals */}
         <FadeIn>
           <BrandedCollection products={newArrivals} />
+        </FadeIn>
+
+        {/* 6.5 Recently Viewed (Client Side Personalization) */}
+        <FadeIn>
+          <RecentlyViewedHome />
+        </FadeIn>
+
+        <FadeIn>
+          <PersonalizedSection title="Recommended For You" subtitle="Curated based on your style" products={featuredProducts.slice().reverse()} />
+        </FadeIn>
+
+        <FadeIn>
+          <PersonalizedSection title="Inspired By History" subtitle="Because you viewed outerwear" products={newArrivals.slice(2, 6)} />
         </FadeIn>
 
         {/* 7. Mid-Season Promo Banner */}
@@ -83,6 +102,14 @@ export default async function HomePage() {
         {/* 8. Trending Products */}
         <FadeIn>
           <TrendingProducts products={trendingProducts.data || []} />
+        </FadeIn>
+
+        <FadeIn>
+          <PersonalizedSection title="Trending Near You" subtitle="Popular in your region" products={featuredProducts} />
+        </FadeIn>
+
+        <FadeIn>
+          <PersonalizedSection title="Customers Love" subtitle="Highest rated pieces" products={trendingProducts.data?.slice(4, 8) || []} />
         </FadeIn>
 
         {/* 9. Brand Ethos / Story */}

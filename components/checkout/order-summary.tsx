@@ -7,6 +7,7 @@ import Image from "next/image";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { RefreshCw, ShieldCheck } from "lucide-react";
 
 export function OrderSummary() {
   const { cart } = useCartStore();
@@ -52,8 +53,8 @@ export function OrderSummary() {
   };
 
   return (
-    <div className="rounded-lg border bg-slate-50 p-6 dark:bg-slate-900">
-      <h2 className="mb-4 text-lg font-medium">Order Summary</h2>
+    <div className="rounded-lg border bg-[#fcfaf9] p-6 lg:p-8">
+      <h2 className="mb-6 text-xl font-light tracking-tight text-[#1A1A1A]">Order Summary</h2>
 
       <div className="mb-6 max-h-[300px] space-y-4 overflow-y-auto pr-2">
         {items.map((item) => {
@@ -116,7 +117,7 @@ export function OrderSummary() {
               onChange={(e) => setCouponCode(e.target.value)}
               className="flex-1"
             />
-            <Button variant="secondary" onClick={handleApplyCoupon}>
+            <Button variant="secondary" onClick={handleApplyCoupon} className="bg-[#1A1A1A] text-white hover:bg-black uppercase tracking-widest text-xs">
               Apply
             </Button>
           </div>
@@ -146,9 +147,20 @@ export function OrderSummary() {
         )}
       </div>
 
-      <div className="mt-6 flex items-center justify-between border-t pt-6">
-        <span className="text-base font-semibold">Total</span>
-        <span className="text-xl font-bold">{formatCurrency(total)}</span>
+      <div className="mt-6 flex items-center justify-between border-t border-gray-200 pt-6">
+        <span className="text-lg font-medium text-[#1A1A1A]">Total</span>
+        <span className="text-2xl font-semibold text-[#1A1A1A]">{formatCurrency(total)}</span>
+      </div>
+
+      <div className="mt-8 pt-6 border-t border-gray-100 flex flex-col gap-3">
+        <div className="flex items-center gap-3 text-xs text-gray-500">
+          <RefreshCw className="h-4 w-4" />
+          <span>7-Day Easy Return Policy on unworn items.</span>
+        </div>
+        <div className="flex items-center gap-3 text-xs text-gray-500">
+          <ShieldCheck className="h-4 w-4" />
+          <span>Original Anchor Fashion Guarantee.</span>
+        </div>
       </div>
     </div>
   );

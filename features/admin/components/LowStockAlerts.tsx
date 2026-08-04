@@ -37,7 +37,7 @@ const lowStockItems = [
 
 export function LowStockAlerts() {
   return (
-    <Card className="border-t-4 border-slate-200/60 border-t-amber-500 shadow-sm">
+    <Card className="border-t-4 border-border/60 border-t-amber-500 shadow-sm">
       <CardHeader className="pb-3">
         <div className="flex items-center gap-2">
           <AlertOctagon className="h-5 w-5 text-amber-500" />
@@ -52,13 +52,13 @@ export function LowStockAlerts() {
           {lowStockItems.map((item) => (
             <div
               key={item.id}
-              className="flex items-center justify-between border-b border-slate-100 pb-4 last:border-0 last:pb-0"
+              className="flex items-center justify-between border-b border-border pb-4 last:border-0 last:pb-0"
             >
               <div>
                 <p className="text-sm font-medium text-slate-900">
                   {item.name}
                 </p>
-                <p className="text-xs text-slate-500">SKU: {item.sku}</p>
+                <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>
               </div>
               <div className="text-right">
                 {item.stock === 0 ? (

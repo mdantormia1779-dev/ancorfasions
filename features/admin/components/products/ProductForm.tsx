@@ -166,7 +166,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
         <div className="grid gap-6 md:grid-cols-3">
           {/* Main Info Column */}
           <div className="space-y-6 md:col-span-2">
-            <Card className="border-slate-200/60 shadow-sm">
+            <Card className="border-border/60 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg">General Information</CardTitle>
               </CardHeader>
@@ -261,7 +261,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200/60 shadow-sm">
+            <Card className="border-border/60 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">
                   Product Media (Images)
@@ -349,14 +349,14 @@ export function ProductForm({ initialData }: ProductFormProps) {
                   </div>
                 ))}
                 {mediaFields.length === 0 && (
-                  <p className="py-4 text-center text-sm text-slate-500">
+                  <p className="py-4 text-center text-sm text-muted-foreground">
                     No media added yet.
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200/60 shadow-sm">
+            <Card className="border-border/60 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle className="text-lg">Product Variants</CardTitle>
                 <Button
@@ -451,14 +451,14 @@ export function ProductForm({ initialData }: ProductFormProps) {
                   </div>
                 ))}
                 {variantFields.length === 0 && (
-                  <p className="py-4 text-center text-sm text-slate-500">
+                  <p className="py-4 text-center text-sm text-muted-foreground">
                     No variants added yet.
                   </p>
                 )}
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200/60 shadow-sm">
+            <Card className="border-border/60 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg">
                   Search Engine Optimization (SEO)
@@ -505,7 +505,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
 
           {/* Right Sidebar Column */}
           <div className="space-y-6">
-            <Card className="border-slate-200/60 shadow-sm">
+            <Card className="border-border/60 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg">Pricing</CardTitle>
               </CardHeader>
@@ -533,7 +533,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
               </CardContent>
             </Card>
 
-            <Card className="border-slate-200/60 shadow-sm">
+            <Card className="border-border/60 shadow-sm">
               <CardHeader>
                 <CardTitle className="text-lg">Status & Organization</CardTitle>
               </CardHeader>

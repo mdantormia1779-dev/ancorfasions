@@ -1,29 +1,23 @@
-# Disaster Recovery Plan
+# Backup & Restore Guide
 
-## Objective
+## Backup Strategy
+Anchor Fashion relies on Supabase's managed infrastructure for relational data and object storage.
 
-To provide a reliable recovery process for the Anchor Fashion Enterprise Platform in the event of catastrophic failure.
+### Database Backups
+- **Daily Automated Backups**: Supabase automatically takes daily logical backups of the PostgreSQL database.
+- **Point-In-Time-Recovery (PITR)**: Enabled on Pro tier. Allows restoring the database to any exact second within the last 7 days (or 30 days for Enterprise).
 
-## RPO & RTO
+### Storage Backups
+- Supabase Storage buckets (e.g., product images) are replicated across availability zones but are NOT included in the daily database snapshots.
+- **Action**: Run a weekly CRON script to sync the `product-images` bucket to a secondary cold storage (e.g., AWS S3 Glacier).
 
-- **Recovery Point Objective (RPO)**: 1 Hour
-- **Recovery Time Objective (RTO)**: 2 Hours
+### Configuration Backups
+- Environment variables are securely stored in Vercel. 
+- **Action**: Use the Vercel CLI to pull a local `.env.production` backup periodically.
 
-## Procedures
-
-### 1. Database Failure (Supabase/PostgreSQL)
-
-Supabase provides automated PITR (Point in Time Recovery) for the Pro plan and above.
-
-- In the event of data corruption, initiate PITR via the Supabase dashboard to a state before the incident.
-- For complete cluster failure, cross-region replication should be promoted to primary.
-
-### 2. Application Deployment Failure (Vercel)
-
-- The GitHub Actions CI/CD pipeline includes a rollback mechanism.
-- Navigate to the Vercel dashboard and instantly promote the last known good deployment to Production.
-
-### 3. API Rate Limiting & External Service Failure
-
-- Fallback caching is implemented via React Query and Redis.
-- If an external service (e.g., Stripe, Gemini) is down, the system degrade gracefully, queuing transactions/requests and providing user-friendly fallback UIs.
+## Disaster Recovery Checklist (Database Corruption)
+1. **Identify the Point of Failure**: Use `obs_logs` to determine the exact timestamp when corruption began.
+2. **Pause Traffic**: Enable Vercel Maintenance Mode or block traffic at the edge to prevent further writes.
+3. **Initiate PITR**: Go to Supabase Dashboard -> Database -> Backups -> PITR. Select a timestamp 5 minutes prior to the corruption event.
+4. **Verify Restoration**: Query the database to ensure integrity.
+5. **Resume Traffic**: Disable Maintenance Mode.

@@ -22,15 +22,15 @@ export function ProductGallery({ images }: ProductGalleryProps) {
   return (
     <div className="flex flex-col-reverse gap-4 md:flex-row">
       {/* Thumbnails */}
-      <div className="scrollbar-hide flex max-h-[600px] shrink-0 gap-2 overflow-x-auto md:flex-col md:overflow-y-auto">
+      <div className="scrollbar-hide flex max-h-[600px] shrink-0 gap-3 overflow-x-auto md:flex-col md:overflow-y-auto">
         {images.map((img, idx) => (
           <button
             key={idx}
             onClick={() => setCurrentIndex(idx)}
-            className={`relative h-24 w-20 shrink-0 overflow-hidden border-2 transition-all ${
+            className={`relative h-24 w-20 shrink-0 overflow-hidden transition-all duration-300 ${
               currentIndex === idx
-                ? "border-black"
-                : "border-transparent opacity-70 hover:opacity-100"
+                ? "border-b-2 border-black opacity-100"
+                : "border-b-2 border-transparent opacity-50 hover:opacity-100"
             }`}
           >
             <Image
@@ -45,15 +45,25 @@ export function ProductGallery({ images }: ProductGalleryProps) {
       </div>
 
       {/* Main Image */}
-      <div className="relative aspect-[3/4] w-full flex-1 overflow-hidden bg-zinc-50">
+      <div
+        className="group relative aspect-[4/5] w-full flex-1 cursor-zoom-in overflow-hidden bg-[#F7F7F7]"
+        onMouseMove={(e) => {
+          const { left, top, width, height } = e.currentTarget.getBoundingClientRect();
+          const x = (e.clientX - left) / width;
+          const y = (e.clientY - top) / height;
+          e.currentTarget.style.setProperty('--mouse-x', `${x * 100}%`);
+          e.currentTarget.style.setProperty('--mouse-y', `${y * 100}%`);
+        }}
+      >
         <AnimatePresence mode="wait">
           <motion.div
             key={currentIndex}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="absolute inset-0"
+            transition={{ duration: 0.5 }}
+            className="absolute inset-0 transition-transform duration-300 ease-out group-hover:scale-125"
+            style={{ transformOrigin: 'var(--mouse-x, 50%) var(--mouse-y, 50%)' }}
           >
             <Image
               src={images[currentIndex]}

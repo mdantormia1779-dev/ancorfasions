@@ -1,4 +1,6 @@
-import { Metadata } from "next";
+"use client";
+
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,63 +14,18 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Download, Filter, Search } from "lucide-react";
 import Link from "next/link";
-
-export const metadata: Metadata = {
-  title: "Order Management | Manager Dashboard",
-};
-
-const orders = [
-  {
-    id: "ORD-5321",
-    customer: "Liam Johnson",
-    date: "2023-06-23",
-    amount: "$250.00",
-    status: "Processing",
-    items: 3,
-  },
-  {
-    id: "ORD-5320",
-    customer: "Olivia Smith",
-    date: "2023-06-23",
-    amount: "$150.00",
-    status: "Shipped",
-    items: 1,
-  },
-  {
-    id: "ORD-5319",
-    customer: "Noah Williams",
-    date: "2023-06-22",
-    amount: "$350.00",
-    status: "Delivered",
-    items: 4,
-  },
-  {
-    id: "ORD-5318",
-    customer: "Emma Brown",
-    date: "2023-06-22",
-    amount: "$450.00",
-    status: "Pending",
-    items: 2,
-  },
-  {
-    id: "ORD-5317",
-    customer: "Ava Davis",
-    date: "2023-06-21",
-    amount: "$550.00",
-    status: "Processing",
-    items: 5,
-  },
-  {
-    id: "ORD-5316",
-    customer: "William Garcia",
-    date: "2023-06-21",
-    amount: "$125.00",
-    status: "Returned",
-    items: 1,
-  },
-];
+import { useOrders } from "@/hooks/oms/use-orders";
+import { OrderStatus } from "@/types/oms";
 
 export default function OrdersPage() {
+  const [page, setPage] = useState(1);
+  const [status, setStatus] = useState<OrderStatus | undefined>();
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  const { data, isLoading, error } = useOrders({ page, limit: 10, status, search: searchQuery || undefined });
+
+  if (error) return <div className="p-6 text-red-500">Error loading orders</div>;
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -93,63 +50,123 @@ export default function OrdersPage() {
             type="search"
             placeholder="Search orders..."
             className="w-full bg-background pl-8"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
           />
         </div>
+        <select
+          className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background"
+          value={status || ""}
+          onChange={(e) => setStatus((e.target.value as OrderStatus) || undefined)}
+        >
+          <option value="">All Statuses</option>
+          <option value="draft">Draft</option>
+          <option value="pending_payment">Pending Payment</option>
+          <option value="paid">Paid</option>
+          <option value="preparing">Preparing</option>
+          <option value="shipped">Shipped</option>
+          <option value="delivered">Delivered</option>
+          <option value="cancelled">Cancelled</option>
+          <option value="returned">Returned</option>
+        </select>
         <Button variant="outline" size="icon">
           <Filter className="h-4 w-4" />
         </Button>
       </div>
 
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order ID</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Items</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-              <TableHead></TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">{order.id}</TableCell>
-                <TableCell>{order.customer}</TableCell>
-                <TableCell>{order.date}</TableCell>
-                <TableCell>{order.items}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      order.status === "Delivered"
-                        ? "default"
-                        : order.status === "Processing"
-                          ? "secondary"
-                          : order.status === "Returned"
-                            ? "destructive"
-                            : order.status === "Shipped"
-                              ? "outline"
-                              : "default"
-                    }
-                  >
-                    {order.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">{order.amount}</TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm">
-                    <Link href={`/manager/orders/${order.id}`}>
-                      View Details
-                    </Link>
-                  </Button>
-                </TableCell>
+      <div className="rounded-md border bg-card">
+        {isLoading ? (
+          <div className="p-8 text-center text-muted-foreground">Loading orders...</div>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order ID</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
+                <TableHead></TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {data?.data?.map((order: any) => (
+                <TableRow key={order.id}>
+                  <TableCell className="font-medium">
+                    <Link
+                      href={`/manager/orders/${order.id}`}
+                      className="text-blue-600 hover:underline"
+                    >
+                      {order.order_number}
+                    </Link>
+                  </TableCell>
+                  <TableCell>{order.customer_id || "Guest"}</TableCell>
+                  <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        order.status === "delivered"
+                          ? "default"
+                          : order.status === "preparing" || order.status === "paid"
+                            ? "secondary"
+                            : order.status === "returned" || order.status === "cancelled"
+                              ? "destructive"
+                              : order.status === "shipped"
+                                ? "outline"
+                                : "default"
+                      }
+                    >
+                      {order.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {new Intl.NumberFormat("en-BD", {
+                      style: "currency",
+                      currency: "BDT",
+                      maximumFractionDigits: 0,
+                    }).format(order.grand_total)}
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/manager/orders/${order.id}`}>
+                        View Details
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+              {(!data?.data || data.data.length === 0) && (
+                <TableRow>
+                  <TableCell colSpan={6} className="h-24 text-center">
+                    No orders found.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        )}
+        
+        {!isLoading && (
+          <div className="flex items-center justify-between p-4 border-t">
+            <Button
+              variant="outline"
+              disabled={page === 1}
+              onClick={() => setPage((p) => p - 1)}
+            >
+              Previous
+            </Button>
+            <span className="text-sm text-muted-foreground">Page {page}</span>
+            <Button
+              variant="outline"
+              disabled={!data?.data || data.data.length < 10}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

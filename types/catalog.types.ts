@@ -119,6 +119,7 @@ export const CreateProductSchema = ProductSchema.omit({
   averageRating: true,
   variants: true,
   media: true,
+  product_media: true,
   seo: true,
   tags: true,
 }).extend({

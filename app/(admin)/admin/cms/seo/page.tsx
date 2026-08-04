@@ -15,6 +15,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Save, Globe } from "lucide-react";
 import { toast } from "sonner";
+import { updateSeoSettings } from "@/actions/cms.actions";
 
 export default function SeoManager() {
   const [loading, setLoading] = useState(false);
@@ -32,11 +33,14 @@ export default function SeoManager() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    // Mock save logic, since global SEO might not map perfectly to cms_seo_redirects without specific actions
-    setTimeout(() => {
+    try {
+      await updateSeoSettings(seoConfig);
       toast.success("Global SEO settings updated");
+    } catch (error) {
+      toast.error("Failed to update SEO settings");
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   return (

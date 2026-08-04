@@ -1,8 +1,8 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export class DashboardRepository {
   async getDailyRevenue(days = 7) {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     // Fetch last X days of data
     const dateLimit = new Date();
@@ -75,10 +75,7 @@ export class DashboardRepository {
   }
 
   async getOperationalMetrics() {
-    const supabase = await createClient();
-
-    // In a real scenario, this would aggregate from orders table
-    // Since we don't have a specific view for this, we'll return zeroes or placeholders if no data
+    const supabase = await createAdminClient();
     const { data: orderCounts, error } = await supabase
       .from("orders")
       .select("status");
@@ -112,11 +109,107 @@ export class DashboardRepository {
         (statusCounts["delivered"] || 0) + (statusCounts["shipped"] || 0),
       cancelledOrders: statusCounts["cancelled"] || 0,
       refundRequests: statusCounts["refunded"] || 0,
-
-      // Placeholders for inventory & CRM since they require joins or other tables
       lowStock: 0,
       outOfStock: 0,
       supportTickets: 0,
     };
+  }
+
+  async getTopSellers() {
+    const supabase = await createAdminClient();
+    const { data, error } = await supabase.from("bi_top_sellers").select("*");
+    if (error) {
+      console.error("Error fetching top sellers:", error);
+      return [];
+    }
+    return data;
+  }
+
+  async getRevenueByCategory() {
+    const supabase = await createAdminClient();
+    const { data, error } = await supabase.from("bi_revenue_by_category").select("*");
+    if (error) {
+      console.error("Error fetching revenue by category:", error);
+      return [];
+    }
+    return data;
+  }
+
+  async getRecentCustomers() {
+    const supabase = await createAdminClient();
+    const { data, error } = await supabase.from("bi_recent_customers").select("*").limit(5);
+    if (error) {
+      console.error("Error fetching recent customers:", error);
+      return [];
+    }
+    return data;
+  }
+
+  async getUserLocations() {
+    const supabase = await createAdminClient();
+    const { data, error } = await supabase.from("bi_user_locations").select("*");
+    if (error) {
+      console.error("Error fetching user locations:", error);
+      return [];
+    }
+    return data;
+  }
+
+  async getDealOfTheDay() {
+    const supabase = await createAdminClient();
+    // Fetch a highly discounted product or a featured product
+    const { data, error } = await supabase
+      .from("products")
+      .select("id, name, base_price, is_featured")
+      .eq("is_featured", true)
+      .limit(1)
+      .single();
+
+    if (error) {
+      console.error("Error fetching deal of the day:", error);
+      return null;
+    }
+
+    // Get image
+    if (data) {
+      const { data: media } = await supabase
+        .from("product_media")
+        .select("url_webp")
+        .eq("product_id", data.id)
+        .eq("media_type", "IMAGE")
+        .limit(1)
+        .single();
+      
+      return { ...data, image_url: media?.url_webp || null };
+    }
+    return null;
+  }
+
+  async getRecentOrders() {
+    const adminSupabase = await createAdminClient();
+
+    const { data, error } = await adminSupabase
+      .from("orders")
+      .select("id, order_number, grand_total, status, created_at, customer_id")
+      .order("created_at", { ascending: false })
+      .limit(5);
+
+    if (error) {
+      console.error("Error fetching recent orders:", error.message, error.details, error.hint);
+      return [];
+    }
+
+    // Map customer details for these orders
+    const enrichedData = await Promise.all(data.map(async (order) => {
+        if (!order.customer_id) return { ...order, customer_name: "Guest", customer_avatar: null };
+        const { data: userData } = await adminSupabase.auth.admin.getUserById(order.customer_id).catch(() => ({ data: null }));
+        return {
+            ...order,
+            customer_name: userData?.user?.user_metadata?.full_name || "Guest",
+            customer_avatar: userData?.user?.user_metadata?.avatar_url || null
+        }
+    }));
+
+    return enrichedData;
   }
 }

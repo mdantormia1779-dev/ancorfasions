@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useShipments } from "@/hooks/shipping/use-shipments";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -84,15 +84,31 @@ export default function AdminShippingPage() {
   const shipments = data?.data ?? [];
   const total = data?.total ?? 0;
 
-  // Compute stats from current page data
-  const stats = {
-    total,
-    delivered: shipments.filter((s: any) => s.status === "delivered").length,
-    failed: shipments.filter((s: any) => s.status === "delivery_failed").length,
-    inTransit: shipments.filter((s: any) =>
-      ["in_transit", "out_for_delivery", "picked_up"].includes(s.status)
-    ).length,
-  };
+  const [globalStats, setGlobalStats] = useState({
+    total: 0,
+    delivered: 0,
+    failed: 0,
+    inTransit: 0,
+  });
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/shipping/analytics?days=30")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.data) {
+          const bd = json.data.statusBreakdown || {};
+          setGlobalStats({
+            total: json.data.total || 0,
+            delivered: bd["delivered"] || 0,
+            failed: (bd["delivery_failed"] || 0) + (bd["returned_to_origin"] || 0),
+            inTransit: (bd["in_transit"] || 0) + (bd["out_for_delivery"] || 0) + (bd["picked_up"] || 0),
+          });
+        }
+        setStatsLoading(false);
+      })
+      .catch(() => setStatsLoading(false));
+  }, []);
 
   return (
     <div className="space-y-6 p-6">
@@ -135,7 +151,9 @@ export default function AdminShippingPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Total Shipments</p>
-                <p className="text-2xl font-bold">{total}</p>
+                <p className="text-2xl font-bold">
+                  {statsLoading ? "..." : globalStats.total}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -148,7 +166,9 @@ export default function AdminShippingPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">In Transit</p>
-                <p className="text-2xl font-bold">{stats.inTransit}</p>
+                <p className="text-2xl font-bold">
+                  {statsLoading ? "..." : globalStats.inTransit}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -161,7 +181,9 @@ export default function AdminShippingPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Delivered</p>
-                <p className="text-2xl font-bold">{stats.delivered}</p>
+                <p className="text-2xl font-bold">
+                  {statsLoading ? "..." : globalStats.delivered}
+                </p>
               </div>
             </div>
           </CardContent>
@@ -174,7 +196,9 @@ export default function AdminShippingPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground">Failed/RTO</p>
-                <p className="text-2xl font-bold">{stats.failed}</p>
+                <p className="text-2xl font-bold">
+                  {statsLoading ? "..." : globalStats.failed}
+                </p>
               </div>
             </div>
           </CardContent>

@@ -25,7 +25,8 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, ArrowRight } from "lucide-react";
+import { Loader2, ArrowRight, ShieldCheck, Lock } from "lucide-react";
+import Image from "next/image";
 import { toast } from "sonner";
 
 export function CheckoutForm({
@@ -239,7 +240,7 @@ export function CheckoutForm({
           <Button
             type="button"
             size="lg"
-            className="mt-6 w-full"
+            className="mt-6 w-full h-12 bg-[#1A1A1A] text-xs font-bold uppercase tracking-widest text-white hover:bg-black"
             onClick={() => handleNextStep("SHIPPING")}
           >
             Continue to Shipping <ArrowRight className="ml-2 h-4 w-4" />
@@ -276,21 +277,27 @@ export function CheckoutForm({
                         <RadioGroupItem value="home_delivery" />
                       </FormControl>
                       <div className="flex flex-1 justify-between">
-                        <FormLabel className="cursor-pointer font-medium">
-                          Home Delivery (Inside Dhaka)
-                        </FormLabel>
-                        <span className="font-medium">৳ 100</span>
+                        <div className="flex flex-col">
+                          <FormLabel className="cursor-pointer font-medium">
+                            Home Delivery (Inside Dhaka)
+                          </FormLabel>
+                          <span className="text-xs text-gray-500 mt-1">Est. 1-2 business days</span>
+                        </div>
+                        <span className="font-medium text-[#1A1A1A]">৳ 100</span>
                       </div>
                     </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 transition-colors hover:border-black hover:bg-gray-50 data-[state=checked]:border-black data-[state=checked]:bg-gray-50">
                       <FormControl>
                         <RadioGroupItem value="home_delivery_outside" />
                       </FormControl>
                       <div className="flex flex-1 justify-between">
-                        <FormLabel className="cursor-pointer font-medium">
-                          Home Delivery (Outside Dhaka)
-                        </FormLabel>
-                        <span className="font-medium">৳ 150</span>
+                        <div className="flex flex-col">
+                          <FormLabel className="cursor-pointer font-medium">
+                            Home Delivery (Outside Dhaka)
+                          </FormLabel>
+                          <span className="text-xs text-gray-500 mt-1">Est. 3-5 business days</span>
+                        </div>
+                        <span className="font-medium text-[#1A1A1A]">৳ 150</span>
                       </div>
                     </FormItem>
                   </RadioGroup>
@@ -303,7 +310,7 @@ export function CheckoutForm({
           <Button
             type="button"
             size="lg"
-            className="mt-6 w-full"
+            className="mt-6 w-full h-12 bg-[#1A1A1A] text-xs font-bold uppercase tracking-widest text-white hover:bg-black"
             onClick={() => handleNextStep("PAYMENT")}
           >
             Continue to Payment <ArrowRight className="ml-2 h-4 w-4" />
@@ -345,15 +352,15 @@ export function CheckoutForm({
                         Cash on Delivery
                       </FormLabel>
                     </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 transition-colors hover:border-black hover:bg-gray-50">
                       <FormControl>
                         <RadioGroupItem value="SSLCOMMERZ" />
                       </FormControl>
-                      <FormLabel className="cursor-pointer font-medium">
-                        Cards / Mobile Banking (SSLCommerz)
+                      <FormLabel className="cursor-pointer font-medium flex items-center gap-2">
+                        Cards / Mobile Banking <Image src="https://securepay.sslcommerz.com/public/image/SSLCommerz-Pay-With-logo-All-Size-03.png" alt="SSLCommerz" width={150} height={20} className="h-4 w-auto object-contain" />
                       </FormLabel>
                     </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 transition-colors hover:border-black hover:bg-gray-50">
                       <FormControl>
                         <RadioGroupItem value="BKASH" />
                       </FormControl>
@@ -408,10 +415,15 @@ export function CheckoutForm({
             )}
           />
 
+          <div className="mt-8 pt-6 border-t border-gray-100 flex items-center justify-center gap-2 text-xs text-gray-500">
+            <Lock className="h-3 w-3" />
+            <span>Payments are secure and encrypted.</span>
+          </div>
+
           <Button
             type="submit"
             size="lg"
-            className="mt-8 w-full"
+            className="mt-4 w-full h-14 bg-[#1A1A1A] text-sm font-bold uppercase tracking-widest text-white hover:bg-black"
             disabled={isSubmitting}
           >
             {isSubmitting ? (

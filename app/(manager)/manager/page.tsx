@@ -62,7 +62,7 @@ export default async function ManagerDashboardPage() {
     customer: o.user_id, // In a real setup, we'd join user profile to get name
     status: o.status,
     date: new Date(o.created_at).toLocaleDateString(),
-    amount: o.total_amount,
+    amount: o.grand_total,
   }));
   return (
     <div className="flex flex-col gap-6">

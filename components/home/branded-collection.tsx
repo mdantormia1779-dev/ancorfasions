@@ -128,7 +128,7 @@ export function BrandedCollection({ products }: { products: Product[] }) {
                     key={product.id}
                     className="group flex flex-[0_0_70%] cursor-pointer flex-col sm:flex-[0_0_45%] md:flex-[0_0_30%] lg:flex-[0_0_20%]"
                   >
-                    <div className="relative mb-4 aspect-[3/4] w-full overflow-hidden rounded-sm bg-gray-50">
+                    <div className="relative mb-4 aspect-[4/5] w-full overflow-hidden bg-[#F7F7F7] transition-all duration-500">
                       <Link
                         href={`/product/${product.slug}`}
                         className="block h-full w-full"
@@ -137,53 +137,49 @@ export function BrandedCollection({ products }: { products: Product[] }) {
                           src={imageUrl}
                           alt={product.name}
                           fill
+                          sizes="(max-width: 640px) 70vw, (max-width: 768px) 45vw, (max-width: 1024px) 30vw, 20vw"
                           className="object-cover object-top opacity-100 transition-all duration-700 group-hover:scale-105 group-hover:opacity-0"
                         />
                         <Image
                           src={secondaryImageUrl}
                           alt={`${product.name} Alternate`}
                           fill
+                          sizes="(max-width: 640px) 70vw, (max-width: 768px) 45vw, (max-width: 1024px) 30vw, 20vw"
                           className="absolute inset-0 object-cover object-top opacity-0 transition-all duration-700 group-hover:scale-105 group-hover:opacity-100"
                         />
                       </Link>
 
-                      {/* Floating Action Buttons from Bottom */}
-                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 flex translate-y-full justify-center gap-2 p-3 transition-transform duration-500 ease-out group-hover:pointer-events-auto group-hover:translate-y-0">
-                        <button className="flex flex-1 items-center justify-center gap-2 rounded-sm bg-primary py-2.5 text-xs font-semibold text-white shadow-md transition-colors hover:bg-primary/90">
+                      {/* Sleek Bottom Action Bar */}
+                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 flex translate-y-full justify-center transition-transform duration-500 ease-out group-hover:pointer-events-auto group-hover:translate-y-0">
+                        <button className="flex w-full items-center justify-center gap-2 bg-black/90 py-3 text-xs font-semibold uppercase tracking-widest text-white backdrop-blur-md transition-colors hover:bg-black">
                           <ShoppingBag className="h-4 w-4" /> Add to Cart
                         </button>
-                        <Link
-                          href={`/product/${product.slug}`}
-                          className="flex h-10 w-10 items-center justify-center rounded-sm bg-white text-gray-900 shadow-md transition-colors hover:bg-gray-100"
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Link>
                       </div>
 
-                      <button className="absolute right-3 top-3 z-10 rounded-full bg-white p-2 opacity-0 shadow-md transition-opacity duration-300 hover:text-red-500 group-hover:opacity-100">
-                        <Heart className="h-4 w-4" strokeWidth={2.5} />
+                      <button className="absolute right-3 top-3 z-10 p-2 text-gray-400 opacity-0 transition-all duration-300 hover:text-black hover:scale-110 group-hover:opacity-100">
+                        <Heart className="h-5 w-5" strokeWidth={1.5} />
                       </button>
                     </div>
 
                     <Link
                       href={`/product/${product.slug}`}
-                      className="flex flex-col"
+                      className="flex flex-col text-center"
                     >
-                      <span className="mb-1 text-xs font-bold text-gray-900">
+                      <span className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
                         {brandName}
                       </span>
-                      <h3 className="mb-2 truncate text-sm text-gray-600 transition-colors group-hover:text-primary">
+                      <h3 className="mb-2 truncate text-sm font-medium text-gray-900 transition-colors group-hover:text-black">
                         {product.name}
                       </h3>
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-bold text-gray-900">
+                      <div className="mt-1 flex flex-col items-center justify-center gap-1.5">
+                        <span className="text-sm font-medium text-gray-900">
                           {formatCurrency(product.base_price)}
                         </span>
                         {/* Dummy Color Swatches */}
-                        <div className="flex gap-1">
-                          <div className="h-3 w-3 rounded-full border border-gray-200 bg-[#1e293b]"></div>
-                          <div className="h-3 w-3 rounded-full border border-gray-200 bg-[#d6c5b3]"></div>
-                          <div className="h-3 w-3 rounded-full border border-gray-200 bg-[#8c9ca7]"></div>
+                        <div className="flex gap-1.5">
+                          <div className="h-2.5 w-2.5 rounded-full border border-gray-200 bg-[#1e293b]"></div>
+                          <div className="h-2.5 w-2.5 rounded-full border border-gray-200 bg-[#d6c5b3]"></div>
+                          <div className="h-2.5 w-2.5 rounded-full border border-gray-200 bg-[#8c9ca7]"></div>
                         </div>
                       </div>
                     </Link>
