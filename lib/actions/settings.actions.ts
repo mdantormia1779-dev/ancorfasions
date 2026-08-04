@@ -1,6 +1,9 @@
 "use server";
 
 import { createClient } from "../supabase/server";
+import { createAdminClient } from "../supabase/admin-client";
+import { verifySuperAdmin } from "../security/roles";
+import { revalidatePath } from "next/cache";
 
 export type StoreInfo = {
   store_name: string;
@@ -70,41 +73,53 @@ export async function getSocialLinks(): Promise<SocialLinks> {
 }
 
 export async function updateStoreInfo(info: StoreInfo) {
-  const supabase = await createClient();
   try {
+    await verifySuperAdmin(); // Enforce strict role-based access
+    const supabase = createAdminClient(); // Bypass RLS securely for writing settings
+
     const { error } = await supabase
       .from("settings")
       .upsert(
         {
           key: "store_info",
-          value: info,
+          value: info as any,
           description: "Global store contact and branding info",
         },
         { onConflict: "key" }
       );
+      
     if (error) throw error;
+    
+    revalidatePath("/", "layout"); // Revalidate entire app to update announcement bar and footers
     return { success: true };
   } catch (error: any) {
+    console.error("[updateStoreInfo]", error);
     return { success: false, error: error.message };
   }
 }
 
 export async function updateSocialLinks(links: SocialLinks) {
-  const supabase = await createClient();
   try {
+    await verifySuperAdmin(); // Enforce strict role-based access
+    const supabase = createAdminClient(); // Bypass RLS securely for writing settings
+
     const { error } = await supabase
       .from("settings")
       .upsert(
         {
           key: "social_links",
-          value: links,
+          value: links as any,
           description: "Store social media profile URLs",
         },
         { onConflict: "key" }
       );
+      
     if (error) throw error;
+    
+    revalidatePath("/", "layout");
     return { success: true };
   } catch (error: any) {
+    console.error("[updateSocialLinks]", error);
     return { success: false, error: error.message };
   }
 }
