@@ -74,9 +74,11 @@ export default function NewPage() {
                   id="title"
                   placeholder="e.g. About Us"
                   value={formData.title}
-                  onChange={(e) =>
-                    setFormData({ ...formData, title: e.target.value })
-                  }
+                  onChange={(e) => {
+                    const title = e.target.value;
+                    const slug = title.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
+                    setFormData({ ...formData, title, slug });
+                  }}
                   required
                 />
               </div>

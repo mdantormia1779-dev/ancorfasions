@@ -162,6 +162,12 @@ export default function NewProductPage() {
                           <Input
                             placeholder="Premium Cotton T-Shirt"
                             {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              const name = e.target.value;
+                              const slug = name.toLowerCase().trim().replace(/[\s\W-]+/g, '-').replace(/^-+|-+$/g, '');
+                              form.setValue("slug", slug, { shouldValidate: true, shouldDirty: true });
+                            }}
                           />
                         </FormControl>
                         <FormMessage />
