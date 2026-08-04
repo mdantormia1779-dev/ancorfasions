@@ -136,10 +136,9 @@ export const AnchorFashionLogo = ({
   );
 
   const containerProps = {
-    className: `flex select-none items-center ${className || ""}`,
+    className: `flex select-none items-center ${className || "w-full"}`,
     "aria-label": "Anchor Fashion Home",
     style: {
-      maxWidth: "280px",
       verticalAlign: "middle",
       boxSizing: "border-box" as const,
     },

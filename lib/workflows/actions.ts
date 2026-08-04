@@ -52,6 +52,6 @@ export async function alertAdminAction(
   role: "SUPERADMIN" | "MANAGER" = "MANAGER"
 ) {
   // Logic to query admins and send them a broadcast or push notification
-  console.log(`Alerting ${role}s: ${title} - ${message}`);
+  console.warn(`Alerting ${role}s: ${title} - ${message}`);
   return { success: true, alertedRole: role };
 }

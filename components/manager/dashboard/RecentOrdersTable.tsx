@@ -46,51 +46,53 @@ export function RecentOrdersTable({ orders = [] }: { orders?: OrderData[] }) {
         </Button>
       </CardHeader>
       <CardContent>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead className="text-right">Amount</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {orders.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="font-medium">
-                  {order.id.slice(0, 8).toUpperCase()}
-                </TableCell>
-                <TableCell>{order.customer || "Guest"}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      order.status.toLowerCase() === "delivered"
-                        ? "default"
-                        : order.status.toLowerCase() === "processing"
-                          ? "secondary"
-                          : order.status.toLowerCase() === "shipped"
-                            ? "outline"
-                            : "destructive"
-                    }
-                  >
-                    {order.status}
-                  </Badge>
-                </TableCell>
-                <TableCell>{order.date}</TableCell>
-                <TableCell className="text-right">
-                  {typeof order.amount === "number"
-                    ? new Intl.NumberFormat("en-US", {
-                        style: "currency",
-                        currency: "USD",
-                      }).format(order.amount)
-                    : order.amount}
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order</TableHead>
+                <TableHead>Customer</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead>Date</TableHead>
+                <TableHead className="text-right">Amount</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {orders.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell className="font-medium">
+                    {order.id.slice(0, 8).toUpperCase()}
+                  </TableCell>
+                  <TableCell>{order.customer || "Guest"}</TableCell>
+                  <TableCell>
+                    <Badge
+                      variant={
+                        order.status.toLowerCase() === "delivered"
+                          ? "default"
+                          : order.status.toLowerCase() === "processing"
+                            ? "secondary"
+                            : order.status.toLowerCase() === "shipped"
+                              ? "outline"
+                              : "destructive"
+                      }
+                    >
+                      {order.status}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>{order.date}</TableCell>
+                  <TableCell className="text-right">
+                    {typeof order.amount === "number"
+                      ? new Intl.NumberFormat("en-US", {
+                          style: "currency",
+                          currency: "USD",
+                        }).format(order.amount)
+                      : order.amount}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
       </CardContent>
     </Card>
   );

@@ -44,10 +44,10 @@ export class ChannelManager {
       )
       .subscribe((status) => {
         if (status === "SUBSCRIBED") {
-          console.log(`[Realtime] Subscribed to ${channelName}`);
+          console.warn(`[Realtime] Subscribed to ${channelName}`);
         }
         if (status === "CLOSED") {
-          console.log(`[Realtime] Closed ${channelName}`);
+          console.warn(`[Realtime] Closed ${channelName}`);
         }
         if (status === "CHANNEL_ERROR") {
           console.error(`[Realtime] Error in ${channelName}`);

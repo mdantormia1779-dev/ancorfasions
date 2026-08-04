@@ -126,7 +126,7 @@ export function BrandedCollection({ products }: { products: Product[] }) {
                 return (
                   <div
                     key={product.id}
-                    className="group flex flex-[0_0_70%] cursor-pointer flex-col sm:flex-[0_0_45%] md:flex-[0_0_30%] lg:flex-[0_0_20%]"
+                    className="group flex flex-[0_0_45%] cursor-pointer flex-col sm:flex-[0_0_33.33%] md:flex-[0_0_25%] lg:flex-[0_0_20%]"
                   >
                     <div className="relative mb-4 aspect-[4/5] w-full overflow-hidden bg-[#F7F7F7] transition-all duration-500">
                       <Link

@@ -26,20 +26,20 @@ export async function POST(request: Request) {
     // 2. Perform the ETL materialization
     // In a real scenario, this would trigger a complex dbt transformation or complex Supabase RPC.
     // Here we simulate the pipeline routing based on sync type.
-    console.log(
+    console.warn(
       `[ETL] Starting sync for type: ${syncType} on dateKey: ${dateKey}`
     );
 
     if (syncType === "sales") {
       // Simulate loading sales facts
       // dataWarehouseService.loadFactSales(...)
-      console.log(`[ETL] Synchronized sales facts for ${dateKey}`);
+      console.warn(`[ETL] Synchronized sales facts for ${dateKey}`);
     } else if (syncType === "inventory") {
       // Simulate loading inventory movements
-      console.log(`[ETL] Synchronized inventory facts for ${dateKey}`);
+      console.warn(`[ETL] Synchronized inventory facts for ${dateKey}`);
     } else if (syncType === "marketing") {
       // Simulate loading marketing conversions
-      console.log(`[ETL] Synchronized marketing conversions for ${dateKey}`);
+      console.warn(`[ETL] Synchronized marketing conversions for ${dateKey}`);
     } else {
       return NextResponse.json(
         { error: `Unknown sync type: ${syncType}` },

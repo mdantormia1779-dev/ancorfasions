@@ -69,8 +69,8 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
 
   return (
     <section className="relative w-full overflow-hidden bg-[#1A1A1A]">
-      {/* 85vh for an immersive, premium full-bleed feel on desktop, smaller app-like banner on mobile */}
-      <div className="relative h-[45vh] min-h-[300px] w-full md:h-[85vh] md:min-h-[600px]">
+      {/* 85vh for an immersive, premium full-bleed feel on desktop, standard 16:9 or 4:3 banner on mobile */}
+      <div className="relative aspect-[4/3] sm:aspect-[16/9] w-full md:aspect-auto md:h-[85vh] md:min-h-[600px]">
         {slides.map((slide, index) => {
           const isActive = index === current;
           const imageUrl =

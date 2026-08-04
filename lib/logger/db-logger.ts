@@ -32,7 +32,7 @@ export class DbLogger {
   }
 
   static info(message: string, meta?: any) {
-    console.log(`[DB INFO] ${message}`, meta || "");
+    console.warn(`[DB INFO] ${message}`, meta || "");
   }
 
   static error(message: string, error?: any) {

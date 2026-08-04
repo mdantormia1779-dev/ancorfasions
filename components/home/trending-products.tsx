@@ -99,7 +99,7 @@ export function TrendingProducts({ products }: { products: any[] }) {
                 return (
                   <div
                     key={product.id}
-                    className="group flex flex-[0_0_80%] cursor-pointer flex-col transition-all sm:flex-[0_0_50%] md:flex-[0_0_33.33%] lg:flex-[0_0_25%]"
+                    className="group flex flex-[0_0_45%] cursor-pointer flex-col transition-all sm:flex-[0_0_33.33%] md:flex-[0_0_25%] lg:flex-[0_0_20%]"
                   >
                     <div className="relative mb-5 aspect-[4/5] w-full overflow-hidden bg-gray-50">
                       <Link

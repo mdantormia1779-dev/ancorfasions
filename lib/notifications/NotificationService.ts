@@ -58,7 +58,7 @@ export class NotificationService {
 
       // Filter marketing
       if (template.type === "MARKETING" && !isMarketingEnabled) {
-        console.log(`User ${userId} opted out of marketing`);
+        console.warn(`User ${userId} opted out of marketing`);
         return;
       }
 

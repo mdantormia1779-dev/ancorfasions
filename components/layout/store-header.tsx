@@ -306,8 +306,8 @@ export function StoreHeader({
           )}
 
           {/* Logo — Left */}
-          <div className="flex-shrink-0">
-            <AnchorFashionLogo />
+          <div className="flex-1 md:flex-none ml-2 md:ml-0 overflow-hidden flex items-center justify-start sm:justify-center md:justify-start">
+            <AnchorFashionLogo className="w-full max-w-[140px] sm:max-w-[180px] md:max-w-[220px] lg:max-w-[280px]" />
           </div>
 
           {/* Desktop Navigation — Center */}

@@ -74,7 +74,7 @@ export function CategoryHighlight() {
           <div className="flex flex-col gap-4 md:col-span-7 md:gap-6">
             <Link
               href={categories[0].link}
-              className="group relative block h-[400px] w-full overflow-hidden bg-gray-50 md:h-[500px]"
+              className="group relative block aspect-[4/5] w-full overflow-hidden bg-gray-50 md:aspect-auto md:h-[500px]"
             >
               <Image
                 src={categories[0].image}
@@ -102,7 +102,7 @@ export function CategoryHighlight() {
             <div className="grid grid-cols-2 gap-4 md:gap-6">
               <Link
                 href={categories[2].link}
-                className="group relative block h-[250px] w-full overflow-hidden bg-gray-50 md:h-[300px]"
+                className="group relative block aspect-square w-full overflow-hidden bg-gray-50 md:aspect-auto md:h-[300px]"
               >
                 <Image
                   src={categories[2].image}
@@ -123,7 +123,7 @@ export function CategoryHighlight() {
               </Link>
               <Link
                 href={categories[3].link}
-                className="group relative block h-[250px] w-full overflow-hidden bg-gray-50 md:h-[300px]"
+                className="group relative block aspect-square w-full overflow-hidden bg-gray-50 md:aspect-auto md:h-[300px]"
               >
                 <Image
                   src={categories[3].image}
@@ -146,7 +146,7 @@ export function CategoryHighlight() {
           </div>
 
           {/* Right Column (Tall) */}
-          <div className="h-[400px] md:col-span-5 md:h-auto">
+          <div className="aspect-[4/5] md:col-span-5 md:h-auto md:aspect-auto">
             <Link
               href={categories[1].link}
               className="group relative block h-full w-full overflow-hidden bg-gray-50"

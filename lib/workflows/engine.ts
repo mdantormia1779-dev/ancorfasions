@@ -35,7 +35,7 @@ export async function executeWorkflows(event: WorkflowEvent) {
     }
 
     if (!workflows || workflows.length === 0) {
-      console.log(
+      console.warn(
         `No active workflows found for trigger: ${event.triggerEvent}`
       );
       return;

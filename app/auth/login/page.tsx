@@ -1,5 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
+import { Anchor } from "lucide-react";
 import { LoginForm } from "@/features/auth/components/login-form";
 
 export const metadata: Metadata = {
@@ -9,28 +10,29 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <>
-      <div className="mb-6 flex flex-col space-y-2 text-center">
-        <h1 className="text-3xl font-bold tracking-tight text-foreground">
-          Welcome Back
-        </h1>
-        <p className="mx-auto max-w-sm text-sm text-muted-foreground/80">
-          Enter your email and password to sign in to your Anchor Fashion
-          account.
-        </p>
+    <div className="flex flex-col items-center">
+      {/* Logo */}
+      <div className="w-16 h-16 bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] flex items-center justify-center mb-6">
+        <Anchor className="h-8 w-8 text-primary" />
       </div>
 
-      <LoginForm />
+      <h1 className="text-2xl font-semibold mb-8 text-foreground">
+        Hello ! Welcome back
+      </h1>
 
-      <p className="mt-6 px-8 text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
+      <div className="w-full">
+        <LoginForm />
+      </div>
+
+      <p className="mt-8 text-center text-sm text-muted-foreground">
+        Dont Have an account?{" "}
         <Link
           href="/auth/register"
-          className="font-semibold text-primary underline underline-offset-4 transition-colors hover:text-primary/80"
+          className="text-primary hover:underline font-medium"
         >
-          Sign up
+          Create Account
         </Link>
       </p>
-    </>
+    </div>
   );
 }
