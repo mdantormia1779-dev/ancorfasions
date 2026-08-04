@@ -1,4 +1,6 @@
-import { Metadata } from "next";
+"use client";
+
+import { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -18,58 +20,62 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Search, UserPlus, Filter, MoreHorizontal } from "lucide-react";
-
-export const metadata: Metadata = {
-  title: "User Management | Anchor Fashion",
-  description: "Manage admin users, roles, and permissions",
-};
-
-const mockUsers = [
-  {
-    id: "1",
-    name: "Eleanor Vance",
-    email: "eleanor@anchorfashion.com",
-    role: "Super Admin",
-    status: "Active",
-    lastActive: "2 mins ago",
-  },
-  {
-    id: "2",
-    name: "Marcus Sterling",
-    email: "marcus@anchorfashion.com",
-    role: "Finance Executive",
-    status: "Active",
-    lastActive: "1 hr ago",
-  },
-  {
-    id: "3",
-    name: "Sophia Chen",
-    email: "sophia@anchorfashion.com",
-    role: "Marketing Manager",
-    status: "Active",
-    lastActive: "3 hrs ago",
-  },
-  {
-    id: "4",
-    name: "David Miller",
-    email: "david@anchorfashion.com",
-    role: "Support Lead",
-    status: "Inactive",
-    lastActive: "5 days ago",
-  },
-];
+import { fetchAdminUsersAction, toggleUserStatusAction } from "@/app/actions/admin/users.actions";
+import { toast } from "sonner";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export default function UserManagementPage() {
+  const [users, setUsers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const loadUsers = async () => {
+    setLoading(true);
+    const res = await fetchAdminUsersAction();
+    if (res.success) {
+      setUsers(res.data || []);
+    } else {
+      toast.error(res.error || "Failed to load users");
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const handleToggleStatus = async (userId: string, currentStatus: string) => {
+    const newStatus = currentStatus === "Active" ? false : true;
+    const res = await toggleUserStatusAction(userId, newStatus);
+    if (res.success) {
+      toast.success(`User ${newStatus ? "activated" : "deactivated"} successfully`);
+      loadUsers();
+    } else {
+      toast.error(res.error || "Action failed");
+    }
+  };
+
+  const filteredUsers = users.filter((u) => 
+    u.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+    u.email.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">User Management</h1>
           <p className="text-muted-foreground">
-            Manage enterprise staff, roles, and access control.
+            Manage enterprise staff, roles, and access control securely.
           </p>
         </div>
-        <Button>
+        <Button onClick={() => toast.info("Add User modal coming soon")}>
           <UserPlus className="mr-2 h-4 w-4" />
           Add User
         </Button>
@@ -79,7 +85,7 @@ export default function UserManagementPage() {
         <CardHeader>
           <CardTitle>Staff Directory</CardTitle>
           <CardDescription>
-            A list of all users with access to the admin dashboard.
+            A secure list of all authorized users with access to the admin dashboard.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -90,6 +96,8 @@ export default function UserManagementPage() {
                 type="search"
                 placeholder="Search users..."
                 className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <Button variant="outline">
@@ -110,41 +118,61 @@ export default function UserManagementPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>
-                      <div className="font-medium">{user.name}</div>
-                      <div className="text-sm text-muted-foreground">
-                        {user.email}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">{user.role}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          user.status === "Active" ? "default" : "outline"
-                        }
-                        className={
-                          user.status === "Active"
-                            ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
-                            : ""
-                        }
-                      >
-                        {user.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {user.lastActive}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                      </Button>
+                {loading ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      Loading secure user data...
                     </TableCell>
                   </TableRow>
-                ))}
+                ) : filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      No users found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user.id}>
+                      <TableCell>
+                        <div className="font-medium">{user.name}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {user.email}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="secondary">{user.role}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={user.status === "Active" ? "default" : "outline"}
+                          className={
+                            user.status === "Active"
+                              ? "bg-emerald-500/10 text-emerald-500 hover:bg-emerald-500/20"
+                              : ""
+                          }
+                        >
+                          {user.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-sm">
+                        {user.lastActive}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger className="flex h-8 w-8 items-center justify-center rounded-md hover:bg-accent hover:text-accent-foreground outline-none">
+                            <MoreHorizontal className="h-4 w-4" />
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleToggleStatus(user.id, user.status)}>
+                              {user.status === "Active" ? "Deactivate User" : "Activate User"}
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>
