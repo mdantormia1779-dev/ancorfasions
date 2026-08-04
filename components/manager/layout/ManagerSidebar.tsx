@@ -94,7 +94,7 @@ export function ManagerSidebar() {
             </span>
           </Link>
         </div>
-        <ScrollArea className="flex-1">
+        <div className="flex-1 overflow-y-auto">
           <nav className="grid items-start px-2 py-4 text-sm font-medium lg:px-4">
             <div className="mb-2 px-3 py-2 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
               Operations
@@ -120,7 +120,7 @@ export function ManagerSidebar() {
               );
             })}
           </nav>
-        </ScrollArea>
+        </div>
         <div className="border-t p-4">
           <LogoutButton className="w-full justify-center" />
         </div>

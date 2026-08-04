@@ -208,7 +208,7 @@ export const AdminSidebar = ({
         <span className="text-xl font-bold tracking-tight text-slate-900">Mofi</span>
       </div>
 
-      <ScrollArea className="flex-1">
+      <div className="flex-1 overflow-y-auto">
         <div className="space-y-6 py-6">
           {navigation.map((category) => {
             const filteredItems = category.items.filter((nav) => {
@@ -320,7 +320,7 @@ export const AdminSidebar = ({
             );
           })}
         </div>
-      </ScrollArea>
+      </div>
 
       <div className="p-4 border-t border-border">
         <LogoutButton className="w-full bg-muted/50 hover:bg-slate-100 text-foreground/90 border-none" />

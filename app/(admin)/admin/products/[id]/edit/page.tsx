@@ -11,9 +11,10 @@ export const metadata: Metadata = {
 export default async function EditProductPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
-  const res = await getAdminProductByIdAction({ id: params.id });
+  const resolvedParams = await params;
+  const res = await getAdminProductByIdAction({ id: resolvedParams.id });
 
   if (!res.success || !res.data) {
     notFound();
