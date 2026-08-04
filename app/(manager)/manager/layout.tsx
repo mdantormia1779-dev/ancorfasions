@@ -28,7 +28,7 @@ export default async function ManagerLayout({ children }: { children: ReactNode 
     
   // Sub-admins must have a role included in MANAGER_ROLES
   if (!MANAGER_ROLES.includes(role)) {
-    redirect("/dashboard");
+    redirect("/account/profile");
   }
 
   return (

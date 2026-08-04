@@ -137,7 +137,7 @@ export function StoreHeader({
     : ADMIN_ROLES.includes(role)
       ? "/admin"
       : MANAGER_ROLES.includes(role)
-        ? "/dashboard"
+        ? "/manager"
         : "/account/profile";
 
   useEffect(() => {

@@ -9,7 +9,7 @@ interface HeroSectionProps {
 
 export function HeroSection({ data }: HeroSectionProps) {
   return (
-    <section className="relative flex h-[80vh] min-h-[600px] w-full items-center justify-center overflow-hidden">
+    <section className="relative flex h-[50vh] min-h-[350px] w-full items-center justify-center overflow-hidden md:h-[80vh] md:min-h-[600px]">
       {/* Background Media */}
       <div className="absolute inset-0 z-0">
         {data.media_type === "VIDEO" ? (

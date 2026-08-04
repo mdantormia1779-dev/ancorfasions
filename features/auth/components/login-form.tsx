@@ -80,7 +80,7 @@ export function LoginForm() {
       // Check for a ?next= param in the URL for post-login redirect
       const params = new URLSearchParams(window.location.search);
       const next = params.get("next");
-      router.push(next || "/dashboard");
+      router.push(next || "/account/profile");
     }
 
     router.refresh();

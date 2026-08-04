@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, Search, ShoppingCart, User, Heart } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ADMIN_ROLES, MANAGER_ROLES } from "@/lib/constants/auth";
 
 export function MobileBottomNav({ user }: { user: any }) {
   const pathname = usePathname();
@@ -13,6 +14,15 @@ export function MobileBottomNav({ user }: { user: any }) {
     if (email) return email.slice(0, 2).toUpperCase();
     return "U";
   };
+
+  const role = user?.user_metadata?.role || user?.app_metadata?.role || "CUSTOMER";
+  const accountHref = !user
+    ? "/auth/login"
+    : ADMIN_ROLES.includes(role)
+      ? "/admin"
+      : MANAGER_ROLES.includes(role)
+        ? "/manager"
+        : "/account/profile";
 
   const navItems = [
     { label: "Home", href: "/", icon: Home },
@@ -49,9 +59,9 @@ export function MobileBottomNav({ user }: { user: any }) {
 
         {/* Profile Tab */}
         <Link
-          href={user ? "/account/profile" : "/auth/login"}
+          href={accountHref}
           className={`group inline-flex flex-col items-center justify-center px-2 py-1 transition-colors ${
-            pathname.includes("/account") || pathname === "/auth/login"
+            pathname.includes("/account") || pathname === "/auth/login" || pathname.startsWith("/admin") || pathname.startsWith("/manager")
               ? "text-[#1A1A1A]"
               : "text-gray-400 hover:text-[#1A1A1A]"
           }`}

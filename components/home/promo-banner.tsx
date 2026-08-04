@@ -20,11 +20,11 @@ export function PromoBanner({
   imageUrl,
 }: PromoBannerProps) {
   return (
-    <section className="w-full bg-[#FAFAFA] py-16 md:py-24">
+    <section className="w-full bg-[#FAFAFA] py-10 md:py-24">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="group flex min-h-[500px] flex-col items-stretch overflow-hidden md:min-h-[700px] md:flex-row">
+        <div className="group flex min-h-[350px] flex-col items-stretch overflow-hidden md:min-h-[700px] md:flex-row">
           {/* Left Side: High-Resolution Image */}
-          <div className="relative min-h-[400px] w-full overflow-hidden md:min-h-full md:w-1/2">
+          <div className="relative min-h-[250px] w-full overflow-hidden md:min-h-full md:w-1/2">
             <Image
               src={imageUrl}
               alt={title}

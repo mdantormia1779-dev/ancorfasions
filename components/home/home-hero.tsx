@@ -69,8 +69,8 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
 
   return (
     <section className="relative w-full overflow-hidden bg-[#1A1A1A]">
-      {/* 85vh for an immersive, premium full-bleed feel */}
-      <div className="relative h-[70vh] min-h-[600px] w-full md:h-[85vh]">
+      {/* 85vh for an immersive, premium full-bleed feel on desktop, smaller app-like banner on mobile */}
+      <div className="relative h-[45vh] min-h-[300px] w-full md:h-[85vh] md:min-h-[600px]">
         {slides.map((slide, index) => {
           const isActive = index === current;
           const imageUrl =
@@ -115,28 +115,28 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
               </div>
 
               {/* Text Content */}
-              <div className="container absolute inset-0 mx-auto flex flex-col items-center justify-end px-4 pb-24 text-center text-white md:pb-32">
+              <div className="container absolute inset-0 mx-auto flex flex-col items-center justify-end px-4 pb-12 text-center text-white md:pb-32">
                 {slide.subheadline && (
-                  <p className="mb-4 text-sm uppercase tracking-[0.3em] text-white/80 opacity-0 delay-300 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards md:text-base">
+                  <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-white/90 opacity-0 delay-300 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards md:mb-4 md:text-sm md:tracking-[0.3em] md:text-white/80">
                     {slide.subheadline}
                   </p>
                 )}
                 {slide.headline && (
                   <h1
-                    className={`${jost.className} mb-10 max-w-4xl text-5xl font-extralight leading-[1.1] tracking-tight opacity-0 drop-shadow-sm delay-500 duration-1000 animate-in fade-in slide-in-from-bottom-8 fill-mode-forwards md:text-7xl lg:text-8xl`}
+                    className={`${jost.className} mb-6 max-w-4xl text-3xl font-light leading-[1.15] tracking-tight opacity-0 drop-shadow-sm delay-500 duration-1000 animate-in fade-in slide-in-from-bottom-8 fill-mode-forwards sm:text-4xl md:mb-10 md:text-7xl md:font-extralight lg:text-8xl`}
                   >
                     {slide.headline}
                   </h1>
                 )}
                 <Link
                   href={ctaHref}
-                  className="group relative flex items-center justify-center gap-3 overflow-hidden border border-white bg-transparent px-14 py-4 text-white opacity-0 transition-all delay-700 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards hover:bg-white hover:text-black"
+                  className="group relative flex items-center justify-center gap-3 overflow-hidden border border-white bg-transparent px-8 py-3 text-white opacity-0 transition-all delay-700 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards hover:bg-white hover:text-black md:px-14 md:py-4"
                 >
-                  <span className="relative z-10 text-xs font-bold uppercase tracking-[0.25em] transition-colors">
+                  <span className="relative z-10 text-[10px] font-bold uppercase tracking-[0.2em] transition-colors md:text-xs md:tracking-[0.25em]">
                     {slide.cta_text || "Discover More"}
                   </span>
                   <svg
-                    className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+                    className="relative z-10 h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1 md:h-4 md:w-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"

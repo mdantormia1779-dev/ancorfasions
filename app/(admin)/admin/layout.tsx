@@ -30,7 +30,7 @@ export default async function AdminLayout({
   const role =
     user.user_metadata?.role || user.app_metadata?.role || "CUSTOMER";
   if (!ADMIN_ROLES.includes(role)) {
-    redirect("/dashboard");
+    redirect("/account/profile");
   }
 
   return (

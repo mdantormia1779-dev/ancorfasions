@@ -64,7 +64,7 @@ export default async function HomePage() {
         <PremiumShades />
       </FadeIn>
 
-      <div className="space-y-32 py-20 md:space-y-48 md:py-32 lg:py-40">
+      <div className="space-y-16 py-10 md:space-y-48 md:py-32 lg:py-40">
         {/* 5. The Collection Grid */}
         <FadeIn>
           <ExploreCollections categories={categories} />

@@ -10,10 +10,10 @@ interface PromoBannerProps {
 export function PromoBanner({ data }: PromoBannerProps) {
   return (
     <section
-      className="relative my-12 flex w-full items-center justify-center overflow-hidden px-4 py-20"
+      className="relative my-8 flex w-full items-center justify-center overflow-hidden px-4 py-12 md:my-12 md:py-20"
       style={{ backgroundColor: data.bg_color || "#f4f4f5" }}
     >
-      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-10 md:grid-cols-2">
+      <div className="mx-auto grid w-full max-w-7xl grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-10">
         {/* Content */}
         <div className="z-10 order-2 flex flex-col items-start justify-center bg-white/90 p-8 shadow-sm backdrop-blur-sm md:order-1 md:p-12">
           {data.title && (

@@ -63,7 +63,29 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/auth/reset-password");
 
   if (user && isAuthRoute) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    let currentRole = user?.user_metadata?.role || user?.app_metadata?.role || "";
+    
+    // Quick role fetch if missing
+    if (!currentRole) {
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("role_id, roles(name)")
+          .eq("id", user.id)
+          .single();
+        currentRole = (profile?.roles as any)?.name || "CUSTOMER";
+      } catch {
+        currentRole = "CUSTOMER";
+      }
+    }
+    
+    if (ADMIN_ROLES.includes(currentRole)) {
+      return NextResponse.redirect(new URL("/admin", request.url));
+    } else if (MANAGER_ROLES.includes(currentRole)) {
+      return NextResponse.redirect(new URL("/manager", request.url));
+    } else {
+      return NextResponse.redirect(new URL("/account/profile", request.url));
+    }
   }
 
   // Protect Internal and Customer Routes
@@ -115,7 +137,7 @@ export async function proxy(request: NextRequest) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return NextResponse.redirect(new URL("/account/profile", request.url));
     }
   }
 
@@ -133,7 +155,7 @@ export async function proxy(request: NextRequest) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
-      return NextResponse.redirect(new URL("/dashboard", request.url));
+      return NextResponse.redirect(new URL("/account/profile", request.url));
     }
   }
 
