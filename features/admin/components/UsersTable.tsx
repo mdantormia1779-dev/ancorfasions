@@ -17,7 +17,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, UserPlus, Filter, MoreHorizontal } from "lucide-react";
+import { Search, Filter, MoreHorizontal } from "lucide-react";
+import { AddUserDialog } from "./AddUserDialog";
 
 export type UserData = {
   id: string;
@@ -32,9 +33,11 @@ interface UsersTableProps {
   title: string;
   description: string;
   users: UserData[];
+  allowedRoles?: string[];
+  defaultRole?: string;
 }
 
-export function UsersTable({ title, description, users }: UsersTableProps) {
+export function UsersTable({ title, description, users, allowedRoles, defaultRole }: UsersTableProps) {
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -42,10 +45,7 @@ export function UsersTable({ title, description, users }: UsersTableProps) {
           <h1 className="text-3xl font-bold tracking-tight">{title}</h1>
           <p className="text-muted-foreground">{description}</p>
         </div>
-        <Button>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
+        <AddUserDialog allowedRoles={allowedRoles} defaultRole={defaultRole} />
       </div>
 
       <Card>

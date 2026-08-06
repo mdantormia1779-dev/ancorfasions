@@ -1,35 +1,33 @@
-import { UsersTable, UserData } from "@/features/admin/components/UsersTable";
+import { UsersTable } from "@/features/admin/components/UsersTable";
+import { getUsersByRoleAction } from "@/actions/users.actions";
+import { AlertTriangle } from "lucide-react";
 
 export const metadata = {
   title: "Staff | Anchor Fashion",
 };
 
-const staffUsers: UserData[] = [
-  {
-    id: "5",
-    name: "David Miller",
-    email: "david@anchorfashion.com",
-    role: "Support Agent",
-    status: "Inactive",
-    lastActive: "5 days ago",
-  },
-  {
-    id: "6",
-    name: "Emma Stone",
-    email: "emma@anchorfashion.com",
-    role: "Content Creator",
-    status: "Active",
-    lastActive: "2 hrs ago",
-  },
-];
+export default async function StaffPage() {
+  const { data: users, error, success } = await getUsersByRoleAction(["SUPPORT", "MARKETING", "STAFF"]);
 
-export default function StaffPage() {
+  if (!success) {
+    return (
+      <div className="p-8 pt-6">
+        <div className="flex items-center gap-2 rounded-md bg-destructive/10 p-4 text-destructive">
+          <AlertTriangle className="h-5 w-5" />
+          <p>Error loading users: {error}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="p-8 pt-6">
       <UsersTable
         title="Staff"
         description="Manage general staff, support agents, and content creators."
-        users={staffUsers}
+        users={users || []}
+        allowedRoles={["SUPPORT", "MARKETING", "STAFF"]}
+        defaultRole="SUPPORT"
       />
     </div>
   );
