@@ -41,7 +41,7 @@ export function SalesOverviewChart({ data = [] }: { data?: any[] }) {
                 cursor={{ fill: 'transparent' }} 
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
               />
-              <Bar dataKey="revenue" fill="#00A1FF" radius={[4, 4, 4, 4]} barSize={10} name="Revenue ($)" />
+              <Bar dataKey="revenue" fill="#00A1FF" radius={[4, 4, 4, 4]} barSize={10} name="Revenue (৳)" />
               <Bar dataKey="orders" fill="#00A1FF" opacity={0.3} radius={[4, 4, 4, 4]} barSize={10} name="Orders" />
             </BarChart>
           </ResponsiveContainer>

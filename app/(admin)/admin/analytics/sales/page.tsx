@@ -16,6 +16,7 @@ import {
 } from "@/features/analytics/components/Charts";
 import { getSalesAnalyticsAction } from "@/app/actions/analytics/dashboard.actions";
 import { subDays } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Sales Analytics | Anchor Fashion Analytics",
@@ -63,12 +64,12 @@ export default async function SalesAnalyticsPage({
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Sales"
-          value={`$${sales.totalSales.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(sales.totalSales)}
           icon={<DollarSign className="h-4 w-4" />}
         />
         <StatCard
           title="Daily Average"
-          value={`$${(sales.totalSales / (sales.dailySales.length || 1)).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(sales.totalSales / (sales.dailySales.length || 1))}
           icon={<DollarSign className="h-4 w-4" />}
         />
         <StatCard

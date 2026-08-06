@@ -8,6 +8,7 @@ import {
 } from "@/features/analytics/components/Charts";
 import { getCustomerAnalyticsAction } from "@/app/actions/analytics/dashboard.actions";
 import { subDays } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Customer Analytics | Anchor Fashion Analytics",
@@ -80,7 +81,7 @@ export default async function CustomerAnalyticsPage({
         />
         <StatCard
           title="Average LTV"
-          value={`$${customers.averageLifetimeValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(customers.averageLifetimeValue)}
           icon={<Activity className="h-4 w-4" />}
         />
       </div>

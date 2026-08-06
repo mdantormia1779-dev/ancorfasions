@@ -1,7 +1,7 @@
 "use client";
 
-import {
-import { formatCurrency } from "@/lib/utils"; Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatCurrency } from "@/lib/utils";
 import {
   DollarSign,
   ShoppingBag,

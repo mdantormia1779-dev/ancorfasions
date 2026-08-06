@@ -86,7 +86,7 @@ export function SalesTrendChart({
                 axisLine={false}
                 tick={{ fill: "#64748b", fontSize: 12 }}
                 tickFormatter={(value) =>
-                  `$${(value as number) >= 1000 ? ((value as number) / 1000).toFixed(1) + "k" : value}`
+                  `৳${(value as number) >= 1000 ? ((value as number) / 1000).toFixed(1) + "k" : value}`
                 }
               />
               <Tooltip
@@ -96,7 +96,7 @@ export function SalesTrendChart({
                   boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)",
                 }}
                 formatter={(value) => [
-                  `$${(value as number).toFixed(2)}`,
+                  `৳${(value as number).toFixed(2)}`,
                   "Revenue",
                 ]}
                 labelFormatter={(label) => new Date(label as string).toLocaleDateString()}

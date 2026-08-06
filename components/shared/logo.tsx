@@ -118,19 +118,6 @@ export const AnchorFashionLogo = ({
           NCHOR
         </text>
 
-        {/* 4. The 'FASHION' text below */}
-        <text
-          x="145"
-          y="118"
-          className={`af-draw-blue ${jost.className}`}
-          style={{ fontSize: "20px", fontWeight: "500", letterSpacing: "9px" }}
-        >
-          FASHION
-        </text>
-
-        {/* 5. Left and Right Lines next to FASHION */}
-        <path d="M 35 112 L 125 112" className="af-draw-line" fill="none" />
-        <path d="M 290 112 L 380 112" className="af-draw-line" fill="none" />
       </svg>
     </>
   );

@@ -20,6 +20,7 @@ import { AnalyticsFilters } from "@/features/analytics/components/AnalyticsFilte
 import { SalesTrendChart } from "@/features/analytics/components/Charts";
 import { getExecutiveSummaryAction } from "@/app/actions/analytics/dashboard.actions";
 import { subDays } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Executive Dashboard | Anchor Fashion Analytics",
@@ -72,42 +73,42 @@ export default async function ExecutiveDashboardPage({
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Today's Revenue"
-          value={`$${summary.todaysRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(summary.todaysRevenue)}
           icon={<DollarSign className="h-4 w-4" />}
         />
         <StatCard
           title="Weekly Revenue"
-          value={`$${summary.weeklyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(summary.weeklyRevenue)}
           icon={<DollarSign className="h-4 w-4" />}
         />
         <StatCard
           title="Monthly Revenue"
-          value={`$${summary.monthlyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(summary.monthlyRevenue)}
           icon={<DollarSign className="h-4 w-4" />}
         />
         <StatCard
           title="Yearly Revenue"
-          value={`$${summary.yearlyRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(summary.yearlyRevenue)}
           icon={<DollarSign className="h-4 w-4" />}
         />
         <StatCard
           title="Total Revenue"
-          value={`$${summary.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(summary.totalRevenue)}
           icon={<DollarSign className="h-4 w-4" />}
         />
         <StatCard
           title="Gross Profit"
-          value={`$${summary.grossProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(summary.grossProfit)}
           icon={<TrendingUp className="h-4 w-4" />}
         />
         <StatCard
           title="Net Profit"
-          value={`$${summary.netProfit.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(summary.netProfit)}
           icon={<TrendingUp className="h-4 w-4" />}
         />
         <StatCard
           title="Avg. Order Value"
-          value={`$${summary.averageOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(summary.averageOrderValue)}
           icon={<CreditCard className="h-4 w-4" />}
         />
         <StatCard
@@ -132,7 +133,7 @@ export default async function ExecutiveDashboardPage({
         />
         <StatCard
           title="Inventory Value"
-          value={`$${summary.inventoryValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(summary.inventoryValue)}
           icon={<Package className="h-4 w-4" />}
         />
       </div>

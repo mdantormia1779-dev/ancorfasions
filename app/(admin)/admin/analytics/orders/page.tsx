@@ -8,6 +8,7 @@ import {
 } from "@/features/analytics/components/Charts";
 import { getOrderAnalyticsAction } from "@/app/actions/analytics/dashboard.actions";
 import { subDays } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Order Analytics | Anchor Fashion Analytics",
@@ -75,9 +76,9 @@ export default async function OrderAnalyticsPage({
           icon={<RotateCcw className="h-4 w-4 text-red-500" />}
         />
         <StatCard
-          title="Refunded Amount"
-          value={`$${orders.refundStatistics.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon={<XCircle className="h-4 w-4 text-red-500" />}
+          title="Total Refunded"
+          value={formatCurrency(orders.refundStatistics.totalAmount)}
+          icon={<DollarSign className="h-4 w-4 text-red-500" />}
         />
       </div>
 

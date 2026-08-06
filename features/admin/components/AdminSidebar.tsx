@@ -212,7 +212,6 @@ export const AdminSidebar = ({
         {!isCollapsed && (
           <>
             <AnchorFashionLogo noLink={true} className="text-slate-900" />
-            <span className="text-xl font-bold tracking-tight text-slate-900">Mofi</span>
           </>
         )}
         {isCollapsed && <AnchorFashionLogo noLink={true} className="text-slate-900 w-8 h-8" />}

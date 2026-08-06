@@ -83,8 +83,7 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && searchQuery.trim()) {
-      toast.info(`Searching for: ${searchQuery}`);
-      // router.push(`/admin/products?search=${encodeURIComponent(searchQuery)}`);
+      router.push(`/admin/products?search=${encodeURIComponent(searchQuery)}`);
     }
   };
 
@@ -133,7 +132,7 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
           <Input
             type="search"
-            placeholder="Search Mofi.."
+            placeholder="Search products..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             onKeyDown={handleSearch}

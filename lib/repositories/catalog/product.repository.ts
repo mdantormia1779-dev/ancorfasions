@@ -91,7 +91,16 @@ export class ProductRepository {
       throw error;
     }
 
-    return data as unknown as Product;
+    // Normalize data
+    const product = { ...data };
+    if (product.seo && Array.isArray(product.seo)) {
+      product.seo = product.seo[0] || null;
+    }
+    if (product.tags && Array.isArray(product.tags)) {
+      product.tags = product.tags.map((t: any) => t.tag).filter(Boolean);
+    }
+
+    return product as unknown as Product;
   });
 
   /**

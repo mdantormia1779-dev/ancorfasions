@@ -5,6 +5,7 @@ import { AnalyticsFilters } from "@/features/analytics/components/AnalyticsFilte
 import { StatusDistributionChart } from "@/features/analytics/components/Charts";
 import { getMarketingAnalyticsAction } from "@/app/actions/analytics/dashboard.actions";
 import { subDays } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Marketing Analytics | Anchor Fashion Analytics",
@@ -67,9 +68,9 @@ export default async function MarketingAnalyticsPage({
           icon={<Tag className="h-4 w-4" />}
         />
         <StatCard
-          title="Discount Given"
-          value={`$${marketing.totalDiscountGiven.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
-          icon={<Tag className="h-4 w-4 text-red-500" />}
+          title="Total Discounts Given"
+          value={formatCurrency(marketing.totalDiscountGiven)}
+          icon={<DollarSign className="h-4 w-4 text-red-500" />}
         />
         <StatCard
           title="Newsletter Subs"

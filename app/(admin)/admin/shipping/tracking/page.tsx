@@ -43,13 +43,22 @@ export default function AdminTrackingDashboard() {
 
   const handleSyncAll = async () => {
     let synced = 0;
+    let failed = 0;
     for (const s of active.slice(0, 10)) {
       try {
         await syncTracking.mutateAsync(s.id);
         synced++;
-      } catch (_) {}
+      } catch (err: any) {
+        failed++;
+        toast.error(`Sync failed for ${s.shipment_number}: ${err.message}`);
+      }
     }
-    toast.success(`Synced tracking for ${synced} shipments`);
+    if (synced > 0) {
+      toast.success(`Synced tracking for ${synced} shipments`);
+    }
+    if (failed > 0) {
+      toast.error(`Failed to sync ${failed} shipments. Check courier credentials.`);
+    }
   };
 
   return (

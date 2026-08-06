@@ -75,6 +75,19 @@ export async function fetchDeliveryZonesAction(): Promise<
   }
 }
 
+export async function getDeliveryZoneAction(
+  zoneId: string
+): Promise<ActionResponse<any>> {
+  try {
+    const repo = new DeliveryZoneRepository();
+    const zone = await repo.getZoneById(zoneId);
+    if (!zone) return { success: false, error: "Zone not found" };
+    return { success: true, data: zone };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
 export async function createDeliveryZoneAction(
   raw: Record<string, any>
 ): Promise<ActionResponse<{ zoneId: string }>> {

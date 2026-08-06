@@ -26,6 +26,7 @@ import { StatCard } from "@/features/analytics/components/StatCard";
 import { AnalyticsFilters } from "@/features/analytics/components/AnalyticsFilters";
 import { SalesTrendChart } from "@/features/analytics/components/Charts";
 import { subDays } from "date-fns";
+import { formatCurrency } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Executive Dashboard | Anchor Fashion Analytics",
@@ -119,7 +120,7 @@ export default async function AnalyticsHubPage({
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Revenue"
-          value={`$${executiveSummary.totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(executiveSummary.totalRevenue)}
           icon={<DollarSign className="h-4 w-4" />}
           trend={executiveSummary.revenueTrend}
         />
@@ -131,7 +132,7 @@ export default async function AnalyticsHubPage({
         />
         <StatCard
           title="Avg. Order Value"
-          value={`$${executiveSummary.averageOrderValue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          value={formatCurrency(executiveSummary.averageOrderValue)}
           icon={<TrendingUp className="h-4 w-4" />}
           trend={executiveSummary.aovTrend}
         />

@@ -43,13 +43,13 @@ export function RevenueByCategoryChart({ data = [] }: { data?: any[] }) {
               </Pie>
               <Tooltip 
                 contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
-                formatter={(value) => `$${value}`}
+                formatter={(value) => `৳${value}`}
               />
             </PieChart>
           </ResponsiveContainer>
           <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
             <span className="text-lg font-bold text-foreground leading-none mb-1">{topCategory.name}</span>
-            <span className="text-sm font-medium text-muted-foreground">${topCategory.value}</span>
+            <span className="text-sm font-medium text-muted-foreground">৳{topCategory.value}</span>
           </div>
         </div>
         

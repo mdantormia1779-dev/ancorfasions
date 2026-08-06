@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatCurrency } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Inventory Analytics | Anchor Fashion Analytics",
@@ -108,11 +109,7 @@ export default async function InventoryAnalyticsPage() {
                       {item.quantitySold}
                     </TableCell>
                     <TableCell className="text-right">
-                      $
-                      {item.revenue.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
+                      {formatCurrency(item.revenue)}
                     </TableCell>
                   </TableRow>
                 ))}

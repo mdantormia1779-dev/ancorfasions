@@ -11,9 +11,9 @@ import { RecentOrders } from "@/features/admin/components/RecentOrders";
 import { SalesOverviewChart } from "@/features/admin/components/SalesOverviewChart";
 import { RevenueByCategoryChart } from "@/features/admin/components/RevenueByCategoryChart";
 import { UserByContinent } from "@/features/admin/components/UserByContinent";
-import { DealOfTheDay } from "@/features/admin/components/DealOfTheDay";
 import { TopSellersTable } from "@/features/admin/components/TopSellersTable";
 import { RecentCustomers } from "@/features/admin/components/RecentCustomers";
+import { formatCurrency } from "@/lib/utils";
 import {
   fetchDashboardRevenueAction,
   fetchDashboardKPIsAction,
@@ -21,7 +21,6 @@ import {
   fetchRevenueByCategoryAction,
   fetchRecentCustomersAction,
   fetchUserLocationsAction,
-  fetchDealOfTheDayAction,
   fetchRecentOrdersAction,
 } from "@/app/actions/bi/dashboard.actions";
 
@@ -30,10 +29,6 @@ export const metadata: Metadata = {
   description: "Enterprise Dashboard",
 };
 
-const formatCurrency = (val: number) =>
-  new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", minimumFractionDigits: 0 }).format(
-    val
-  );
 
 export default async function AdminDashboardPage() {
   const [
@@ -43,7 +38,6 @@ export default async function AdminDashboardPage() {
     revenueByCatRes,
     recentCustomersRes,
     userLocationsRes,
-    dealOfTheDayRes,
     recentOrdersRes
   ] = await Promise.all([
     fetchDashboardRevenueAction(30),
@@ -52,7 +46,6 @@ export default async function AdminDashboardPage() {
     fetchRevenueByCategoryAction(),
     fetchRecentCustomersAction(),
     fetchUserLocationsAction(),
-    fetchDealOfTheDayAction(),
     fetchRecentOrdersAction()
   ]);
 
@@ -68,7 +61,6 @@ export default async function AdminDashboardPage() {
   const revenueByCategory = revenueByCatRes.data || [];
   const recentCustomers = recentCustomersRes.data || [];
   const userLocations = userLocationsRes.data || [];
-  const dealOfTheDay = dealOfTheDayRes.data;
   const recentOrders = recentOrdersRes.data || [];
 
   const aovSparkline = salesData.length > 0 ? salesData.map((d: any) => d.aov || 0) : [0];
@@ -143,12 +135,9 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Row 4: Deal of the Day & Top Sellers */}
+      {/* Row 4: Top Sellers */}
       <div className="grid gap-6 lg:grid-cols-12 pb-10">
-        <div className="lg:col-span-5">
-          <DealOfTheDay data={dealOfTheDay} />
-        </div>
-        <div className="lg:col-span-7">
+        <div className="lg:col-span-12">
           <TopSellersTable data={topSellers} />
         </div>
       </div>

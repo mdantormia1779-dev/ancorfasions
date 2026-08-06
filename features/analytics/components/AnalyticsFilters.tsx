@@ -65,6 +65,10 @@ export function AnalyticsFilters({
     });
   };
 
+  const handleExport = () => {
+    window.print();
+  };
+
   const handleQuickFilter = (days: number) => {
     const to = new Date();
     const from = subDays(to, days);
@@ -164,7 +168,7 @@ export function AnalyticsFilters({
         </Button>
 
         {showExport && (
-          <Button variant="outline" className="gap-2">
+          <Button variant="outline" className="gap-2" onClick={handleExport}>
             <DownloadIcon className="h-4 w-4" />
             <span className="hidden sm:inline">Export</span>
           </Button>
