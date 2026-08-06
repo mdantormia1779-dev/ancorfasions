@@ -31,9 +31,6 @@ export default async function ProductsPage({
   const res = await ProductRepository.getProducts({ search, page, limit: 20 });
   const products = res.products || [];
 
-  const formatCurrency = (val: number) =>
-    formatCurrency(val);
-
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">

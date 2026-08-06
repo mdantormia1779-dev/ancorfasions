@@ -22,8 +22,6 @@ interface StatCardsProps {
 }
 
 export function StatCards({ kpis }: StatCardsProps) {
-  const formatCurrency = (val: number) =>
-    formatCurrency(val);
   const data = kpis || {
     revenue: { value: 0, trend: { value: 0, isPositive: true } },
     orders: { value: 0, trend: { value: 0, isPositive: true } },

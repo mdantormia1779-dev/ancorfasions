@@ -60,8 +60,7 @@ export function ProductsTable({
   const [isDuplicating, setIsDuplicating] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const formatCurrency = (val: number) =>
-    formatCurrency(val);
+
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
