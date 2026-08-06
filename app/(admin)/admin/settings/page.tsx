@@ -13,9 +13,10 @@ import {
   Truck,
   Mail,
   ShieldCheck,
-  Key,
   Layout,
   ChevronRight,
+  Store,
+  Activity,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -33,17 +34,23 @@ const settingsSections = [
     badge: "Live",
   },
   {
+    title: "Store Settings",
+    description: "Configure your store's basic information and localization.",
+    href: "/admin/settings/store",
+    icon: Store,
+  },
+  {
     title: "Payment Gateways",
     description:
       "Configure bKash, SSLCommerz credentials and enable/disable payment methods.",
-    href: "/admin/payments/providers",
+    href: "/admin/settings/payment",
     icon: CreditCard,
     badge: "Live",
   },
   {
     title: "Website & SEO",
     description: "Manage meta tags, structured data, sitemaps, and redirects.",
-    href: "/admin/cms/seo",
+    href: "/admin/settings/seo",
     icon: Globe,
   },
   {
@@ -56,20 +63,20 @@ const settingsSections = [
     title: "Email Configuration",
     description:
       "Resend API key, email templates, and notification preferences.",
-    href: "/admin/notifications",
+    href: "/admin/settings/email",
     icon: Mail,
   },
   {
     title: "Security Policies",
     description: "Password policies, login audit logs, and session management.",
-    href: "/admin/security",
+    href: "/admin/settings/security",
     icon: ShieldCheck,
   },
   {
-    title: "API Keys",
-    description: "Manage external API keys and integrations.",
-    href: "/admin/settings/api-keys",
-    icon: Key,
+    title: "Analytics & Tracking",
+    description: "Integrate third-party tracking and analytics tools.",
+    href: "/admin/settings/analytics",
+    icon: Activity,
   },
   {
     title: "Hero Banners & CMS",
