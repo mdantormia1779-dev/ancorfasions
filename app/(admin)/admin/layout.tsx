@@ -2,6 +2,7 @@ import { ReactNode } from "react";
 import { redirect } from "next/navigation";
 import { AdminSidebar } from "@/features/admin/components/AdminSidebar";
 import { AdminHeader } from "@/features/admin/components/AdminHeader";
+import { MobileAppBanner } from "@/features/admin/components/MobileAppBanner";
 import { createClient } from "@/lib/supabase/server";
 import { ADMIN_ROLES } from "@/lib/constants/auth";
 
@@ -35,13 +36,14 @@ export default async function AdminLayout({
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-slate-50 text-slate-900">
-      <AdminSidebar role={role} />
+      <AdminSidebar role={role} className="hidden md:flex" />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AdminHeader user={user} role={role} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
           {children}
         </main>
       </div>
+      <MobileAppBanner />
     </div>
   );
 }
