@@ -6,7 +6,7 @@ import { CourierProviderRecord } from "@/types/shipping.types";
 import { CourierRegistry } from "@/services/courier/courier-registry";
 
 type ActionResponse<T = void> =
-  | { success: true; data: T }
+  | { success: true; data?: T }
   | { success: false; error: string };
 
 export async function getCourierProvidersAction(): Promise<

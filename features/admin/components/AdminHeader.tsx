@@ -59,16 +59,17 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
 
   const paths = pathname.split("/").filter(Boolean);
 
-  const firstName = user.user_metadata?.first_name || "";
-  const lastName = user.user_metadata?.last_name || "";
+  const firstName = user.user_metadata?.first_name || user.user_metadata?.name?.split(" ")[0] || "";
+  const lastName = user.user_metadata?.last_name || user.user_metadata?.name?.split(" ").slice(1).join(" ") || "";
+  const avatarUrl = user.user_metadata?.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`;
   const initials =
     firstName && lastName
       ? `${firstName[0]}${lastName[0]}`.toUpperCase()
       : user.email?.slice(0, 2).toUpperCase() || "AD";
   const displayName =
-    firstName && lastName
-      ? `${firstName} ${lastName}`
-      : user.email || "Admin User";
+    firstName || lastName
+      ? `${firstName} ${lastName}`.trim()
+      : user.user_metadata?.full_name || user.user_metadata?.name || user.email || "Admin User";
 
   async function handleLogout() {
     const { error } = await supabase.auth.signOut();
@@ -264,11 +265,11 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
         <DropdownMenu>
           <DropdownMenuTrigger className="flex items-center gap-3 rounded-full hover:opacity-90 focus:outline-none pl-2">
             <Avatar className="h-10 w-10 border-2 border-white dark:border-slate-800 shadow-sm">
-              <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`} />
+              <AvatarImage src={avatarUrl} />
               <AvatarFallback className="bg-[#00A1FF] text-white text-xs">{initials}</AvatarFallback>
             </Avatar>
             <div className="hidden flex-col items-start text-sm md:flex">
-              <span className="font-semibold text-slate-700 dark:text-slate-200 leading-none mb-1">{firstName || 'John'}</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-200 leading-none mb-1">{firstName || displayName.split(" ")[0] || 'Admin'}</span>
               <span className="text-xs text-slate-500 dark:text-slate-400 leading-none">{role?.toLowerCase() || 'admin'}</span>
             </div>
           </DropdownMenuTrigger>
