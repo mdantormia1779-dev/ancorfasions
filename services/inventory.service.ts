@@ -32,7 +32,7 @@ export class InventoryService {
     );
 
     let status: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" = "IN_STOCK";
-    if (available === 0) {
+    if (available <= 0) {
       status = "OUT_OF_STOCK";
     } else if (available <= lowStockThreshold) {
       status = "LOW_STOCK";

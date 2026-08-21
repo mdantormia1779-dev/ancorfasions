@@ -167,13 +167,13 @@ $$;
 -- To restrict access, we wrap them in a standard view and apply RLS, or grant permissions.
 
 -- Create secure views over the materialized views
-CREATE OR REPLACE VIEW public.secure_mv_sales_performance_daily AS
+CREATE OR REPLACE VIEW public.secure_mv_sales_performance_daily WITH (security_invoker = on) AS
 SELECT * FROM public.mv_sales_performance_daily;
 
-CREATE OR REPLACE VIEW public.secure_mv_customer_rfm AS
+CREATE OR REPLACE VIEW public.secure_mv_customer_rfm WITH (security_invoker = on) AS
 SELECT * FROM public.mv_customer_rfm;
 
-CREATE OR REPLACE VIEW public.secure_mv_inventory_aging AS
+CREATE OR REPLACE VIEW public.secure_mv_inventory_aging WITH (security_invoker = on) AS
 SELECT * FROM public.mv_inventory_aging;
 
 -- Since standard views inherit permissions of the creator, 

@@ -76,23 +76,24 @@ export class DashboardRepository {
 
   async getOperationalMetrics() {
     const supabase = await createAdminClient();
-    const { data: orderCounts, error } = await supabase
-      .from("orders")
-      .select("status");
 
-    if (error) {
-      console.error("Error fetching order statuses:", error);
-      return {
-        pendingOrders: 0,
-        completedOrders: 0,
-        cancelledOrders: 0,
-        refundRequests: 0,
-        lowStock: 0,
-        outOfStock: 0,
-        supportTickets: 0,
-      };
+    // Fetch order statuses, low-stock counts, and open support tickets in parallel
+    const [orderResult, inventoryResult, ticketResult] = await Promise.all([
+      supabase.from("orders").select("status"),
+      supabase
+        .from("inventory_levels")
+        .select("quantity_available, reorder_point"),
+      supabase
+        .from("support_tickets")
+        .select("id", { count: "exact", head: true })
+        .in("status", ["open", "pending"]),
+    ]);
+
+    if (orderResult.error) {
+      console.error("Error fetching order statuses:", orderResult.error);
     }
 
+    const orderCounts = orderResult.data || [];
     const statusCounts = orderCounts.reduce(
       (acc, curr) => {
         acc[curr.status] = (acc[curr.status] || 0) + 1;
@@ -100,6 +101,17 @@ export class DashboardRepository {
       },
       {} as Record<string, number>
     );
+
+    // Calculate real low-stock and out-of-stock counts
+    const inventoryLevels = inventoryResult.data || [];
+    const outOfStock = inventoryLevels.filter(
+      (i) => i.quantity_available <= 0
+    ).length;
+    const lowStock = inventoryLevels.filter(
+      (i) =>
+        i.quantity_available > 0 &&
+        i.quantity_available <= (i.reorder_point || 0)
+    ).length;
 
     return {
       pendingOrders:
@@ -109,9 +121,9 @@ export class DashboardRepository {
         (statusCounts["delivered"] || 0) + (statusCounts["shipped"] || 0),
       cancelledOrders: statusCounts["cancelled"] || 0,
       refundRequests: statusCounts["refunded"] || 0,
-      lowStock: 0,
-      outOfStock: 0,
-      supportTickets: 0,
+      lowStock,
+      outOfStock,
+      supportTickets: ticketResult.count || 0,
     };
   }
 

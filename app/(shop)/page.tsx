@@ -29,13 +29,19 @@ export default async function HomePage() {
   // Fetch dynamic data from the database
   const [
     categories,
-    newArrivals,
+    mensProducts,
+    womensProducts,
+    kidsProducts,
+    accessoriesProducts,
     featuredProducts,
     trendingProducts,
     heroSlides,
   ] = await Promise.all([
     CatalogRepository.getCategories(),
-    CatalogRepository.getNewArrivals(8),
+    CatalogRepository.getProducts({ category: "mens", limit: 8 }),
+    CatalogRepository.getProducts({ category: "womens", limit: 8 }),
+    CatalogRepository.getProducts({ category: "kids", limit: 4 }),
+    CatalogRepository.getProducts({ category: "accessories", limit: 4 }),
     CatalogRepository.getFeaturedProducts(4),
     CatalogRepository.getProducts({ sortBy: "rating", limit: 8 }),
     getHeroSlides(),
@@ -70,9 +76,24 @@ export default async function HomePage() {
           <ExploreCollections categories={categories} />
         </FadeIn>
 
-        {/* 6. New Arrivals */}
+        {/* Mens Collection */}
         <FadeIn>
-          <BrandedCollection products={newArrivals} />
+          <BrandedCollection 
+            products={mensProducts.data} 
+            title="Mens Collection"
+            subtitle="Mens"
+            viewAllLink="/categories/mens"
+          />
+        </FadeIn>
+
+        {/* 6. Womens Collection */}
+        <FadeIn>
+          <BrandedCollection 
+            products={womensProducts.data}
+            title="Womens Collection"
+            subtitle="Womens"
+            viewAllLink="/categories/womens"
+          />
         </FadeIn>
 
         {/* 6.5 Recently Viewed (Client Side Personalization) */}
@@ -81,11 +102,21 @@ export default async function HomePage() {
         </FadeIn>
 
         <FadeIn>
-          <PersonalizedSection title="Recommended For You" subtitle="Curated based on your style" products={featuredProducts.slice().reverse()} />
+          <PersonalizedSection 
+            title="Kids" 
+            subtitle="Curated for the little ones" 
+            products={kidsProducts.data} 
+            viewAllLink="/categories/kids"
+          />
         </FadeIn>
 
         <FadeIn>
-          <PersonalizedSection title="Inspired By History" subtitle="Because you viewed outerwear" products={newArrivals.slice(2, 6)} />
+          <PersonalizedSection 
+            title="Accessories" 
+            subtitle="The final touch" 
+            products={accessoriesProducts.data} 
+            viewAllLink="/categories/accessories"
+          />
         </FadeIn>
 
         {/* 7. Mid-Season Promo Banner */}

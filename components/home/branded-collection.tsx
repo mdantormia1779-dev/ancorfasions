@@ -23,7 +23,17 @@ interface Product {
   product_media?: { url: string; is_primary: boolean }[];
 }
 
-export function BrandedCollection({ products }: { products: Product[] }) {
+export function BrandedCollection({ 
+  products,
+  title = "Womens Collection",
+  subtitle = "Womens",
+  viewAllLink = "/products"
+}: { 
+  products: Product[];
+  title?: string;
+  subtitle?: string;
+  viewAllLink?: string;
+}) {
   const [emblaRef, emblaApi] = useEmblaCarousel({
     align: "start",
     loop: false,
@@ -78,16 +88,16 @@ export function BrandedCollection({ products }: { products: Product[] }) {
         <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
           <div className="flex flex-col gap-2">
             <span className="text-xs font-bold uppercase tracking-widest text-primary">
-              New Arrivals
+              {subtitle}
             </span>
             <h2 className="font-serif text-3xl text-gray-900 md:text-4xl">
-              Branded Collection
+              {title}
             </h2>
           </div>
 
           <div className="flex items-center gap-4">
             <Link
-              href="/products"
+              href={viewAllLink}
               className="group flex hidden items-center text-sm font-medium text-gray-900 transition-colors hover:text-primary md:flex"
             >
               View All Products
@@ -209,7 +219,7 @@ export function BrandedCollection({ products }: { products: Product[] }) {
         {/* Mobile View All Link */}
         <div className="mt-8 flex justify-center md:hidden">
           <Link
-            href="/products"
+            href={viewAllLink}
             className="group flex items-center text-sm font-medium text-gray-900 transition-colors hover:text-primary"
           >
             View All Products

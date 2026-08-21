@@ -25,7 +25,7 @@ async function getSessionIdentifiers() {
 
   return {
     userId: user?.id || null,
-    sessionId: user ? null : guestSessionId,
+    sessionId: user ? null : (guestSessionId || null),
   };
 }
 
@@ -65,6 +65,9 @@ export async function updateCartItemQuantityAction(
   quantity: number
 ) {
   try {
+    const { userId, sessionId } = await getSessionIdentifiers();
+    // Ownership check: make sure this item belongs to the caller's cart
+    await CartService.verifyItemOwnership(itemId, userId, sessionId);
     await CartService.updateQuantity(itemId, quantity);
     revalidatePath("/cart");
     return { success: true };

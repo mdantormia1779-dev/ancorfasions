@@ -31,7 +31,7 @@ export async function GET(req: Request) {
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .select(
-        "id, order_number, total_amount, customer_email, payment_method, status"
+        "id, order_number, total_amount, customer_email, customer_name, customer_phone, payment_method, status"
       )
       .eq("id", orderId)
       .single();
@@ -171,9 +171,9 @@ export async function GET(req: Request) {
       );
       formData.append("fail_url", `${appUrl}/api/webhooks/sslcommerz/fail`);
       formData.append("cancel_url", `${appUrl}/api/webhooks/sslcommerz/cancel`);
-      formData.append("cus_name", order.customer_email || "Guest");
+      formData.append("cus_name", order.customer_name || order.customer_email || "Guest");
       formData.append("cus_email", order.customer_email || "guest@example.com");
-      formData.append("cus_phone", "01700000000");
+      formData.append("cus_phone", order.customer_phone || "01700000000");
       formData.append("shipping_method", "NO");
       formData.append("product_name", "Clothing");
       formData.append("product_category", "Fashion");

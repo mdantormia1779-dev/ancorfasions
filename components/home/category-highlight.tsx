@@ -8,29 +8,29 @@ const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 const categories = [
   {
     id: 1,
-    title: "The Summer Edit",
-    subtitle: "Lightweight & Breathable",
-    link: "/categories/summer",
+    title: "Mens",
+    subtitle: "Classic & Contemporary",
+    link: "/categories/mens",
     image:
-      "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80",
+      "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=800&q=80",
     size: "large",
   },
   {
     id: 2,
-    title: "Premium Formals",
-    subtitle: "Tailored to Perfection",
-    link: "/categories/formals",
+    title: "Womens",
+    subtitle: "Elegance Redefined",
+    link: "/categories/womens",
     image:
-      "https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=800&q=80",
+      "https://images.unsplash.com/photo-1490578474895-699cd4e2cf59?w=800&q=80",
     size: "small",
   },
   {
     id: 3,
-    title: "Lounge & Comfort",
-    subtitle: "Everyday Essentials",
-    link: "/categories/lounge",
+    title: "Kids",
+    subtitle: "Playful & Comfortable",
+    link: "/categories/kids",
     image:
-      "https://images.unsplash.com/photo-1618932260643-eee4a2f652a6?w=800&q=80",
+      "https://images.unsplash.com/photo-1519689680058-324335c77eba?w=800&q=80",
     size: "medium",
   },
   {
@@ -53,7 +53,7 @@ export function CategoryHighlight() {
             <h2
               className={`${jost.className} mb-3 text-3xl font-light tracking-tight text-[#1A1A1A] md:text-5xl`}
             >
-              Curated Highlights
+              New Arrivals
             </h2>
             <p className="text-sm tracking-wide text-gray-500">
               Explore our most sought-after collections, designed for the modern

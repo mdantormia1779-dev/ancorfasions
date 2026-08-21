@@ -6,7 +6,8 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Upload } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -64,6 +65,36 @@ export function ProductForm({ initialData }: ProductFormProps) {
     }
     loadData();
   }, []);
+
+  const supabase = createClient();
+  const [uploadingImage, setUploadingImage] = useState<number | null>(null);
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
+    try {
+      if (!e.target.files || e.target.files.length === 0) return;
+      const file = e.target.files[0];
+      setUploadingImage(index);
+
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      const filePath = `product-images/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('products')
+        .upload(filePath, file, { cacheControl: '3600', upsert: false });
+
+      if (uploadError) throw uploadError;
+
+      const { data } = supabase.storage.from('products').getPublicUrl(filePath);
+      
+      form.setValue(`media.${index}.url`, data.publicUrl);
+      toast.success("Image uploaded successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload image");
+    } finally {
+      setUploadingImage(null);
+    }
+  };
 
   const defaultValues: Partial<ProductFormValues> = {
     name: initialData?.name || "",
@@ -293,12 +324,27 @@ export function ProductForm({ initialData }: ProductFormProps) {
                       name={`media.${index}.url`}
                       render={({ field }) => (
                         <FormItem className="flex-1">
-                          <FormLabel>Image URL</FormLabel>
+                          <FormLabel>Image Upload</FormLabel>
                           <FormControl>
-                            <Input
-                              placeholder="https://example.com/image.jpg"
-                              {...field}
-                            />
+                            <div className="flex gap-2">
+                              <Input
+                                placeholder="https://example.com/image.jpg"
+                                {...field}
+                                className="flex-1"
+                              />
+                              <div className="relative">
+                                <Input
+                                  type="file"
+                                  accept="image/*"
+                                  className="absolute inset-0 opacity-0 cursor-pointer w-full z-10"
+                                  onChange={(e) => handleImageUpload(e, index)}
+                                  disabled={uploadingImage === index}
+                                />
+                                <Button type="button" variant="secondary" disabled={uploadingImage === index}>
+                                  {uploadingImage === index ? "..." : <Upload className="h-4 w-4" />}
+                                </Button>
+                              </div>
+                            </div>
                           </FormControl>
                           <FormMessage />
                         </FormItem>

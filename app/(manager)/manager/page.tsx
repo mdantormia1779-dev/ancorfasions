@@ -5,12 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Plus } from "lucide-react";
 import { RevenueChart } from "@/components/manager/dashboard/RevenueChart";
 import { InventoryAlerts } from "@/components/manager/dashboard/InventoryAlerts";
+import { TasksWidget } from "@/components/manager/dashboard/TasksWidget";
 import {
   fetchDashboardKPIsAction,
   fetchDashboardRevenueAction,
   fetchOperationalMetricsAction,
+  fetchRecentOrdersAction,
 } from "@/app/actions/bi/dashboard.actions";
-import { fetchOrdersAction } from "@/app/actions/oms/order.actions";
 
 export const metadata: Metadata = {
   title: "Manager Dashboard Overview | Anchor Fashion",
@@ -18,10 +19,10 @@ export const metadata: Metadata = {
 };
 
 export default async function ManagerDashboardPage() {
-  const [kpisRes, revenueRes, ordersRes, opsRes] = await Promise.all([
+  const [kpisRes, revenueRes, recentOrdersRes, opsRes] = await Promise.all([
     fetchDashboardKPIsAction(),
     fetchDashboardRevenueAction(7),
-    fetchOrdersAction({ limit: 5 }),
+    fetchRecentOrdersAction(),
     fetchOperationalMetricsAction(),
   ]);
 
@@ -33,6 +34,8 @@ export default async function ManagerDashboardPage() {
   const ops = opsRes.data || {
     pendingOrders: 0,
     supportTickets: 0,
+    lowStock: 0,
+    outOfStock: 0,
   };
 
   const kpis = {
@@ -41,8 +44,11 @@ export default async function ManagerDashboardPage() {
     processing: {
       value: ops.pendingOrders,
       trend: { value: 0, isPositive: true },
-    }, // Dummy trend for ops
-    alerts: { value: ops.supportTickets },
+    },
+    alerts: {
+      value: ops.lowStock + ops.outOfStock,
+      supportTickets: ops.supportTickets,
+    },
   };
 
   // Map revenue to expected format for Recharts
@@ -51,15 +57,12 @@ export default async function ManagerDashboardPage() {
     total: d.revenue,
   }));
 
-  // Orders pagination returns { data, count } or just array depending on the repo
-  const rawOrders = ordersRes.data;
-  const ordersList = Array.isArray(rawOrders)
-    ? rawOrders
-    : rawOrders?.data || [];
-
-  const orders = ordersList.map((o: any) => ({
+  // fetchRecentOrdersAction already joins customer profile — use it directly
+  const orders = (recentOrdersRes.data || []).map((o: any) => ({
     id: o.id,
-    customer: o.user_id, // In a real setup, we'd join user profile to get name
+    orderNumber: o.order_number,
+    customer: o.customer_name || "Guest",
+    customerAvatar: o.customer_avatar,
     status: o.status,
     date: new Date(o.created_at).toLocaleDateString(),
     amount: o.grand_total,
@@ -96,7 +99,7 @@ export default async function ManagerDashboardPage() {
         {/* Alerts & Tasks */}
         <div className="col-span-1 flex flex-col gap-6">
           <InventoryAlerts />
-          {/* We can add a simple Tasks widget here later */}
+          <TasksWidget />
         </div>
       </div>
     </div>

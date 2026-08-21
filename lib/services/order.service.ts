@@ -2,15 +2,25 @@ import { OrderRepository } from "../repositories/order.repository";
 import { CheckoutRepository } from "../repositories/checkout.repository";
 import { CartService } from "./cart.service";
 import { CheckoutFormValues } from "@/schemas/checkout.schema";
-import { Order, OrderItem, PaymentPayload } from "@/types/checkout.types";
+import { Order, OrderItem, PaymentPayload, OrderStatus } from "@/types/checkout.types";
 
 export class OrderService {
   /**
    * Calculate Order Summary
    */
+  /**
+   * Shipping fee lookup by method slug.
+   * Keys must match the RadioGroup values in checkout-form.tsx.
+   */
+  private static readonly SHIPPING_FEES: Record<string, number> = {
+    home_delivery: 100,          // Inside Dhaka
+    home_delivery_outside: 150,  // Outside Dhaka
+  };
+
   static async calculateSummary(
     cartId: string,
-    userId?: string | null
+    userId?: string | null,
+    shippingMethod?: string
   ): Promise<{
     subtotal: number;
     shipping_fee: number;
@@ -38,8 +48,11 @@ export class OrderService {
       return sum + price * item.quantity;
     }, 0);
 
-    // Hardcoded shipping for now. Could be fetched from database zones.
-    const shipping_fee = subtotal > 0 ? 100 : 0;
+    // Derive shipping fee from selected method; default to inside-Dhaka rate.
+    const shipping_fee =
+      subtotal > 0
+        ? (this.SHIPPING_FEES[shippingMethod ?? "home_delivery"] ?? 100)
+        : 0;
     const discount_amount = 0; // Coupon logic goes here
 
     const total_amount = subtotal + shipping_fee - discount_amount;
@@ -62,21 +75,30 @@ export class OrderService {
       throw new Error("Cart is empty");
     }
 
-    const summary = await this.calculateSummary(cartId, userId);
+    const summary = await this.calculateSummary(
+      cartId,
+      userId,
+      checkoutData.shipping.shipping_method
+    );
 
     // Generate Order Number
     const dateStr = new Date().toISOString().split("T")[0].replace(/-/g, "");
     const randomStr = Math.random().toString(36).substring(2, 6).toUpperCase();
     const orderNumber = `AF-${dateStr}-${randomStr}`;
 
+    const shippingAddr = checkoutData.information.shipping_address;
+    const customerName = `${shippingAddr.first_name} ${shippingAddr.last_name}`.trim();
+    const customerPhone = shippingAddr.phone || null;
+
     const orderData: Partial<Order> = {
       user_id: userId,
-      session_id: guestEmail ? sessionId : null,
+      // Store the checkout session ID so it can be cleaned up after payment.
+      session_id: sessionId,
       order_number: orderNumber,
-      status:
-        checkoutData.payment.payment_method === "COD"
-          ? "PROCESSING"
-          : "PENDING_PAYMENT",
+      // Use lowercase statuses to match the DB enum and dashboard queries.
+      status: (checkoutData.payment.payment_method === "COD"
+        ? "processing"
+        : "pending_payment") as OrderStatus,
       subtotal: summary.subtotal,
       shipping_fee: summary.shipping_fee,
       discount_amount: summary.discount_amount,
@@ -117,11 +139,14 @@ export class OrderService {
       billingAddress
     );
 
-    // Clear the cart
-    await CartService.clearCart(cart.id);
-
-    // Delete the checkout session
-    await CheckoutRepository.deleteSession(sessionId);
+    // For COD orders, payment is confirmed at delivery — clear the cart immediately.
+    // For digital payment methods (SSLCommerz, bKash, etc.) we leave the cart
+    // intact until a payment webhook confirms the transaction, so customers can
+    // retry if they abandon the payment gateway.
+    if (checkoutData.payment.payment_method === "COD") {
+      await CartService.clearCart(cart.id);
+      await CheckoutRepository.deleteSession(sessionId);
+    }
 
     return order;
   }

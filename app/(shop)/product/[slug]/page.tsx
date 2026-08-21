@@ -16,7 +16,7 @@ const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
   const product = await CatalogRepository.getProductBySlug(slug);
@@ -37,7 +37,7 @@ export async function generateMetadata({
 export default async function ProductDetailPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
   const product = await CatalogRepository.getProductBySlug(slug);
@@ -50,38 +50,42 @@ export default async function ProductDetailPage({
     "/images/placeholder.webp",
   ];
 
-  let relatedProducts = [];
+  let relatedProducts: any[] = [];
   if (product.categories?.slug) {
-    const { data } = await CatalogRepository.getProducts({ 
-      category: product.categories.slug, 
-      limit: 5 
+    const { data } = await CatalogRepository.getProducts({
+      category: product.categories.slug,
+      limit: 5,
     });
     // Exclude current product
-    relatedProducts = data.filter((p) => p.id !== product.id);
+    relatedProducts = data.filter((p: any) => p.id !== product.id);
   }
 
-  const formatPrice = (price: number) => {
-    return formatCurrency(price);
-  };
+  const formatPrice = (price: number) => formatCurrency(price);
+
+  // is_in_stock is computed in the repository from real inventory_levels data
+  const isInStock = (product as any).is_in_stock ?? false;
 
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
-    "name": product.name,
-    "image": images[0],
-    "description": product.description || "Buy premium luxury wear from Anchor Fashion.",
-    "brand": {
+    name: product.name,
+    image: images[0],
+    description:
+      product.description || "Buy premium luxury wear from Anchor Fashion.",
+    brand: {
       "@type": "Brand",
-      "name": product.brands?.name || "Anchor Fashion"
+      name: (product as any).brands?.name || "Anchor Fashion",
     },
-    "offers": {
+    offers: {
       "@type": "Offer",
-      "url": `https://anchorfashion.com/product/${product.slug}`,
-      "priceCurrency": "BDT",
-      "price": product.base_price,
-      "itemCondition": "https://schema.org/NewCondition",
-      "availability": product.stock_quantity > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock"
-    }
+      url: `https://anchorfashion.com/product/${product.slug}`,
+      priceCurrency: "BDT",
+      price: product.base_price,
+      itemCondition: "https://schema.org/NewCondition",
+      availability: isInStock
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
+    },
   };
 
   return (
@@ -91,14 +95,14 @@ export default async function ProductDetailPage({
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <ProductViewTracker product={product} />
-      <FloatingPurchaseCard 
+      <FloatingPurchaseCard
         productId={product.id}
         productName={product.name}
         productPrice={product.base_price}
         productImage={images[0]}
-        variants={product.variants}
+        variants={(product as any).variants}
       />
-      
+
       <div className="container mx-auto px-4 py-8 md:px-6 md:py-16">
         {/* Breadcrumb (Minimalist) */}
         <div className="mb-12 flex items-center text-[10px] uppercase tracking-[0.2em] text-gray-400">
@@ -123,7 +127,7 @@ export default async function ProductDetailPage({
           <div className="sticky top-24 flex flex-col lg:col-span-5">
             <div className="mb-8 border-b border-gray-100 pb-8">
               <span className="mb-3 block text-[10px] font-bold uppercase tracking-[0.3em] text-gray-500">
-                {product.brands?.name || "Anchor Fashion"}
+                {(product as any).brands?.name || "Anchor Fashion"}
               </span>
               <h1
                 className={`${jost.className} mb-6 text-4xl font-light leading-[1.1] tracking-tight text-[#1A1A1A] md:text-5xl lg:text-6xl`}
@@ -135,12 +139,12 @@ export default async function ProductDetailPage({
                 <span className="text-3xl font-medium text-[#1A1A1A]">
                   {formatPrice(product.base_price)}
                 </span>
-                {product.compare_at_price && (
+                {(product as any).compare_at_price && (
                   <span className="mb-1 text-xl text-gray-400 line-through">
-                    {formatPrice(product.compare_at_price)}
+                    {formatPrice((product as any).compare_at_price)}
                   </span>
                 )}
-                {product.stock_quantity > 0 ? (
+                {isInStock ? (
                   <span className="ml-auto border border-[#1A1A1A] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#1A1A1A]">
                     In Stock
                   </span>
@@ -155,15 +159,15 @@ export default async function ProductDetailPage({
             <div className="mb-10">
               <ProductVariantSelector
                 productId={product.id}
-                baseStockQuantity={product.stock_quantity}
-                variants={product.variants || []}
+                baseStockQuantity={(product as any).total_available_stock ?? 0}
+                variants={(product as any).variants || []}
                 productName={product.name}
                 productPrice={product.base_price}
                 productImage={images[0]}
               />
             </div>
 
-            {/* Premium Details Accordion (Simulated with simple HTML details/summary for elegance) */}
+            {/* Premium Details Accordion */}
             <div className="divide-y divide-gray-100 border-t border-gray-100">
               <details className="group" open>
                 <summary className="flex cursor-pointer list-none items-center justify-between py-6 text-xs font-semibold uppercase tracking-widest text-[#1A1A1A]">
@@ -172,7 +176,6 @@ export default async function ProductDetailPage({
                     <svg
                       fill="none"
                       height="20"
-                      shape-rendering="geometricPrecision"
                       stroke="currentColor"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -192,12 +195,11 @@ export default async function ProductDetailPage({
 
               <details className="group">
                 <summary className="flex cursor-pointer list-none items-center justify-between py-6 text-xs font-semibold uppercase tracking-widest text-[#1A1A1A]">
-                  <span>Shipping & Returns</span>
+                  <span>Shipping &amp; Returns</span>
                   <span className="transition-transform duration-300 group-open:rotate-180">
                     <svg
                       fill="none"
                       height="20"
-                      shape-rendering="geometricPrecision"
                       stroke="currentColor"
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -211,19 +213,11 @@ export default async function ProductDetailPage({
                 </summary>
                 <div className="animate-fade-in space-y-4 pb-6">
                   <div className="flex items-center gap-3 text-sm text-gray-500">
-                    <Truck
-                      className="h-4 w-4 text-[#1A1A1A]"
-                      strokeWidth={1.5}
-                    />
-                    <span>
-                      Free Standard Delivery over ৳3,000 (Inside Dhaka)
-                    </span>
+                    <Truck className="h-4 w-4 text-[#1A1A1A]" strokeWidth={1.5} />
+                    <span>Free Standard Delivery over ৳3,000 (Inside Dhaka)</span>
                   </div>
                   <div className="flex items-center gap-3 text-sm text-gray-500">
-                    <RefreshCw
-                      className="h-4 w-4 text-[#1A1A1A]"
-                      strokeWidth={1.5}
-                    />
+                    <RefreshCw className="h-4 w-4 text-[#1A1A1A]" strokeWidth={1.5} />
                     <span>7-Day Easy Return Policy on unworn items.</span>
                   </div>
                 </div>
@@ -233,10 +227,7 @@ export default async function ProductDetailPage({
             {/* Trust Badges */}
             <div className="mt-12 grid grid-cols-2 gap-4 border-t border-gray-100 pt-8 sm:grid-cols-4">
               <div className="flex flex-col items-center text-center gap-3">
-                <ShieldCheck
-                  className="h-5 w-5 text-[#1A1A1A]"
-                  strokeWidth={1.5}
-                />
+                <ShieldCheck className="h-5 w-5 text-[#1A1A1A]" strokeWidth={1.5} />
                 <span className="text-[9px] uppercase tracking-widest text-gray-500">
                   Secure Checkout
                 </span>
@@ -264,18 +255,22 @@ export default async function ProductDetailPage({
         </div>
       </div>
 
-      {/* Reviews Section */}
-      <ProductReviews 
-        productId={product.id} 
-        averageRating={product.average_rating || 4.8} 
-        totalReviews={product.total_reviews || 124} 
-      />
+      {/* Reviews Section — only render when there is real review data */}
+      {(product as any).total_reviews > 0 && (
+        <ProductReviews
+          productId={product.id}
+          averageRating={(product as any).average_rating}
+          totalReviews={(product as any).total_reviews}
+        />
+      )}
 
       {/* Related Products / You May Also Like */}
       {relatedProducts && relatedProducts.length > 0 && (
         <div className="border-t border-gray-100 py-16 md:py-24">
           <div className="container mx-auto px-4 md:px-6">
-            <h2 className={`${jost.className} mb-12 text-center text-2xl font-light tracking-tight text-[#1A1A1A] md:text-3xl`}>
+            <h2
+              className={`${jost.className} mb-12 text-center text-2xl font-light tracking-tight text-[#1A1A1A] md:text-3xl`}
+            >
               You May Also Like
             </h2>
             <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:grid-cols-2 md:grid-cols-4 md:gap-x-8">

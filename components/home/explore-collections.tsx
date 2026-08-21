@@ -18,23 +18,22 @@ export function ExploreCollections({ categories }: { categories: Category[] }) {
 
   // Premium fashion placeholders if icon_url is missing
   const placeholders = [
-    "https://images.unsplash.com/photo-1539109136881-3be0616acf4b?w=800&q=80", // Women's minimal
-    "https://images.unsplash.com/photo-1490578474895-699cd4e2cf59?w=800&q=80", // Men's casual
-    "https://images.unsplash.com/photo-1603217192634-61068e4d4bf9?w=800&q=80", // Accessories
-    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80",
+    "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=800&q=80", // Men's
+    "https://images.unsplash.com/photo-1490578474895-699cd4e2cf59?w=800&q=80", // Women's
+    "https://images.unsplash.com/photo-1519689680058-324335c77eba?w=800&q=80", // Kids
+    "https://images.unsplash.com/photo-1509319117193-57bab727e09d?w=800&q=80", // Accessories
   ];
 
   const fallbackCategories: Omit<Category, "id">[] = [
-    { name: "Women's Collection", slug: "women" },
-    { name: "Men's Collection", slug: "men" },
+    { name: "Mens", slug: "mens" },
+    { name: "Womens", slug: "womens" },
+    { name: "Kids", slug: "kids" },
     { name: "Accessories", slug: "accessories" },
-    { name: "New Arrivals", slug: "new-arrivals" },
   ];
 
   const finalCategories: Category[] = [
-    ...displayCategories,
     ...fallbackCategories.map((c, i) => ({ ...c, id: `fallback-${i}` })),
-  ].slice(0, 3);
+  ].slice(0, 4);
 
   return (
     <section className="bg-white py-16 md:py-24">
@@ -46,7 +45,7 @@ export function ExploreCollections({ categories }: { categories: Category[] }) {
           <h2
             className={`${jost.className} max-w-2xl text-4xl font-light leading-tight tracking-tight text-[#1A1A1A] md:text-5xl lg:text-6xl`}
           >
-            Elevate Your Everyday Style.
+            Explore Collections.
           </h2>
           <Link
             href="/categories"
@@ -61,7 +60,7 @@ export function ExploreCollections({ categories }: { categories: Category[] }) {
         </div>
 
         {/* Premium Balanced Grid */}
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-3 md:gap-12">
+        <div className="grid grid-cols-1 gap-8 md:grid-cols-4 md:gap-8">
           {finalCategories.map((category, index) => (
             <div key={category.id} className="group flex flex-col">
               <Link

@@ -525,7 +525,7 @@ $$ LANGUAGE plpgsql STABLE;
 -- ============================================================================
 
 -- Shipments with order & courier summary
-CREATE OR REPLACE VIEW public.v_shipments_summary AS
+CREATE OR REPLACE VIEW public.v_shipments_summary WITH (security_invoker = on) AS
 SELECT
   s.id,
   s.shipment_number,
@@ -553,7 +553,7 @@ LEFT JOIN public.orders o ON o.id = s.order_id
 LEFT JOIN public.courier_providers cp ON cp.id = s.courier_provider_id;
 
 -- Delivery analytics
-CREATE OR REPLACE VIEW public.v_delivery_analytics AS
+CREATE OR REPLACE VIEW public.v_delivery_analytics WITH (security_invoker = on) AS
 SELECT
   DATE(s.created_at) AS date,
   s.courier_provider_code,
@@ -574,7 +574,7 @@ FROM public.shipments s
 GROUP BY DATE(s.created_at), s.courier_provider_code;
 
 -- RTO dashboard view
-CREATE OR REPLACE VIEW public.v_rto_summary AS
+CREATE OR REPLACE VIEW public.v_rto_summary WITH (security_invoker = on) AS
 SELECT
   s.id AS shipment_id,
   s.shipment_number,

@@ -5,7 +5,7 @@
 BEGIN;
 
 -- 1. Top Sellers View (Last 30 days)
-CREATE OR REPLACE VIEW public.bi_top_sellers AS
+CREATE OR REPLACE VIEW public.bi_top_sellers WITH (security_invoker = on) AS
 SELECT 
     p.id as product_id,
     p.name as product_name,
@@ -25,7 +25,7 @@ ORDER BY sold DESC
 LIMIT 5;
 
 -- 2. Revenue By Category View (Last 30 days)
-CREATE OR REPLACE VIEW public.bi_revenue_by_category AS
+CREATE OR REPLACE VIEW public.bi_revenue_by_category WITH (security_invoker = on) AS
 SELECT 
     c.name as category_name,
     SUM(oi.line_total) as total_revenue
@@ -39,7 +39,7 @@ GROUP BY c.id, c.name
 ORDER BY total_revenue DESC;
 
 -- 3. Recent Customers View
-CREATE OR REPLACE VIEW public.bi_recent_customers AS
+CREATE OR REPLACE VIEW public.bi_recent_customers WITH (security_invoker = on) AS
 SELECT DISTINCT ON (u.id)
     u.id as user_id,
     u.raw_user_meta_data->>'full_name' as full_name,
@@ -52,7 +52,7 @@ JOIN public.orders o ON o.customer_id = u.id
 ORDER BY u.id, o.created_at DESC;
 
 -- 4. User Locations View (Grouped by Country)
-CREATE OR REPLACE VIEW public.bi_user_locations AS
+CREATE OR REPLACE VIEW public.bi_user_locations WITH (security_invoker = on) AS
 SELECT 
     country,
     COUNT(DISTINCT customer_id) as user_count

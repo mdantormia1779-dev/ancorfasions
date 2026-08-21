@@ -124,7 +124,7 @@ export default async function SupportTicketDetailPage({
             <CardFooter className="pt-6">
               <div className="w-full space-y-4">
                 <Textarea
-                  placeholder="Type your reply to Michael..."
+                  placeholder={`Type your reply to ${customer.first_name || "Customer"}...`}
                   className="min-h-[100px]"
                 />
                 <div className="flex items-center justify-between">

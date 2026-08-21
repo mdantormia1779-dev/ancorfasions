@@ -175,6 +175,7 @@ export const CatalogRepository = {
         product_media (*),
         variants (
           *,
+          inventory_levels (quantity_available, reorder_point),
           variant_attribute_values (
             attribute_values (
               id, value,
@@ -192,6 +193,25 @@ export const CatalogRepository = {
       console.error("Error fetching product by slug:", error);
       return null;
     }
+
+    if (data) {
+      // Compute total available stock across all variants and warehouses
+      const totalAvailable = (data.variants || []).reduce(
+        (sum: number, variant: any) => {
+          const variantStock = (variant.inventory_levels || []).reduce(
+            (vSum: number, level: any) =>
+              vSum + (level.quantity_available || 0),
+            0
+          );
+          return sum + variantStock;
+        },
+        0
+      );
+      // Attach a derived is_in_stock flag for use in the product detail page
+      (data as any).is_in_stock = totalAvailable > 0;
+      (data as any).total_available_stock = totalAvailable;
+    }
+
     return data;
   },
 };

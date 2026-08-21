@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { Anchor } from "lucide-react";
+import { AnimatedLogo } from "@/components/ui/animated-logo";
 import { LoginForm } from "@/features/auth/components/login-form";
 
 export const metadata: Metadata = {
@@ -12,9 +12,7 @@ export default function LoginPage() {
   return (
     <div className="flex flex-col items-center">
       {/* Logo */}
-      <div className="w-16 h-16 bg-white rounded-2xl shadow-[0_4px_20px_rgba(0,0,0,0.08)] flex items-center justify-center mb-6">
-        <Anchor className="h-8 w-8 text-primary" />
-      </div>
+      <AnimatedLogo />
 
       <h1 className="text-2xl font-semibold mb-8 text-foreground">
         Hello ! Welcome back

@@ -37,38 +37,20 @@ export class InventoryRepository {
     quantity: number
   ): Promise<void> {
     const supabase = this.getAdminClient();
-    // Using a remote RPC call if available for atomicity, otherwise fallback to basic update.
-    // Assuming a simple update for this assignment.
-
-    // Note: For true concurrency, an RPC like `reserve_stock(variant_id, qty)` should be used.
-    // For now, we fetch and update.
-    const { data, error: fetchError } = await supabase
-      .from("inventory_levels")
-      .select("id, quantity_available, quantity_reserved")
-      .eq("variant_id", variantId)
-      .eq("warehouse_id", warehouseId)
-      .single();
-
-    if (fetchError || !data) {
-      throw new Error(
-        `Inventory not found for variant ${variantId} at warehouse ${warehouseId}`
-      );
+    
+    if (quantity <= 0) {
+      throw new Error(`Quantity must be greater than zero`);
     }
 
-    if (data.quantity_available < quantity) {
-      throw new Error(`Insufficient stock for variant ${variantId}`);
+    const { error } = await supabase.rpc("atomic_reserve_stock", {
+      p_variant_id: variantId,
+      p_warehouse_id: warehouseId,
+      p_quantity: quantity,
+    });
+
+    if (error) {
+      throw new Error(`Failed to reserve stock: ${error.message}`);
     }
-
-    const { error: updateError } = await supabase
-      .from("inventory_levels")
-      .update({
-        quantity_available: data.quantity_available - quantity,
-        quantity_reserved: data.quantity_reserved + quantity,
-      })
-      .eq("id", data.id);
-
-    if (updateError)
-      throw new Error(`Failed to reserve stock: ${updateError.message}`);
   }
 
   async releaseStock(
@@ -78,26 +60,19 @@ export class InventoryRepository {
   ): Promise<void> {
     const supabase = this.getAdminClient();
 
-    const { data, error: fetchError } = await supabase
-      .from("inventory_levels")
-      .select("id, quantity_available, quantity_reserved")
-      .eq("variant_id", variantId)
-      .eq("warehouse_id", warehouseId)
-      .single();
+    if (quantity <= 0) {
+      throw new Error(`Quantity must be greater than zero`);
+    }
 
-    if (fetchError || !data)
-      throw new Error(`Inventory not found for variant ${variantId}`);
+    const { error } = await supabase.rpc("atomic_release_stock", {
+      p_variant_id: variantId,
+      p_warehouse_id: warehouseId,
+      p_quantity: quantity,
+    });
 
-    const { error: updateError } = await supabase
-      .from("inventory_levels")
-      .update({
-        quantity_available: data.quantity_available + quantity,
-        quantity_reserved: Math.max(0, data.quantity_reserved - quantity),
-      })
-      .eq("id", data.id);
-
-    if (updateError)
-      throw new Error(`Failed to release stock: ${updateError.message}`);
+    if (error) {
+      throw new Error(`Failed to release stock: ${error.message}`);
+    }
   }
 
   async reduceStock(
@@ -108,34 +83,20 @@ export class InventoryRepository {
   ): Promise<void> {
     const supabase = this.getAdminClient();
 
-    const { data, error: fetchError } = await supabase
-      .from("inventory_levels")
-      .select("id, quantity_available, quantity_reserved")
-      .eq("variant_id", variantId)
-      .eq("warehouse_id", warehouseId)
-      .single();
-
-    if (fetchError || !data)
-      throw new Error(`Inventory not found for variant ${variantId}`);
-
-    let updateData: any = {};
-    if (fromReserved) {
-      updateData = {
-        quantity_reserved: Math.max(0, data.quantity_reserved - quantity),
-      };
-    } else {
-      updateData = {
-        quantity_available: Math.max(0, data.quantity_available - quantity),
-      };
+    if (quantity <= 0) {
+      throw new Error(`Quantity must be greater than zero`);
     }
 
-    const { error: updateError } = await supabase
-      .from("inventory_levels")
-      .update(updateData)
-      .eq("id", data.id);
+    const { error } = await supabase.rpc("atomic_reduce_stock", {
+      p_variant_id: variantId,
+      p_warehouse_id: warehouseId,
+      p_quantity: quantity,
+      p_from_reserved: fromReserved,
+    });
 
-    if (updateError)
-      throw new Error(`Failed to reduce stock: ${updateError.message}`);
+    if (error) {
+      throw new Error(`Failed to reduce stock: ${error.message}`);
+    }
   }
 
   /**
@@ -188,6 +149,7 @@ export class InventoryRepository {
         id,
         quantity_available,
         quantity_reserved,
+        reorder_point,
         variant:variants(sku, product:products(name)),
         warehouse:warehouses(name)
       `, { count: "exact" })
@@ -216,7 +178,7 @@ export class InventoryRepository {
       warehouse: item.warehouse?.name || "Unknown Warehouse",
       available: item.quantity_available,
       reserved: item.quantity_reserved,
-      status: item.quantity_available === 0 ? "Out of Stock" : item.quantity_available < 10 ? "Low Stock" : "In Stock"
+      status: item.quantity_available <= 0 ? "Out of Stock" : item.quantity_available <= (item.reorder_point || 0) ? "Low Stock" : "In Stock"
     }));
 
     // If search is provided, filter in memory for MVP since nested PostgREST OR filtering is complex
@@ -323,65 +285,23 @@ export class InventoryRepository {
   ): Promise<void> {
     const supabase = this.getAdminClient();
 
-    // Check if sufficient stock in fromWarehouseId
-    const { data: fromStock, error: fetchError } = await supabase
-      .from("inventory_levels")
-      .select("id, quantity_available")
-      .eq("variant_id", variantId)
-      .eq("warehouse_id", fromWarehouseId)
-      .single();
+    if (quantity <= 0) {
+      throw new Error(`Quantity must be greater than zero`);
+    }
 
-    if (fetchError || !fromStock)
-      throw new Error(`Inventory not found in source warehouse`);
-    if (fromStock.quantity_available < quantity)
-      throw new Error(`Insufficient stock in source warehouse`);
+    if (fromWarehouseId === toWarehouseId) {
+      throw new Error(`Source and destination warehouse must be different`);
+    }
 
-    // Check if toWarehouseId has inventory record, if not, create it
-    const { data: toStock, error: fetchToError } = await supabase
-      .from("inventory_levels")
-      .select("id, quantity_available")
-      .eq("variant_id", variantId)
-      .eq("warehouse_id", toWarehouseId)
-      .maybeSingle();
+    const { error } = await supabase.rpc("atomic_transfer_stock", {
+      p_variant_id: variantId,
+      p_from_warehouse_id: fromWarehouseId,
+      p_to_warehouse_id: toWarehouseId,
+      p_quantity: quantity,
+    });
 
-    if (fetchToError)
-      throw new Error(
-        `Error fetching destination inventory: ${fetchToError.message}`
-      );
-
-    // Update fromWarehouseId
-    const { error: updateFromError } = await supabase
-      .from("inventory_levels")
-      .update({ quantity_available: fromStock.quantity_available - quantity })
-      .eq("id", fromStock.id);
-
-    if (updateFromError)
-      throw new Error(
-        `Failed to deduct from source: ${updateFromError.message}`
-      );
-
-    // Update or Insert toWarehouseId
-    if (toStock) {
-      const { error: updateToError } = await supabase
-        .from("inventory_levels")
-        .update({ quantity_available: toStock.quantity_available + quantity })
-        .eq("id", toStock.id);
-      if (updateToError)
-        throw new Error(
-          `Failed to add to destination: ${updateToError.message}`
-        );
-    } else {
-      const { error: insertToError } = await supabase
-        .from("inventory_levels")
-        .insert({
-          variant_id: variantId,
-          warehouse_id: toWarehouseId,
-          quantity_available: quantity,
-        });
-      if (insertToError)
-        throw new Error(
-          `Failed to insert to destination: ${insertToError.message}`
-        );
+    if (error) {
+      throw new Error(`Failed to transfer stock: ${error.message}`);
     }
 
     // Record movement out

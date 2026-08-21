@@ -17,7 +17,7 @@ interface StatCardsProps {
       value: number;
       trend: { value: number; isPositive: boolean };
     };
-    alerts: { value: number };
+    alerts: { value: number; supportTickets?: number };
   };
 }
 
@@ -84,7 +84,9 @@ export function StatCards({ kpis }: StatCardsProps) {
             {data.alerts.value}
           </div>
           <p className="text-xs text-destructive/80">
-            Requires immediate attention
+            {data.alerts.supportTickets
+              ? `${data.alerts.supportTickets} open support ticket${data.alerts.supportTickets !== 1 ? "s" : ""}`
+              : "Requires immediate attention"}
           </p>
         </CardContent>
       </Card>

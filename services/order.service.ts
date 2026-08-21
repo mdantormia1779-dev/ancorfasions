@@ -114,34 +114,47 @@ export class OrderService {
       address_type: "BILLING",
     };
 
-    // 2. Create Order
+    const defaultWarehouse = await this.warehouseService.getDefaultWarehouse();
+    const warehouseId =
+      defaultWarehouse?.id || "00000000-0000-0000-0000-000000000001";
+
+    // 2. Reserve Stock (BEFORE creating the order)
+    const reservedItems: { variant_id: string; quantity: number }[] = [];
+    try {
+      for (const item of cart.items) {
+        if (!item.product) continue;
+        const variantId = item.variant_id || item.product_id || "";
+        
+        await this.inventoryService.reserveStock(
+          variantId,
+          warehouseId,
+          item.quantity
+        );
+        reservedItems.push({ variant_id: variantId, quantity: item.quantity });
+      }
+    } catch (error: any) {
+      // Rollback successfully reserved items if one fails
+      for (const reserved of reservedItems) {
+        try {
+          await this.inventoryService.releaseStock(
+            reserved.variant_id,
+            warehouseId,
+            reserved.quantity
+          );
+        } catch (releaseError) {
+          console.error(`Failed to rollback stock for variant ${reserved.variant_id}`, releaseError);
+        }
+      }
+      throw new Error(`Failed to place order: ${error.message}`);
+    }
+
+    // 3. Create Order
     const order = await this.orderRepository.createOrder(
       orderData,
       orderItems,
       shippingAddress,
       billingAddress
     );
-
-    // 3. Reserve Stock
-    const defaultWarehouse = await this.warehouseService.getDefaultWarehouse();
-    const warehouseId =
-      defaultWarehouse?.id || "00000000-0000-0000-0000-000000000001";
-
-    for (const item of cart.items) {
-      if (!item.product) continue;
-      try {
-        await this.inventoryService.reserveStock(
-          item.variant_id || item.product_id || "",
-          warehouseId,
-          item.quantity
-        );
-      } catch (error) {
-        console.error(
-          `Failed to reserve stock for variant ${item.variant_id}`,
-          error
-        );
-      }
-    }
 
     // 4. Clear Cart & Delete Session
     await this.cartService.clearCart(cart.id);

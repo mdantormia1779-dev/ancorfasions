@@ -66,4 +66,25 @@ export class CartService {
   ): Promise<void> {
     await CartRepository.mergeCart(sessionId, userId);
   }
+
+  /**
+   * Verify that a cart item belongs to the calling user's cart.
+   * Throws if the item is not found or belongs to a different user.
+   */
+  static async verifyItemOwnership(
+    itemId: string,
+    userId: string | null,
+    sessionId: string | null
+  ): Promise<void> {
+    const cart = await CartRepository.getCart(userId, sessionId);
+    if (!cart) {
+      throw new Error("Cart not found");
+    }
+    const itemBelongsToCart = cart.items?.some(
+      (item: any) => item.id === itemId
+    );
+    if (!itemBelongsToCart) {
+      throw new Error("Unauthorized: cart item does not belong to your cart");
+    }
+  }
 }
