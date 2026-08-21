@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useParams } from "next/navigation";
 import { OrderStatus } from "@/types/oms";
+import { Printer } from "lucide-react";
 
 export default function AdminOrderDetailsPage() {
   const params = useParams();
@@ -24,6 +25,10 @@ export default function AdminOrderDetailsPage() {
     }
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
@@ -31,8 +36,14 @@ export default function AdminOrderDetailsPage() {
           Order {order.order_number}
         </h1>
         <div className="flex space-x-2">
-          <Button variant="outline">Print Invoice</Button>
-          <Button variant="outline">Print Packing Slip</Button>
+          <Button variant="outline" onClick={handlePrint} className="print:hidden">
+            <Printer className="mr-2 h-4 w-4" />
+            Print Invoice
+          </Button>
+          <Button variant="outline" onClick={handlePrint} className="print:hidden">
+            <Printer className="mr-2 h-4 w-4" />
+            Print Packing Slip
+          </Button>
         </div>
       </div>
 

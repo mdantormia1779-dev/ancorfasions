@@ -20,6 +20,7 @@ import {
   Activity,
 } from "lucide-react";
 import { fetchCustomerDetailsAction } from "@/app/actions/crm/customer.actions";
+import { CustomerActionButtons } from "./CustomerActionButtons";
 
 export default async function CustomerProfilePage({
   params,
@@ -80,13 +81,7 @@ export default async function CustomerProfilePage({
             </div>
           </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline">Message</Button>
-          <Button variant="outline">Adjust Points</Button>
-          <Button variant="ghost" size="icon">
-            <MoreVertical className="h-4 w-4" />
-          </Button>
-        </div>
+        <CustomerActionButtons customerId={customerId} initialPoints={customer.points} />
       </div>
 
       {/* KPI Cards */}

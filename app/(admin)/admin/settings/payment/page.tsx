@@ -1,21 +1,15 @@
 import { Metadata } from "next";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
+import { PaymentClient } from "./payment-client";
+import { getPaymentConfig } from "@/lib/actions/payment.actions";
 
 export const metadata: Metadata = {
   title: "Payment Settings | Admin",
 };
 
-export default function PaymentSettingsPage() {
+export default async function PaymentSettingsPage() {
+  const sslcommerz = await getPaymentConfig("sslcommerz");
+  const cod = await getPaymentConfig("cod");
+
   return (
     <div className="space-y-6">
       <div>
@@ -25,43 +19,7 @@ export default function PaymentSettingsPage() {
         </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>SSLCommerz</CardTitle>
-            <CardDescription>
-              Accept cards, mobile banking, and net banking in Bangladesh.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Switch id="sslcommerz" defaultChecked />
-              <Label htmlFor="sslcommerz">Enable SSLCommerz</Label>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline">Configure</Button>
-          </CardFooter>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Cash on Delivery</CardTitle>
-            <CardDescription>
-              Allow customers to pay when they receive the product.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-2">
-              <Switch id="cod" defaultChecked />
-              <Label htmlFor="cod">Enable COD</Label>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button variant="outline">Configure</Button>
-          </CardFooter>
-        </Card>
-      </div>
+      <PaymentClient initialSslcommerz={sslcommerz} initialCod={cod} />
     </div>
   );
 }

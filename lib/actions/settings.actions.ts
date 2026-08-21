@@ -23,7 +23,14 @@ export type SocialLinks = {
   tiktok: string;
 };
 
-const DEFAULTS: { store_info: StoreInfo; social_links: SocialLinks } = {
+export type StoreConfig = {
+  store_name: string;
+  currency: string;
+  timezone: string;
+  weight_unit: string;
+};
+
+const DEFAULTS: { store_info: StoreInfo; social_links: SocialLinks; store_config: StoreConfig } = {
   store_info: {
     store_name: "Anchor Fashion Enterprise",
     store_description:
@@ -42,6 +49,12 @@ const DEFAULTS: { store_info: StoreInfo; social_links: SocialLinks } = {
     youtube: "#",
     tiktok: "#",
   },
+  store_config: {
+    store_name: "Anchor Fashion",
+    currency: "BDT (৳)",
+    timezone: "Asia/Dhaka (GMT+6)",
+    weight_unit: "kg",
+  }
 };
 
 export async function getStoreInfo(): Promise<StoreInfo> {
@@ -120,6 +133,46 @@ export async function updateSocialLinks(links: SocialLinks) {
     return { success: true };
   } catch (error: any) {
     console.error("[updateSocialLinks]", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getStoreConfig(): Promise<StoreConfig> {
+  const supabase = await createClient();
+  try {
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "store_config")
+      .single();
+    return (data?.value as StoreConfig) ?? DEFAULTS.store_config;
+  } catch {
+    return DEFAULTS.store_config;
+  }
+}
+
+export async function updateStoreConfig(config: StoreConfig) {
+  try {
+    await verifySuperAdmin();
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+      .from("settings")
+      .upsert(
+        {
+          key: "store_config",
+          value: config as any,
+          description: "Global store configuration",
+        },
+        { onConflict: "key" }
+      );
+      
+    if (error) throw error;
+    
+    revalidatePath("/admin/settings/store");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[updateStoreConfig]", error);
     return { success: false, error: error.message };
   }
 }

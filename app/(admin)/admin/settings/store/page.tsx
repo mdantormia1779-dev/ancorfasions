@@ -1,21 +1,14 @@
 import { Metadata } from "next";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { StoreSettingsClient } from "./store-client";
+import { getStoreConfig } from "@/lib/actions/settings.actions";
 
 export const metadata: Metadata = {
   title: "Store Settings | Admin",
 };
 
-export default function StoreSettingsPage() {
+export default async function StoreSettingsPage() {
+  const storeConfig = await getStoreConfig();
+
   return (
     <div className="space-y-6">
       <div>
@@ -25,35 +18,7 @@ export default function StoreSettingsPage() {
         </p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Store Details</CardTitle>
-          <CardDescription>
-            The official name and currency of your store.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="store-name">Store Name</Label>
-            <Input id="store-name" defaultValue="Anchor Fashion" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="currency">Currency</Label>
-            <Input id="currency" defaultValue="BDT (৳)" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="timezone">Timezone</Label>
-            <Input id="timezone" defaultValue="Asia/Dhaka (GMT+6)" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="weight-unit">Default Weight Unit</Label>
-            <Input id="weight-unit" defaultValue="kg" />
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button>Save Changes</Button>
-        </CardFooter>
-      </Card>
+      <StoreSettingsClient initialConfig={storeConfig} />
     </div>
   );
 }

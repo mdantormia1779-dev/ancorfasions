@@ -16,11 +16,19 @@ import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { OrderStatus } from "@/types/oms";
+import { exportToCsv } from "@/lib/utils/export";
+import { Download } from "lucide-react";
 
 export default function AdminOrdersPage() {
   const [page, setPage] = useState(1);
   const [status, setStatus] = useState<OrderStatus | undefined>();
   const { data, isLoading, error } = useOrders({ page, limit: 10, status });
+
+  const handleExport = () => {
+    if (data?.data && data.data.length > 0) {
+      exportToCsv(`orders_export_${new Date().toISOString().split('T')[0]}.csv`, data.data);
+    }
+  };
 
   if (error) return <div>Error loading orders</div>;
 
@@ -28,7 +36,10 @@ export default function AdminOrdersPage() {
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight">Order Management</h1>
-        <Button>Export Orders</Button>
+        <Button onClick={handleExport} disabled={!data?.data || data.data.length === 0}>
+          <Download className="mr-2 h-4 w-4" />
+          Export Orders
+        </Button>
       </div>
 
       <Card>
