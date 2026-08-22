@@ -21,7 +21,7 @@ export const metadata: Metadata = {
 export default async function OrderDetailsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
   const result = await getOrderDetailsAction(id);

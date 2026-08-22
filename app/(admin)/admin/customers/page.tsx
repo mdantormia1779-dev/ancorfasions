@@ -31,7 +31,7 @@ import {
 export default async function CRMDashboardPage({
   searchParams,
 }: {
-  searchParams: { q?: string };
+  searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
   const [customersRes, segmentsRes, loyaltyRes, summaryRes] = await Promise.all(

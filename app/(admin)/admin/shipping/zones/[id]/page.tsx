@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   title: "Edit Delivery Zone | Anchor Fashion Enterprise",
 };
 
-export default async function EditZonePage({ params }: { params: { id: string } }) {
+export default async function EditZonePage({ params }: { params: Promise<{ id: string }> }) {
   const res = await getDeliveryZoneAction(params.id);
 
   if (!res.success || !res.data) {

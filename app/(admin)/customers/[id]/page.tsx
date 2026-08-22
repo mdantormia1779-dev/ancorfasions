@@ -13,7 +13,7 @@ import { Label } from "@/components/ui/label";
 export default async function AdminCustomerDetailPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   // Mock data for admin dashboard
   const customer = {

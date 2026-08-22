@@ -22,7 +22,7 @@ import { generateMetadata as getSEOMetadata } from "@/features/commerce/utils/se
 export async function generateMetadata({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
   const category = await getCategoryBySlug(params.slug);
   if (!category) return { title: "Category Not Found" };
@@ -38,8 +38,8 @@ export default async function CategoryPage({
   params,
   searchParams,
 }: {
-  params: { slug: string };
-  searchParams: { [key: string]: string | string[] | undefined };
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const category = await getCategoryBySlug(params.slug);
 

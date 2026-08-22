@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 export default async function AdminProductsPage({
   searchParams,
 }: {
-  searchParams: { search?: string; page?: string };
+  searchParams: Promise<{ search?: string; page?: string }>;
 }) {
   const search = searchParams.search || "";
   const page = parseInt(searchParams.page || "1", 10);

@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default async function WarehouseDetailsPage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const { data: warehouse, error } = await getWarehouseById(params.id);
 

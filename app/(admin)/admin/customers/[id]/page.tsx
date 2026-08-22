@@ -25,7 +25,7 @@ import { CustomerActionButtons } from "./CustomerActionButtons";
 export default async function CustomerProfilePage({
   params,
 }: {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }) {
   const customerId = params.id;
   const { success, data, error } = await fetchCustomerDetailsAction(customerId);

@@ -29,7 +29,7 @@ export const metadata: Metadata = {
 export default async function InventoryPage({
   searchParams,
 }: {
-  searchParams: { q?: string };
+  searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
   const { data } = await fetchInventoryAction(20, q);
