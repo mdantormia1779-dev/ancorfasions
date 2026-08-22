@@ -13,8 +13,8 @@ export function exportToCsv<T>(filename: string, rows: T[]) {
         let cell = row[k as keyof T] === null || row[k as keyof T] === undefined ? '' : row[k as keyof T];
         cell = cell instanceof Date
           ? cell.toLocaleString()
-          : cell.toString().replace(/"/g, '""');
-        if (cell.search(/("|,|\n)/g) >= 0) {
+          : String(cell).replace(/"/g, '""');
+        if (typeof cell === 'string' && cell.search(/("|,|\n)/g) >= 0) {
           cell = `"${cell}"`;
         }
         return cell;
@@ -23,9 +23,9 @@ export function exportToCsv<T>(filename: string, rows: T[]) {
 
   const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
   
-  if (navigator.msSaveBlob) {
+  if ((navigator as any).msSaveBlob) {
     // IE 10+
-    navigator.msSaveBlob(blob, filename);
+    (navigator as any).msSaveBlob(blob, filename);
   } else {
     const link = document.createElement("a");
     if (link.download !== undefined) {

@@ -42,8 +42,8 @@ export function CustomerActionButtons({ customerId, initialPoints }: { customerI
   return (
     <div className="flex gap-2">
       <Dialog open={isMessageOpen} onOpenChange={setIsMessageOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline">Message</Button>
+        <DialogTrigger render={<Button variant="outline" />}>
+          Message
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>
@@ -70,8 +70,8 @@ export function CustomerActionButtons({ customerId, initialPoints }: { customerI
       </Dialog>
 
       <Dialog open={isPointsOpen} onOpenChange={setIsPointsOpen}>
-        <DialogTrigger asChild>
-          <Button variant="outline">Adjust Points</Button>
+        <DialogTrigger render={<Button variant="outline" />}>
+          Adjust Points
         </DialogTrigger>
         <DialogContent>
           <DialogHeader>

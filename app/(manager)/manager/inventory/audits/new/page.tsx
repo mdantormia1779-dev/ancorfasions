@@ -95,7 +95,7 @@ export default function ScheduleAuditPage() {
           <form onSubmit={onSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="warehouse_id">Target Warehouse <span className="text-destructive">*</span></Label>
-              <Select name="warehouse_id" required onValueChange={setSelectedWarehouseId}>
+              <Select name="warehouse_id" required onValueChange={(val) => setSelectedWarehouseId(val as string)}>
                 <SelectTrigger>
                   <SelectValue placeholder="Select warehouse..." />
                 </SelectTrigger>

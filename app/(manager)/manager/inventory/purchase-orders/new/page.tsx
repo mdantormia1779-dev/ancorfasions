@@ -31,8 +31,8 @@ export default function NewPurchaseOrderPage() {
         getSuppliersAction(),
         getWarehousesAction()
       ]);
-      if (suppliersRes.success) setSuppliers(suppliersRes.data);
-      if (warehousesRes.success) setWarehouses(warehousesRes.data);
+      if (suppliersRes.success && suppliersRes.data) setSuppliers(suppliersRes.data);
+      if (warehousesRes.success && warehousesRes.data) setWarehouses(warehousesRes.data);
     }
     fetchData();
   }, []);

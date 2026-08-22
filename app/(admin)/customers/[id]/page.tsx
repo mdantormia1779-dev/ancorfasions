@@ -17,7 +17,7 @@ export default async function AdminCustomerDetailPage({
 }) {
   // Mock data for admin dashboard
   const customer = {
-    id: params.id,
+    id: (await params).id,
     name: "John Doe",
     email: "john@example.com",
     phone: "+8801712345678",

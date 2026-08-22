@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 export default async function EditZonePage({ params }: { params: Promise<{ id: string }> }) {
-  const res = await getDeliveryZoneAction(params.id);
+  const res = await getDeliveryZoneAction((await params).id);
 
   if (!res.success || !res.data) {
     notFound();

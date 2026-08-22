@@ -27,7 +27,7 @@ export default async function CustomerProfilePage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const customerId = params.id;
+  const customerId = (await params).id;
   const { success, data, error } = await fetchCustomerDetailsAction(customerId);
 
   if (!success || !data) {

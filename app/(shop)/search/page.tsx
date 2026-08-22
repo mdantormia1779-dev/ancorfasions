@@ -14,7 +14,7 @@ export default async function SearchPage({
 }: {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const query = typeof searchParams.q === "string" ? searchParams.q : "";
+  const query = typeof (await searchParams).q === "string" ? (await searchParams).q : "";
 
   // Only fetch if there is a query
   let products = [];

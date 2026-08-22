@@ -166,7 +166,7 @@ export function FulfillmentForm({
             <div className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Select Courier</label>
-                <Select value={selectedCourier} onValueChange={setSelectedCourier}>
+                <Select value={selectedCourier} onValueChange={(val) => setSelectedCourier(val as string)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Choose delivery partner..." />
                   </SelectTrigger>

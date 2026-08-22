@@ -25,7 +25,7 @@ export default async function WarehouseDetailsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  const { data: warehouse, error } = await getWarehouseById(params.id);
+  const { data: warehouse, error } = await getWarehouseById((await params).id);
 
   if (error || !warehouse) {
     notFound();

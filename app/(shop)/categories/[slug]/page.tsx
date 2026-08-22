@@ -24,7 +24,7 @@ export async function generateMetadata({
 }: {
   params: Promise<{ slug: string }>;
 }) {
-  const category = await getCategoryBySlug(params.slug);
+  const category = await getCategoryBySlug((await params).slug);
   if (!category) return { title: "Category Not Found" };
 
   return getSEOMetadata({
@@ -41,7 +41,7 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
-  const category = await getCategoryBySlug(params.slug);
+  const category = await getCategoryBySlug((await params).slug);
 
   if (!category) {
     notFound();

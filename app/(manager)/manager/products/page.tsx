@@ -24,8 +24,8 @@ export default async function ProductsPage({
 }: {
   searchParams: Promise<{ search?: string; page?: string }>;
 }) {
-  const search = searchParams.search || "";
-  const page = parseInt(searchParams.page || "1", 10);
+  const search = (await searchParams).search || "";
+  const page = parseInt((await searchParams).page || "1", 10);
 
   // Fetch real data from the database
   const res = await ProductRepository.getProducts({ search, page, limit: 20 });

@@ -12,8 +12,8 @@ export default async function AdminProductsPage({
 }: {
   searchParams: Promise<{ search?: string; page?: string }>;
 }) {
-  const search = searchParams.search || "";
-  const page = parseInt(searchParams.page || "1", 10);
+  const search = (await searchParams).search || "";
+  const page = parseInt((await searchParams).page || "1", 10);
 
   const res = await getAdminProductsAction({ search, page, limit: 20 });
 
