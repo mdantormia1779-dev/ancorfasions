@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -14,6 +15,8 @@ import {
   Filter,
   ArrowRightLeft,
   AlertCircle,
+  Building2,
+  FileText
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchInventoryAction } from "@/app/actions/manager/inventory.actions";
@@ -44,13 +47,25 @@ export default async function InventoryPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
+          <Button variant="outline" asChild>
+            <Link href="/manager/inventory/suppliers">
+              <Building2 className="mr-2 h-4 w-4" />
+              Suppliers
+            </Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link href="/manager/inventory/purchase-orders">
+              <FileText className="mr-2 h-4 w-4" />
+              Purchase Orders
+            </Link>
+          </Button>
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" />
-            Export Report
+            Export
           </Button>
           <Button>
             <ArrowRightLeft className="mr-2 h-4 w-4" />
-            Stock Transfer
+            Transfer
           </Button>
         </div>
       </div>

@@ -39,12 +39,12 @@ const footerLinks = {
 };
 
 const paymentMethods = [
-  "Bkash",
-  "Nagad",
-  "Rocket",
-  "Visa",
-  "MasterCard",
-  "SSLCOMMERZ",
+  { name: "Bkash", bg: "#E2136E", text: "white", abbr: "bKash" },
+  { name: "Nagad", bg: "#F6891F", text: "white", abbr: "Nagad" },
+  { name: "Rocket", bg: "#8C3494", text: "white", abbr: "Rocket" },
+  { name: "Visa", bg: "#1A1F71", text: "white", abbr: "VISA" },
+  { name: "MasterCard", bg: "#EB001B", text: "white", abbr: "MC" },
+  { name: "SSLCOMMERZ", bg: "#128C7E", text: "white", abbr: "SSL" },
 ];
 
 export async function StoreFooter() {
@@ -54,9 +54,9 @@ export async function StoreFooter() {
   ]);
 
   return (
-    <footer className={`${jost.className} bg-[#0D1B2A] text-white`}>
+    <footer className={`${jost.className} bg-[#FAFAFA] text-gray-900`}>
       {/* Top Section: Newsletter Banner */}
-      <div className="border-b border-white/10">
+      <div className="border-b border-gray-200">
         <div className="container mx-auto px-4 py-12 md:px-6 md:py-14">
           <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
             <div>
@@ -66,17 +66,17 @@ export async function StoreFooter() {
               <h3 className="text-3xl font-light tracking-tight md:text-4xl">
                 Exclusive Offers, <span className="text-[#C9A86A]">First.</span>
               </h3>
-              <p className="mt-2 text-sm font-light text-white/50">
+              <p className="mt-2 text-sm font-light text-gray-600">
                 Join thousands of style-savvy shoppers and get new drops before
                 everyone else.
               </p>
             </div>
-            <form className="flex w-full min-w-[360px] gap-0 md:w-auto">
+            <form className="flex w-full max-w-md gap-0 md:w-auto">
               <input
                 type="email"
                 placeholder="Your email address..."
                 required
-                className="flex-1 border border-white/15 bg-white/5 px-4 py-3 text-sm text-white transition-colors placeholder:text-white/40 focus:border-[#C9A86A] focus:outline-none"
+                className="flex-1 border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 transition-colors placeholder:text-gray-500 focus:border-[#C9A86A] focus:outline-none"
               />
               <button
                 type="submit"
@@ -94,11 +94,11 @@ export async function StoreFooter() {
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5 lg:gap-6">
           {/* Brand Column */}
           <div className="space-y-6 lg:col-span-2">
-            {/* Logo on dark background */}
-            <div className="w-48 opacity-90 brightness-0 invert filter">
+            {/* Logo */}
+            <div className="w-48 opacity-90">
               <AnchorFashionLogo />
             </div>
-            <p className="max-w-xs text-sm font-light leading-relaxed text-white/50">
+            <p className="max-w-xs text-sm font-light leading-relaxed text-gray-600">
               {storeInfo.store_description ||
                 "Crafting premium fashion experiences for the modern, style-conscious individual."}
             </p>
@@ -127,7 +127,7 @@ export async function StoreFooter() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={label}
-                  className="flex h-9 w-9 items-center justify-center border border-white/15 text-white/50 transition-all duration-300 hover:border-[#C9A86A] hover:text-[#C9A86A]"
+                  className="flex h-9 w-9 items-center justify-center border border-gray-300 text-gray-500 transition-all duration-300 hover:border-[#C9A86A] hover:text-[#C9A86A]"
                 >
                   <Icon className="h-4 w-4" />
                 </Link>
@@ -136,7 +136,7 @@ export async function StoreFooter() {
             {/* Contact */}
             <div className="space-y-2.5 pt-1">
               {storeInfo.phone && (
-                <div className="flex items-center gap-2.5 text-sm text-white/50">
+                <div className="flex items-center gap-2.5 text-sm text-gray-600">
                   <Phone
                     className="h-4 w-4 flex-shrink-0 text-[#C9A86A]"
                     strokeWidth={1.5}
@@ -145,7 +145,7 @@ export async function StoreFooter() {
                 </div>
               )}
               {storeInfo.email && (
-                <div className="flex items-center gap-2.5 text-sm text-white/50">
+                <div className="flex items-center gap-2.5 text-sm text-gray-600">
                   <Mail
                     className="h-4 w-4 flex-shrink-0 text-[#C9A86A]"
                     strokeWidth={1.5}
@@ -154,7 +154,7 @@ export async function StoreFooter() {
                 </div>
               )}
               {storeInfo.address && (
-                <div className="flex items-start gap-2.5 text-sm text-white/50">
+                <div className="flex items-start gap-2.5 text-sm text-gray-600">
                   <MapPin
                     className="mt-0.5 h-4 w-4 flex-shrink-0 text-[#C9A86A]"
                     strokeWidth={1.5}
@@ -175,7 +175,7 @@ export async function StoreFooter() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm font-light text-white/50 transition-colors hover:text-white"
+                    className="text-sm font-light text-gray-600 transition-colors hover:text-[#C9A86A]"
                   >
                     {link.label}
                   </Link>
@@ -194,7 +194,7 @@ export async function StoreFooter() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm font-light text-white/50 transition-colors hover:text-white"
+                    className="text-sm font-light text-gray-600 transition-colors hover:text-[#C9A86A]"
                   >
                     {link.label}
                   </Link>
@@ -213,7 +213,7 @@ export async function StoreFooter() {
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    className="text-sm font-light text-white/50 transition-colors hover:text-white"
+                    className="text-sm font-light text-gray-600 transition-colors hover:text-[#C9A86A]"
                   >
                     {link.label}
                   </Link>
@@ -225,22 +225,24 @@ export async function StoreFooter() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-white/10">
+      <div className="border-t border-gray-200">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 py-6 md:flex-row md:px-6">
-          <p className="text-xs font-light tracking-wide text-white/30">
+          <p className="text-xs font-light tracking-wide text-gray-500">
             © {new Date().getFullYear()}{" "}
             {storeInfo.store_name || "Anchor Fashion"}. All rights reserved.
           </p>
-          <div className="flex items-center gap-3">
-            <span className="mr-1 text-[10px] uppercase tracking-widest text-white/25">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="mr-1 text-[10px] uppercase tracking-widest text-gray-500">
               We accept
             </span>
             {paymentMethods.map((method) => (
               <span
-                key={method}
-                className="border border-white/15 px-2 py-0.5 text-[9px] font-bold uppercase tracking-wide text-white/40"
+                key={method.name}
+                className="inline-flex items-center justify-center rounded px-2.5 py-1 text-[9px] font-bold uppercase tracking-wide"
+                style={{ backgroundColor: method.bg, color: method.text }}
+                title={method.name}
               >
-                {method}
+                {method.abbr}
               </span>
             ))}
           </div>

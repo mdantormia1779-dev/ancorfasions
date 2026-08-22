@@ -76,48 +76,16 @@ export default async function HomePage() {
           <ExploreCollections categories={categories} />
         </FadeIn>
 
-        {/* Mens Collection */}
-        <FadeIn>
-          <BrandedCollection 
-            products={mensProducts.data} 
-            title="Mens Collection"
-            subtitle="Mens"
-            viewAllLink="/categories/mens"
-          />
-        </FadeIn>
+        {/* Mens Collection - MOVED DOWN */}
 
-        {/* 6. Womens Collection */}
-        <FadeIn>
-          <BrandedCollection 
-            products={womensProducts.data}
-            title="Womens Collection"
-            subtitle="Womens"
-            viewAllLink="/categories/womens"
-          />
-        </FadeIn>
+        {/* 6. Womens Collection - MOVED DOWN */}
 
         {/* 6.5 Recently Viewed (Client Side Personalization) */}
         <FadeIn>
           <RecentlyViewedHome />
         </FadeIn>
 
-        <FadeIn>
-          <PersonalizedSection 
-            title="Kids" 
-            subtitle="Curated for the little ones" 
-            products={kidsProducts.data} 
-            viewAllLink="/categories/kids"
-          />
-        </FadeIn>
-
-        <FadeIn>
-          <PersonalizedSection 
-            title="Accessories" 
-            subtitle="The final touch" 
-            products={accessoriesProducts.data} 
-            viewAllLink="/categories/accessories"
-          />
-        </FadeIn>
+        {/* Kids and Accessories - MOVED DOWN */}
 
         {/* 7. Mid-Season Promo Banner */}
         <FadeIn direction="left">
@@ -135,34 +103,57 @@ export default async function HomePage() {
           <TrendingProducts products={trendingProducts.data || []} />
         </FadeIn>
 
-        <FadeIn>
-          <PersonalizedSection title="Trending Near You" subtitle="Popular in your region" products={featuredProducts} />
-        </FadeIn>
-
-        <FadeIn>
-          <PersonalizedSection title="Customers Love" subtitle="Highest rated pieces" products={trendingProducts.data?.slice(4, 8) || []} />
-        </FadeIn>
-
         {/* 9. Brand Ethos / Story */}
         <FadeIn direction="right">
           <WhyChooseUs />
         </FadeIn>
 
-        {/* 10. Featured Products */}
+        {/* 10. Featured Products (New Arrivals) */}
         <FadeIn>
           <FeaturedProducts products={featuredProducts} />
         </FadeIn>
 
-        {/* 11. Trust Bar */}
+        {/* 11. Category Collections (Mens, Womens, Kids, Accessories) */}
+        <div className="space-y-16 md:space-y-24">
+          <FadeIn>
+            <BrandedCollection 
+              products={mensProducts.data} 
+              title="Men's Collection"
+              subtitle="Men's"
+              viewAllLink="/categories/mens"
+            />
+          </FadeIn>
+          <FadeIn>
+            <BrandedCollection 
+              products={womensProducts.data}
+              title="Women's Collection"
+              subtitle="Women's"
+              viewAllLink="/categories/womens"
+            />
+          </FadeIn>
+          <FadeIn>
+            <BrandedCollection 
+              products={kidsProducts.data} 
+              title="Kids Collection"
+              subtitle="Kids"
+              viewAllLink="/categories/kids"
+            />
+          </FadeIn>
+          <FadeIn>
+            <BrandedCollection 
+              products={accessoriesProducts.data} 
+              title="Accessories"
+              subtitle="Accessories"
+              viewAllLink="/categories/accessories"
+            />
+          </FadeIn>
+        </div>
+
+        {/* 12. Trust Bar */}
         <FadeIn direction="up">
           <TrustBar />
         </FadeIn>
       </div>
-
-      {/* 12. Testimonials — Dark Section */}
-      <FadeIn direction="none">
-        <Testimonials />
-      </FadeIn>
 
       {/* 13. Social Feed */}
       <FadeIn>

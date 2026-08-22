@@ -1,6 +1,6 @@
 import { Metadata } from "next";
 import Link from "next/link";
-import { AnchorFashionLogo } from "@/components/shared/logo";
+import Image from "next/image";
 import { RegisterForm } from "@/features/auth/components/register-form";
 
 export const metadata: Metadata = {
@@ -13,7 +13,16 @@ export default function RegisterPage() {
     <div className="flex flex-col items-center">
       {/* Logo */}
       <div className="mb-6">
-        <AnchorFashionLogo className="w-40 sm:w-48" />
+        <Link href="/">
+          <Image
+            src="/logo.png"
+            alt="Anchor Fashion"
+            width={200}
+            height={60}
+            className="h-auto w-auto max-w-[200px]"
+            priority
+          />
+        </Link>
       </div>
 
       <h1 className="text-2xl font-semibold mb-8 text-foreground">

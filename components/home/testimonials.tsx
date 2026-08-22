@@ -40,17 +40,17 @@ const testimonials = [
 
 export function Testimonials() {
   return (
-    <section className={`${jost.className} bg-[#0D1B2A] py-20 md:py-28`}>
+    <section className={`${jost.className} bg-gray-50 py-20 md:py-28`}>
       <div className="container mx-auto px-4 md:px-6">
         {/* Section Header */}
         <div className="mb-16 text-center">
           <span className="mb-4 block text-[10px] font-bold uppercase tracking-[0.35em] text-[#C9A86A]">
             Customer Reviews
           </span>
-          <h2 className="text-3xl font-light tracking-tight text-white md:text-5xl">
+          <h2 className="text-3xl font-light tracking-tight text-gray-900 md:text-5xl">
             Loved by Thousands.
           </h2>
-          <p className="mx-auto mt-3 max-w-md text-sm font-light text-white/40">
+          <p className="mx-auto mt-3 max-w-md text-sm font-light text-gray-500">
             Don&apos;t just take our word for it — here&apos;s what our
             community says.
           </p>
@@ -60,10 +60,10 @@ export function Testimonials() {
           {testimonials.map((t, i) => (
             <div
               key={t.id}
-              className="group relative flex flex-col border border-white/10 p-8 transition-all duration-500 hover:border-[#C9A86A]/40"
+              className="group relative flex flex-col border border-gray-100 bg-white p-8 shadow-sm transition-all duration-500 hover:border-[#C9A86A]/40 hover:shadow-md"
             >
               {/* Large quote mark */}
-              <Quote className="mb-6 h-8 w-8 flex-shrink-0 text-[#C9A86A]/30" />
+              <Quote className="mb-6 h-8 w-8 flex-shrink-0 text-[#C9A86A]/20" />
 
               {/* Stars */}
               <div className="mb-5 flex gap-1">
@@ -76,19 +76,19 @@ export function Testimonials() {
               </div>
 
               {/* Review Text */}
-              <p className="mb-8 flex-1 text-sm font-light leading-relaxed text-white/70">
+              <p className="mb-8 flex-1 text-sm font-light leading-relaxed text-gray-600">
                 &ldquo;{t.content}&rdquo;
               </p>
 
               {/* Reviewer Info */}
-              <div className="flex items-center justify-between border-t border-white/10 pt-6">
+              <div className="flex items-center justify-between border-t border-gray-100 pt-6">
                 <div>
-                  <h4 className="text-sm font-semibold text-white">{t.name}</h4>
-                  <p className="mt-0.5 text-[11px] text-white/40">
+                  <h4 className="text-sm font-semibold text-gray-900">{t.name}</h4>
+                  <p className="mt-0.5 text-[11px] text-gray-500">
                     {t.role} · {t.location}
                   </p>
                 </div>
-                <span className="max-w-[100px] text-right text-[9px] font-bold uppercase tracking-wider text-[#C9A86A]/60">
+                <span className="max-w-[100px] text-right text-[9px] font-bold uppercase tracking-wider text-[#C9A86A]">
                   {t.product}
                 </span>
               </div>
@@ -106,8 +106,8 @@ export function Testimonials() {
               <Star key={i} className="h-5 w-5 fill-[#C9A86A] text-[#C9A86A]" />
             ))}
           </div>
-          <p className="text-sm font-light text-white/40">
-            <span className="font-semibold text-white">4.9 / 5</span> based on
+          <p className="text-sm font-light text-gray-500">
+            <span className="font-semibold text-gray-900">4.9 / 5</span> based on
             2,400+ reviews
           </p>
         </div>

@@ -7,13 +7,14 @@ import {
   Heart,
   ChevronLeft,
   ChevronRight,
-  Star,
   ShoppingBag,
-  Eye,
+  Zap,
 } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
 
 interface Product {
@@ -27,6 +28,25 @@ interface Product {
 }
 
 export function FeaturedProducts({ products }: { products: Product[] }) {
+  const router = useRouter();
+  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
+
+  const toggleWishlist = (e: React.MouseEvent, productId: string, productName: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setWishlist((prev) => {
+      const next = new Set(prev);
+      if (next.has(productId)) {
+        next.delete(productId);
+        toast.success("Removed from Wishlist");
+      } else {
+        next.add(productId);
+        toast.success(`${productName} added to Wishlist! ❤️`);
+      }
+      return next;
+    });
+  };
+
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
       align: "start",
@@ -136,15 +156,36 @@ export function FeaturedProducts({ products }: { products: Product[] }) {
                         />
                       </Link>
 
-                      {/* Sleek Bottom Action Bar */}
-                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 flex translate-y-full justify-center transition-transform duration-500 ease-out group-hover:pointer-events-auto group-hover:translate-y-0">
-                        <button className="flex w-full items-center justify-center gap-2 bg-black/90 py-3 text-xs font-semibold uppercase tracking-widest text-white backdrop-blur-md transition-colors hover:bg-black">
-                          <ShoppingBag className="h-4 w-4" /> Add to Cart
+                      {/* Dual Icon Action Bar */}
+                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 flex translate-y-full transition-transform duration-500 ease-out group-hover:pointer-events-auto group-hover:translate-y-0">
+                        <button
+                          onClick={(e) => { e.preventDefault(); toast.success(`${product.name} added to cart!`); }}
+                          className="flex flex-1 items-center justify-center gap-2 bg-black/90 py-3.5 text-white backdrop-blur-md transition-all duration-200 hover:bg-[#C9A86A]"
+                          title="Add to Cart"
+                        >
+                          <ShoppingBag className="h-4 w-4" strokeWidth={1.5} />
+                          <span className="text-[10px] font-semibold uppercase tracking-widest">Cart</span>
+                        </button>
+                        <div className="w-px bg-white/20" />
+                        <button
+                          onClick={(e) => { e.preventDefault(); router.push(`/product/${product.slug}`); }}
+                          className="flex flex-1 items-center justify-center gap-2 bg-black/90 py-3.5 text-white backdrop-blur-md transition-all duration-200 hover:bg-[#1A1A1A]"
+                          title="Order Now"
+                        >
+                          <Zap className="h-4 w-4" strokeWidth={1.5} />
+                          <span className="text-[10px] font-semibold uppercase tracking-widest">Buy</span>
                         </button>
                       </div>
 
-                      <button className="absolute right-3 top-3 z-10 p-2 text-gray-400 opacity-0 transition-all duration-300 hover:text-black hover:scale-110 group-hover:opacity-100">
-                        <Heart className="h-5 w-5" strokeWidth={1.5} />
+                      {/* Wishlist Heart */}
+                      <button
+                        onClick={(e) => toggleWishlist(e, product.id, product.name)}
+                        className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 opacity-0 shadow-sm backdrop-blur-sm transition-all duration-300 hover:scale-110 group-hover:opacity-100"
+                      >
+                        <Heart
+                          className={`h-4 w-4 transition-colors duration-200 ${wishlist.has(product.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
+                          strokeWidth={1.5}
+                        />
                       </button>
                     </div>
 
