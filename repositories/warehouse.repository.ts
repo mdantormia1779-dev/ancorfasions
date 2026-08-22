@@ -70,6 +70,35 @@ export class WarehouseRepository {
     return data as WarehouseZone[];
   }
 
+  async createZone(zoneData: Partial<WarehouseZone>): Promise<WarehouseZone> {
+    const supabase = this.getAdminClient();
+    const { data, error } = await supabase
+      .from("warehouse_zones")
+      .insert(zoneData)
+      .select()
+      .single();
+    if (error) throw new Error(`Failed to create zone: ${error.message}`);
+    return data as WarehouseZone;
+  }
+
+  async updateZone(id: string, zoneData: Partial<WarehouseZone>): Promise<WarehouseZone> {
+    const supabase = this.getAdminClient();
+    const { data, error } = await supabase
+      .from("warehouse_zones")
+      .update(zoneData)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw new Error(`Failed to update zone: ${error.message}`);
+    return data as WarehouseZone;
+  }
+
+  async deleteZone(id: string): Promise<void> {
+    const supabase = this.getAdminClient();
+    const { error } = await supabase.from("warehouse_zones").delete().eq("id", id);
+    if (error) throw new Error(`Failed to delete zone: ${error.message}`);
+  }
+
   async getBinsByZone(zoneId: string): Promise<WarehouseBin[]> {
     const supabase = this.getAdminClient();
     const { data, error } = await supabase
@@ -80,6 +109,35 @@ export class WarehouseRepository {
     if (error)
       throw new Error(`Failed to get warehouse bins: ${error.message}`);
     return data as WarehouseBin[];
+  }
+
+  async createBin(binData: Partial<WarehouseBin>): Promise<WarehouseBin> {
+    const supabase = this.getAdminClient();
+    const { data, error } = await supabase
+      .from("warehouse_bins")
+      .insert(binData)
+      .select()
+      .single();
+    if (error) throw new Error(`Failed to create bin: ${error.message}`);
+    return data as WarehouseBin;
+  }
+
+  async updateBin(id: string, binData: Partial<WarehouseBin>): Promise<WarehouseBin> {
+    const supabase = this.getAdminClient();
+    const { data, error } = await supabase
+      .from("warehouse_bins")
+      .update(binData)
+      .eq("id", id)
+      .select()
+      .single();
+    if (error) throw new Error(`Failed to update bin: ${error.message}`);
+    return data as WarehouseBin;
+  }
+
+  async deleteBin(id: string): Promise<void> {
+    const supabase = this.getAdminClient();
+    const { error } = await supabase.from("warehouse_bins").delete().eq("id", id);
+    if (error) throw new Error(`Failed to delete bin: ${error.message}`);
   }
 
   async getDefaultWarehouse(): Promise<Warehouse | null> {

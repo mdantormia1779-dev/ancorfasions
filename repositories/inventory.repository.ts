@@ -325,4 +325,108 @@ export class InventoryRepository {
       notes: notes || `Received from warehouse ${fromWarehouseId}`,
     });
   }
+
+  // --- Audits ---
+
+  async getAudits(): Promise<any[]> {
+    const supabase = this.getAdminClient();
+    const { data, error } = await supabase
+      .from("inventory_audits")
+      .select("*, warehouse:warehouses(name)")
+      .order("created_at", { ascending: false });
+
+    if (error) throw new Error(`Failed to get audits: ${error.message}`);
+    return data;
+  }
+
+  async getAuditById(id: string): Promise<any> {
+    const supabase = this.getAdminClient();
+    const { data, error } = await supabase
+      .from("inventory_audits")
+      .select("*, warehouse:warehouses(name)")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") return null;
+      throw new Error(`Failed to get audit: ${error.message}`);
+    }
+    return data;
+  }
+
+  async createAudit(auditData: any): Promise<any> {
+    const supabase = this.getAdminClient();
+    const { data, error } = await supabase
+      .from("inventory_audits")
+      .insert([auditData])
+      .select()
+      .single();
+
+    if (error) throw new Error(`Failed to create audit: ${error.message}`);
+    return data;
+  }
+
+  async updateAuditStatus(id: string, status: string): Promise<void> {
+    const supabase = this.getAdminClient();
+    const updates: any = { status };
+    if (status === "COMPLETED" || status === "CANCELLED") {
+      updates.completed_date = new Date().toISOString();
+    }
+
+    const { error } = await supabase
+      .from("inventory_audits")
+      .update(updates)
+      .eq("id", id);
+
+    if (error) throw new Error(`Failed to update audit status: ${error.message}`);
+  }
+
+  async getAuditItems(auditId: string): Promise<any[]> {
+    const supabase = this.getAdminClient();
+    const { data, error } = await supabase
+      .from("inventory_audit_items")
+      .select("*, variant:variants(sku, product:products(name))")
+      .eq("audit_id", auditId);
+
+    if (error) throw new Error(`Failed to get audit items: ${error.message}`);
+    return data;
+  }
+
+  async createAuditItems(items: any[]): Promise<void> {
+    if (items.length === 0) return;
+    const supabase = this.getAdminClient();
+    const { error } = await supabase
+      .from("inventory_audit_items")
+      .insert(items);
+
+    if (error) throw new Error(`Failed to create audit items: ${error.message}`);
+  }
+
+  async updateAuditItemCount(itemId: string, countedQuantity: number): Promise<void> {
+    const supabase = this.getAdminClient();
+
+    // First fetch the item to get expected quantity
+    const { data: item, error: fetchError } = await supabase
+      .from("inventory_audit_items")
+      .select("expected_quantity")
+      .eq("id", itemId)
+      .single();
+
+    if (fetchError) throw new Error(`Failed to get audit item: ${fetchError.message}`);
+
+    const expected = item.expected_quantity;
+    const variance = countedQuantity - expected;
+    const status = variance === 0 ? "COUNTED" : "DISCREPANCY";
+
+    const { error } = await supabase
+      .from("inventory_audit_items")
+      .update({
+        counted_quantity: countedQuantity,
+        variance,
+        status
+      })
+      .eq("id", itemId);
+
+    if (error) throw new Error(`Failed to update audit item count: ${error.message}`);
+  }
 }
