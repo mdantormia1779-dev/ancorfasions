@@ -177,4 +177,32 @@ export class OrderRepository {
       // Non-critical, won't throw
     }
   }
+
+  /**
+   * Get orders for fulfillment board
+   */
+  async getOrdersForFulfillment(): Promise<Order[]> {
+    const { createAdminClient } = await import("@/lib/supabase/admin-client");
+    const supabase = createAdminClient();
+    
+    // We fetch orders that are paid or preparing or picking or packing or ready_for_shipment
+    const validStatuses = ["paid", "preparing", "picking", "packing", "ready_for_shipment"];
+    
+    const { data, error } = await supabase
+      .from("orders")
+      .select(`
+        *,
+        items:order_items(*),
+        addresses:order_addresses(*)
+      `)
+      .in("status", validStatuses)
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching orders for fulfillment:", error);
+      throw new Error("Failed to fetch orders for fulfillment");
+    }
+
+    return data as Order[];
+  }
 }

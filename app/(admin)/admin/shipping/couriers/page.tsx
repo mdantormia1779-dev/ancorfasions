@@ -9,91 +9,84 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Map, Check, X } from "lucide-react";
-import { getZonesAction } from "@/app/actions/manager/shipping.actions";
+import { Package, Check, X } from "lucide-react";
+import { getCouriersAction } from "@/app/actions/manager/shipping.actions";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata: Metadata = {
-  title: "Delivery Zones | Admin Dashboard",
+  title: "Courier Providers | Admin Dashboard",
 };
 
-export default async function ZonesPage() {
-  const { data: zones } = await getZonesAction();
+export default async function CouriersPage() {
+  const { data: couriers } = await getCouriersAction();
 
   return (
     <div className="space-y-6 p-6 max-w-6xl mx-auto w-full">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Delivery Zones</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Courier Providers</h1>
           <p className="mt-1 text-muted-foreground">
-            Configure geographic zones, shipping rates, and delivery times.
+            Manage delivery partners and courier API configurations.
           </p>
         </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Configured Zones</CardTitle>
+          <CardTitle>Configured Couriers</CardTitle>
           <CardDescription>
-            Zones group districts together to apply standardized shipping rules.
+            These are the delivery partners available for order fulfillment.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Zone Name</TableHead>
-                <TableHead>Code</TableHead>
-                <TableHead>Districts</TableHead>
-                <TableHead>COD Available</TableHead>
-                <TableHead>Est. Time</TableHead>
+                <TableHead>Provider</TableHead>
+                <TableHead>Priority</TableHead>
+                <TableHead>COD Supported</TableHead>
+                <TableHead>Max Weight (kg)</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {!zones || zones.length === 0 ? (
+              {!couriers || couriers.length === 0 ? (
                 <TableRow>
                   <TableCell
-                    colSpan={7}
+                    colSpan={6}
                     className="py-12 text-center text-muted-foreground"
                   >
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <Map className="h-8 w-8 text-muted-foreground/50" />
-                      <p>No delivery zones defined.</p>
+                      <Package className="h-8 w-8 text-muted-foreground/50" />
+                      <p>No courier providers found.</p>
                     </div>
                   </TableCell>
                 </TableRow>
               ) : (
-                zones.map((zone) => (
-                  <TableRow key={zone.id}>
-                    <TableCell className="font-medium">{zone.name}</TableCell>
-                    <TableCell className="font-mono text-xs">{zone.code}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {zone.districts && zone.districts.length > 0 ? (
-                        zone.districts.join(", ")
-                      ) : (
-                        "All other districts"
-                      )}
-                    </TableCell>
+                couriers.map((courier) => (
+                  <TableRow key={courier.id}>
                     <TableCell>
-                      {zone.is_cod_available ? (
+                      <div className="font-medium">{courier.display_name}</div>
+                      <div className="text-xs text-muted-foreground font-mono">{courier.code}</div>
+                    </TableCell>
+                    <TableCell>{courier.priority}</TableCell>
+                    <TableCell>
+                      {courier.is_cod_supported ? (
                         <Badge variant="outline" className="text-green-600 bg-green-50"><Check className="h-3 w-3 mr-1"/> Yes</Badge>
                       ) : (
                         <Badge variant="outline" className="text-red-600 bg-red-50"><X className="h-3 w-3 mr-1"/> No</Badge>
                       )}
                     </TableCell>
-                    <TableCell className="text-sm whitespace-nowrap">
-                      {zone.estimated_days_min} - {zone.estimated_days_max} days
-                    </TableCell>
+                    <TableCell>{courier.max_weight_kg || "No limit"}</TableCell>
                     <TableCell>
-                      <Badge variant={zone.is_active ? "default" : "secondary"}>
-                        {zone.is_active ? "Active" : "Inactive"}
+                      <Badge variant={courier.is_active ? "default" : "secondary"}>
+                        {courier.is_active ? "Active" : "Inactive"}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
                       <Button variant="outline" size="sm">
-                        Edit Rates
+                        Configure
                       </Button>
                     </TableCell>
                   </TableRow>

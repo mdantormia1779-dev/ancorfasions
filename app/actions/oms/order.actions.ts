@@ -101,3 +101,12 @@ export async function fetchOrdersAction(params: {
     return { success: false, error: error.message };
   }
 }
+
+export async function fetchOrdersForFulfillmentAction() {
+  try {
+    const orders = await orderRepo.getOrdersForFulfillment();
+    return { success: true, data: orders };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
