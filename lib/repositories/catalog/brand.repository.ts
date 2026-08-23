@@ -1,7 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
+import { Brand, CreateBrandInput, UpdateBrandInput } from "@/types/catalog.types";
 
 export class BrandRepository {
-  static async getBrands(activeOnly: boolean = true) {
+  /**
+   * Retrieves all brands with optional active-only filter.
+   */
+  static async getBrands(activeOnly: boolean = true): Promise<Brand[]> {
     try {
       const supabase = await createClient();
       let query = supabase
@@ -18,10 +22,52 @@ export class BrandRepository {
         console.error("Error fetching brands:", error);
         return [];
       }
-      return data || [];
+      return (data as Brand[]) || [];
     } catch (err) {
       console.error("Unexpected error in getBrands:", err);
       return [];
     }
+  }
+
+  /**
+   * Creates a new brand.
+   */
+  static async createBrand(input: CreateBrandInput): Promise<Brand> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("brands")
+      .insert(input)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data as Brand;
+  }
+
+  /**
+   * Updates an existing brand by ID.
+   */
+  static async updateBrand(id: string, input: UpdateBrandInput): Promise<Brand> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("brands")
+      .update(input)
+      .eq("id", id)
+      .select("*")
+      .single();
+    if (error) throw error;
+    return data as Brand;
+  }
+
+  /**
+   * Soft-deletes a brand by setting is_active=false.
+   * Preserves referential integrity with products that reference this brand.
+   */
+  static async deleteBrand(id: string): Promise<void> {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("brands")
+      .update({ is_active: false })
+      .eq("id", id);
+    if (error) throw error;
   }
 }

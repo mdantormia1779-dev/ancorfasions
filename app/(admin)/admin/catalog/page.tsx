@@ -6,18 +6,38 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Package,
   Tag,
   Layers,
-  AlertTriangle,
   Plus,
   ArrowRight,
+  Grid3X3,
 } from "lucide-react";
 import Link from "next/link";
+import { ProductRepository } from "@/lib/repositories/catalog/product.repository";
+import { CategoryRepository } from "@/lib/repositories/catalog/category.repository";
+import { BrandRepository } from "@/lib/repositories/catalog/brand.repository";
+import { CollectionRepository } from "@/lib/repositories/catalog/collection.repository";
 
-export default function CatalogDashboardPage() {
+export const metadata = {
+  title: "Catalog | Admin Dashboard | Anchor Fashion Enterprise",
+};
+
+export default async function CatalogDashboardPage() {
+  // Fetch real counts from the database in parallel
+  const [productsResult, categories, brands, collections] = await Promise.all([
+    ProductRepository.getProducts({ page: 1, limit: 1 }),
+    CategoryRepository.getCategories(false),
+    BrandRepository.getBrands(false),
+    CollectionRepository.getCollections(false),
+  ]);
+
+  const totalProducts = productsResult.total;
+  const activeCategories = categories.filter((c) => c.is_active).length;
+  const activeBrands = brands.filter((b) => b.is_active).length;
+  const activeCollections = collections.filter((c) => c.is_active).length;
+
   return (
     <div className="space-y-6 p-6">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -26,11 +46,11 @@ export default function CatalogDashboardPage() {
             Catalog Dashboard
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Manage your products, categories, and brands.
+            Manage your products, categories, brands, and collections.
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/admin/catalog/products/new">
+          <Link href="/admin/products/new">
             <Button className="flex items-center gap-2">
               <Plus className="h-4 w-4" /> Add Product
             </Button>
@@ -38,7 +58,8 @@ export default function CatalogDashboardPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+      {/* Real stats from DB */}
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
         {/* Products */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -46,12 +67,12 @@ export default function CatalogDashboardPage() {
             <Package className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">1,248</div>
+            <div className="text-3xl font-bold">{totalProducts.toLocaleString()}</div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Active items in catalog
+              Total in catalog
             </p>
             <Link
-              href="/admin/catalog/products"
+              href="/admin/products"
               className="mt-4 flex items-center text-sm text-blue-600 hover:underline"
             >
               Manage Products <ArrowRight className="ml-1 h-3 w-3" />
@@ -66,9 +87,9 @@ export default function CatalogDashboardPage() {
             <Layers className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">24</div>
+            <div className="text-3xl font-bold">{activeCategories}</div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Structured collections
+              Active of {categories.length} total
             </p>
             <Link
               href="/admin/catalog/categories"
@@ -86,9 +107,9 @@ export default function CatalogDashboardPage() {
             <Tag className="h-5 w-5 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-3xl font-bold">42</div>
+            <div className="text-3xl font-bold">{activeBrands}</div>
             <p className="mt-1 text-sm text-muted-foreground">
-              Partner & internal brands
+              Active of {brands.length} total
             </p>
             <Link
               href="/admin/catalog/brands"
@@ -98,86 +119,103 @@ export default function CatalogDashboardPage() {
             </Link>
           </CardContent>
         </Card>
+
+        {/* Collections */}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-lg font-medium">Collections</CardTitle>
+            <Grid3X3 className="h-5 w-5 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-3xl font-bold">{activeCollections}</div>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Active of {collections.length} total
+            </p>
+            <Link
+              href="/admin/products/collections"
+              className="mt-4 flex items-center text-sm text-blue-600 hover:underline"
+            >
+              Manage Collections <ArrowRight className="ml-1 h-3 w-3" />
+            </Link>
+          </CardContent>
+        </Card>
       </div>
 
+      {/* Quick Links */}
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-amber-500" />
-              Needs Attention
-            </CardTitle>
+            <CardTitle>Quick Actions</CardTitle>
             <CardDescription>
-              Products missing vital information.
+              Common catalog management tasks.
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between rounded-lg border bg-amber-50/50 p-3">
-                <div>
-                  <p className="text-sm font-medium">Missing Images</p>
-                  <p className="text-xs text-muted-foreground">
-                    12 products have no main image
-                  </p>
-                </div>
-                <Button variant="outline" size="sm">
-                  Fix Now
+            <div className="space-y-2">
+              <Link href="/admin/products/new" className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  <Plus className="mr-2 h-4 w-4" /> Add New Product
                 </Button>
-              </div>
-              <div className="flex items-center justify-between rounded-lg border bg-amber-50/50 p-3">
-                <div>
-                  <p className="text-sm font-medium">Missing Descriptions</p>
-                  <p className="text-xs text-muted-foreground">
-                    5 products have empty descriptions
-                  </p>
-                </div>
-                <Button variant="outline" size="sm">
-                  Fix Now
+              </Link>
+              <Link href="/admin/catalog/categories" className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  <Layers className="mr-2 h-4 w-4" /> Manage Categories
                 </Button>
-              </div>
+              </Link>
+              <Link href="/admin/catalog/brands" className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  <Tag className="mr-2 h-4 w-4" /> Manage Brands
+                </Button>
+              </Link>
+              <Link href="/admin/products/attributes" className="block">
+                <Button variant="outline" className="w-full justify-start">
+                  <Grid3X3 className="mr-2 h-4 w-4" /> Manage Attributes
+                </Button>
+              </Link>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>Latest changes to your catalog.</CardDescription>
+            <CardTitle>Catalog Overview</CardTitle>
+            <CardDescription>Status of your catalog entities.</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-green-500" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">
-                    New product added: Premium Leather Jacket
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    by Admin • 2 hours ago
-                  </p>
-                </div>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Total Products
+                </span>
+                <span className="font-semibold">
+                  {totalProducts.toLocaleString()}
+                </span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-blue-500" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">
-                    Category updated: Summer Collection
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    by Admin • 5 hours ago
-                  </p>
-                </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Active Categories
+                </span>
+                <span className="font-semibold">{activeCategories}</span>
               </div>
-              <div className="flex items-center gap-3">
-                <div className="h-2 w-2 rounded-full bg-amber-500" />
-                <div className="flex-1">
-                  <p className="text-sm font-medium">
-                    Price changed: Classic Blue Jeans
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    by Admin • 1 day ago
-                  </p>
-                </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Inactive Categories
+                </span>
+                <span className="font-semibold text-amber-600">
+                  {categories.length - activeCategories}
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Active Brands
+                </span>
+                <span className="font-semibold">{activeBrands}</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">
+                  Active Collections
+                </span>
+                <span className="font-semibold">{activeCollections}</span>
               </div>
             </div>
           </CardContent>

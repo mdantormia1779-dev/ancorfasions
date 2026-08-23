@@ -136,3 +136,108 @@ export const CreateProductSchema = ProductSchema.omit({
 });
 
 export type CreateProductInput = z.infer<typeof CreateProductSchema>;
+
+// ============================================================================
+// CATALOG ENTITY TYPES (Category, Brand, Collection, Attribute, Review)
+// ============================================================================
+
+export type Category = {
+  id: string;
+  name: string;
+  slug: string;
+  parent_id: string | null;
+  icon_url: string | null;
+  is_active: boolean;
+  display_order: number;
+  created_at: string;
+  updated_at: string;
+  // joined
+  parent?: { id: string; name: string } | null;
+};
+
+export type Brand = {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type Collection = {
+  id: string;
+  name: string;
+  slug: string;
+  banner_url: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export type AttributeValue = {
+  id: string;
+  attribute_id: string;
+  value: string;
+};
+
+export type Attribute = {
+  id: string;
+  name: string;
+  type: string;
+  values: AttributeValue[];
+};
+
+export type Review = {
+  id: string;
+  customer_id: string | null;
+  product_id: string;
+  order_id: string | null;
+  rating: number;
+  title: string | null;
+  review_text: string | null;
+  images: string[] | null;
+  is_approved: boolean;
+  helpful_votes: number;
+  created_at: string;
+  updated_at: string;
+  // joined
+  customer: { first_name: string | null; last_name: string | null; email: string } | null;
+  product: { name: string; slug: string } | null;
+};
+
+// ============================================================================
+// MUTATION INPUT TYPES
+// ============================================================================
+
+export type CreateCategoryInput = {
+  name: string;
+  slug: string;
+  parent_id?: string | null;
+  icon_url?: string | null;
+  is_active?: boolean;
+  display_order?: number;
+};
+export type UpdateCategoryInput = Partial<CreateCategoryInput>;
+
+export type CreateBrandInput = {
+  name: string;
+  slug: string;
+  logo_url?: string | null;
+  is_active?: boolean;
+};
+export type UpdateBrandInput = Partial<CreateBrandInput>;
+
+export type CreateCollectionInput = {
+  name: string;
+  slug: string;
+  banner_url?: string | null;
+  is_active?: boolean;
+};
+export type UpdateCollectionInput = Partial<CreateCollectionInput>;
+
+export type CreateAttributeInput = {
+  name: string;
+  type: string;
+};
+export type UpdateAttributeInput = Partial<CreateAttributeInput>;

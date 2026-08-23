@@ -213,32 +213,40 @@ export class ProductRepository {
     const supabase = await createClient();
     const { seo, tags, media, variants, ...productData } = input;
 
-    // 1. Update Product
+    // 1. Update Product — strip undefined so we don't NULL-out existing columns
     if (Object.keys(productData).length > 0) {
-      const { error } = await supabase
-        .from("products")
-        .update({
-          name: productData.name,
-          slug: productData.slug,
-          short_description: productData.shortDescription,
-          description: productData.description,
-          category_id: productData.categoryId,
-          brand_id: productData.brandId,
-          base_price: productData.basePrice,
-          sku: productData.sku,
-          barcode: productData.barcode,
-          status: productData.status,
-          gender: productData.gender,
-          season: productData.season,
-          care_instructions: productData.careInstructions,
-          country_of_origin: productData.countryOfOrigin,
-          warranty: productData.warranty,
-          material: productData.material,
-          is_featured: productData.isFeatured,
-        })
-        .eq("id", id);
+      const rawUpdate = {
+        name: productData.name,
+        slug: productData.slug,
+        short_description: productData.shortDescription,
+        description: productData.description,
+        category_id: productData.categoryId,
+        brand_id: productData.brandId,
+        base_price: productData.basePrice,
+        sku: productData.sku,
+        barcode: productData.barcode,
+        status: productData.status,
+        gender: productData.gender,
+        season: productData.season,
+        care_instructions: productData.careInstructions,
+        country_of_origin: productData.countryOfOrigin,
+        warranty: productData.warranty,
+        material: productData.material,
+        is_featured: productData.isFeatured,
+      };
 
-      if (error) throw error;
+      // Remove keys whose value is undefined — Supabase would overwrite with NULL otherwise
+      const cleanUpdate = Object.fromEntries(
+        Object.entries(rawUpdate).filter(([, v]) => v !== undefined)
+      );
+
+      if (Object.keys(cleanUpdate).length > 0) {
+        const { error } = await supabase
+          .from("products")
+          .update(cleanUpdate)
+          .eq("id", id);
+        if (error) throw error;
+      }
     }
 
     // 2. Update SEO (Upsert)
@@ -356,5 +364,34 @@ export class ProductRepository {
 
     if (error) throw error;
     return true;
+  }
+
+  /**
+   * Bulk update the status of multiple products in a single DB query.
+   */
+  static async bulkUpdateStatus(
+    ids: string[],
+    status: "DRAFT" | "ACTIVE" | "ARCHIVED"
+  ): Promise<number> {
+    const supabase = await createClient();
+    const { error, count } = await supabase
+      .from("products")
+      .update({ status })
+      .in("id", ids);
+    if (error) throw error;
+    return count ?? ids.length;
+  }
+
+  /**
+   * Bulk soft-delete multiple products in a single DB query.
+   */
+  static async bulkDelete(ids: string[]): Promise<number> {
+    const supabase = await createClient();
+    const { error, count } = await supabase
+      .from("products")
+      .update({ deleted_at: new Date().toISOString(), status: "ARCHIVED" })
+      .in("id", ids);
+    if (error) throw error;
+    return count ?? ids.length;
   }
 }

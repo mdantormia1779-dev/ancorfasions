@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,9 +43,11 @@ type ProductFormValues = z.infer<typeof CreateProductSchema>;
 
 interface ProductFormProps {
   initialData?: Product;
+  /** Where to navigate after a successful create or update. Defaults to /admin/products */
+  returnPath?: string;
 }
 
-export function ProductForm({ initialData }: ProductFormProps) {
+export function ProductForm({ initialData, returnPath = "/admin/products" }: ProductFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
@@ -66,7 +68,8 @@ export function ProductForm({ initialData }: ProductFormProps) {
     loadData();
   }, []);
 
-  const supabase = createClient();
+  // useMemo prevents creating a new Supabase client instance on every render
+  const supabase = useMemo(() => createClient(), []);
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
@@ -76,7 +79,8 @@ export function ProductForm({ initialData }: ProductFormProps) {
       setUploadingImage(index);
 
       const fileExt = file.name.split('.').pop();
-      const fileName = `${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
+      // crypto.randomUUID() is cryptographically secure — prevents collisions
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
       const filePath = `product-images/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
@@ -150,7 +154,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
         });
         if (res.success) {
           toast.success("Product updated successfully");
-          router.push("/admin/products");
+          router.push(returnPath);
         } else {
           toast.error(res.error || "Failed to update product");
         }
@@ -158,7 +162,7 @@ export function ProductForm({ initialData }: ProductFormProps) {
         const res = await createAdminProductAction(data);
         if (res.success) {
           toast.success("Product created successfully");
-          router.push("/admin/products");
+          router.push(returnPath);
         } else {
           toast.error(res.error || "Failed to create product");
         }

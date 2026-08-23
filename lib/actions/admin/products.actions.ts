@@ -1,5 +1,6 @@
 "use server";
 
+
 import { z } from "zod";
 import { createAdminAction } from "../safe-action";
 import { ProductRepository } from "@/lib/repositories/catalog/product.repository";
@@ -150,34 +151,28 @@ export const duplicateAdminProductAction = createAdminAction(
 );
 
 /**
- * Bulk publish or archive products.
+ * Bulk publish or archive products — single DB query via .in().
  */
 export const bulkUpdateProductStatusAction = createAdminAction(
   BulkUpdateStatusSchema,
   async ({ ids, status }) => {
-    // Ideally ProductRepository should have a bulkUpdate method.
-    // For now we do it sequentially.
-    for (const id of ids) {
-      await ProductRepository.updateProduct(id, { status });
-    }
+    const count = await ProductRepository.bulkUpdateStatus(ids, status);
     revalidatePath("/admin/products");
     revalidatePath("/(shop)", "layout");
-    return { success: true, count: ids.length };
+    return { count };
   }
 );
 
 /**
- * Bulk delete products.
+ * Bulk delete products — single DB query via .in().
  */
 export const bulkDeleteProductsAction = createAdminAction(
   BulkDeleteSchema,
   async ({ ids }) => {
-    for (const id of ids) {
-      await ProductRepository.deleteProduct(id);
-    }
+    const count = await ProductRepository.bulkDelete(ids);
     revalidatePath("/admin/products");
     revalidatePath("/(shop)", "layout");
-    return { success: true, count: ids.length };
+    return { count };
   }
 );
 
