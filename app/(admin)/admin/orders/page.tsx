@@ -93,7 +93,9 @@ export default function AdminOrdersPage() {
                     <TableCell>
                       {new Date(order.created_at).toLocaleDateString()}
                     </TableCell>
-                    <TableCell>{order.customer_id || "Guest"}</TableCell>
+                    <TableCell>
+                      {order.customer ? `${order.customer.first_name || ""} ${order.customer.last_name || ""}`.trim() || order.customer.email : order.customer_id || "Guest"}
+                    </TableCell>
                     <TableCell>${order.grand_total.toFixed(2)}</TableCell>
                     <TableCell>
                       <Badge

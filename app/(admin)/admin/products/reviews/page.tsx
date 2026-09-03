@@ -69,8 +69,12 @@ export default async function AdminReviewsPage() {
             ) : (
               reviews.map((review: any) => (
                 <TableRow key={review.id}>
-                  <TableCell className="font-medium text-xs max-w-[100px] truncate">{review.customer_id || "Anonymous"}</TableCell>
-                  <TableCell className="text-xs max-w-[100px] truncate">{review.product_id}</TableCell>
+                  <TableCell className="font-medium text-xs max-w-[150px] truncate">
+                    {review.customer ? `${review.customer.first_name || ""} ${review.customer.last_name || ""}`.trim() : review.customer_id || "Anonymous"}
+                  </TableCell>
+                  <TableCell className="text-xs max-w-[150px] truncate">
+                    {review.product?.name || review.product_id}
+                  </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
                       {review.rating} / 5
