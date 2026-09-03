@@ -182,6 +182,62 @@ export async function upsertHeroSlide(
   }
 }
 
+export async function upsertHeroSlideWithUpload(formData: FormData) {
+  try {
+    const { createClient } = await import("@/lib/supabase/server");
+    const supabase = await createClient();
+
+    const id = formData.get("id") as string | null;
+    const link_url = formData.get("link_url") as string || "/products";
+    const display_order = formData.get("display_order") as string || "0";
+    let image_url = formData.get("image_url") as string || "";
+    
+    // For alt_text, we will save it by combining it with link_url in a small JSON or just append as query param?
+    // Actually, since there's no alt_text column, we will just use the title column if we were using cms_banners.
+    // For now, we will ignore saving it in the db because the 'banners' table has no alt_text column.
+    const file = formData.get("file") as File | null;
+
+    if (file && file.size > 0) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `hero/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from("banners")
+        .upload(filePath, file);
+
+      if (error) throw error;
+
+      const { data: publicUrlData } = supabase.storage
+        .from("banners")
+        .getPublicUrl(filePath);
+
+      image_url = publicUrlData.publicUrl;
+    }
+
+    if (!image_url) {
+      throw new Error("Image is required");
+    }
+
+    const payload = {
+      image_url,
+      link_url,
+      placement: "HERO",
+      is_active: true,
+      display_order: parseInt(display_order, 10),
+    };
+
+    const { error } = id
+      ? await supabase.from("banners").update(payload).eq("id", id)
+      : await supabase.from("banners").insert(payload);
+
+    if (error) throw error;
+    return { success: true, image_url };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function deleteHeroSlide(id: string) {
   try {
     const { createClient } = await import("@/lib/supabase/server");

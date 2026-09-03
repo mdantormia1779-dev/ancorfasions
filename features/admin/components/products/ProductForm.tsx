@@ -6,8 +6,10 @@ import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { toast } from "sonner";
 import { z } from "zod";
-import { Plus, Trash2, Upload } from "lucide-react";
+import { Plus, Trash2, Upload, ImagePlus, X, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
+import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Badge } from "@/components/ui/badge";
 import { CreateProductSchema, Product } from "@/types/catalog.types";
 import {
   createAdminProductAction,
@@ -38,6 +41,9 @@ import {
   getBrandsAction,
   getTagsAction,
 } from "@/lib/actions/admin/products.actions";
+
+// Currency symbol — BDT (Bangladesh Taka). Change via Admin Settings → Store.
+const CURRENCY_SYMBOL = "৳";
 
 type ProductFormValues = z.infer<typeof CreateProductSchema>;
 
@@ -50,6 +56,7 @@ interface ProductFormProps {
 export function ProductForm({ initialData, returnPath = "/admin/products" }: ProductFormProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [isPublishing, setIsPublishing] = useState(false);
   const [categories, setCategories] = useState<any[]>([]);
   const [brands, setBrands] = useState<any[]>([]);
   const [tags, setTags] = useState<any[]>([]);
@@ -100,6 +107,32 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     }
   };
 
+  // Normalize DB snake_case → camelCase for edit mode (media, variants, seo)
+  const normalizedMedia = (initialData?.media || []).map((m: any) => ({
+    url: m.url || "",
+    altText: m.alt_text ?? m.altText ?? "",
+    displayOrder: m.display_order ?? m.displayOrder ?? 0,
+    isPrimary: m.is_primary ?? m.isPrimary ?? false,
+    mediaType: m.media_type ?? m.mediaType ?? "IMAGE",
+  }));
+
+  const normalizedVariants = ((initialData as any)?.variants || []).map((v: any) => ({
+    sku: v.sku || "",
+    barcode: v.barcode ?? undefined,
+    priceOverride: v.price_override ?? v.priceOverride ?? undefined,
+    salePrice: v.sale_price ?? v.salePrice ?? undefined,
+    isActive: v.is_active ?? v.isActive ?? true,
+    attributes: v.attributes || {},
+  }));
+
+  const normalizedSeo = initialData?.seo
+    ? {
+        metaTitle: (initialData.seo as any).meta_title ?? (initialData.seo as any).metaTitle ?? "",
+        metaDescription: (initialData.seo as any).meta_description ?? (initialData.seo as any).metaDescription ?? "",
+        keywords: (initialData.seo as any).keywords ?? [],
+      }
+    : { metaTitle: "", metaDescription: "", keywords: [] };
+
   const defaultValues: Partial<ProductFormValues> = {
     name: initialData?.name || "",
     slug: initialData?.slug || "",
@@ -112,13 +145,9 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     categoryId: initialData?.categoryId || "",
     brandId: initialData?.brandId || "",
     isFeatured: initialData?.isFeatured || false,
-    variants: initialData?.variants || [],
-    media: initialData?.media || [],
-    seo: initialData?.seo || {
-      metaTitle: "",
-      metaDescription: "",
-      keywords: [],
-    },
+    variants: normalizedVariants,
+    media: normalizedMedia,
+    seo: normalizedSeo,
   };
 
   const form = useForm<ProductFormValues>({
@@ -144,56 +173,83 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     name: "media",
   });
 
-  const onSubmit = async (data: ProductFormValues) => {
-    setIsLoading(true);
+  const submitWithStatus = async (status: "DRAFT" | "ACTIVE") => {
+    const valid = await form.trigger();
+    if (!valid) {
+      toast.error("Please fix the form errors before saving.");
+      return;
+    }
+    const data = { ...form.getValues(), status };
+    if (status === "ACTIVE") setIsPublishing(true);
+    else setIsLoading(true);
     try {
       if (initialData) {
-        const res = await updateAdminProductAction({
-          id: initialData.id,
-          data,
-        });
+        const res = await updateAdminProductAction({ id: initialData.id, data });
         if (res.success) {
-          toast.success("Product updated successfully");
+          toast.success(status === "ACTIVE" ? "Product published!" : "Saved as draft");
           router.push(returnPath);
+          router.refresh();
         } else {
           toast.error(res.error || "Failed to update product");
         }
       } else {
         const res = await createAdminProductAction(data);
         if (res.success) {
-          toast.success("Product created successfully");
+          toast.success(status === "ACTIVE" ? "Product published!" : "Product created as draft");
           router.push(returnPath);
+          router.refresh();
         } else {
           toast.error(res.error || "Failed to create product");
         }
       }
     } finally {
       setIsLoading(false);
+      setIsPublishing(false);
     }
+  };
+
+  const onSubmit = async (data: ProductFormValues) => {
+    await submitWithStatus(data.status as "DRAFT" | "ACTIVE");
   };
 
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold tracking-tight text-slate-900">
-            {initialData ? "Edit Product" : "Create Product"}
-          </h1>
+        <div className="flex items-center justify-between flex-wrap gap-3">
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+              {initialData ? "Edit Product" : "Create Product"}
+            </h1>
+            <p className="text-sm text-slate-500 mt-1">
+              {initialData ? `Editing: ${initialData.name}` : "Add a new product to your catalog"}
+            </p>
+          </div>
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               type="button"
-              onClick={() => router.push("/admin/products")}
-              disabled={isLoading}
+              onClick={() => router.push(returnPath)}
+              disabled={isLoading || isPublishing}
             >
               Cancel
             </Button>
             <Button
-              type="submit"
-              className="bg-slate-900 text-white hover:bg-slate-800"
-              disabled={isLoading}
+              type="button"
+              variant="outline"
+              onClick={() => submitWithStatus("DRAFT")}
+              disabled={isLoading || isPublishing}
             >
-              {isLoading ? "Saving..." : "Save Product"}
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isLoading ? "Saving..." : "Save Draft"}
+            </Button>
+            <Button
+              type="button"
+              className="bg-emerald-600 text-white hover:bg-emerald-500"
+              onClick={() => submitWithStatus("ACTIVE")}
+              disabled={isLoading || isPublishing}
+            >
+              {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isPublishing ? "Publishing..." : "Publish Product"}
             </Button>
           </div>
         </div>
@@ -298,9 +354,12 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
 
             <Card className="border-border/60 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">
-                  Product Media (Images)
-                </CardTitle>
+                <div>
+                  <CardTitle className="text-lg">Product Images</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Upload photos. First image shown as thumbnail.
+                  </p>
+                </div>
                 <Button
                   type="button"
                   variant="outline"
@@ -314,195 +373,232 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                     })
                   }
                 >
-                  <Plus className="mr-2 h-4 w-4" /> Add Image URL
+                  <ImagePlus className="mr-2 h-4 w-4" /> Add Image
                 </Button>
               </CardHeader>
               <CardContent className="space-y-4">
-                {mediaFields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="relative flex items-end gap-4 rounded-md border p-4"
-                  >
-                    <FormField
-                      control={form.control}
-                      name={`media.${index}.url`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormLabel>Image Upload</FormLabel>
-                          <FormControl>
-                            <div className="flex gap-2">
-                              <Input
-                                placeholder="https://example.com/image.jpg"
-                                {...field}
-                                className="flex-1"
-                              />
-                              <div className="relative">
-                                <Input
-                                  type="file"
-                                  accept="image/*"
-                                  className="absolute inset-0 opacity-0 cursor-pointer w-full z-10"
-                                  onChange={(e) => handleImageUpload(e, index)}
-                                  disabled={uploadingImage === index}
-                                />
-                                <Button type="button" variant="secondary" disabled={uploadingImage === index}>
-                                  {uploadingImage === index ? "..." : <Upload className="h-4 w-4" />}
-                                </Button>
-                              </div>
+                {mediaFields.map((field, index) => {
+                  const currentUrl = form.watch(`media.${index}.url`);
+                  return (
+                    <div key={field.id} className="rounded-lg border bg-slate-50/50 p-4 space-y-3">
+                      <div className="flex items-start gap-4">
+                        {/* Preview thumbnail */}
+                        <div className="h-20 w-20 shrink-0 rounded-md border bg-white overflow-hidden flex items-center justify-center">
+                          {currentUrl ? (
+                            <Image
+                              src={currentUrl}
+                              alt={form.watch(`media.${index}.altText`) || `Image ${index + 1}`}
+                              width={80}
+                              height={80}
+                              className="h-full w-full object-cover"
+                              unoptimized
+                            />
+                          ) : (
+                            <div className="flex flex-col items-center text-slate-300">
+                              <Upload className="h-6 w-6" />
+                              <span className="text-xs mt-1">No image</span>
                             </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`media.${index}.altText`}
-                      render={({ field }) => (
-                        <FormItem className="flex-1">
-                          <FormLabel>Alt Text</FormLabel>
-                          <FormControl>
-                            <Input
-                              placeholder="Front view of tie"
-                              {...field}
-                              value={field.value || ""}
+                          )}
+                        </div>
+                        <div className="flex-1 space-y-3">
+                          {/* Upload label */}
+                          <div>
+                            <p className="text-xs font-medium text-slate-600 mb-1">
+                              {index === 0 ? "Primary Image" : `Image ${index + 1}`}
+                              {index === 0 && (
+                                <Badge variant="outline" className="ml-2 text-[10px] border-emerald-300 text-emerald-700 bg-emerald-50">Main</Badge>
+                              )}
+                            </p>
+                            <label className="cursor-pointer block">
+                              <div className="flex items-center gap-2 rounded-md border border-dashed border-slate-300 bg-white px-4 py-2.5 text-sm text-slate-600 hover:border-slate-400 hover:bg-slate-50 transition-colors">
+                                {uploadingImage === index ? (
+                                  <><Loader2 className="h-4 w-4 animate-spin text-slate-400" /><span>Uploading...</span></>
+                                ) : (
+                                  <><Upload className="h-4 w-4 text-slate-400" /><span>{currentUrl ? "Replace Image" : "Upload Image"}</span></>
+                                )}
+                              </div>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="sr-only"
+                                onChange={(e) => handleImageUpload(e, index)}
+                                disabled={uploadingImage !== null}
+                              />
+                            </label>
+                            {/* Hidden field stores the Supabase public URL */}
+                            <FormField
+                              control={form.control}
+                              name={`media.${index}.url`}
+                              render={({ field }) => (
+                                <FormItem className="hidden"><FormControl><input type="hidden" {...field} /></FormControl></FormItem>
+                              )}
                             />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`media.${index}.isPrimary`}
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col items-center justify-center pb-2">
-                          <FormLabel>Primary?</FormLabel>
-                          <FormControl>
-                            <Checkbox
-                              checked={field.value}
-                              onCheckedChange={field.onChange}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => removeMedia(index)}
-                      className="mb-0.5 text-red-500"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ))}
+                          </div>
+                          {/* Alt Text */}
+                          <FormField
+                            control={form.control}
+                            name={`media.${index}.altText`}
+                            render={({ field }) => (
+                              <FormItem>
+                                <FormLabel className="text-xs text-slate-600">Alt Text</FormLabel>
+                                <FormControl>
+                                  <Input
+                                    placeholder="Describe this image for accessibility..."
+                                    {...field}
+                                    value={field.value || ""}
+                                    className="h-8 text-sm"
+                                  />
+                                </FormControl>
+                                <FormMessage />
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                        {/* Controls */}
+                        <div className="flex flex-col items-center gap-2">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => removeMedia(index)}
+                            className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                          <FormField
+                            control={form.control}
+                            name={`media.${index}.isPrimary`}
+                            render={({ field }) => (
+                              <FormItem className="flex flex-col items-center gap-1">
+                                <FormLabel className="text-[10px] text-slate-500">Primary</FormLabel>
+                                <FormControl>
+                                  <Checkbox checked={field.value} onCheckedChange={field.onChange} />
+                                </FormControl>
+                              </FormItem>
+                            )}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
                 {mediaFields.length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">
-                    No media added yet.
-                  </p>
+                  <div
+                    className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 p-10 text-center hover:border-slate-300 hover:bg-slate-50/50 transition-colors"
+                    onClick={() => appendMedia({ url: "", displayOrder: 0, isPrimary: true, mediaType: "IMAGE" })}
+                  >
+                    <ImagePlus className="mb-3 h-8 w-8 text-slate-300" />
+                    <p className="text-sm font-medium text-slate-600">Add Product Images</p>
+                    <p className="mt-1 text-xs text-slate-400">Click to add. PNG, JPG, WEBP supported.</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
 
             <Card className="border-border/60 shadow-sm">
               <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="text-lg">Product Variants</CardTitle>
+                <div>
+                  <CardTitle className="text-lg">Product Variants</CardTitle>
+                  <p className="text-sm text-muted-foreground mt-1">Add sizes, colors, or other variants.</p>
+                </div>
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => appendVariant({ sku: "", isActive: true })}
+                  onClick={() => appendVariant({ sku: "", isActive: true, attributes: {} })}
                 >
                   <Plus className="mr-2 h-4 w-4" /> Add Variant
                 </Button>
               </CardHeader>
               <CardContent className="space-y-4">
                 {variantFields.map((field, index) => (
-                  <div
-                    key={field.id}
-                    className="relative grid grid-cols-2 items-end gap-4 rounded-md border p-4 md:grid-cols-4"
-                  >
-                    <FormField
-                      control={form.control}
-                      name={`variants.${index}.sku`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Variant SKU</FormLabel>
-                          <FormControl>
-                            <Input placeholder="SKU-RED-M" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`variants.${index}.priceOverride`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Price Override</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              {...field}
-                              value={field.value || ""}
-                              onChange={(e) =>
-                                field.onChange(
-                                  e.target.value
-                                    ? parseFloat(e.target.value)
-                                    : undefined
-                                )
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <FormField
-                      control={form.control}
-                      name={`variants.${index}.salePrice`}
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Sale Price</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              {...field}
-                              value={field.value || ""}
-                              onChange={(e) =>
-                                field.onChange(
-                                  e.target.value
-                                    ? parseFloat(e.target.value)
-                                    : undefined
-                                )
-                              }
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    <div className="flex items-center justify-end pb-1">
+                  <div key={field.id} className="rounded-lg border bg-slate-50/50 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-slate-700">Variant {index + 1}</span>
                       <Button
                         type="button"
                         variant="ghost"
                         size="sm"
                         onClick={() => removeVariant(index)}
-                        className="text-red-500"
+                        className="h-7 px-2 text-red-400 hover:text-red-600 hover:bg-red-50"
                       >
-                        Remove
+                        <Trash2 className="mr-1 h-3 w-3" /> Remove
                       </Button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                      {/* Name/Color — stored as attributes.Color */}
+                      <FormField
+                        control={form.control}
+                        name={`variants.${index}.attributes`}
+                        render={({ field }) => (
+                          <FormItem className="col-span-2 md:col-span-1">
+                            <FormLabel className="text-xs">Name / Color</FormLabel>
+                            <FormControl>
+                              <Input
+                                placeholder="e.g. Black, Red, XL"
+                                value={field.value ? Object.values(field.value as Record<string, string>)[0] || "" : ""}
+                                onChange={(e) => field.onChange({ Color: e.target.value })}
+                                className="h-8 text-sm"
+                              />
+                            </FormControl>
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`variants.${index}.sku`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Variant SKU</FormLabel>
+                            <FormControl>
+                              <Input placeholder="SKU-BLK-M" {...field} className="h-8 text-sm" />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`variants.${index}.priceOverride`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Price ({CURRENCY_SYMBOL})</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number" step="0.01" placeholder="0.00"
+                                {...field} value={field.value ?? ""}
+                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                className="h-8 text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`variants.${index}.salePrice`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Sale Price ({CURRENCY_SYMBOL})</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number" step="0.01" placeholder="0.00"
+                                {...field} value={field.value ?? ""}
+                                onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                className="h-8 text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
                     </div>
                   </div>
                 ))}
                 {variantFields.length === 0 && (
-                  <p className="py-4 text-center text-sm text-muted-foreground">
-                    No variants added yet.
+                  <p className="py-6 text-center text-sm text-muted-foreground">
+                    No variants yet. Click &quot;Add Variant&quot; to add sizes, colors, etc.
                   </p>
                 )}
               </CardContent>
@@ -565,16 +661,22 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                   name="basePrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Base Price ($)</FormLabel>
+                      <FormLabel>Base Price ({CURRENCY_SYMBOL})</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          {...field}
-                          onChange={(e) =>
-                            field.onChange(parseFloat(e.target.value))
-                          }
-                        />
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">{CURRENCY_SYMBOL}</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            className="pl-8"
+                            {...field}
+                            onChange={(e) =>
+                              field.onChange(parseFloat(e.target.value) || 0)
+                            }
+                          />
+                        </div>
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -596,7 +698,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                       <FormLabel>Status</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -638,10 +740,10 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                   name="categoryId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Category</FormLabel>
+                      <FormLabel>Category *</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value}
+                        value={field.value || ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -669,7 +771,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                       <FormLabel>Brand</FormLabel>
                       <Select
                         onValueChange={field.onChange}
-                        defaultValue={field.value || undefined}
+                        value={field.value || ""}
                       >
                         <FormControl>
                           <SelectTrigger>
@@ -677,6 +779,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
+                          <SelectItem value="">No Brand</SelectItem>
                           {brands.map((brand) => (
                             <SelectItem key={brand.id} value={brand.id}>
                               {brand.name}
@@ -690,6 +793,15 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                 />
               </CardContent>
             </Card>
+
+            {/* Quick help tips */}
+            <div className="rounded-lg bg-slate-50 border border-slate-100 p-4 text-xs text-slate-500 space-y-1">
+              <p className="font-medium text-slate-600">💡 Tips</p>
+              <p>• <strong>Save Draft</strong> — save without publishing</p>
+              <p>• <strong>Publish</strong> — make live in store immediately</p>
+              <p>• Use variants for different sizes/colors</p>
+              <p>• Add alt text for better SEO &amp; accessibility</p>
+            </div>
           </div>
         </div>
       </form>

@@ -10,12 +10,13 @@ export const metadata: Metadata = {
 export default async function AdminProductsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ search?: string; page?: string }>;
+  searchParams: Promise<{ search?: string; page?: string; status?: string }>;
 }) {
   const search = (await searchParams).search || "";
   const page = parseInt((await searchParams).page || "1", 10);
+  const status = (await searchParams).status;
 
-  const res = await getAdminProductsAction({ search, page, limit: 20 });
+  const res = await getAdminProductsAction({ search, page, limit: 20, status });
 
   const products = res.data?.products || [];
   const totalCount = res.data?.total || 0;

@@ -29,6 +29,32 @@ export class ReviewRepository {
   }
 
   /**
+   * Retrieves all approved reviews for a specific product.
+   */
+  static async getReviewsByProductId(productId: string): Promise<Review[]> {
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("customer_reviews")
+        .select(
+          "*, customer:customer_profiles(first_name, last_name, email), product:products(name, slug)"
+        )
+        .eq("product_id", productId)
+        .eq("is_approved", true)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching product reviews:", error);
+        return [];
+      }
+      return (data as unknown as Review[]) || [];
+    } catch (err) {
+      console.error("Unexpected error in getReviewsByProductId:", err);
+      return [];
+    }
+  }
+
+  /**
    * Approves a review (makes it publicly visible).
    */
   static async approveReview(id: string): Promise<void> {

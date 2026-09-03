@@ -11,6 +11,8 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { NewsletterRepository } from "@/lib/repositories/marketing/newsletter.repository";
+import { NewsletterExportButton } from "./NewsletterExportButton";
+import Link from "next/link";
 
 export const metadata = {
   title: "Newsletter Subscribers | Marketing | Anchor Fashion Enterprise",
@@ -42,11 +44,11 @@ export default async function AdminNewsletterPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" /> Export CSV
-          </Button>
-          <Button>
-            <Mail className="mr-2 h-4 w-4" /> Create Campaign
+          <NewsletterExportButton subscribers={subscribers} />
+          <Button asChild>
+            <Link href="/admin/marketing/campaigns">
+              <Mail className="mr-2 h-4 w-4" /> Create Campaign
+            </Link>
           </Button>
         </div>
       </div>

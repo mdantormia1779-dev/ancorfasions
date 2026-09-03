@@ -8,15 +8,6 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import {
   Package,
   AlertTriangle,
@@ -26,72 +17,45 @@ import {
   Plus,
   Filter,
 } from "lucide-react";
+import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
+import { OperationsInventoryClient } from "@/features/inventory/components/OperationsInventoryClient";
 
 export const metadata: Metadata = {
   title: "Inventory Management | Anchor Fashion Enterprise",
   description: "Enterprise Inventory and Stock Management Dashboard",
 };
 
-// Mock data for development
-const mockInventory = [
-  {
-    id: "1",
-    sku: "AF-M-SH-BL-M",
-    name: "Classic Oxford Shirt - Blue - M",
-    available: 124,
-    reserved: 12,
-    incoming: 50,
-    damaged: 1,
-    reorderPoint: 30,
-    status: "Healthy",
-  },
-  {
-    id: "2",
-    sku: "AF-W-DR-RD-S",
-    name: "Summer Midi Dress - Red - S",
-    available: 5,
-    reserved: 8,
-    incoming: 0,
-    damaged: 0,
-    reorderPoint: 15,
-    status: "Low Stock",
-  },
-  {
-    id: "3",
-    sku: "AF-M-PT-CH-32",
-    name: "Chino Pants - Khaki - 32",
-    available: 0,
-    reserved: 2,
-    incoming: 100,
-    damaged: 0,
-    reorderPoint: 20,
-    status: "Out of Stock",
-  },
-  {
-    id: "4",
-    sku: "AF-A-BL-BK-L",
-    name: "Leather Belt - Black - L",
-    available: 45,
-    reserved: 3,
-    incoming: 0,
-    damaged: 2,
-    reorderPoint: 10,
-    status: "Healthy",
-  },
-  {
-    id: "5",
-    sku: "AF-W-TP-WH-M",
-    name: "Silk Blouse - White - M",
-    available: 8,
-    reserved: 2,
-    incoming: 30,
-    damaged: 0,
-    reorderPoint: 15,
-    status: "Low Stock",
-  },
-];
+export default async function InventoryDashboard() {
+  const supabase = await createClient();
+  const { data: inventory } = await supabase
+    .from("inventory_levels")
+    .select("*, variants(sku, name, price), warehouses(name)")
+    .order("quantity_available", { ascending: true });
 
-export default function InventoryDashboard() {
+  const realInventory = inventory || [];
+  
+  const totalItems = realInventory.reduce((sum, item) => sum + (item.quantity_available || 0), 0);
+  
+  const lowStockCount = realInventory.filter(
+    (item) => item.quantity_available <= (item.reorder_point || 0)
+  ).length;
+
+  const totalIncoming = realInventory.reduce((sum, item) => sum + (item.quantity_incoming || 0), 0);
+  
+  // Calculate inventory value using quantity * price (or default to 0 if price is missing)
+  const inventoryValue = realInventory.reduce((sum, item) => {
+    const price = (item.variants as any)?.price || 0;
+    return sum + (item.quantity_available || 0) * price;
+  }, 0);
+  
+  // Format value to something readable like 12.4M or 45K
+  const formattedValue = inventoryValue > 1000000 
+    ? (inventoryValue / 1000000).toFixed(1) + "M"
+    : inventoryValue > 1000
+    ? (inventoryValue / 1000).toFixed(1) + "K"
+    : inventoryValue.toFixed(0);
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -104,11 +68,15 @@ export default function InventoryDashboard() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline">
-            <ArrowRightLeft className="mr-2 h-4 w-4" /> Transfer Stock
+          <Button variant="outline" asChild>
+            <Link href="/admin/inventory/transfers">
+              <ArrowRightLeft className="mr-2 h-4 w-4" /> Transfer Stock
+            </Link>
           </Button>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" /> Receive Goods
+          <Button asChild>
+            <Link href="/admin/inventory/purchases">
+              <Plus className="mr-2 h-4 w-4" /> Receive Goods
+            </Link>
           </Button>
         </div>
       </div>
@@ -121,7 +89,7 @@ export default function InventoryDashboard() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">142,304</div>
+            <div className="text-2xl font-bold">{totalItems.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               Across all warehouses
             </p>
@@ -135,7 +103,7 @@ export default function InventoryDashboard() {
             <AlertTriangle className="h-4 w-4 text-amber-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-amber-600">34</div>
+            <div className="text-2xl font-bold text-amber-600">{lowStockCount}</div>
             <p className="text-xs text-muted-foreground">
               SKUs below reorder point
             </p>
@@ -147,7 +115,7 @@ export default function InventoryDashboard() {
             <TrendingUp className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5,200</div>
+            <div className="text-2xl font-bold">{totalIncoming.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">Units in transit</p>
           </CardContent>
         </Card>
@@ -161,7 +129,7 @@ export default function InventoryDashboard() {
             </span>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12.4M</div>
+            <div className="text-2xl font-bold">{formattedValue}</div>
             <p className="text-xs text-muted-foreground">
               Current valuation (MAC)
             </p>
@@ -180,73 +148,10 @@ export default function InventoryDashboard() {
               </CardDescription>
             </div>
             <div className="flex w-full gap-2 md:w-auto">
-              <div className="relative w-full md:w-64">
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input placeholder="Search SKU or name..." className="pl-8" />
-              </div>
-              <Button variant="outline" size="icon">
-                <Filter className="h-4 w-4" />
-              </Button>
+              <OperationsInventoryClient inventory={realInventory} />
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>SKU / Product</TableHead>
-                <TableHead className="text-right">Available</TableHead>
-                <TableHead className="text-right">Reserved</TableHead>
-                <TableHead className="text-right">Incoming</TableHead>
-                <TableHead className="text-right">Damaged</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockInventory.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell>
-                    <div className="font-medium">{item.sku}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {item.name}
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {item.available}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {item.reserved}
-                  </TableCell>
-                  <TableCell className="text-right text-blue-600">
-                    {item.incoming}
-                  </TableCell>
-                  <TableCell className="text-right text-red-500">
-                    {item.damaged}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        item.status === "Healthy"
-                          ? "default"
-                          : item.status === "Low Stock"
-                            ? "secondary"
-                            : "destructive"
-                      }
-                    >
-                      {item.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </CardContent>
       </Card>
     </div>
   );

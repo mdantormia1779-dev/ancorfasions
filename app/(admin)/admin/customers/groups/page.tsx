@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { CustomerSegmentRepository } from "@/lib/repositories/crm/customer-segment.repository";
+import { CustomerGroupActions } from "@/features/crm/components/CustomerGroupActions";
 
 export const metadata = {
   title: "Customer Groups | Customers | Anchor Fashion Enterprise",
@@ -30,9 +31,7 @@ export default async function AdminCustomerGroupsPage() {
           </p>
         </div>
         <div className="flex items-center space-x-2">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" /> Create Group
-          </Button>
+          <CustomerGroupActions />
         </div>
       </div>
 

@@ -1,6 +1,7 @@
-import { Search, Filter, Plus } from "lucide-react";
+import { Search, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { StockMovementActions } from "@/features/inventory/components/InventoryPageActions";
 import {
   Table,
   TableBody,
@@ -44,9 +45,7 @@ export default async function AdminStockMovementPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" /> Record Movement
-          </Button>
+          <StockMovementActions />
         </div>
       </div>
 

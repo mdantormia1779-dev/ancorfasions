@@ -20,6 +20,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CustomerSearch } from "@/features/crm/components/customer-search";
 import { CustomerSegmentsTable } from "@/features/crm/components/CustomerSegmentsTable";
 import { CustomersList } from "@/features/crm/components/CustomersList";
+import { CustomerPageActions } from "@/features/crm/components/CustomerPageActions";
 import { LoyaltyTiers } from "@/features/crm/components/LoyaltyTiers";
 import {
   fetchCustomersAction,
@@ -56,13 +57,7 @@ export default async function CRMDashboardPage({
             Manage your customers, segments, and loyalty programs.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Filter className="mr-2 h-4 w-4" />
-            Filters
-          </Button>
-          <Button>Export Data</Button>
-        </div>
+        <CustomerPageActions customers={customersRes.data || []} />
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -58,8 +58,19 @@ export class ProductRepository {
 
     if (error) throw error;
 
+    const mappedProducts = data?.map((p: any) => ({
+      ...p,
+      basePrice: p.base_price,
+      shortDescription: p.short_description,
+      categoryId: p.category_id,
+      brandId: p.brand_id,
+      isFeatured: p.is_featured,
+      createdAt: p.created_at,
+      updatedAt: p.updated_at,
+    })) || [];
+
     return {
-      products: data as unknown as Product[], // In a real app we might run through Zod parsing here
+      products: mappedProducts as unknown as Product[],
       total: count || 0,
       page,
       limit,
@@ -92,7 +103,16 @@ export class ProductRepository {
     }
 
     // Normalize data
-    const product = { ...data };
+    const product = { 
+      ...data,
+      basePrice: data.base_price,
+      shortDescription: data.short_description,
+      categoryId: data.category_id,
+      brandId: data.brand_id,
+      isFeatured: data.is_featured,
+      createdAt: data.created_at,
+      updatedAt: data.updated_at,
+    };
     if (product.seo && Array.isArray(product.seo)) {
       product.seo = product.seo[0] || null;
     }

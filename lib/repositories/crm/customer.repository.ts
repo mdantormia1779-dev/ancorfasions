@@ -32,14 +32,15 @@ export class CustomerRepository {
           id, 
           first_name, 
           last_name, 
+          email,
           is_vip,
-          auth_users:id(email)
+          customer_lifecycle_stage
         `
         )
         .limit(limit);
 
       if (search) {
-        fallbackQuery = fallbackQuery.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%`);
+        fallbackQuery = fallbackQuery.or(`first_name.ilike.%${search}%,last_name.ilike.%${search}%,email.ilike.%${search}%`);
       }
 
       try {
@@ -50,7 +51,6 @@ export class CustomerRepository {
           return [];
         }
 
-        // Map fallback to expected schema
         const stages: CustomerLifecycleStage[] = [
           "PROSPECT",
           "FIRST_TIME_BUYER",
@@ -61,10 +61,9 @@ export class CustomerRepository {
         ];
 
         return (fallback || []).map((c: any) => {
-          // Deterministic pseudorandom based on ID (usually UUID string)
           const idHash = c.id?.toString().split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) || 0;
           
-          const stage = stages[idHash % stages.length];
+          const stage = c.customer_lifecycle_stage || stages[idHash % stages.length];
           const healthScore = 20 + (idHash % 81); // 20 to 100
           const tickets = idHash % 6; // 0 to 5
           const daysAgo = idHash % 30; // 0 to 29 days
@@ -73,7 +72,7 @@ export class CustomerRepository {
             id: c.id,
             first_name: c.first_name,
             last_name: c.last_name,
-            email: c.auth_users?.email || "N/A",
+            email: c.email || "N/A",
             is_vip: c.is_vip,
             customer_lifecycle_stage: stage,
             health_score: healthScore,
@@ -211,17 +210,22 @@ export class CustomerRepository {
     const [
       { count: totalCustomers },
       { count: newCustomers },
-      { count: loyaltyMembers }
+      { count: loyaltyMembers },
+      { data: ordersData }
     ] = await Promise.all([
       supabase.from("customer_profiles").select("*", { count: "exact", head: true }),
       supabase.from("customer_profiles").select("*", { count: "exact", head: true }).gte("created_at", thirtyDaysAgo),
-      supabase.from("loyalty_accounts").select("*", { count: "exact", head: true })
+      supabase.from("loyalty_accounts").select("*", { count: "exact", head: true }),
+      supabase.from("orders").select("grand_total")
     ]);
 
+    const totalRevenue = ordersData?.reduce((acc, order) => acc + (order.grand_total || 0), 0) || 0;
+    const safeTotalCustomers = totalCustomers || 0;
+
     return {
-      totalCustomers: totalCustomers || 0,
+      totalCustomers: safeTotalCustomers,
       newCustomers: newCustomers || 0,
-      avgLifetimeValue: 1284.5, // Usually calculated from orders
+      avgLifetimeValue: safeTotalCustomers > 0 ? (totalRevenue / safeTotalCustomers) : 0,
       loyaltyMembers: loyaltyMembers || 0,
     };
   }

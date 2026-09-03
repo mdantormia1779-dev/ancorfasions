@@ -10,9 +10,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Plus } from "lucide-react";
 import { format } from "date-fns";
-
+import { StockTransferActions } from "@/features/inventory/components/InventoryPageActions";
 import { getInventoryMovements } from "@/actions/inventory.actions";
 
 export const metadata: Metadata = {
@@ -34,9 +33,7 @@ export default async function TransfersPage() {
             Manage internal inventory movements.
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> New Transfer
-        </Button>
+        <StockTransferActions />
       </div>
 
       <Card>

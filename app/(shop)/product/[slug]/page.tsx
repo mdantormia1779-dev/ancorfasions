@@ -2,6 +2,7 @@ import { Metadata } from "next";
 import { ProductGallery } from "@/components/product/ProductGallery";
 import { Ruler, Truck, ShieldCheck, RefreshCw, Info } from "lucide-react";
 import { CatalogRepository } from "@/repositories/catalog.repository";
+import { ReviewRepository } from "@/lib/repositories/catalog/review.repository";
 import { ProductVariantSelector } from "@/components/product/product-variant-selector";
 import { ProductReviews } from "@/components/product/product-reviews";
 import { ProductCard } from "@/components/product/product-card";
@@ -64,6 +65,14 @@ export default async function ProductDetailPage({
 
   // is_in_stock is computed in the repository from real inventory_levels data
   const isInStock = (product as any).is_in_stock ?? false;
+  
+  // Fetch real reviews from the database for this specific product
+  const reviews = await ReviewRepository.getReviewsByProductId(product.id);
+  const totalReviews = reviews.length;
+  // Calculate average rating directly from the fetched reviews, or fallback to 0
+  const averageRating = totalReviews > 0 
+    ? reviews.reduce((sum, review) => sum + review.rating, 0) / totalReviews 
+    : 0;
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -255,14 +264,13 @@ export default async function ProductDetailPage({
         </div>
       </div>
 
-      {/* Reviews Section — only render when there is real review data */}
-      {(product as any).total_reviews > 0 && (
-        <ProductReviews
-          productId={product.id}
-          averageRating={(product as any).average_rating}
-          totalReviews={(product as any).total_reviews}
-        />
-      )}
+      {/* Reviews Section */}
+      <ProductReviews
+        productId={product.id}
+        averageRating={Number(averageRating.toFixed(1))}
+        totalReviews={totalReviews}
+        reviews={reviews}
+      />
 
       {/* Related Products / You May Also Like */}
       {relatedProducts && relatedProducts.length > 0 && (

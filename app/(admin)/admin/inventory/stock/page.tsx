@@ -10,8 +10,9 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Plus } from "lucide-react";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { StockControlActions } from "@/features/inventory/components/InventoryPageActions";
 
 export const metadata: Metadata = {
   title: "Stock Control | Anchor Fashion",
@@ -33,9 +34,7 @@ export default async function StockControlPage() {
             Monitor and adjust real-time inventory levels.
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Adjust Stock
-        </Button>
+        <StockControlActions inventory={inventory || []} />
       </div>
 
       <Card>

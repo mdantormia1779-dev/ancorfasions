@@ -88,7 +88,7 @@ export function createProtectedAction<Input, Output>(
 
 /**
  * Creates an admin-only server action.
- * Verifies that the authenticated user possesses an 'admin' role.
+ * Verifies that the authenticated user possesses an 'admin' or 'manager' role.
  */
 export function createAdminAction<Input, Output>(
   schema: z.Schema<Input>,
@@ -103,16 +103,17 @@ export function createAdminAction<Input, Output>(
       } = await supabase.auth.getUser();
 
       if (authError || !user) {
-        return { success: false, error: "Unauthorized." };
+        return { success: false, error: "Unauthorized. Please log in." };
       }
 
-      // Check for custom admin claim or role in app_metadata
-      const isAdmin =
-        user.app_metadata?.role === "admin" ||
-        user.app_metadata?.role === "super_admin";
+      // Allow admin, super_admin, and manager roles
+      const role = user.app_metadata?.role;
+      const isAllowed =
+        role === "admin" || role === "super_admin" || role === "manager";
 
-      if (!isAdmin) {
-        return { success: false, error: "Forbidden. Admin access required." };
+      if (!isAllowed) {
+        console.warn(`[Admin Action] Access denied for user ${user.id} with role: ${role}`);
+        return { success: false, error: "Forbidden. Insufficient permissions." };
       }
 
       const parsedInput = schema.parse(input);
@@ -120,17 +121,21 @@ export function createAdminAction<Input, Output>(
       return { success: true, data };
     } catch (error: any) {
       if (error instanceof z.ZodError) {
+        const fieldErrors = error.flatten().fieldErrors;
+        const firstError = Object.values(fieldErrors)[0]?.[0];
         return {
           success: false,
-          error: "Validation failed",
-          errors: error.flatten().fieldErrors,
+          error: firstError || "Validation failed. Please check the form fields.",
+          errors: fieldErrors,
         };
       }
       if (error instanceof DatabaseError) {
         return { success: false, error: error.message };
       }
+      // Surface the real error message for debugging instead of hiding it
+      const message = error?.message || "An unexpected error occurred.";
       console.error("[Admin Action Error]:", error);
-      return { success: false, error: "An unexpected error occurred." };
+      return { success: false, error: message };
     }
   };
 }

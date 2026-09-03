@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,6 +14,9 @@ import {
   EyeOff,
   CheckCircle2,
   Star,
+  Package,
+  LayoutGrid,
+  List,
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -64,6 +67,12 @@ export function ProductsTable({
   const router = useRouter();
   const [products, setProducts] = useState(initialProducts);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  
+  // BUG FIX: Sync local state when server data changes (e.g. from search/filter)
+  useEffect(() => {
+    setProducts(initialProducts);
+    setSelectedIds([]); // Clear selection on new data
+  }, [initialProducts]);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isDuplicating, setIsDuplicating] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -190,6 +199,25 @@ export function ProductsTable({
     }
   };
 
+  /** Publish or archive a single product without requiring it to be selected */
+  const handleQuickStatusChange = async (
+    productId: string,
+    status: "ACTIVE" | "ARCHIVED"
+  ) => {
+    const label = status === "ACTIVE" ? "publish" : "archive";
+    const res = await bulkUpdateProductStatusAction({ ids: [productId], status });
+    if (res.success) {
+      toast.success(
+        status === "ACTIVE" ? "Product published!" : "Product archived."
+      );
+      setProducts((prev) =>
+        prev.map((p) => (p.id === productId ? { ...p, status } : p))
+      );
+    } else {
+      toast.error(res.error || `Failed to ${label} product`);
+    }
+  };
+
   return (
     <div className="space-y-4">
       {/* Toolbar */}
@@ -230,7 +258,7 @@ export function ProductsTable({
               if (value === "ALL") {
                 params.delete("status");
               } else {
-                params.set("status", value);
+                params.set("status", value as string);
               }
               // Reset to page 1 when filter changes
               params.delete("page");
@@ -290,7 +318,7 @@ export function ProductsTable({
       <div className="rounded-md border border-border bg-card text-card-foreground">
         <Table>
           <TableHeader>
-            <TableRow>
+            <TableRow className="bg-slate-50/80">
               <TableHead className="w-12 pl-4">
                 {/* BUG FIX: support indeterminate state */}
                 <Checkbox
@@ -298,13 +326,13 @@ export function ProductsTable({
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>
-              <TableHead>Product</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Variants</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Category</TableHead>
-              <TableHead>Added</TableHead>
-              <TableHead className="pr-4 text-right">Actions</TableHead>
+              <TableHead className="font-semibold text-slate-700">Product</TableHead>
+              <TableHead className="font-semibold text-slate-700">Status</TableHead>
+              <TableHead className="font-semibold text-slate-700">Variants</TableHead>
+              <TableHead className="font-semibold text-slate-700">Price</TableHead>
+              <TableHead className="font-semibold text-slate-700">Category</TableHead>
+              <TableHead className="font-semibold text-slate-700">Added</TableHead>
+              <TableHead className="pr-4 text-right font-semibold text-slate-700">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -331,29 +359,31 @@ export function ProductsTable({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        {/* Product thumbnail */}
-                        <div className="h-10 w-10 shrink-0 overflow-hidden rounded-md border border-border bg-slate-50">
+                        {/* Product thumbnail — bigger, rounder */}
+                        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border bg-slate-50 shadow-sm">
                           {primaryImage?.url ? (
                             <Image
                               src={primaryImage.url}
                               alt={primaryImage.alt_text ?? product.name}
-                              width={40}
-                              height={40}
+                              width={48}
+                              height={48}
                               className="h-full w-full object-cover"
                             />
                           ) : (
-                            <div className="flex h-full w-full items-center justify-center">
-                              <Star className="h-4 w-4 text-slate-300" />
+                            <div className="flex h-full w-full items-center justify-center bg-slate-100">
+                              <Package className="h-5 w-5 text-slate-300" />
                             </div>
                           )}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="font-medium text-slate-900">
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold text-slate-900 truncate max-w-[180px]">
                             {product.name}
                           </span>
-                          <span className="text-xs text-muted-foreground">
-                            SKU: {product.sku || "N/A"}
-                          </span>
+                          {product.sku && (
+                            <span className="text-xs text-slate-400 font-mono">
+                              {product.sku}
+                            </span>
+                          )}
                         </div>
                       </div>
                     </TableCell>
@@ -361,35 +391,41 @@ export function ProductsTable({
                       {product.status === "ACTIVE" && (
                         <Badge
                           variant="outline"
-                          className="border-emerald-200 bg-emerald-50 text-emerald-700"
+                          className="border-emerald-200 bg-emerald-50 text-emerald-700 font-medium"
                         >
+                          <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-emerald-500 inline-block" />
                           Active
                         </Badge>
                       )}
                       {product.status === "DRAFT" && (
                         <Badge
                           variant="outline"
-                          className="border-border bg-slate-100 text-foreground/90"
+                          className="border-slate-200 bg-slate-50 text-slate-600 font-medium"
                         >
+                          <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-slate-400 inline-block" />
                           Draft
                         </Badge>
                       )}
                       {product.status === "ARCHIVED" && (
                         <Badge
                           variant="outline"
-                          className="border-amber-200 bg-amber-50 text-amber-700"
+                          className="border-amber-200 bg-amber-50 text-amber-700 font-medium"
                         >
+                          <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 inline-block" />
                           Archived
                         </Badge>
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm text-muted-foreground">
-                        {(product as any).variants?.length ?? 0} variants
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
+                          {(product as any).variants?.length ?? 0}
+                        </span>
+                        <span className="text-xs text-muted-foreground">variants</span>
+                      </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm font-medium text-slate-900">
+                      <span className="text-sm font-semibold text-slate-900">
                         {formatCurrency(product.basePrice)}
                       </span>
                     </TableCell>
@@ -406,12 +442,12 @@ export function ProductsTable({
                     <TableCell className="pr-4 text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
+                          <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100">
                             <span className="sr-only">Open menu</span>
                             <MoreHorizontal className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
+                        <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem
                             onClick={() =>
                               router.push(`/admin/products/${product.id}/edit`)
@@ -435,10 +471,25 @@ export function ProductsTable({
                             disabled={isDuplicating === product.id}
                           >
                             <Copy className="mr-2 h-4 w-4" />{" "}
-                            {isDuplicating === product.id
-                              ? "Duplicating…"
-                              : "Duplicate"}
+                            {isDuplicating === product.id ? "Duplicating…" : "Duplicate"}
                           </DropdownMenuItem>
+                          <DropdownMenuSeparator />
+                          {product.status !== "ACTIVE" && (
+                            <DropdownMenuItem
+                              onClick={() => handleQuickStatusChange(product.id, "ACTIVE")}
+                              className="text-emerald-600 focus:text-emerald-600"
+                            >
+                              <CheckCircle2 className="mr-2 h-4 w-4" /> Publish
+                            </DropdownMenuItem>
+                          )}
+                          {product.status === "ACTIVE" && (
+                            <DropdownMenuItem
+                              onClick={() => handleQuickStatusChange(product.id, "ARCHIVED")}
+                              className="text-amber-600 focus:text-amber-600"
+                            >
+                              <EyeOff className="mr-2 h-4 w-4" /> Archive
+                            </DropdownMenuItem>
+                          )}
                           <DropdownMenuSeparator />
                           <DropdownMenuItem
                             onClick={() => handleDelete(product.id)}
@@ -457,8 +508,11 @@ export function ProductsTable({
           </TableBody>
         </Table>
       </div>
-      <div className="text-center text-xs text-muted-foreground">
-        Showing {products.length} of {totalCount} products
+      <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
+        <span>Showing <strong>{products.length}</strong> of <strong>{totalCount}</strong> products</span>
+        {selectedIds.length > 0 && (
+          <span className="text-slate-600 font-medium">{selectedIds.length} selected</span>
+        )}
       </div>
 
       {/* BUG FIX: replaces window.confirm() with proper Dialog */}

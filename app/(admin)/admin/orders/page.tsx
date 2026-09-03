@@ -57,10 +57,9 @@ export default function AdminOrdersPage() {
               <option value="">All Statuses</option>
               <option value="draft">Draft</option>
               <option value="pending_payment">Pending Payment</option>
-              <option value="paid">Paid</option>
-              <option value="preparing">Preparing</option>
-              <option value="shipped">Shipped</option>
-              <option value="delivered">Delivered</option>
+              <option value="confirmed">Pending</option>
+              <option value="preparing">Processing</option>
+              <option value="completed">Completed</option>
               <option value="cancelled">Cancelled</option>
             </select>
           </div>

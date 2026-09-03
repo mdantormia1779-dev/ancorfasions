@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Plus } from "lucide-react";
 import { format } from "date-fns";
+import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Purchase Orders | Anchor Fashion",
@@ -33,8 +34,10 @@ export default async function PurchasesPage() {
             Manage procurement and receiving.
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Create PO
+        <Button asChild>
+          <Link href="/admin/inventory/purchases/new">
+            <Plus className="mr-2 h-4 w-4" /> Create PO
+          </Link>
         </Button>
       </div>
 

@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import {
-  upsertHeroSlide,
+  upsertHeroSlideWithUpload,
   deleteHeroSlide,
   HeroSlide,
 } from "@/actions/cms.actions";
@@ -31,6 +31,8 @@ const SLIDE_FALLBACKS = [
 type EditSlide = Partial<HeroSlide> & {
   image_url: string;
   link_url: string;
+  alt_text?: string;
+  file?: File | null;
   isNew?: boolean;
 };
 
@@ -64,27 +66,43 @@ export function BannersManager({
     setEditingId(newSlide.id as string);
   };
 
-  const updateSlide = (id: string, field: string, value: string | null) => {
+  const updateSlide = (id: string, field: string, value: any) => {
     setSlides(slides.map((s) => (s.id === id ? { ...s, [field]: value } : s)));
   };
 
   const saveSlide = (slide: EditSlide) => {
-    if (!slide.image_url) {
-      toast.error("Image URL is required.");
+    if (!slide.image_url && !slide.file) {
+      toast.error("An image is required.");
       return;
     }
     startTransition(async () => {
-      const result = await upsertHeroSlide({
-        id: slide.isNew ? undefined : (slide.id as string),
-        image_url: slide.image_url,
-        link_url: slide.link_url,
-      });
+      const formData = new FormData();
+      if (!slide.isNew) {
+        formData.append("id", slide.id as string);
+      }
+      formData.append("link_url", slide.link_url);
+      if (slide.image_url) {
+        formData.append("image_url", slide.image_url);
+      }
+      formData.append("display_order", String(slide.display_order));
+      if (slide.alt_text) {
+        formData.append("alt_text", slide.alt_text);
+      }
+      if (slide.file) {
+        formData.append("file", slide.file);
+      }
+
+      const result = await upsertHeroSlideWithUpload(formData);
       if (result.success) {
         toast.success("Banner saved successfully!");
         setEditingId(null);
-        // Mark as saved
+        // Mark as saved and update image_url from the response if it was uploaded
         setSlides(
-          slides.map((s) => (s.id === slide.id ? { ...s, isNew: false } : s))
+          slides.map((s) => 
+            s.id === slide.id 
+              ? { ...s, isNew: false, image_url: result.image_url || s.image_url, file: null } 
+              : s
+          )
         );
       } else {
         toast.error(result.error ?? "Failed to save banner.");
@@ -191,23 +209,25 @@ export function BannersManager({
                   <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                     <div className="space-y-2">
                       <Label htmlFor={`img-${slide.id}`}>
-                        Image URL <span className="text-destructive">*</span>
+                        Banner Image <span className="text-destructive">*</span>
                       </Label>
                       <Input
                         id={`img-${slide.id}`}
-                        value={slide.image_url}
-                        onChange={(e) =>
-                          updateSlide(
-                            slide.id as string,
-                            "image_url",
-                            e.target.value
-                          )
-                        }
-                        placeholder="/images/home/hero-banner.png or https://..."
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) {
+                            updateSlide(slide.id as string, "file", file);
+                            // Also clear image_url so that we know we are using the new file? No, keep it as fallback.
+                          }
+                        }}
                       />
+                      {slide.image_url && !slide.file && (
+                        <p className="text-xs text-muted-foreground truncate">Current: {slide.image_url.split('/').pop()}</p>
+                      )}
                       <p className="text-xs text-muted-foreground">
-                        Use a local path (e.g., /images/...) or an external URL.
-                        Recommended size: 1600×600px.
+                        Recommended size: 1600×600px. Upload a new image to replace the current one.
                       </p>
                     </div>
                     <div className="space-y-2">
@@ -226,6 +246,23 @@ export function BannersManager({
                           )
                         }
                         placeholder="/products or /categories/sale"
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor={`alt-${slide.id}`}>
+                        Alt Text
+                      </Label>
+                      <Input
+                        id={`alt-${slide.id}`}
+                        value={slide.alt_text || ""}
+                        onChange={(e) =>
+                          updateSlide(
+                            slide.id as string,
+                            "alt_text",
+                            e.target.value
+                          )
+                        }
+                        placeholder="Description of the banner image for accessibility (optional)"
                       />
                     </div>
                   </div>
