@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { CreateProductInput, Product } from "@/types/catalog.types";
 import { cache } from "react";
 
@@ -127,7 +128,7 @@ export class ProductRepository {
    * Creates a new product along with SEO and tags.
    */
   static async createProduct(input: CreateProductInput) {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const { seo, tags, media, variants, ...productData } = input;
 
@@ -230,7 +231,7 @@ export class ProductRepository {
    * Updates a product
    */
   static async updateProduct(id: string, input: Partial<CreateProductInput>) {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { seo, tags, media, variants, ...productData } = input;
 
     // 1. Update Product — strip undefined so we don't NULL-out existing columns
@@ -376,7 +377,7 @@ export class ProductRepository {
    * Soft deletes a product
    */
   static async deleteProduct(id: string) {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { error } = await supabase
       .from("products")
       .update({ deleted_at: new Date().toISOString(), status: "ARCHIVED" })
