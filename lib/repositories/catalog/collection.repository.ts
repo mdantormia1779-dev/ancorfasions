@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   Collection,
   CreateCollectionInput,
@@ -41,7 +42,7 @@ export class CollectionRepository {
   static async createCollection(
     input: CreateCollectionInput
   ): Promise<Collection> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { data, error } = await supabase
       .from("collections")
       .insert(input)
@@ -58,7 +59,7 @@ export class CollectionRepository {
     id: string,
     input: UpdateCollectionInput
   ): Promise<Collection> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { data, error } = await supabase
       .from("collections")
       .update(input)
@@ -73,7 +74,7 @@ export class CollectionRepository {
    * Soft-deletes a collection by setting is_active=false.
    */
   static async deleteCollection(id: string): Promise<void> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { error } = await supabase
       .from("collections")
       .update({ is_active: false })

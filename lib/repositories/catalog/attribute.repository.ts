@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   Attribute,
   CreateAttributeInput,
@@ -33,7 +34,7 @@ export class AttributeRepository {
    * Creates a new attribute.
    */
   static async createAttribute(input: CreateAttributeInput): Promise<Attribute> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { data, error } = await supabase
       .from("attributes")
       .insert(input)
@@ -50,7 +51,7 @@ export class AttributeRepository {
     id: string,
     input: UpdateAttributeInput
   ): Promise<Attribute> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { data, error } = await supabase
       .from("attributes")
       .update(input)
@@ -68,7 +69,7 @@ export class AttributeRepository {
     attributeId: string,
     value: string
   ): Promise<void> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { error } = await supabase
       .from("attribute_values")
       .insert({ attribute_id: attributeId, value });
@@ -79,7 +80,7 @@ export class AttributeRepository {
    * Removes a specific attribute value by its ID.
    */
   static async removeAttributeValue(valueId: string): Promise<void> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { error } = await supabase
       .from("attribute_values")
       .delete()
@@ -91,7 +92,7 @@ export class AttributeRepository {
    * Deletes an attribute and all its values (cascade).
    */
   static async deleteAttribute(id: string): Promise<void> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { error } = await supabase.from("attributes").delete().eq("id", id);
     if (error) throw error;
   }

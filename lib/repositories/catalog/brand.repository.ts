@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { Brand, CreateBrandInput, UpdateBrandInput } from "@/types/catalog.types";
 
 export class BrandRepository {
@@ -33,7 +34,7 @@ export class BrandRepository {
    * Creates a new brand.
    */
   static async createBrand(input: CreateBrandInput): Promise<Brand> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { data, error } = await supabase
       .from("brands")
       .insert(input)
@@ -47,7 +48,7 @@ export class BrandRepository {
    * Updates an existing brand by ID.
    */
   static async updateBrand(id: string, input: UpdateBrandInput): Promise<Brand> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { data, error } = await supabase
       .from("brands")
       .update(input)
@@ -63,7 +64,7 @@ export class BrandRepository {
    * Preserves referential integrity with products that reference this brand.
    */
   static async deleteBrand(id: string): Promise<void> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { error } = await supabase
       .from("brands")
       .update({ is_active: false })

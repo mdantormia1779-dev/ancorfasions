@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   Category,
   CreateCategoryInput,
@@ -38,7 +39,7 @@ export class CategoryRepository {
    * Creates a new category.
    */
   static async createCategory(input: CreateCategoryInput): Promise<Category> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { data, error } = await supabase
       .from("categories")
       .insert(input)
@@ -55,7 +56,7 @@ export class CategoryRepository {
     id: string,
     input: UpdateCategoryInput
   ): Promise<Category> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { data, error } = await supabase
       .from("categories")
       .update(input)
@@ -73,7 +74,7 @@ export class CategoryRepository {
    * and are not orphaned.
    */
   static async deleteCategory(id: string): Promise<void> {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     const { error } = await supabase
       .from("categories")
       .update({ is_active: false })
