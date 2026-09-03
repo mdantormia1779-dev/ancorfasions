@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { CMSPage, CMSSection, CMSNavigation } from "@/types/cms.types";
+import { CMSPage, CMSSection, CMSNavigation, CMSPageBlock } from "@/types/cms.types";
 
 export class CMSRepository {
   async getPages(): Promise<CMSPage[]> {
@@ -68,6 +68,44 @@ export class CMSRepository {
 
     if (error) throw new Error(error.message);
     return data;
+  }
+
+  async getPageBlocks(pageId: string): Promise<CMSPageBlock[]> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("cms_page_blocks")
+      .select("*")
+      .eq("page_id", pageId)
+      .order("display_order", { ascending: true });
+
+    if (error) throw new Error(error.message);
+    return data || [];
+  }
+
+  async savePageBlocks(pageId: string, blocks: Partial<CMSPageBlock>[]): Promise<void> {
+    const supabase = await createClient();
+    // Simple sync: delete existing blocks and insert new ones
+    const { error: deleteError } = await supabase
+      .from("cms_page_blocks")
+      .delete()
+      .eq("page_id", pageId);
+
+    if (deleteError) throw new Error(deleteError.message);
+
+    if (blocks.length > 0) {
+      const inserts = blocks.map((b, idx) => ({
+        page_id: pageId,
+        section_type: b.section_type,
+        content_json: b.content_json,
+        display_order: idx,
+        is_active: b.is_active ?? true,
+      }));
+      const { error: insertError } = await supabase
+        .from("cms_page_blocks")
+        .insert(inserts);
+
+      if (insertError) throw new Error(insertError.message);
+    }
   }
 
   async getNavigationByLocation(

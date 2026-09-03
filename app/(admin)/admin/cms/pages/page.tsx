@@ -94,7 +94,7 @@ export default async function PageManager() {
                   <TableCell>
                     <Badge
                       variant={
-                        page.status === "published" ? "default" : "outline"
+                        page.status === "PUBLISHED" ? "default" : "outline"
                       }
                     >
                       {page.status}

@@ -25,9 +25,7 @@ export default function NewPage() {
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
-    status: "draft",
-    author_id: "00000000-0000-0000-0000-000000000000", // Need auth context ideally
-    layout_data: {},
+    status: "DRAFT",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

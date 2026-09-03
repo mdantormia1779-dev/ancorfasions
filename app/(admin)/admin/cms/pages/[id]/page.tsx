@@ -28,8 +28,7 @@ export default function EditPage() {
   const [formData, setFormData] = useState({
     title: "",
     slug: "",
-    status: "draft",
-    layout_data: {},
+    status: "DRAFT",
   });
 
   useEffect(() => {
@@ -42,7 +41,6 @@ export default function EditPage() {
             title: page.title,
             slug: page.slug,
             status: page.status,
-            layout_data: page.layout_data || {},
           });
         } else {
           toast.error("Page not found");

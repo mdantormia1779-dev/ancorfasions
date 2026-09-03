@@ -1,13 +1,24 @@
-export type CMSPageStatus = "draft" | "published" | "archived";
+export type CMSPageStatus = "DRAFT" | "PUBLISHED" | "ARCHIVED";
 
 export interface CMSPage {
   id: string;
   title: string;
   slug: string;
   status: CMSPageStatus;
-  author_id: string;
+  template?: string;
+  seo_metadata?: Record<string, any>;
   published_at: Date | null;
-  layout_data: Record<string, any>;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CMSPageBlock {
+  id: string;
+  page_id: string;
+  section_type: string;
+  content_json: Record<string, any>;
+  display_order: number;
+  is_active: boolean;
   created_at: Date;
   updated_at: Date;
 }

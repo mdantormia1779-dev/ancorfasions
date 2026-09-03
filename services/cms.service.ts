@@ -4,7 +4,7 @@ import {
   cmsSectionSchema,
   cmsNavigationSchema,
 } from "@/validators/cms.schema";
-import { CMSPage, CMSSection, CMSNavigation } from "@/types/cms.types";
+import { CMSPage, CMSSection, CMSNavigation, CMSPageBlock } from "@/types/cms.types";
 
 const cmsRepository = new CMSRepository();
 
@@ -29,6 +29,14 @@ export class CMSService {
 
   async deletePage(id: string): Promise<void> {
     await cmsRepository.deletePage(id);
+  }
+
+  async getPageBlocks(pageId: string): Promise<CMSPageBlock[]> {
+    return await cmsRepository.getPageBlocks(pageId);
+  }
+
+  async savePageBlocks(pageId: string, blocks: Partial<CMSPageBlock>[]): Promise<void> {
+    await cmsRepository.savePageBlocks(pageId, blocks);
   }
 
   async getGlobalSections(): Promise<CMSSection[]> {

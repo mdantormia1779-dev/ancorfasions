@@ -1,7 +1,7 @@
 "use server";
 
 import { cmsService } from "@/services/cms.service";
-import { CMSPage, CMSSection, CMSNavigation } from "@/types/cms.types";
+import { CMSPage, CMSSection, CMSNavigation, CMSPageBlock } from "@/types/cms.types";
 import { revalidatePath } from "next/cache";
 
 export async function getPages(): Promise<CMSPage[]> {
@@ -30,6 +30,16 @@ export async function updatePage(id: string, data: unknown): Promise<CMSPage> {
 export async function deletePage(id: string): Promise<void> {
   await cmsService.deletePage(id);
   revalidatePath("/admin/cms");
+}
+
+export async function getPageBlocks(pageId: string): Promise<CMSPageBlock[]> {
+  return await cmsService.getPageBlocks(pageId);
+}
+
+export async function savePageBlocks(pageId: string, blocks: Partial<CMSPageBlock>[]): Promise<void> {
+  await cmsService.savePageBlocks(pageId, blocks);
+  revalidatePath("/admin/cms");
+  // Might want to revalidate the exact public page here if we know the slug
 }
 
 export async function getGlobalSections(): Promise<CMSSection[]> {

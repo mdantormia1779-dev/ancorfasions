@@ -3,10 +3,10 @@ import { z } from "zod";
 export const cmsPageSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
   slug: z.string().min(1, "Slug is required").max(255),
-  status: z.enum(["draft", "published", "archived"]).default("draft"),
-  author_id: z.string().uuid(),
+  status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).default("DRAFT"),
+  template: z.string().optional().default("default"),
+  seo_metadata: z.record(z.any()).optional(),
   published_at: z.date().nullable().optional(),
-  layout_data: z.record(z.any()).default({}),
 });
 
 export const cmsSectionSchema = z.object({
