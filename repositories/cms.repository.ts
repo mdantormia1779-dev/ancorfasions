@@ -113,7 +113,7 @@ export class CMSRepository {
   ): Promise<CMSNavigation | null> {
     const supabase = await createClient();
     const { data, error } = await supabase
-      .from("cms_navigation")
+      .from("cms_menus")
       .select("*")
       .eq("location", location)
       .single();
@@ -122,6 +122,25 @@ export class CMSRepository {
       if (error.code === "PGRST116") return null;
       throw new Error(error.message);
     }
-    return data;
+    return {
+      ...data,
+      items: data.menu_structure || [],
+    };
+  }
+
+  async saveNavigation(location: string, name: string, items: any[]): Promise<CMSNavigation> {
+    const { createAdminClient } = await import("@/lib/supabase/server");
+    const supabase = await createAdminClient();
+    const { data, error } = await supabase
+      .from("cms_menus")
+      .upsert({ location, name, menu_structure: items }, { onConflict: "location" })
+      .select()
+      .single();
+    
+    if (error) throw new Error(error.message);
+    return {
+      ...data,
+      items: data.menu_structure || [],
+    };
   }
 }

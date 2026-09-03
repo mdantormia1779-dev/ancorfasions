@@ -46,6 +46,10 @@ export class CMSService {
   async getNavigation(location: string): Promise<CMSNavigation | null> {
     return await cmsRepository.getNavigationByLocation(location);
   }
+
+  async saveNavigation(location: string, name: string, items: any[]): Promise<CMSNavigation> {
+    return await cmsRepository.saveNavigation(location, name, items);
+  }
 }
 
 export const cmsService = new CMSService();

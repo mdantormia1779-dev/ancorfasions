@@ -52,6 +52,16 @@ export async function getNavigation(
   return await cmsService.getNavigation(location);
 }
 
+export async function saveNavigation(
+  location: string,
+  name: string,
+  items: any[]
+): Promise<CMSNavigation> {
+  const nav = await cmsService.saveNavigation(location, name, items);
+  revalidatePath("/admin/cms/menus");
+  return nav;
+}
+
 // Media
 export async function getMedia() {
   const { createClient } = await import("@/lib/supabase/server");
@@ -62,6 +72,42 @@ export async function getMedia() {
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
   return data;
+}
+
+export async function uploadMedia(formData: FormData) {
+  const file = formData.get("file") as File;
+  if (!file) throw new Error("No file uploaded");
+
+  const { createAdminClient } = await import("@/lib/supabase/server");
+  const supabase = await createAdminClient();
+  
+  const { data: { user } } = await supabase.auth.getUser();
+
+  const fileExt = file.name.split(".").pop();
+  const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
+  const filePath = `${fileName}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from("media")
+    .upload(filePath, file);
+
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { data: publicUrlData } = supabase.storage
+    .from("media")
+    .getPublicUrl(filePath);
+
+  const { error: dbError } = await supabase.from("cms_media").insert({
+    file_name: file.name,
+    file_url: publicUrlData.publicUrl,
+    file_type: file.type,
+    file_size_bytes: file.size,
+    uploaded_by: user?.id,
+  });
+
+  if (dbError) throw new Error(dbError.message);
+
+  revalidatePath("/admin/cms/media");
 }
 
 // Banners

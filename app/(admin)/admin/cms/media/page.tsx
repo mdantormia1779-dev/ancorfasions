@@ -23,6 +23,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Image from "next/image";
+import { MediaUploader } from "@/components/cms/MediaUploader";
 
 export const metadata = {
   title: "Media Library | CMS",
@@ -61,9 +62,7 @@ export default async function MediaLibrary() {
           <Button variant="outline">
             <Filter className="mr-2 h-4 w-4" /> Filter
           </Button>
-          <Button>
-            <Upload className="mr-2 h-4 w-4" /> Upload Media
-          </Button>
+          <MediaUploader />
         </div>
       </div>
 

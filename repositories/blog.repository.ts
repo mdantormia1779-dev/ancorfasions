@@ -1,4 +1,4 @@
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
 import { BlogPost, BlogCategory, BlogTag } from "@/types/blog.types";
 
 export class BlogRepository {
@@ -34,7 +34,7 @@ export class BlogRepository {
   }
 
   async createPost(post: Partial<BlogPost>): Promise<BlogPost> {
-    const supabase = await createAdminClient();
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from("blog_posts")
       .insert(post)
@@ -46,7 +46,7 @@ export class BlogRepository {
   }
 
   async updatePost(id: string, updates: Partial<BlogPost>): Promise<BlogPost> {
-    const supabase = await createAdminClient();
+    const supabase = await createClient();
     const { data, error } = await supabase
       .from("blog_posts")
       .update(updates)
@@ -59,7 +59,7 @@ export class BlogRepository {
   }
 
   async deletePost(id: string): Promise<void> {
-    const supabase = await createAdminClient();
+    const supabase = await createClient();
     const { error } = await supabase.from("blog_posts").delete().eq("id", id);
     if (error) throw new Error(error.message);
   }
