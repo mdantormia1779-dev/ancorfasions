@@ -318,7 +318,7 @@ export function ProductsTable({
       <div className="rounded-md border border-border bg-card text-card-foreground">
         <Table>
           <TableHeader>
-            <TableRow className="bg-slate-50/80">
+            <TableRow className="bg-muted/50">
               <TableHead className="w-12 pl-4">
                 {/* BUG FIX: support indeterminate state */}
                 <Checkbox
@@ -326,13 +326,13 @@ export function ProductsTable({
                   onCheckedChange={handleSelectAll}
                 />
               </TableHead>
-              <TableHead className="font-semibold text-slate-700">Product</TableHead>
-              <TableHead className="font-semibold text-slate-700">Status</TableHead>
-              <TableHead className="font-semibold text-slate-700">Variants</TableHead>
-              <TableHead className="font-semibold text-slate-700">Price</TableHead>
-              <TableHead className="font-semibold text-slate-700">Category</TableHead>
-              <TableHead className="font-semibold text-slate-700">Added</TableHead>
-              <TableHead className="pr-4 text-right font-semibold text-slate-700">Actions</TableHead>
+              <TableHead className="font-semibold text-foreground/70">Product</TableHead>
+              <TableHead className="font-semibold text-foreground/70">Status</TableHead>
+              <TableHead className="font-semibold text-foreground/70">Variants</TableHead>
+              <TableHead className="font-semibold text-foreground/70">Price</TableHead>
+              <TableHead className="font-semibold text-foreground/70">Category</TableHead>
+              <TableHead className="font-semibold text-foreground/70">Added</TableHead>
+              <TableHead className="pr-4 text-right font-semibold text-foreground/70">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -376,11 +376,11 @@ export function ProductsTable({
                           )}
                         </div>
                         <div className="flex flex-col min-w-0">
-                          <span className="font-semibold text-slate-900 truncate max-w-[180px]">
+                          <span className="font-semibold text-foreground truncate max-w-[180px]">
                             {product.name}
                           </span>
                           {product.sku && (
-                            <span className="text-xs text-slate-400 font-mono">
+                            <span className="text-xs text-muted-foreground font-mono">
                               {product.sku}
                             </span>
                           )}
@@ -425,7 +425,7 @@ export function ProductsTable({
                       </div>
                     </TableCell>
                     <TableCell>
-                      <span className="text-sm font-semibold text-slate-900">
+                      <span className="text-sm font-semibold text-foreground">
                         {formatCurrency(product.basePrice)}
                       </span>
                     </TableCell>

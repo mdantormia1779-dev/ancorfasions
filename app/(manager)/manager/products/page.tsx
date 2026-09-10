@@ -12,7 +12,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Download, Filter, Plus, Search, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { ProductRepository } from "@/lib/repositories/catalog/product.repository";
+import { ExportProductsButton } from "./ExportProductsButton";
+import { getAdminProductsAction } from "@/lib/actions/admin/products.actions";
 import { formatCurrency } from "@/lib/utils";
 
 export const metadata: Metadata = {
@@ -27,9 +28,8 @@ export default async function ProductsPage({
   const search = (await searchParams).search || "";
   const page = parseInt((await searchParams).page || "1", 10);
 
-  // Fetch real data from the database
-  const res = await ProductRepository.getProducts({ search, page, limit: 20 });
-  const products = res.products || [];
+  const res = await getAdminProductsAction({ search, page, limit: 20 });
+  const products = res.data?.products || [];
 
   return (
     <div className="flex flex-col gap-6">
@@ -41,10 +41,7 @@ export default async function ProductsPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
+          <ExportProductsButton products={products} />
           <Button>
             <Link href="/manager/products/new" className="flex items-center">
               <Plus className="mr-2 h-4 w-4" />

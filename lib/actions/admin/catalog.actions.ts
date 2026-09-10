@@ -18,8 +18,8 @@ const IdSchema = z.object({ id: z.string().uuid() });
 const CategorySchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   slug: z.string().min(1, "Slug is required").max(255),
-  parent_id: z.string().uuid().nullable().optional(),
-  icon_url: z.string().url().nullable().optional(),
+  parent_id: z.string().uuid().nullable().optional().or(z.literal("").transform(() => null)),
+  icon_url: z.string().url().nullable().optional().or(z.literal("").transform(() => null)),
   is_active: z.boolean().optional().default(true),
   display_order: z.number().int().optional().default(0),
 });
@@ -27,14 +27,14 @@ const CategorySchema = z.object({
 const BrandSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   slug: z.string().min(1, "Slug is required").max(255),
-  logo_url: z.string().url().nullable().optional(),
+  logo_url: z.string().url().nullable().optional().or(z.literal("").transform(() => null)),
   is_active: z.boolean().optional().default(true),
 });
 
 const CollectionSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   slug: z.string().min(1, "Slug is required").max(255),
-  banner_url: z.string().url().nullable().optional(),
+  banner_url: z.string().url().nullable().optional().or(z.literal("").transform(() => null)),
   is_active: z.boolean().optional().default(true),
 });
 

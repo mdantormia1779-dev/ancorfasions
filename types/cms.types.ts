@@ -46,3 +46,17 @@ export interface CMSNavigation {
   created_at: Date;
   updated_at: Date;
 }
+
+export interface CMSMediaItem {
+  id: string;
+  file_name: string;
+  file_url: string;
+  file_type: string;
+  file_size_bytes: number;
+  alt_text?: string | null;
+  folder_path?: string | null;
+  uploaded_by?: string | null;
+  created_at: string;
+  updated_at?: string;
+}
+

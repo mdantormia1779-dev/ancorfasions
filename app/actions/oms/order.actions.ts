@@ -10,7 +10,7 @@ import {
 } from "@/lib/validations/oms";
 import { revalidatePath } from "next/cache";
 import { createClient, createAdminClient } from "@/lib/supabase/server";
-import { ADMIN_ROLES } from "@/lib/constants/auth";
+import { ADMIN_ROLES, MANAGER_ROLES, STAFF_ROLES } from "@/lib/constants/auth";
 
 const orderService = new OrderService();
 const orderRepo = new OrderRepository();
@@ -61,7 +61,7 @@ export async function getOrderDetailsAction(id: string) {
     let clientToUse = supabase;
     if (user) {
       const role = user.user_metadata?.role || user.app_metadata?.role || "CUSTOMER";
-      if (ADMIN_ROLES.includes(role)) {
+      if (MANAGER_ROLES.includes(role)) {
         clientToUse = await createAdminClient();
       }
     }
@@ -84,21 +84,46 @@ export async function fetchOrdersAction(params: {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     
-    let clientToUse = supabase;
+    let isStaffOrManager = false;
     if (user) {
-      const role = user.user_metadata?.role || user.app_metadata?.role || "CUSTOMER";
-      if (ADMIN_ROLES.includes(role)) {
-        clientToUse = await createAdminClient();
+      const role = String(user.user_metadata?.role || user.app_metadata?.role || "").toUpperCase();
+      if (
+        (ADMIN_ROLES as readonly string[]).includes(role) ||
+        (MANAGER_ROLES as readonly string[]).includes(role) ||
+        (STAFF_ROLES as readonly string[]).includes(role)
+      ) {
+        isStaffOrManager = true;
       } else {
-        // Enforce customer can only query their own orders
-        params.customerId = user.id;
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("roles(name)")
+          .eq("id", user.id)
+          .maybeSingle();
+        const pRole = String(
+          Array.isArray(profile?.roles)
+            ? profile?.roles[0]?.name
+            : (profile?.roles as any)?.name || ""
+        ).toUpperCase();
+        if (
+          (ADMIN_ROLES as readonly string[]).includes(pRole) ||
+          (MANAGER_ROLES as readonly string[]).includes(pRole) ||
+          (STAFF_ROLES as readonly string[]).includes(pRole)
+        ) {
+          isStaffOrManager = true;
+        }
       }
+    }
+
+    const clientToUse = isStaffOrManager ? await createAdminClient() : supabase;
+    if (!isStaffOrManager && user) {
+      params.customerId = user.id;
     }
 
     const orders = await orderRepo.getOrders(params, clientToUse);
     return { success: true, data: orders };
   } catch (error: any) {
-    return { success: false, error: error.message };
+    console.error("[fetchOrdersAction Error]:", error);
+    return { success: false, error: error.message || "Failed to fetch orders" };
   }
 }
 

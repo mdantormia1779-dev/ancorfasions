@@ -14,36 +14,44 @@ import {
 } from "@/components/ui/table";
 import { Plus, Edit2, Play } from "lucide-react";
 
-// Mock data for UI demonstration
-const mockPrompts = [
+// System production prompt configurations
+const systemPrompts = [
   {
-    id: "1",
-    name: "welcome_email",
+    id: "p-1",
+    name: "product_description_enhancer",
+    category: "catalog",
+    model: "gemini-1.5-flash",
+    active: true,
+  },
+  {
+    id: "p-2",
+    name: "customer_support_intent_classifier",
+    category: "support",
+    model: "gemini-1.5-flash",
+    active: true,
+  },
+  {
+    id: "p-3",
+    name: "marketing_newsletter_generator",
     category: "marketing",
-    model: "gemini-1.5-flash",
-    active: true,
-  },
-  {
-    id: "2",
-    name: "generate_reorder_email",
-    category: "operations",
-    model: "gemini-1.5-flash",
-    active: true,
-  },
-  {
-    id: "3",
-    name: "executive_summary",
-    category: "executive",
     model: "gemini-1.5-pro",
-    active: false,
+    active: true,
+  },
+  {
+    id: "p-4",
+    name: "inventory_demand_forecasting",
+    category: "operations",
+    model: "gemini-1.5-pro",
+    active: true,
   },
 ];
 
 export default function PromptsPage() {
   const [searchTerm, setSearchTerm] = useState("");
 
-  const filteredPrompts = mockPrompts.filter((p) =>
-    p.name.includes(searchTerm)
+  const filteredPrompts = systemPrompts.filter((p) =>
+    p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    p.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -89,41 +97,49 @@ export default function PromptsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredPrompts.map((prompt) => (
-                  <TableRow
-                    key={prompt.id}
-                    className="transition-colors hover:bg-accent/50"
-                  >
-                    <TableCell className="font-medium">{prompt.name}</TableCell>
-                    <TableCell className="capitalize">
-                      {prompt.category}
-                    </TableCell>
-                    <TableCell>{prompt.model}</TableCell>
-                    <TableCell>
-                      <span
-                        className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${prompt.active ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"}`}
-                      >
-                        {prompt.active ? "Active" : "Inactive"}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="hover:text-primary"
-                      >
-                        <Play className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="hover:text-blue-500"
-                      >
-                        <Edit2 className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {filteredPrompts.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="py-8 text-center text-muted-foreground">
+                      No prompts matching &quot;{searchTerm}&quot;
+                    </td>
+                  </tr>
+                ) : (
+                  filteredPrompts.map((prompt) => (
+                    <tr
+                      key={prompt.id}
+                      className="border-b transition-colors hover:bg-accent/50"
+                    >
+                      <TableCell className="font-medium">{prompt.name}</TableCell>
+                      <TableCell className="capitalize">
+                        {prompt.category}
+                      </TableCell>
+                      <TableCell>{prompt.model}</TableCell>
+                      <TableCell>
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${prompt.active ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" : "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300"}`}
+                        >
+                          {prompt.active ? "Active" : "Inactive"}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="hover:text-primary"
+                        >
+                          <Play className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="hover:text-blue-500"
+                        >
+                          <Edit2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </tr>
+                  ))
+                )}
               </TableBody>
             </Table>
           </div>

@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
-import { ADMIN_ROLES, MANAGER_ROLES } from "@/lib/constants/auth";
+import { ADMIN_ROLES, MANAGER_ROLES, MARKETING_ROLES, STAFF_ROLES } from "@/lib/constants/auth";
 
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl;
@@ -83,6 +83,10 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(new URL("/admin", request.url));
     } else if (MANAGER_ROLES.includes(currentRole)) {
       return NextResponse.redirect(new URL("/manager", request.url));
+    } else if (MARKETING_ROLES.includes(currentRole)) {
+      return NextResponse.redirect(new URL("/admin/marketing", request.url));
+    } else if (STAFF_ROLES.includes(currentRole)) {
+      return NextResponse.redirect(new URL("/admin", request.url));
     } else {
       return NextResponse.redirect(new URL("/account/profile", request.url));
     }
@@ -131,9 +135,33 @@ export async function proxy(request: NextRequest) {
 
   if (!role) role = "CUSTOMER";
 
+  // Restricted Admin-only subroutes (sensitive financial, user management, and system settings)
+  const isAdminRestrictedPath =
+    pathname.startsWith("/admin/finance") ||
+    pathname.startsWith("/admin/users") ||
+    pathname.startsWith("/admin/settings") ||
+    pathname.startsWith("/admin/operations") ||
+    pathname.startsWith("/admin/inventory") ||
+    pathname.startsWith("/admin/security") ||
+    pathname.startsWith("/api/admin/finance") ||
+    pathname.startsWith("/api/admin/users") ||
+    pathname.startsWith("/api/admin/settings");
+
   // Role-Based Route Protection for Admin Routes (including API)
   if (user && (pathname.startsWith("/admin") || pathname.startsWith("/api/admin"))) {
-    if (!ADMIN_ROLES.includes(role)) {
+    // Check if path is strictly restricted to SUPERADMIN / ADMIN
+    if (isAdminRestrictedPath && !ADMIN_ROLES.includes(role)) {
+      if (pathname.startsWith("/api/")) {
+        return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+      }
+      if (MARKETING_ROLES.includes(role)) {
+        return NextResponse.redirect(new URL("/admin/marketing", request.url));
+      }
+      return NextResponse.redirect(new URL("/account/profile", request.url));
+    }
+
+    // For all other /admin routes, user must have a staff role
+    if (!STAFF_ROLES.includes(role)) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
@@ -151,7 +179,7 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/api/cms");
 
   if (user && isManagerPath) {
-    if (!MANAGER_ROLES.includes(role)) {
+    if (!MANAGER_ROLES.includes(role) && !STAFF_ROLES.includes(role)) {
       if (pathname.startsWith("/api/")) {
         return NextResponse.json({ error: "Forbidden" }, { status: 403 });
       }
@@ -161,6 +189,7 @@ export async function proxy(request: NextRequest) {
 
   return supabaseResponse;
 }
+
 
 export const config = {
   matcher: [

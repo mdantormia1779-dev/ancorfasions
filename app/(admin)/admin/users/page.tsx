@@ -19,7 +19,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Search, UserPlus, Filter, MoreHorizontal } from "lucide-react";
+import { Search, Filter, MoreHorizontal } from "lucide-react";
+import { AddUserDialog } from "./AddUserDialog";
 import { fetchAdminUsersAction, toggleUserStatusAction } from "@/app/actions/admin/users.actions";
 import { toast } from "sonner";
 import {
@@ -75,10 +76,7 @@ export default function UserManagementPage() {
             Manage enterprise staff, roles, and access control securely.
           </p>
         </div>
-        <Button onClick={() => toast.info("Add User modal coming soon")}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
+        <AddUserDialog />
       </div>
 
       <Card>

@@ -41,6 +41,7 @@ import {
   getBrandsAction,
   getTagsAction,
 } from "@/lib/actions/admin/products.actions";
+import { uploadImageAction } from "@/lib/actions/upload.actions";
 
 // Currency symbol — BDT (Bangladesh Taka). Change via Admin Settings → Store.
 const CURRENCY_SYMBOL = "৳";
@@ -75,8 +76,6 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     loadData();
   }, []);
 
-  // useMemo prevents creating a new Supabase client instance on every render
-  const supabase = useMemo(() => createClient(), []);
   const [uploadingImage, setUploadingImage] = useState<number | null>(null);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
@@ -85,21 +84,19 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
       const file = e.target.files[0];
       setUploadingImage(index);
 
-      const fileExt = file.name.split('.').pop();
-      // crypto.randomUUID() is cryptographically secure — prevents collisions
-      const fileName = `${crypto.randomUUID()}.${fileExt}`;
-      const filePath = `product-images/${fileName}`;
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", "products");
+      formData.append("folder", "product-images");
 
-      const { error: uploadError } = await supabase.storage
-        .from('products')
-        .upload(filePath, file, { cacheControl: '3600', upsert: false });
+      const res = await uploadImageAction(formData);
 
-      if (uploadError) throw uploadError;
-
-      const { data } = supabase.storage.from('products').getPublicUrl(filePath);
-      
-      form.setValue(`media.${index}.url`, data.publicUrl);
-      toast.success("Image uploaded successfully");
+      if (res.success && res.url) {
+        form.setValue(`media.${index}.url`, res.url);
+        toast.success("Image uploaded successfully");
+      } else {
+        toast.error(res.error || "Failed to upload image");
+      }
     } catch (error: any) {
       toast.error(error.message || "Failed to upload image");
     } finally {
@@ -174,14 +171,40 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
   });
 
   const submitWithStatus = async (status: "DRAFT" | "ACTIVE") => {
+    // If slug is empty, auto-generate from name
+    const currentName = form.getValues("name")?.trim();
+    const currentSlug = form.getValues("slug")?.trim();
+    if (!currentSlug && currentName) {
+      const generatedSlug = currentName
+        .toLowerCase()
+        .replace(/[^\w\s-]/g, "")
+        .replace(/\s+/g, "-");
+      form.setValue("slug", generatedSlug);
+    }
+
+    const currentCat = form.getValues("categoryId");
+    if (!currentCat || currentCat === "") {
+      toast.error("Please select a category for the product.");
+      return;
+    }
+
     const valid = await form.trigger();
     if (!valid) {
       toast.error("Please fix the form errors before saving.");
       return;
     }
-    const data = { ...form.getValues(), status };
+
+    const rawValues = form.getValues();
+    const data = {
+      ...rawValues,
+      status,
+      brandId: rawValues.brandId && rawValues.brandId !== "" && rawValues.brandId !== "none" ? rawValues.brandId : null,
+      categoryId: rawValues.categoryId,
+    };
+
     if (status === "ACTIVE") setIsPublishing(true);
     else setIsLoading(true);
+
     try {
       if (initialData) {
         const res = await updateAdminProductAction({ id: initialData.id, data });
@@ -779,7 +802,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          <SelectItem value="">No Brand</SelectItem>
+                          <SelectItem value="none">No Brand</SelectItem>
                           {brands.map((brand) => (
                             <SelectItem key={brand.id} value={brand.id}>
                               {brand.name}

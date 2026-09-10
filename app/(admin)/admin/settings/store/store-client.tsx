@@ -59,7 +59,25 @@ export function StoreSettingsClient({ initialConfig }: { initialConfig: StoreCon
             id="currency" 
             value={config.currency} 
             onChange={(e) => setConfig({ ...config, currency: e.target.value })} 
+            placeholder="e.g. BDT (৳)"
           />
+          <div className="flex gap-2 pt-1">
+            {["BDT (৳)", "USD ($)", "EUR (€)", "GBP (£)"].map((cur) => (
+              <Button
+                key={cur}
+                type="button"
+                variant={config.currency === cur ? "default" : "outline"}
+                size="sm"
+                className="text-xs h-7"
+                onClick={() => setConfig({ ...config, currency: cur })}
+              >
+                {cur}
+              </Button>
+            ))}
+          </div>
+          <p className="text-xs text-muted-foreground">
+            This currency applies globally across prices, checkout, invoice generation, and financial reports.
+          </p>
         </div>
         <div className="space-y-2">
           <Label htmlFor="timezone">Timezone</Label>

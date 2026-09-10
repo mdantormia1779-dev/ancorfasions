@@ -26,11 +26,11 @@ export function TopSellersTable({ data = [] }: { data?: any[] }) {
                 <th className="px-6 py-4">Earnings</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100">
+            <tbody className="divide-y divide-border">
               {data.length === 0 ? (
                 <tr><td colSpan={5} className="px-6 py-4 text-center">No top sellers found</td></tr>
               ) : data.map((seller) => (
-                <tr key={seller.product_id} className="hover:bg-muted/50/50 transition-colors">
+                <tr key={seller.product_id} className="hover:bg-muted/50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <div className="h-9 w-9 overflow-hidden rounded-md border border-border relative bg-muted/50 flex items-center justify-center">
@@ -40,13 +40,13 @@ export function TopSellersTable({ data = [] }: { data?: any[] }) {
                           <Package className="h-4 w-4 text-muted-foreground/80" />
                         )}
                       </div>
-                      <span className="font-medium text-foreground/90">{seller.product_name}</span>
+                      <span className="font-medium text-foreground">{seller.product_name}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">{seller.category_name}</td>
-                  <td className="px-6 py-4 font-medium text-foreground/90">{seller.sold}</td>
+                  <td className="px-6 py-4 font-medium text-foreground">{seller.sold}</td>
                   <td className="px-6 py-4">{formatCurrency(seller.price)}</td>
-                  <td className="px-6 py-4 font-medium text-foreground/90">{formatCurrency(seller.earnings)}</td>
+                  <td className="px-6 py-4 font-medium text-foreground">{formatCurrency(seller.earnings)}</td>
                 </tr>
               ))}
             </tbody>

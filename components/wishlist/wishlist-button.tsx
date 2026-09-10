@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
 import { useWishlistStore } from "@/stores/use-wishlist-store";
 import { Button } from "@/components/ui/button";
 import { Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
+import { useSession } from "@/hooks/use-session";
+import { useRouter, usePathname } from "next/navigation";
 
 interface WishlistButtonProps {
   productId: string;
@@ -21,8 +22,9 @@ export function WishlistButton({
   size = "icon",
 }: WishlistButtonProps) {
   const { wishlist, addItem, removeItem, isLoading } = useWishlistStore();
-  const { toast } = useToast();
-  const [localLoading, setLocalLoading] = useState(false);
+  const { user } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
 
   // Check if item is in wishlist
   const wishlistItem = wishlist?.items?.find(
@@ -31,35 +33,26 @@ export function WishlistButton({
   const isWishlisted = !!wishlistItem;
 
   const handleToggle = async (e: React.MouseEvent) => {
-    e.preventDefault(); // Prevent navigation if wrapped in a link
+    e.preventDefault();
     e.stopPropagation();
 
-    if (!wishlist) {
-      toast({
-        title: "Authentication Required",
-        description: "Please sign in to add items to your wishlist.",
-        variant: "destructive",
+    // Auth gate: redirect to login if not authenticated
+    if (!user) {
+      toast.info("Please sign in to save items to your wishlist.", {
+        action: {
+          label: "Sign In",
+          onClick: () => router.push(`/auth/login?next=${encodeURIComponent(pathname)}`),
+        },
       });
       return;
     }
 
-    setLocalLoading(true);
-    try {
-      if (isWishlisted && wishlistItem) {
-        await removeItem(wishlistItem.id);
-        toast({ title: "Removed from wishlist" });
-      } else {
-        await addItem(productId);
-        toast({ title: "Added to wishlist" });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update wishlist.",
-        variant: "destructive",
-      });
-    } finally {
-      setLocalLoading(false);
+    if (isWishlisted && wishlistItem) {
+      await removeItem(wishlistItem.id);
+      toast.success("Removed from wishlist");
+    } else {
+      await addItem(productId);
+      toast.success("Added to wishlist ❤️");
     }
   };
 
@@ -69,12 +62,12 @@ export function WishlistButton({
       size={size}
       className={cn("transition-colors", className)}
       onClick={handleToggle}
-      disabled={isLoading || localLoading}
+      disabled={isLoading}
       title={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
     >
       <Heart
         className={cn(
-          "h-5 w-5",
+          "h-5 w-5 transition-transform hover:scale-110",
           isWishlisted && "fill-destructive text-destructive"
         )}
       />

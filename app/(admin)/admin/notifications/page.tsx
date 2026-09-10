@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Card,
   CardHeader,
@@ -17,33 +17,102 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Bell, Mail, Smartphone, Plus } from "lucide-react";
+import { Bell, Mail, Smartphone, Plus, RefreshCw } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
-const mockTemplates = [
+interface Template {
+  id: string;
+  name: string;
+  type: string;
+  channels: string[];
+  active: boolean;
+}
+
+const defaultTemplates: Template[] = [
   {
-    id: "1",
-    name: "welcome_email",
+    id: "tpl-1",
+    name: "welcome_customer",
     type: "TRANSACTIONAL",
     channels: ["email"],
     active: true,
   },
   {
-    id: "2",
-    name: "abandoned_cart_reminder",
-    type: "MARKETING",
-    channels: ["email", "push"],
+    id: "tpl-2",
+    name: "order_confirmation",
+    type: "TRANSACTIONAL",
+    channels: ["email", "in_app"],
     active: true,
   },
   {
-    id: "3",
-    name: "system_outage_alert",
-    type: "SYSTEM",
-    channels: ["in_app", "email"],
-    active: false,
+    id: "tpl-3",
+    name: "marketing_newsletter",
+    type: "MARKETING",
+    channels: ["email"],
+    active: true,
+  },
+  {
+    id: "tpl-4",
+    name: "password_reset_request",
+    type: "SECURITY",
+    channels: ["email"],
+    active: true,
   },
 ];
 
 export default function NotificationsPage() {
+  const [totalNotifications, setTotalNotifications] = useState<number>(0);
+  const [unreadNotifications, setUnreadNotifications] = useState<number>(0);
+  const [templates, setTemplates] = useState<Template[]>(defaultTemplates);
+  const [loading, setLoading] = useState<boolean>(true);
+
+  const fetchNotificationStats = async () => {
+    setLoading(true);
+    const supabase = createClient();
+    try {
+      const { count: total, error } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true });
+
+      const { count: unread } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .is("read_at", null);
+
+      if (!error && total !== null) {
+        setTotalNotifications(total);
+      }
+      if (unread !== null) {
+        setUnreadNotifications(unread);
+      }
+
+      // Try fetching active templates if table exists
+      const { data: dbTemplates } = await supabase
+        .from("notification_templates")
+        .select("*");
+
+      if (dbTemplates && dbTemplates.length > 0) {
+        setTemplates(
+          dbTemplates.map((t: any) => ({
+            id: t.id,
+            name: t.name,
+            type: t.type || "TRANSACTIONAL",
+            channels: Array.isArray(t.channels) ? t.channels : ["email"],
+            active: t.is_active ?? true,
+          }))
+        );
+      }
+    } catch {
+      // Graceful fallback to default templates and 0 counts
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotificationStats();
+  }, []);
+
   return (
     <div className="space-y-6 duration-500 animate-in fade-in zoom-in">
       <div className="flex items-center justify-between">
@@ -52,56 +121,71 @@ export default function NotificationsPage() {
             Notification Center
           </h1>
           <p className="mt-1 text-muted-foreground">
-            Manage omnichannel communication templates and routing.
+            Omnichannel customer alerts, email dispatch, and communication templates.
           </p>
         </div>
-        <Button className="bg-rose-600 text-white shadow-lg transition-transform hover:scale-105 hover:bg-rose-700">
-          <Plus className="mr-2 h-4 w-4" /> New Template
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={fetchNotificationStats}
+            disabled={loading}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${loading ? "animate-spin" : ""}`} /> Refresh
+          </Button>
+          <Button 
+            onClick={() => toast.info("Template builder will open for customizing message variables.")}
+            className="bg-primary text-primary-foreground shadow-lg transition-transform hover:scale-105"
+          >
+            <Plus className="mr-2 h-4 w-4" /> New Template
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
         <Card className="border-rose-500/20 bg-gradient-to-br from-rose-500/10 to-orange-500/10 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
-              Emails Sent (30d)
+              Total In-App Alerts
             </CardTitle>
-            <Mail className="h-4 w-4 text-rose-500" />
+            <Bell className="h-4 w-4 text-rose-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">45,231</div>
-            <p className="text-xs text-muted-foreground">98.2% Delivery Rate</p>
+            <div className="text-2xl font-bold">{totalNotifications}</div>
+            <p className="text-xs text-muted-foreground">
+              {unreadNotifications} unread by customers
+            </p>
           </CardContent>
         </Card>
         <Card className="border-blue-500/20 bg-gradient-to-br from-blue-500/10 to-cyan-500/10 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">
-              Push Notifications
+              Registered Channels
             </CardTitle>
             <Smartphone className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12,045</div>
-            <p className="text-xs text-muted-foreground">14% Click-through</p>
+            <div className="text-2xl font-bold">2</div>
+            <p className="text-xs text-muted-foreground">Transactional Email & In-App UI</p>
           </CardContent>
         </Card>
         <Card className="border-violet-500/20 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/10 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">In-App Alerts</CardTitle>
-            <Bell className="h-4 w-4 text-violet-500" />
+            <CardTitle className="text-sm font-medium">Active Templates</CardTitle>
+            <Mail className="h-4 w-4 text-violet-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">89,400</div>
-            <p className="text-xs text-muted-foreground">45% Read Rate</p>
+            <div className="text-2xl font-bold">{templates.filter((t) => t.active).length}</div>
+            <p className="text-xs text-muted-foreground">Ready for automated dispatch</p>
           </CardContent>
         </Card>
       </div>
 
       <Card className="border-0 bg-card/50 shadow-lg backdrop-blur-sm">
         <CardHeader>
-          <CardTitle>Message Templates</CardTitle>
+          <CardTitle>Communication Templates</CardTitle>
           <CardDescription>
-            Configure how notifications are presented across channels.
+            Configure how transactional and marketing notifications are presented across channels.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -117,7 +201,7 @@ export default function NotificationsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockTemplates.map((template) => (
+                {templates.map((template) => (
                   <TableRow
                     key={template.id}
                     className="transition-colors hover:bg-accent/50"
@@ -153,9 +237,10 @@ export default function NotificationsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => toast.info(`Viewing template: ${template.name}`)}
                         className="hover:text-primary"
                       >
-                        Edit
+                        Configure
                       </Button>
                     </TableCell>
                   </TableRow>

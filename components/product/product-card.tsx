@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Heart, ShoppingCart } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Heart } from "lucide-react";
 import { Jost } from "next/font/google";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500"] });
 import { useWishlistStore } from "@/stores/use-wishlist-store";
 import { useCartStore } from "@/stores/use-cart-store";
+import { useSession } from "@/hooks/use-session";
+import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
+
+const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500"] });
 
 interface ProductCardProps {
   product: any;
@@ -24,21 +26,41 @@ export function ProductCard({ product, className }: ProductCardProps) {
     removeItemByProductId,
   } = useWishlistStore();
   const { addItem: addCartItem } = useCartStore();
+  const { user } = useSession();
+  const router = useRouter();
 
   const primaryImage =
     product.product_media?.find((img: any) => img.is_primary)?.url ||
     product.product_media?.[0]?.url ||
-    "/images/placeholder.webp"; // Fallback image
+    "/images/placeholder.webp";
 
   const isWished =
     wishlist?.items?.some((item) => item.product_id === product.id) || false;
 
   const handleToggleWishlist = async (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+
+    // Auth gate: redirect to login if not signed in
+    if (!user) {
+      toast.info("Please sign in to save items to your wishlist.", {
+        action: {
+          label: "Sign In",
+          onClick: () =>
+            router.push(
+              `/auth/login?next=${encodeURIComponent(`/product/${product.slug}`)}`
+            ),
+        },
+      });
+      return;
+    }
+
     if (isWished) {
       await removeItemByProductId(product.id);
+      toast.success("Removed from wishlist");
     } else {
       await addWishlistItem(product.id);
+      toast.success("Added to wishlist ❤️");
     }
   };
 

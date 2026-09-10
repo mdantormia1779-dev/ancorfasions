@@ -78,6 +78,7 @@ export async function toggleUserStatusAction(userId: string, isActive: boolean) 
 
 export async function createAdminUserAction(data: {
   email: string;
+  password?: string;
   firstName: string;
   lastName: string;
   roleId: string;
@@ -88,13 +89,11 @@ export async function createAdminUserAction(data: {
     const supabase = createAdminClient();
 
     // 1. Create auth user
-    // In a real prod setup, we might use inviteUserByEmail instead
-    // For this implementation, we create a user with a strong default password
-    const tempPassword = Math.random().toString(36).slice(-8) + "A1!"; 
+    const finalPassword = data.password || (Math.random().toString(36).slice(-8) + "A1!"); 
     
     const { data: authData, error: authErr } = await supabase.auth.admin.createUser({
       email: data.email,
-      password: tempPassword,
+      password: finalPassword,
       email_confirm: true,
       user_metadata: {
         role: data.roleName,
@@ -121,7 +120,7 @@ export async function createAdminUserAction(data: {
     if (profileErr) throw profileErr;
 
     revalidatePath("/admin/users");
-    return { success: true, tempPassword };
+    return { success: true, password: finalPassword };
   } catch (error: any) {
     console.error("[createAdminUserAction]", error);
     return { success: false, error: error.message };

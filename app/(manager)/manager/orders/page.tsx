@@ -18,17 +18,14 @@ import { useOrders } from "@/hooks/oms/use-orders";
 import { OrderStatus } from "@/types/oms";
 import { formatCurrency } from "@/lib/utils";
 
-export default function OrdersPage() {
-  const [page, setPage] = useState(1);
-  const [status, setStatus] = useState<OrderStatus | undefined>();
+export default function ManagerOrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
-  
-  const { data, isLoading, error } = useOrders({ page, limit: 10, status, search: searchQuery || undefined });
-
-  if (error) return <div className="p-6 text-red-500">Error loading orders</div>;
+  const [status, setStatus] = useState<OrderStatus | undefined>(undefined);
+  const [page, setPage] = useState(1);
+  const { data, isLoading } = useOrders({ page, limit: 10, status, search: searchQuery });
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 max-w-7xl mx-auto">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
@@ -166,4 +163,3 @@ export default function OrdersPage() {
     </div>
   );
 }
-

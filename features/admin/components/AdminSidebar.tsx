@@ -19,6 +19,8 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  CheckSquare,
+  UserCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -53,16 +55,59 @@ const navigation: NavCategory[] = [
   {
     title: "GENERAL",
     items: [
-      { name: "Dashboard", href: "/admin", icon: LayoutDashboard },
-      { name: "Analytics", href: "/admin/analytics", icon: BarChart3 },
+      { name: "Executive Dashboard", href: "/admin", icon: LayoutDashboard, allowedRoles: ["SUPERADMIN", "ADMIN"] },
+      { name: "Marketing Dashboard", href: "/admin/marketing", icon: LayoutDashboard, allowedRoles: ["MARKETING", "MARKETING_MANAGER"] },
+      { name: "Analytics", href: "/admin/analytics", icon: BarChart3, allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER"] },
+      { name: "Employee Profile", href: "/admin/profile", icon: UserCheck },
+      { name: "Assigned Tasks", href: "/admin/tasks", icon: CheckSquare },
     ],
   },
   {
-    title: "APPLICATIONS",
+    title: "MARKETING & CRM",
+    items: [
+      {
+        name: "Marketing",
+        icon: Megaphone,
+        allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER", "MARKETING_MANAGER", "MARKETING"],
+        items: [
+          { name: "Overview", href: "/admin/marketing" },
+          { name: "Campaigns", href: "/admin/marketing/campaigns" },
+          { name: "Promotions", href: "/admin/marketing/promotions" },
+          { name: "Coupons", href: "/admin/marketing/coupons" },
+          { name: "Banners", href: "/admin/cms/banners" },
+          { name: "Newsletter", href: "/admin/marketing/newsletter" },
+        ],
+      },
+      {
+        name: "Content (CMS)",
+        icon: FileText,
+        allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER", "MARKETING_MANAGER", "MARKETING"],
+        items: [
+          { name: "Pages", href: "/admin/cms/pages" },
+          { name: "Blog", href: "/admin/cms/blogs" },
+          { name: "Media Library", href: "/admin/cms/media" },
+          { name: "Menus", href: "/admin/cms/menus" },
+        ],
+      },
+      {
+        name: "CRM & Leads",
+        icon: Headphones,
+        allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER", "MARKETING_MANAGER", "MARKETING", "SUPPORT"],
+        items: [
+          { name: "Leads", href: "/admin/crm/leads" },
+          { name: "Messages", href: "/admin/crm/messages" },
+          { name: "Support Tickets", href: "/admin/support/tickets" },
+        ],
+      },
+    ],
+  },
+  {
+    title: "STORE OPERATIONS",
     items: [
       {
         name: "Products",
         icon: Package,
+        allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER"],
         items: [
           { name: "All Products", href: "/admin/products" },
           { name: "Categories", href: "/admin/catalog/categories" },
@@ -75,6 +120,7 @@ const navigation: NavCategory[] = [
       {
         name: "Orders",
         icon: ShoppingCart,
+        allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER"],
         items: [
           { name: "All Orders", href: "/admin/orders" },
           { name: "Pending", href: "/admin/orders/pending" },
@@ -87,6 +133,7 @@ const navigation: NavCategory[] = [
       {
         name: "Customers",
         icon: Users,
+        allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER", "SUPPORT"],
         items: [
           { name: "Customer List", href: "/admin/customers" },
           { name: "Customer Groups", href: "/admin/customers/groups" },
@@ -96,6 +143,7 @@ const navigation: NavCategory[] = [
       {
         name: "Inventory",
         icon: Archive,
+        allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER", "WAREHOUSE_MANAGER"],
         items: [
           { name: "Stock", href: "/admin/inventory/stock" },
           { name: "Warehouses", href: "/admin/inventory/warehouses" },
@@ -106,6 +154,7 @@ const navigation: NavCategory[] = [
       {
         name: "Shipping",
         icon: Truck,
+        allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER", "WAREHOUSE_MANAGER"],
         items: [
           { name: "Couriers", href: "/admin/operations/logistics/couriers" },
           { name: "Tracking", href: "/admin/shipping/tracking" },
@@ -115,41 +164,7 @@ const navigation: NavCategory[] = [
     ],
   },
   {
-    title: "FORMS & TABLE",
-    items: [
-      {
-        name: "Marketing",
-        icon: Megaphone,
-        items: [
-          { name: "Coupons", href: "/admin/marketing/coupons" },
-          { name: "Promotions", href: "/admin/marketing/promotions" },
-          { name: "Banners", href: "/admin/cms/banners" },
-          { name: "Newsletter", href: "/admin/marketing/newsletter" },
-        ],
-      },
-      {
-        name: "Content (CMS)",
-        icon: FileText,
-        items: [
-          { name: "Pages", href: "/admin/cms/pages" },
-          { name: "Blog", href: "/admin/cms/blogs" },
-          { name: "Media Library", href: "/admin/cms/media" },
-          { name: "Menus", href: "/admin/cms/menus" },
-        ],
-      },
-      {
-        name: "CRM",
-        icon: Headphones,
-        items: [
-          { name: "Leads", href: "/admin/crm/leads" },
-          { name: "Support Tickets", href: "/admin/support/tickets" },
-          { name: "Messages", href: "/admin/crm/messages" },
-        ],
-      },
-    ],
-  },
-  {
-    title: "MISCELLANEOUS",
+    title: "SYSTEM & ADMINISTRATION",
     items: [
       {
         name: "Finance",
@@ -169,7 +184,7 @@ const navigation: NavCategory[] = [
           { name: "Admin Users", href: "/admin/users/admins" },
           { name: "Managers", href: "/admin/users/managers" },
           { name: "Staff", href: "/admin/users/staff" },
-          { name: "Permissions", href: "/admin/users/permissions" },
+          { name: "Permissions", href: "/admin/users/roles" },
         ],
       },
       {
@@ -263,7 +278,7 @@ export const AdminSidebar = ({
                               isCollapsed ? "justify-center px-0" : "px-4",
                               isActive
                                 ? "bg-[#00A1FF]/10 text-[#00A1FF] relative after:absolute after:right-0 after:top-1/2 after:h-8 after:w-1 after:-translate-y-1/2 after:rounded-l-full after:bg-[#00A1FF]"
-                                : "text-muted-foreground hover:bg-muted/50 hover:text-slate-900"
+                                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                             )}
                           >
                             <Icon
@@ -291,7 +306,7 @@ export const AdminSidebar = ({
                                 "group flex w-full items-center justify-center rounded-xl py-2.5 text-sm font-medium transition-all hover:no-underline",
                                 hasActiveChild
                                   ? "text-[#00A1FF] bg-[#00A1FF]/10 relative after:absolute after:right-0 after:top-1/2 after:h-8 after:w-1 after:-translate-y-1/2 after:rounded-l-full after:bg-[#00A1FF]"
-                                  : "text-muted-foreground hover:bg-muted/50 hover:text-slate-900"
+                                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                               )}
                             >
                                <Icon
@@ -316,7 +331,7 @@ export const AdminSidebar = ({
                               "group flex items-center gap-3 rounded-xl px-4 py-2.5 text-sm font-medium transition-all hover:no-underline",
                               hasActiveChild
                                 ? "text-[#00A1FF] bg-[#00A1FF]/10 relative after:absolute after:right-0 after:top-1/2 after:h-8 after:w-1 after:-translate-y-1/2 after:rounded-l-full after:bg-[#00A1FF]"
-                                : "text-muted-foreground hover:bg-muted/50 hover:text-slate-900"
+                                : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                             )}
                           >
                             <div className="flex flex-1 items-center gap-3">
@@ -341,7 +356,7 @@ export const AdminSidebar = ({
                                       "relative flex items-center rounded-lg px-3 py-2 text-sm transition-colors",
                                       isSubActive
                                         ? "font-semibold text-[#00A1FF]"
-                                        : "text-muted-foreground hover:text-slate-900"
+                                        : "text-muted-foreground hover:text-foreground"
                                     )}
                                   >
                                     <div

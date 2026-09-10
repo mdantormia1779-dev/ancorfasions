@@ -28,7 +28,6 @@ export default function NewBlogPost() {
     excerpt: "",
     content: "",
     status: "draft",
-    author_id: "00000000-0000-0000-0000-000000000000",
   });
 
   const handleSubmit = async (e: React.FormEvent) => {

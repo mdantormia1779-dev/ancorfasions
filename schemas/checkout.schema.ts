@@ -25,6 +25,16 @@ export const checkoutInformationSchema = z.object({
   email: z.string().email("Invalid email format").min(1, "Email is required"),
   shipping_address: addressSchema,
   save_information: z.boolean().default(false),
+  create_account: z.boolean().default(false).optional(),
+  password: z.string().optional(),
+}).superRefine((data, ctx) => {
+  if (data.create_account && (!data.password || data.password.length < 6)) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Password must be at least 6 characters to create an account",
+      path: ["password"],
+    });
+  }
 });
 
 export const checkoutShippingSchema = z.object({

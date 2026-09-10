@@ -1,7 +1,7 @@
 "use server";
 
 import { cmsService } from "@/services/cms.service";
-import { CMSPage, CMSSection, CMSNavigation, CMSPageBlock } from "@/types/cms.types";
+import { CMSPage, CMSSection, CMSNavigation, CMSPageBlock, CMSMediaItem } from "@/types/cms.types";
 import { revalidatePath } from "next/cache";
 
 export async function getPages(): Promise<CMSPage[]> {
@@ -52,63 +52,227 @@ export async function getNavigation(
   return await cmsService.getNavigation(location);
 }
 
+export async function getAllNavigations(): Promise<CMSNavigation[]> {
+  return await cmsService.getAllNavigations();
+}
+
 export async function saveNavigation(
   location: string,
   name: string,
   items: any[]
 ): Promise<CMSNavigation> {
-  const nav = await cmsService.saveNavigation(location, name, items);
-  revalidatePath("/admin/cms/menus");
-  return nav;
+  try {
+    const nav = await cmsService.saveNavigation(location, name, items);
+    revalidatePath("/admin/cms/menus");
+    return nav;
+  } catch (err: any) {
+    console.error("Error in saveNavigation:", err);
+    throw new Error(err.message || "Failed to save navigation");
+  }
+}
+
+export async function deleteNavigation(id: string): Promise<void> {
+  try {
+    await cmsService.deleteNavigation(id);
+    revalidatePath("/admin/cms/menus");
+  } catch (err: any) {
+    console.error("Error in deleteNavigation:", err);
+    throw new Error(err.message || "Failed to delete navigation");
+  }
 }
 
 // Media
-export async function getMedia() {
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("cms_media")
-    .select("*")
-    .order("created_at", { ascending: false });
-  if (error) throw new Error(error.message);
-  return data;
+export async function getMedia(): Promise<CMSMediaItem[]> {
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/server");
+    const supabase = await createAdminClient();
+    const { data, error } = await supabase
+      .from("cms_media")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (error) {
+      console.error("Error in getMedia:", error.message);
+      return [];
+    }
+    return (data || []) as CMSMediaItem[];
+  } catch (err) {
+    console.error("Failed to fetch media:", err);
+    return [];
+  }
 }
 
 export async function uploadMedia(formData: FormData) {
-  const file = formData.get("file") as File;
-  if (!file) throw new Error("No file uploaded");
+  const fileEntries = formData.getAll("files").concat(formData.getAll("file")) as File[];
+  const validFiles = fileEntries.filter(
+    (f): f is File => f && typeof f !== "string" && typeof f.size === "number" && f.size > 0
+  );
 
-  const { createAdminClient } = await import("@/lib/supabase/server");
-  const supabase = await createAdminClient();
-  
-  const { data: { user } } = await supabase.auth.getUser();
+  if (validFiles.length === 0) {
+    throw new Error("No valid files uploaded");
+  }
 
-  const fileExt = file.name.split(".").pop();
-  const fileName = `${Math.random().toString(36).substring(2, 15)}_${Date.now()}.${fileExt}`;
-  const filePath = `${fileName}`;
+  const { createAdminClient, createClient } = await import("@/lib/supabase/server");
+  const adminSupabase = await createAdminClient();
 
-  const { error: uploadError } = await supabase.storage
-    .from("media")
-    .upload(filePath, file);
+  // Safely get logged-in user without breaking if session is absent
+  let userId: string | null = null;
+  try {
+    const userClient = await createClient();
+    const { data } = await userClient.auth.getUser();
+    userId = data?.user?.id || null;
+  } catch {
+    userId = null;
+  }
 
-  if (uploadError) throw new Error(uploadError.message);
+  const uploadedRecords: CMSMediaItem[] = [];
 
-  const { data: publicUrlData } = supabase.storage
-    .from("media")
-    .getPublicUrl(filePath);
+  for (const file of validFiles) {
+    const fileExt = file.name.includes(".") ? file.name.split(".").pop() : "bin";
+    const sanitizedBase = file.name
+      .substring(0, file.name.lastIndexOf(".") > 0 ? file.name.lastIndexOf(".") : file.name.length)
+      .replace(/[^a-zA-Z0-9_-]/g, "_")
+      .substring(0, 30);
+    const fileName = `${Date.now()}_${sanitizedBase}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+    const filePath = fileName;
 
-  const { error: dbError } = await supabase.from("cms_media").insert({
-    file_name: file.name,
-    file_url: publicUrlData.publicUrl,
-    file_type: file.type,
-    file_size_bytes: file.size,
-    uploaded_by: user?.id,
-  });
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
 
-  if (dbError) throw new Error(dbError.message);
+    const { error: uploadError } = await adminSupabase.storage
+      .from("media")
+      .upload(filePath, buffer, {
+        contentType: file.type || "application/octet-stream",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Storage upload error:", uploadError);
+      throw new Error(`Upload failed for ${file.name}: ${uploadError.message}`);
+    }
+
+    const { data: publicUrlData } = adminSupabase.storage
+      .from("media")
+      .getPublicUrl(filePath);
+
+    const { data: dbData, error: dbError } = await adminSupabase
+      .from("cms_media")
+      .insert({
+        file_name: file.name,
+        file_url: publicUrlData.publicUrl,
+        file_type: file.type || "application/octet-stream",
+        file_size_bytes: file.size,
+        uploaded_by: userId,
+      })
+      .select()
+      .single();
+
+    if (dbError) {
+      console.error("Database insert error:", dbError);
+      throw new Error(`Database record creation failed for ${file.name}: ${dbError.message}`);
+    }
+
+    uploadedRecords.push(dbData as CMSMediaItem);
+  }
 
   revalidatePath("/admin/cms/media");
+  return { success: true, count: uploadedRecords.length, data: uploadedRecords };
 }
+
+export async function deleteMedia(id: string, fileUrl?: string) {
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/server");
+    const supabase = await createAdminClient();
+
+    // Remove from storage bucket if fileUrl is provided
+    if (fileUrl) {
+      try {
+        const url = new URL(fileUrl);
+        const match = url.pathname.match(/\/media\/(.+)$/);
+        if (match && match[1]) {
+          const storagePath = decodeURIComponent(match[1]);
+          await supabase.storage.from("media").remove([storagePath]);
+        }
+      } catch (storageErr) {
+        console.warn("Storage removal non-fatal error:", storageErr);
+      }
+    }
+
+    const { error } = await supabase.from("cms_media").delete().eq("id", id);
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/admin/cms/media");
+    return { success: true };
+  } catch (err: any) {
+    console.error("Delete media error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function seedSampleMedia() {
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/server");
+    const supabase = await createAdminClient();
+
+    const sampleAssets = [
+      {
+        file_name: "hero-summer-collection.jpg",
+        file_url: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?q=80&w=1200&auto=format&fit=crop",
+        file_type: "image/jpeg",
+        file_size_bytes: 1845200,
+        alt_text: "Summer Luxury Fashion Collection",
+      },
+      {
+        file_name: "fashion-autumn-coat.jpg",
+        file_url: "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?q=80&w=1200&auto=format&fit=crop",
+        file_type: "image/jpeg",
+        file_size_bytes: 2154000,
+        alt_text: "Autumn Winter Designer Overcoat",
+      },
+      {
+        file_name: "lookbook-streetwear-hoodie.jpg",
+        file_url: "https://images.unsplash.com/photo-1556905055-8f358a7a47b2?q=80&w=1200&auto=format&fit=crop",
+        file_type: "image/jpeg",
+        file_size_bytes: 1420300,
+        alt_text: "Urban Streetwear Premium Hoodie",
+      },
+      {
+        file_name: "accessories-luxury-handbag.jpg",
+        file_url: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?q=80&w=1200&auto=format&fit=crop",
+        file_type: "image/jpeg",
+        file_size_bytes: 980400,
+        alt_text: "Italian Leather Luxury Handbag",
+      },
+      {
+        file_name: "footwear-minimalist-sneaker.jpg",
+        file_url: "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=1200&auto=format&fit=crop",
+        file_type: "image/jpeg",
+        file_size_bytes: 1120000,
+        alt_text: "Minimalist Leather Craft Sneaker",
+      },
+      {
+        file_name: "brand-lookbook-2026.pdf",
+        file_url: "https://example.com/assets/lookbook-2026.pdf",
+        file_type: "application/pdf",
+        file_size_bytes: 4500000,
+        alt_text: "Anchor Fashion Official Lookbook 2026",
+      },
+    ];
+
+    const { data, error } = await supabase
+      .from("cms_media")
+      .insert(sampleAssets)
+      .select();
+
+    if (error) throw new Error(error.message);
+
+    revalidatePath("/admin/cms/media");
+    return { success: true, count: data?.length || 0 };
+  } catch (err: any) {
+    console.error("Failed to seed sample media:", err);
+    return { success: false, error: err.message };
+  }
+}
+
 
 // Banners
 export async function getBanners() {

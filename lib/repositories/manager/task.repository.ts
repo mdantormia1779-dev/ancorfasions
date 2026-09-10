@@ -38,4 +38,19 @@ export class TaskRepository {
 
     return data as ManagerTask[];
   }
+
+  async createTask(task: Partial<ManagerTask>) {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("manager_tasks")
+      .insert(task)
+      .select()
+      .single();
+
+    if (error) {
+      throw error;
+    }
+
+    return data as ManagerTask;
+  }
 }

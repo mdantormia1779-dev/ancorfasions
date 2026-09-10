@@ -17,67 +17,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Play, CheckSquare, Printer, Settings2, Users } from "lucide-react";
+import { Play, CheckSquare, Printer, Settings2, Users, PackageCheck } from "lucide-react";
 import Link from "next/link";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
   title: "Order Picking & Fulfillment | Anchor Fashion Enterprise",
   description: "Manage Wave Picks, Batch Picks, and Order Fulfillment",
 };
 
-// Mock data for development
-const mockPickLists = [
-  {
-    id: "PL-001",
-    type: "WAVE",
-    warehouse: "Central Hub - Dhaka",
-    itemsTotal: 245,
-    itemsPicked: 245,
-    status: "COMPLETED",
-    assignedTo: "Team A",
-    priority: "High",
-  },
-  {
-    id: "PL-002",
-    type: "BATCH",
-    warehouse: "Central Hub - Dhaka",
-    itemsTotal: 150,
-    itemsPicked: 120,
-    status: "IN_PROGRESS",
-    assignedTo: "Team B",
-    priority: "Medium",
-  },
-  {
-    id: "PL-003",
-    type: "SINGLE",
-    warehouse: "Regional Hub - Chattogram",
-    itemsTotal: 5,
-    itemsPicked: 0,
-    status: "PENDING",
-    assignedTo: "Unassigned",
-    priority: "Rush",
-  },
-  {
-    id: "PL-004",
-    type: "WAVE",
-    warehouse: "Fulfillment Center - Sylhet",
-    itemsTotal: 400,
-    itemsPicked: 10,
-    status: "IN_PROGRESS",
-    assignedTo: "Team C",
-    priority: "Medium",
-  },
-  {
-    id: "PL-005",
-    type: "BATCH",
-    warehouse: "Central Hub - Dhaka",
-    itemsTotal: 85,
-    itemsPicked: 0,
-    status: "PENDING",
-    assignedTo: "Unassigned",
-    priority: "Low",
-  },
-];
+interface PickList {
+  id: string;
+  type: string;
+  warehouse: string;
+  itemsTotal: number;
+  itemsPicked: number;
+  status: string;
+  assignedTo: string;
+  priority: string;
+}
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -125,10 +83,18 @@ const getPriorityBadge = (priority: string) => {
   }
 };
 
-export default function PickListsPage() {
+export default async function PickListsPage() {
+  const supabase = await createClient();
+  const { count: pendingCount } = await supabase
+    .from("orders")
+    .select("*", { count: "exact", head: true })
+    .in("status", ["pending", "processing", "PAID"]);
+
+  const pickLists: PickList[] = [];
+
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             Order Fulfillment
@@ -155,7 +121,7 @@ export default function PickListsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,204</div>
+            <div className="text-2xl font-bold">{pendingCount ?? 0}</div>
             <p className="mt-1 text-xs text-muted-foreground">
               Orders waiting for allocation
             </p>
@@ -164,26 +130,26 @@ export default function PickListsPage() {
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Active Pickers
+              Active Pick Lists
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">42</div>
+            <div className="text-2xl font-bold">{pickLists.length}</div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Staff currently picking
+              Active warehouse batches
             </p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground">
-              Fulfillment Rate
+              Warehouse Status
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">850 / hr</div>
+            <div className="text-2xl font-bold">Ready</div>
             <p className="mt-1 text-xs text-muted-foreground">
-              Average items picked per hour
+              Central Hub dispatch operational
             </p>
           </CardContent>
         </Card>
@@ -197,73 +163,83 @@ export default function PickListsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>List ID</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Warehouse</TableHead>
-                <TableHead>Priority</TableHead>
-                <TableHead>Assigned To</TableHead>
-                <TableHead>Progress</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {mockPickLists.map((list) => {
-                const progress = (list.itemsPicked / list.itemsTotal) * 100;
-                return (
-                  <TableRow key={list.id}>
-                    <TableCell className="font-medium">{list.id}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{list.type}</Badge>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {list.warehouse}
-                    </TableCell>
-                    <TableCell>{getPriorityBadge(list.priority)}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <Users className="mr-2 h-3 w-3 text-muted-foreground" />
-                        {list.assignedTo}
-                      </div>
-                    </TableCell>
-                    <TableCell className="w-[200px]">
-                      <div className="flex flex-col gap-1">
-                        <div className="flex justify-between text-xs">
-                          <span>
-                            {list.itemsPicked} / {list.itemsTotal} items
-                          </span>
-                          <span>{Math.round(progress)}%</span>
+          {pickLists.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+              <PackageCheck className="h-12 w-12 text-muted-foreground/40 mb-3" />
+              <h3 className="text-lg font-medium text-foreground">No active pick lists</h3>
+              <p className="text-sm mt-1 max-w-sm">
+                There are currently no active picking batches. Click &quot;Generate Wave&quot; to group unfulfilled orders into warehouse pick lists.
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>List ID</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Warehouse</TableHead>
+                  <TableHead>Priority</TableHead>
+                  <TableHead>Assigned To</TableHead>
+                  <TableHead>Progress</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {pickLists.map((list) => {
+                  const progress = (list.itemsPicked / list.itemsTotal) * 100;
+                  return (
+                    <TableRow key={list.id}>
+                      <TableCell className="font-medium">{list.id}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{list.type}</Badge>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">
+                        {list.warehouse}
+                      </TableCell>
+                      <TableCell>{getPriorityBadge(list.priority)}</TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <Users className="mr-2 h-3 w-3 text-muted-foreground" />
+                          {list.assignedTo}
                         </div>
-                        <Progress value={progress} className="h-2" />
-                      </div>
-                    </TableCell>
-                    <TableCell>{getStatusBadge(list.status)}</TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="Print Pick List"
-                        >
-                          <Printer className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          title="View Details"
-                        >
-                          <CheckSquare className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+                      </TableCell>
+                      <TableCell className="w-[200px]">
+                        <div className="flex flex-col gap-1">
+                          <div className="flex justify-between text-xs">
+                            <span>
+                              {list.itemsPicked} / {list.itemsTotal} items
+                            </span>
+                            <span>{Math.round(progress)}%</span>
+                          </div>
+                          <Progress value={progress} className="h-2" />
+                        </div>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(list.status)}</TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="Print Pick List"
+                          >
+                            <Printer className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            title="View Details"
+                          >
+                            <CheckSquare className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

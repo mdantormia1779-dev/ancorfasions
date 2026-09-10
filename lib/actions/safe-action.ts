@@ -106,10 +106,30 @@ export function createAdminAction<Input, Output>(
         return { success: false, error: "Unauthorized. Please log in." };
       }
 
-      // Allow admin, super_admin, and manager roles
-      const role = user.app_metadata?.role;
+      // Allow admin, super_admin, manager, marketing, and staff roles
+      let role = String(user.app_metadata?.role || user.user_metadata?.role || "").toLowerCase();
+
+      if (!role) {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("roles(name)")
+          .eq("id", user.id)
+          .maybeSingle();
+        const roleName = Array.isArray(profile?.roles)
+          ? profile?.roles[0]?.name
+          : (profile?.roles as any)?.name;
+        role = String(roleName || "").toLowerCase();
+      }
+
       const isAllowed =
-        role === "admin" || role === "super_admin" || role === "manager";
+        role === "admin" ||
+        role === "super_admin" ||
+        role === "superadmin" ||
+        role === "manager" ||
+        role === "marketing" ||
+        role === "staff" ||
+        role === "support" ||
+        role === "admin_roles";
 
       if (!isAllowed) {
         console.warn(`[Admin Action] Access denied for user ${user.id} with role: ${role}`);

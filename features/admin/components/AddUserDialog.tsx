@@ -49,7 +49,7 @@ interface AddUserDialogProps {
 }
 
 export function AddUserDialog({
-  allowedRoles = ["SUPERADMIN", "MANAGER", "SUPPORT"],
+  allowedRoles = ["SUPERADMIN", "MANAGER", "MARKETING", "STAFF", "SUPPORT"],
   defaultRole,
 }: AddUserDialogProps) {
   const [open, setOpen] = useState(false);

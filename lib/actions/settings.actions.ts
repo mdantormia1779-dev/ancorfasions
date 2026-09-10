@@ -30,7 +30,41 @@ export type StoreConfig = {
   weight_unit: string;
 };
 
-const DEFAULTS: { store_info: StoreInfo; social_links: SocialLinks; store_config: StoreConfig } = {
+export type SeoSettings = {
+  meta_title: string;
+  meta_description: string;
+  social_image: string;
+  keywords?: string;
+};
+
+export type SecuritySettingsConfig = {
+  two_factor_required: boolean;
+  strict_password_policy: boolean;
+  auto_session_timeout: boolean;
+};
+
+export type EmailSettingsConfig = {
+  sender_name: string;
+  sender_email: string;
+  smtp_host: string;
+  smtp_port: string;
+};
+
+export type AnalyticsSettingsConfig = {
+  ga_id: string;
+  gtm_id: string;
+  fb_pixel: string;
+};
+
+const DEFAULTS: {
+  store_info: StoreInfo;
+  social_links: SocialLinks;
+  store_config: StoreConfig;
+  seo_settings: SeoSettings;
+  security_settings: SecuritySettingsConfig;
+  email_settings: EmailSettingsConfig;
+  analytics_settings: AnalyticsSettingsConfig;
+} = {
   store_info: {
     store_name: "Anchor Fashion Enterprise",
     store_description:
@@ -54,7 +88,30 @@ const DEFAULTS: { store_info: StoreInfo; social_links: SocialLinks; store_config
     currency: "BDT (৳)",
     timezone: "Asia/Dhaka (GMT+6)",
     weight_unit: "kg",
-  }
+  },
+  seo_settings: {
+    meta_title: "Anchor Fashion | Premium Clothing Brand",
+    meta_description:
+      "Discover the latest trends in fashion at Anchor Fashion. Shop premium clothing and accessories.",
+    social_image: "https://anchorfashion.com/og-image.jpg",
+    keywords: "fashion, clothing, anchor fashion, bangladesh, apparel",
+  },
+  security_settings: {
+    two_factor_required: false,
+    strict_password_policy: true,
+    auto_session_timeout: true,
+  },
+  email_settings: {
+    sender_name: "Anchor Fashion Support",
+    sender_email: "noreply@anchorfashion.com",
+    smtp_host: "smtp.mailgun.org",
+    smtp_port: "587",
+  },
+  analytics_settings: {
+    ga_id: "",
+    gtm_id: "",
+    fb_pixel: "",
+  },
 };
 
 export async function getStoreInfo(): Promise<StoreInfo> {
@@ -170,9 +227,172 @@ export async function updateStoreConfig(config: StoreConfig) {
     if (error) throw error;
     
     revalidatePath("/admin/settings/store");
+    revalidatePath("/", "layout");
     return { success: true };
   } catch (error: any) {
     console.error("[updateStoreConfig]", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getSeoSettings(): Promise<SeoSettings> {
+  const supabase = await createClient();
+  try {
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "seo_settings")
+      .single();
+    return (data?.value as SeoSettings) ?? DEFAULTS.seo_settings;
+  } catch {
+    return DEFAULTS.seo_settings;
+  }
+}
+
+export async function updateSeoSettings(settings: SeoSettings) {
+  try {
+    await verifySuperAdmin();
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+      .from("settings")
+      .upsert(
+        {
+          key: "seo_settings",
+          value: settings as any,
+          description: "Default SEO and Meta tag configuration",
+        },
+        { onConflict: "key" }
+      );
+
+    if (error) throw error;
+
+    revalidatePath("/", "layout");
+    revalidatePath("/admin/settings/seo");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[updateSeoSettings]", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getSecuritySettings(): Promise<SecuritySettingsConfig> {
+  const supabase = await createClient();
+  try {
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "security_settings")
+      .single();
+    return (data?.value as SecuritySettingsConfig) ?? DEFAULTS.security_settings;
+  } catch {
+    return DEFAULTS.security_settings;
+  }
+}
+
+export async function updateSecuritySettings(config: SecuritySettingsConfig) {
+  try {
+    await verifySuperAdmin();
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+      .from("settings")
+      .upsert(
+        {
+          key: "security_settings",
+          value: config as any,
+          description: "Security and authentication policies",
+        },
+        { onConflict: "key" }
+      );
+
+    if (error) throw error;
+
+    revalidatePath("/admin/settings/security");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[updateSecuritySettings]", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getEmailSettings(): Promise<EmailSettingsConfig> {
+  const supabase = await createClient();
+  try {
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "email_settings")
+      .single();
+    return (data?.value as EmailSettingsConfig) ?? DEFAULTS.email_settings;
+  } catch {
+    return DEFAULTS.email_settings;
+  }
+}
+
+export async function updateEmailSettings(config: EmailSettingsConfig) {
+  try {
+    await verifySuperAdmin();
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+      .from("settings")
+      .upsert(
+        {
+          key: "email_settings",
+          value: config as any,
+          description: "Outgoing email SMTP configuration",
+        },
+        { onConflict: "key" }
+      );
+
+    if (error) throw error;
+
+    revalidatePath("/admin/settings/email");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[updateEmailSettings]", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function getAnalyticsSettings(): Promise<AnalyticsSettingsConfig> {
+  const supabase = await createClient();
+  try {
+    const { data } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "analytics_settings")
+      .single();
+    return (data?.value as AnalyticsSettingsConfig) ?? DEFAULTS.analytics_settings;
+  } catch {
+    return DEFAULTS.analytics_settings;
+  }
+}
+
+export async function updateAnalyticsSettings(config: AnalyticsSettingsConfig) {
+  try {
+    await verifySuperAdmin();
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+      .from("settings")
+      .upsert(
+        {
+          key: "analytics_settings",
+          value: config as any,
+          description: "Third-party analytics and tracking IDs",
+        },
+        { onConflict: "key" }
+      );
+
+    if (error) throw error;
+
+    revalidatePath("/admin/settings/analytics");
+    revalidatePath("/", "layout");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[updateAnalyticsSettings]", error);
     return { success: false, error: error.message };
   }
 }

@@ -47,8 +47,16 @@ export class CMSService {
     return await cmsRepository.getNavigationByLocation(location);
   }
 
+  async getAllNavigations(): Promise<CMSNavigation[]> {
+    return await cmsRepository.getAllNavigations();
+  }
+
   async saveNavigation(location: string, name: string, items: any[]): Promise<CMSNavigation> {
     return await cmsRepository.saveNavigation(location, name, items);
+  }
+
+  async deleteNavigation(id: string): Promise<void> {
+    await cmsRepository.deleteNavigation(id);
   }
 }
 

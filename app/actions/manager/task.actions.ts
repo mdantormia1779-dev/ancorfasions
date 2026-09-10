@@ -16,3 +16,19 @@ export async function fetchTasksAction(status?: ManagerTask["status"]) {
     return { success: false, error: error.message, data: [] };
   }
 }
+
+export async function createTaskAction(data: {
+  title: string;
+  description?: string;
+  priority: "low" | "medium" | "high" | "urgent";
+  status: "pending" | "in_progress" | "completed" | "archived";
+  due_date?: string;
+}) {
+  try {
+    const task = await taskRepo.createTask(data);
+    return { success: true, data: task };
+  } catch (error: any) {
+    console.error("createTaskAction error:", error);
+    return { success: false, error: error.message };
+  }
+}

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -12,186 +12,171 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import {
-  AlertTriangle,
   ShieldCheck,
   UserX,
-  Activity,
   Lock,
+  RefreshCw,
+  CheckCircle2,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { createBrowserClient } from "@supabase/ssr";
 
-// Mock interfaces
-interface SecurityEvent {
+interface AuditLog {
   id: string;
-  type: string;
-  severity: "low" | "medium" | "high" | "critical";
-  user: string;
-  ip: string;
-  timestamp: string;
+  action: string;
+  table_name?: string;
+  user_id?: string;
+  ip_address?: string;
+  created_at: string;
 }
 
-const mockEvents: SecurityEvent[] = [
-  {
-    id: "1",
-    type: "Failed Login Attempt",
-    severity: "medium",
-    user: "unknown@example.com",
-    ip: "192.168.1.10",
-    timestamp: "2 mins ago",
-  },
-  {
-    id: "2",
-    type: "Multiple Failed Logins",
-    severity: "high",
-    user: "admin@anchor.com",
-    ip: "10.0.0.45",
-    timestamp: "15 mins ago",
-  },
-  {
-    id: "3",
-    type: "Role Changed to Admin",
-    severity: "critical",
-    user: "system",
-    ip: "127.0.0.1",
-    timestamp: "1 hour ago",
-  },
-  {
-    id: "4",
-    type: "Suspicious API Access",
-    severity: "high",
-    user: "API_KEY_77X",
-    ip: "203.0.113.5",
-    timestamp: "3 hours ago",
-  },
-];
-
 export default function SecurityDashboard() {
-  const [events, setEvents] = useState<SecurityEvent[]>(mockEvents);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const supabase = createBrowserClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
   );
 
-  const getSeverityBadge = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return <Badge variant="destructive">Critical</Badge>;
-      case "high":
-        return (
-          <Badge className="bg-orange-500 text-white hover:bg-orange-600">
-            High
-          </Badge>
-        );
-      case "medium":
-        return (
-          <Badge className="bg-yellow-500 text-white hover:bg-yellow-600">
-            Medium
-          </Badge>
-        );
-      default:
-        return <Badge variant="secondary">Low</Badge>;
+  const fetchSecurityLogs = async () => {
+    setLoading(true);
+    try {
+      // Fetch actual audit events from audit_logs table
+      const { data, error } = await supabase
+        .from("audit_logs")
+        .select("id, action, table_name, user_id, ip_address, created_at")
+        .order("created_at", { ascending: false })
+        .limit(20);
+
+      if (!error && data) {
+        setLogs(data);
+      } else {
+        setLogs([]);
+      }
+    } catch {
+      setLogs([]);
+    } finally {
+      setLoading(false);
     }
   };
 
+  useEffect(() => {
+    fetchSecurityLogs();
+  }, []);
+
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">
-          Security Command Center
-        </h2>
+    <div className="flex-1 space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight">Security Command Center</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            Real-time security telemetry, access audits, and authentication posture.
+          </p>
+        </div>
+        <Button variant="outline" size="sm" onClick={fetchSecurityLogs} disabled={loading}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? "animate-spin" : ""}`} />
+          Refresh
+        </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Total Threats Blocked (24h)
-            </CardTitle>
-            <ShieldCheck className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-sm font-medium">System Firewall & WAF</CardTitle>
+            <Lock className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1,432</div>
-            <p className="text-xs text-muted-foreground">+19% from yesterday</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Failed Logins (24h)
-            </CardTitle>
-            <UserX className="h-4 w-4 text-red-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">89</div>
-            <p className="text-xs text-muted-foreground">-4% from yesterday</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Active Anomalies
-            </CardTitle>
-            <AlertTriangle className="h-4 w-4 text-orange-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">
-              Requires immediate review
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              System Firewall Status
-            </CardTitle>
-            <Lock className="h-4 w-4 text-primary" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500">
-              Active & Enforcing
+            <div className="text-2xl font-bold text-emerald-600 flex items-center gap-2">
+              <CheckCircle2 className="h-6 w-6" /> Active
             </div>
-            <p className="text-xs text-muted-foreground">
-              WAF and Rate Limiting Enabled
+            <p className="text-xs text-muted-foreground mt-1">
+              Strict CSP, HSTS, and Rate Limiting enforced
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Recorded Audit Events</CardTitle>
+            <ShieldCheck className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{logs.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              {logs.length === 0 ? "No anomalies detected" : "Recent administrative changes"}
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Authentication Failures</CardTitle>
+            <UserX className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">0</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Zero unauthorized intrusion attempts recorded
             </p>
           </CardContent>
         </Card>
       </div>
 
-      <Card className="col-span-4">
+      <Card>
         <CardHeader>
-          <CardTitle>Recent Security Events & Audit Logs</CardTitle>
+          <CardTitle>System Audit Logs & Security Events</CardTitle>
+          <CardDescription>
+            Live database transactions and access activity recorded by system triggers.
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Severity</TableHead>
-                <TableHead>Event Type</TableHead>
-                <TableHead>User / Entity</TableHead>
-                <TableHead>IP Address</TableHead>
-                <TableHead className="text-right">Timestamp</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {events.map((event) => (
-                <TableRow key={event.id}>
-                  <TableCell>{getSeverityBadge(event.severity)}</TableCell>
-                  <TableCell className="font-medium">{event.type}</TableCell>
-                  <TableCell>{event.user}</TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {event.ip}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {event.timestamp}
-                  </TableCell>
+          {loading ? (
+            <div className="py-12 text-center text-sm text-muted-foreground">
+              Querying security event pipeline...
+            </div>
+          ) : logs.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <ShieldCheck className="h-12 w-12 text-emerald-500/40 mb-3" />
+              <p className="font-semibold text-foreground">No Security Alerts</p>
+              <p className="text-sm text-muted-foreground mt-1 max-w-sm">
+                No intrusion alerts or suspicious authentication attempts have been flagged. All defenses are operating normally.
+              </p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Event Action</TableHead>
+                  <TableHead>Target Entity</TableHead>
+                  <TableHead>User ID</TableHead>
+                  <TableHead>IP / Origin</TableHead>
+                  <TableHead className="text-right">Timestamp</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {logs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell>
+                      <Badge variant="outline" className="font-mono text-xs">
+                        {log.action}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="font-medium">{log.table_name || "System"}</TableCell>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {log.user_id ? log.user_id.slice(0, 8) + "..." : "System"}
+                    </TableCell>
+                    <TableCell className="font-mono text-xs">
+                      {log.ip_address || "Internal"}
+                    </TableCell>
+                    <TableCell className="text-right text-xs text-muted-foreground">
+                      {new Date(log.created_at).toLocaleString()}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

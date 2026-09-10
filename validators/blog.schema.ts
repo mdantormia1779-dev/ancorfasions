@@ -17,7 +17,7 @@ export const blogPostSchema = z.object({
   excerpt: z.string().nullable().optional(),
   content: z.string().nullable().optional(),
   category_id: z.string().uuid().nullable().optional(),
-  author_id: z.string().uuid(),
+  author_id: z.string().uuid().optional(),
   featured_image: z.string().uuid().nullable().optional(),
   status: z
     .enum(["draft", "scheduled", "published", "archived"])

@@ -41,7 +41,7 @@ export default async function SupportTicketDetailsPage({
 
   const ticket = res.data;
 
-  // Mock replies for now as they are not fully wired in DB schema in this context
+  // Initial message thread from ticket description
   const replies = [
     {
       id: "r1",

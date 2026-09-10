@@ -60,27 +60,49 @@ export function LoginForm() {
     toast.success("Successfully logged in!");
 
     // Role-based redirect after login
-    const role =
+    let role =
       data.user?.user_metadata?.role ||
-      data.user?.app_metadata?.role ||
-      "CUSTOMER";
+      data.user?.app_metadata?.role;
+
+    // Fallback role resolution from profiles table if metadata pending
+    if (!role && data.user?.id) {
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("roles(name)")
+          .eq("id", data.user.id)
+          .single();
+        role = (profile?.roles as any)?.name;
+      } catch {
+        role = "CUSTOMER";
+      }
+    }
+    if (!role) role = "CUSTOMER";
+
     const ADMIN_ROLES = ["SUPERADMIN", "ADMIN"];
     const MANAGER_ROLES = [
       "MANAGER",
       "WAREHOUSE_MANAGER",
-      "MARKETING_MANAGER",
       "FINANCE_MANAGER",
     ];
+    const MARKETING_ROLES = ["MARKETING", "MARKETING_MANAGER"];
+    const STAFF_ROLES = ["STAFF", "SUPPORT"];
 
-    if (ADMIN_ROLES.includes(role)) {
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get("next");
+
+    if (next) {
+      router.push(next);
+    } else if (ADMIN_ROLES.includes(role)) {
       router.push("/admin");
+    } else if (MARKETING_ROLES.includes(role)) {
+      router.push("/admin/marketing");
     } else if (MANAGER_ROLES.includes(role)) {
       router.push("/manager");
+    } else if (STAFF_ROLES.includes(role)) {
+      router.push("/admin");
     } else {
-      // Check for a ?next= param in the URL for post-login redirect
-      const params = new URLSearchParams(window.location.search);
-      const next = params.get("next");
-      router.push(next || "/account/profile");
+      router.push("/account/profile");
     }
 
     router.refresh();

@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Plus, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { AddTaskDialog } from "./AddTaskDialog";
 import { fetchTasksAction } from "@/app/actions/manager/task.actions";
 import { ManagerTask } from "@/lib/repositories/manager/task.repository";
 
@@ -61,10 +62,7 @@ export default async function TasksPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add Task
-          </Button>
+          <AddTaskDialog />
         </div>
       </div>
 

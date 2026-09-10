@@ -1,12 +1,15 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Heart, Share2, Plus } from "lucide-react";
+import { Heart, Share2 } from "lucide-react";
 import { useCartStore } from "@/stores/use-cart-store";
 import { useWishlistStore } from "@/stores/use-wishlist-store";
+import { useSession } from "@/hooks/use-session";
+import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
 
 interface ProductActionsProps {
   productId: string;
@@ -32,6 +35,9 @@ export function ProductActions({
     wishlist,
     isLoading: isWishlistLoading,
   } = useWishlistStore();
+  const { user } = useSession();
+  const router = useRouter();
+  const pathname = usePathname();
   const [quantity, setQuantity] = useState(1);
   const [isVisible, setIsVisible] = useState(true);
   const actionsRef = useRef<HTMLDivElement>(null);
@@ -64,15 +70,25 @@ export function ProductActions({
   };
 
   const handleToggleWishlist = async () => {
+    // Auth gate: redirect to login if not signed in
+    if (!user) {
+      toast.info("Please sign in to save items to your wishlist.", {
+        action: {
+          label: "Sign In",
+          onClick: () =>
+            router.push(`/auth/login?next=${encodeURIComponent(pathname)}`),
+        },
+      });
+      return;
+    }
+
     if (isWished) {
       await removeItemByProductId(productId);
+      toast.success("Removed from wishlist");
     } else {
       await addWishlistItem(productId, selectedVariantId || null);
+      toast.success("Added to wishlist ❤️");
     }
-  };
-
-  const formatPrice = (price: number) => {
-    return formatCurrency(price);
   };
 
   return (
@@ -128,7 +144,7 @@ export function ProductActions({
               </span>
               {productPrice && (
                 <span className="text-[10px] text-gray-500">
-                  {formatPrice(productPrice)}
+                  {formatCurrency(productPrice)}
                 </span>
               )}
             </div>

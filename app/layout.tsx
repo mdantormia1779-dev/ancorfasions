@@ -17,65 +17,75 @@ export const viewport: Viewport = {
   maximumScale: 5,
 };
 
-export const metadata: Metadata = {
-  title: {
-    default: "Anchor Fashion | Premium E-Commerce",
-    template: "%s | Anchor Fashion",
-  },
-  description:
-    "Enterprise e-commerce platform for Anchor Fashion. Discover the latest trends in fashion and apparel.",
-  metadataBase: new URL("https://anchorfashion.com"),
-  keywords: [
-    "fashion",
-    "clothing",
-    "ecommerce",
-    "premium apparel",
-    "anchor fashion",
-    "bangladesh",
-  ],
-  authors: [{ name: "Anchor Fashion" }],
-  creator: "Anchor Fashion",
-  openGraph: {
-    type: "website",
-    locale: "en_US",
-    url: "https://anchorfashion.com",
-    title: "Anchor Fashion | Premium E-Commerce",
-    description:
-      "Enterprise e-commerce platform for Anchor Fashion. Discover the latest trends in fashion and apparel.",
-    siteName: "Anchor Fashion",
-    images: [
-      {
-        url: "/og-image.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Anchor Fashion",
-      },
-    ],
-  },
-  twitter: {
-    card: "summary_large_image",
-    title: "Anchor Fashion | Premium E-Commerce",
-    description:
-      "Enterprise e-commerce platform for Anchor Fashion. Discover the latest trends in fashion and apparel.",
-    images: ["/og-image.jpg"],
-    creator: "@anchorfashion",
-  },
-  robots: {
-    index: true,
-    follow: true,
-    googleBot: {
+import { getSeoSettings } from "@/lib/actions/settings.actions";
+
+export async function generateMetadata(): Promise<Metadata> {
+  const seo = await getSeoSettings();
+
+  const titleDefault = seo.meta_title || "Anchor Fashion | Premium E-Commerce";
+  const desc = seo.meta_description || "Enterprise e-commerce platform for Anchor Fashion.";
+  const image = seo.social_image || "/og-image.jpg";
+  const keywordsList = seo.keywords
+    ? seo.keywords.split(",").map((k) => k.trim())
+    : [
+        "fashion",
+        "clothing",
+        "ecommerce",
+        "premium apparel",
+        "anchor fashion",
+        "bangladesh",
+      ];
+
+  return {
+    title: {
+      default: titleDefault,
+      template: `%s | ${titleDefault.split("|")[0].trim() || "Anchor Fashion"}`,
+    },
+    description: desc,
+    metadataBase: new URL("https://anchorfashion.com"),
+    keywords: keywordsList,
+    authors: [{ name: "Anchor Fashion" }],
+    creator: "Anchor Fashion",
+    openGraph: {
+      type: "website",
+      locale: "en_US",
+      url: "https://anchorfashion.com",
+      title: titleDefault,
+      description: desc,
+      siteName: "Anchor Fashion",
+      images: [
+        {
+          url: image,
+          width: 1200,
+          height: 630,
+          alt: titleDefault,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: titleDefault,
+      description: desc,
+      images: [image],
+      creator: "@anchorfashion",
+    },
+    robots: {
       index: true,
       follow: true,
-      "max-video-preview": -1,
-      "max-image-preview": "large",
-      "max-snippet": -1,
+      googleBot: {
+        index: true,
+        follow: true,
+        "max-video-preview": -1,
+        "max-image-preview": "large",
+        "max-snippet": -1,
+      },
     },
-  },
-  alternates: {
-    canonical: "https://anchorfashion.com",
-  },
-  manifest: "/manifest.json",
-};
+    alternates: {
+      canonical: "https://anchorfashion.com",
+    },
+    manifest: "/manifest.json",
+  };
+}
 
 export default function RootLayout({
   children,

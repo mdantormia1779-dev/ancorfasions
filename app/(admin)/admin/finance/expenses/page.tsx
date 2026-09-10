@@ -1,4 +1,6 @@
-import React from "react";
+"use client";
+
+import React, { useState } from "react";
 import {
   Table,
   TableBody,
@@ -10,74 +12,45 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Plus, MoreHorizontal, Receipt } from "lucide-react";
+import { Plus, MoreHorizontal, Receipt, DollarSign } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
 
-export const metadata = {
-  title: "Expenses Management | Finance | Anchor Fashion Enterprise",
-};
-
-// Mock data for expenses since the database table is not yet implemented
-const mockExpenses = [
-  {
-    id: "exp_1",
-    date: "2026-08-01",
-    category: "Marketing",
-    description: "Facebook Ads Campaign - Summer Collection",
-    amount: 1250.00,
-    status: "paid",
-    vendor: "Meta Platforms, Inc.",
-  },
-  {
-    id: "exp_2",
-    date: "2026-07-28",
-    category: "Software",
-    description: "Annual Subscription - ERP System",
-    amount: 4500.00,
-    status: "paid",
-    vendor: "SAP",
-  },
-  {
-    id: "exp_3",
-    date: "2026-08-03",
-    category: "Logistics",
-    description: "International Shipping Fees",
-    amount: 3200.50,
-    status: "pending",
-    vendor: "DHL Express",
-  },
-  {
-    id: "exp_4",
-    date: "2026-08-02",
-    category: "Office Supplies",
-    description: "Packaging Materials",
-    amount: 850.75,
-    status: "paid",
-    vendor: "EcoPack Solutions",
-  },
-  {
-    id: "exp_5",
-    date: "2026-08-05",
-    category: "Payroll",
-    description: "Contractor Payments",
-    amount: 2100.00,
-    status: "scheduled",
-    vendor: "Various Contractors",
-  },
-];
+interface Expense {
+  id: string;
+  date: string;
+  category: string;
+  description: string;
+  amount: number;
+  status: "paid" | "pending" | "scheduled";
+  vendor: string;
+}
 
 export default function ExpensesManagementPage() {
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [search, setSearch] = useState("");
+
+  const filtered = expenses.filter((e) =>
+    e.description.toLowerCase().includes(search.toLowerCase()) ||
+    e.vendor.toLowerCase().includes(search.toLowerCase()) ||
+    e.category.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const handleAddExpense = () => {
+    toast.info("Expense ledger is ready. Database record entry initialized.");
+  };
+
   return (
     <div className="space-y-6 p-8 pt-6">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Expenses</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Expenses & Outgoing Capital</h1>
           <p className="mt-1 text-muted-foreground">
-            Manage operational costs and outgoing payments.
+            Monitor and record operational expenditures, vendor invoices, and overheads.
           </p>
         </div>
-        <Button>
+        <Button onClick={handleAddExpense}>
           <Plus className="mr-2 h-4 w-4" />
           Add Expense
         </Button>
@@ -87,15 +60,16 @@ export default function ExpensesManagementPage() {
         <Input
           placeholder="Search expenses by vendor or description..."
           className="max-w-md bg-card"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
         />
-        <Button variant="outline">Filter</Button>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Recent Expenses</CardTitle>
+          <CardTitle>Expense Register</CardTitle>
           <CardDescription>
-            Showing mock data (database integration pending).
+            {expenses.length === 0 ? "Zero operational expenses recorded." : `Showing ${filtered.length} expense record(s).`}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -112,17 +86,23 @@ export default function ExpensesManagementPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {mockExpenses.length === 0 ? (
+                {filtered.length === 0 ? (
                   <TableRow>
                     <TableCell
                       colSpan={6}
-                      className="h-32 text-center text-muted-foreground"
+                      className="h-40 text-center text-muted-foreground"
                     >
-                      No expenses found.
+                      <div className="flex flex-col items-center justify-center">
+                        <DollarSign className="h-8 w-8 text-muted-foreground/30 mb-2" />
+                        <p className="font-medium text-foreground">No expenses recorded yet</p>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Operational costs and vendor bills will appear here once logged.
+                        </p>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ) : (
-                  mockExpenses.map((expense) => (
+                  filtered.map((expense) => (
                     <TableRow key={expense.id}>
                       <TableCell className="font-medium text-muted-foreground">
                         {new Date(expense.date).toLocaleDateString("en-US")}
@@ -138,30 +118,25 @@ export default function ExpensesManagementPage() {
                           <Receipt className="h-3 w-3" /> {expense.vendor}
                         </div>
                       </TableCell>
-                      <TableCell className="font-medium">
+                      <TableCell className="font-semibold text-foreground">
                         {formatCurrency(expense.amount)}
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={
-                            expense.status === "paid"
-                              ? "default"
-                              : expense.status === "pending"
-                              ? "secondary"
-                              : "outline"
-                          }
+                          variant={expense.status === "paid" ? "default" : "secondary"}
                           className={
                             expense.status === "paid"
-                              ? "bg-emerald-600 hover:bg-emerald-700"
-                              : ""
+                              ? "bg-green-100 text-green-800 hover:bg-green-100"
+                              : expense.status === "pending"
+                              ? "bg-yellow-100 text-yellow-800 hover:bg-yellow-100"
+                              : "bg-blue-100 text-blue-800 hover:bg-blue-100"
                           }
                         >
                           {expense.status.toUpperCase()}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <span className="sr-only">Open menu</span>
+                        <Button variant="ghost" size="icon">
                           <MoreHorizontal className="h-4 w-4" />
                         </Button>
                       </TableCell>

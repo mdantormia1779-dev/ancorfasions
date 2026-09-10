@@ -75,56 +75,109 @@ export async function createUserAction(data: {
   lastName: string;
   email: string;
   roleName: string;
+  password?: string;
 }) {
   try {
     const supabase = createAdminClient();
 
-    // 1. Find role
-    const { data: role, error: roleError } = await supabase
+    // 1. Find role or create fallback if missing
+    let { data: role, error: roleError } = await supabase
       .from("roles")
-      .select("id")
+      .select("id, name")
       .eq("name", data.roleName)
-      .single();
+      .maybeSingle();
 
-    if (roleError || !role) throw new Error("Role not found");
+    if (!role) {
+      // If role name like STAFF does not exist, check if there is an existing role or create it
+      const { data: newRole, error: createRoleErr } = await supabase
+        .from("roles")
+        .insert({
+          name: data.roleName,
+          description: `${data.roleName} team member`,
+        })
+        .select("id, name")
+        .single();
+      
+      if (!createRoleErr && newRole) {
+        role = newRole;
+      } else {
+        // Fallback to finding by general staff or marketing
+        const { data: fallbackRole } = await supabase
+          .from("roles")
+          .select("id, name")
+          .in("name", ["STAFF", "SUPPORT", "MARKETING"])
+          .limit(1)
+          .single();
+        role = fallbackRole;
+      }
+    }
 
-    // 2. Generate a secure temporary password
+    if (!role) throw new Error("Role not found");
+
+    // 2. Generate or use password
     const tempPassword =
+      data.password ||
       Math.random().toString(36).slice(-8) +
       Math.random().toString(36).slice(-8).toUpperCase() +
       "1!A";
 
-    // 3. Create auth user
+    // 3. Create auth user with complete user_metadata
     const { data: authData, error: authError } =
       await supabase.auth.admin.createUser({
         email: data.email,
         password: tempPassword,
         email_confirm: true,
+        user_metadata: {
+          role: data.roleName,
+          first_name: data.firstName,
+          last_name: data.lastName,
+          full_name: `${data.firstName} ${data.lastName}`.trim(),
+        },
+        app_metadata: {
+          role: data.roleName,
+        },
       });
 
     if (authError) throw authError;
+    if (!authData.user) throw new Error("Failed to create user in Auth");
 
-    // 4. Create profile (sometimes it's created automatically by a trigger, so we upsert or update)
-    // We will attempt to update it first, if no rows updated, we insert.
-    // Let's try upsert.
-    const { error: profileError } = await supabase.from("profiles").upsert({
-      id: authData.user.id,
-      first_name: data.firstName,
-      last_name: data.lastName,
-      role_id: role.id,
-      is_active: true,
+    // Explicitly update metadata to ensure JWT synchronization
+    await supabase.auth.admin.updateUserById(authData.user.id, {
+      user_metadata: {
+        role: data.roleName,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        full_name: `${data.firstName} ${data.lastName}`.trim(),
+      },
+      app_metadata: {
+        role: data.roleName,
+      },
     });
+
+    // 4. Create / update profile record
+    const { error: profileError } = await supabase.from("profiles").upsert(
+      {
+        id: authData.user.id,
+        first_name: data.firstName,
+        last_name: data.lastName,
+        role_id: role.id,
+        is_active: true,
+      },
+      { onConflict: "id" }
+    );
 
     if (profileError) throw profileError;
 
     revalidatePath("/admin/users/admins");
     revalidatePath("/admin/users/managers");
     revalidatePath("/admin/users/staff");
+    revalidatePath("/admin/users");
 
     return {
       success: true,
       data: {
         password: tempPassword,
+        userId: authData.user.id,
       },
     };
   } catch (error: any) {

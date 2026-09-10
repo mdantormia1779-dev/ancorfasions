@@ -40,7 +40,7 @@ export class OrderRepository {
     limit?: number;
   }, supabaseClient?: any) {
     const supabase = supabaseClient || await createClient();
-    let query = supabase.from("orders").select("*, customer:customer_profiles(first_name, last_name, email)", { count: "exact" });
+    let query = supabase.from("orders").select("*", { count: "exact" });
 
     if (options?.customerId) {
       query = query.eq("customer_id", options.customerId); // Fixed bug here from user_id to customer_id if any

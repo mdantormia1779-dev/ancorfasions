@@ -1,30 +1,136 @@
 "use client";
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Package, Wallet, Award, Clock, Heart, TrendingUp, CreditCard, ChevronRight } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Package, Wallet, Award, Heart, TrendingUp, CreditCard, ChevronRight, ShoppingBag, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useLoyaltyStore } from "@/stores/use-loyalty-store";
 import { TierBadge } from "@/components/customer/loyalty/tier-badges";
+import { createClient } from "@/lib/supabase/client";
+import { formatCurrency } from "@/lib/utils";
+
+interface AccountSummary {
+  firstName: string;
+  recentOrdersCount: number;
+  monthlySpending: number;
+  savedItemsCount: number;
+  walletBalance: number;
+  recentOrders: any[];
+  role: string;
+}
 
 export default function AccountOverviewPage() {
   const { tier, points } = useLoyaltyStore();
+  const [loading, setLoading] = useState(true);
+  const [summary, setSummary] = useState<AccountSummary>({
+    firstName: "Valued Customer",
+    recentOrdersCount: 0,
+    monthlySpending: 0,
+    savedItemsCount: 0,
+    walletBalance: 0,
+    recentOrders: [],
+    role: "CUSTOMER",
+  });
 
-  const summary = {
-    recentOrders: 2,
-    walletBalance: 12500,
-    currency: "BDT",
-    supportTickets: 0,
-    savedItems: 14,
-    monthlySpending: 24500,
-    savingsThisYear: 3200,
-  };
+  const supabase = createClient();
+
+  useEffect(() => {
+    async function loadAccountData() {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+
+        // 1. Profile Name
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("first_name, last_name, roles(name)")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        const userRole = (profile?.roles as any)?.name || user.user_metadata?.role || "CUSTOMER";
+        const name = profile?.first_name || user.user_metadata?.first_name || user.email?.split("@")[0] || "Valued Customer";
+
+        // 2. Orders in the last 30 days & Total Spending
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        const { data: recentOrdersData } = await supabase
+          .from("orders")
+          .select("id, order_number, grand_total, status, created_at")
+          .eq("customer_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(5);
+
+        const recentOrders = recentOrdersData || [];
+
+        const ordersLast30Days = recentOrders.filter(
+          (o) => new Date(o.created_at).toISOString() >= thirtyDaysAgo
+        );
+        const recentOrdersCount = ordersLast30Days.length;
+
+        const monthlySpending = ordersLast30Days.reduce(
+          (acc, o) => acc + (Number(o.grand_total) || 0),
+          0
+        );
+
+        // 3. Saved Items (Wishlist)
+        const { count: wishlistCount } = await supabase
+          .from("wishlist_items")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", user.id);
+
+        // 4. Wallet Balance
+        const { data: wallet } = await supabase
+          .from("wallets")
+          .select("balance")
+          .eq("customer_id", user.id)
+          .maybeSingle();
+
+        setSummary({
+          firstName: name,
+          recentOrdersCount,
+          monthlySpending,
+          savedItemsCount: wishlistCount || 0,
+          walletBalance: Number(wallet?.balance) || 0,
+          recentOrders,
+          role: userRole,
+        });
+      } catch (err) {
+        console.error("Failed to load account summary:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadAccountData();
+  }, [supabase]);
+
+  const isEmployee = ["MARKETING", "MARKETING_MANAGER", "STAFF", "MANAGER", "ADMIN", "SUPERADMIN"].includes(summary.role);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {/* Employee Navigation Banner if employee enters customer view */}
+      {isEmployee && (
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-950">
+          <div>
+            <p className="font-semibold text-sm">Employee Account Notice</p>
+            <p className="text-xs text-indigo-700">
+              You are logged in with role <strong>{summary.role}</strong>. For your work dashboard and assigned duties, visit your staff workspace.
+            </p>
+          </div>
+          <Button size="sm" asChild className="bg-indigo-600 hover:bg-indigo-700 text-white shrink-0">
+            <Link href={summary.role === "MARKETING" ? "/admin/marketing" : "/admin/profile"}>
+              Open Staff Workspace <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
+            </Link>
+          </Button>
+        </div>
+      )}
+
+      {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
         <div>
-          <h1 className="text-3xl font-light tracking-tight text-[#1A1A1A]">Welcome back, Alex!</h1>
+          <h1 className="text-3xl font-light tracking-tight text-[#1A1A1A]">
+            {loading ? "Welcome back!" : `Welcome back, ${summary.firstName}!`}
+          </h1>
           <p className="mt-2 text-sm text-gray-500">
             Here is a quick overview of your account, orders, and loyalty status.
           </p>
@@ -37,34 +143,36 @@ export default function AccountOverviewPage() {
         </div>
       </div>
 
+      {/* Metric Cards with Real Values */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         <InsightCard 
           title="Recent Orders" 
-          value={summary.recentOrders} 
+          value={loading ? "..." : summary.recentOrdersCount} 
           subtitle="In the last 30 days" 
           icon={Package} 
         />
         <InsightCard 
           title="Monthly Spending" 
-          value={summary.monthlySpending.toLocaleString("en-US", { style: "currency", currency: summary.currency })} 
-          subtitle="+12% from last month" 
+          value={loading ? "..." : formatCurrency(summary.monthlySpending)} 
+          subtitle="In the last 30 days" 
           icon={TrendingUp} 
         />
         <InsightCard 
           title="Wishlist" 
-          value={summary.savedItems} 
+          value={loading ? "..." : summary.savedItemsCount} 
           subtitle="Items saved for later" 
           icon={Heart} 
         />
         <InsightCard 
-          title="Total Savings" 
-          value={summary.savingsThisYear.toLocaleString("en-US", { style: "currency", currency: summary.currency })} 
-          subtitle="Saved this year" 
+          title="Wallet Balance" 
+          value={loading ? "..." : formatCurrency(summary.walletBalance)} 
+          subtitle="Available store credit" 
           icon={Wallet} 
         />
       </div>
 
       <div className="grid gap-6 md:grid-cols-3">
+        {/* Recent Activity Card */}
         <Card className="md:col-span-2 border-gray-200 shadow-sm">
           <CardHeader className="border-b border-gray-100 pb-4">
             <div className="flex justify-between items-center">
@@ -75,56 +183,46 @@ export default function AccountOverviewPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-6">
-            <div className="space-y-6">
-              <ActivityItem 
-                title="Order #ORD-8821" 
-                subtitle="Delivered on Oct 12, 2026" 
-                amount="BDT 12,500.00" 
-                status="Delivered" 
-              />
-              <ActivityItem 
-                title="Loyalty Reward Redeemed" 
-                subtitle="10% Off Order — Oct 10, 2026" 
-                amount="-1,000 pts" 
-                status="Redeemed" 
-              />
-              <ActivityItem 
-                title="Wallet Refund" 
-                subtitle="Credit applied — Oct 05, 2026" 
-                amount="BDT 1,200.00" 
-                status="Completed" 
-              />
-            </div>
+            {loading ? (
+              <div className="py-8 text-center text-sm text-muted-foreground">Loading recent activity...</div>
+            ) : summary.recentOrders.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-10 text-center">
+                <ShoppingBag className="h-10 w-10 text-gray-300 mb-3" />
+                <p className="font-medium text-[#1A1A1A]">No recent orders yet</p>
+                <p className="text-sm text-gray-500 mt-1 max-w-sm">
+                  Start exploring our collections and your recent purchases will appear right here.
+                </p>
+                <Button asChild variant="outline" size="sm" className="mt-4">
+                  <Link href="/shop">Start Shopping</Link>
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {summary.recentOrders.map((order) => (
+                  <ActivityItem 
+                    key={order.id}
+                    title={`Order #${order.order_number || order.id.slice(0, 8)}`} 
+                    subtitle={new Date(order.created_at).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })} 
+                    amount={formatCurrency(order.grand_total)} 
+                    status={order.status || "Processing"} 
+                  />
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
 
+        {/* Quick Links & Information */}
         <div className="space-y-6">
-          <Card className="bg-[#1A1A1A] text-white border-none shadow-xl">
-            <CardHeader>
-              <CardTitle className="text-sm font-medium uppercase tracking-widest text-gray-400">Payment Methods</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-4 bg-white/10 p-4 rounded-lg border border-white/20">
-                <CreditCard className="h-6 w-6 text-gray-300" />
-                <div>
-                  <p className="font-medium tracking-wider">•••• •••• •••• 4242</p>
-                  <p className="text-xs text-gray-400">Expires 12/28</p>
-                </div>
-              </div>
-              <Button variant="link" className="text-[#C9A86A] mt-4 px-0 h-auto font-medium">
-                Manage Payment Methods
-              </Button>
-            </CardContent>
-          </Card>
-
           <Card className="border-gray-200 shadow-sm">
             <CardHeader className="pb-4">
               <CardTitle className="text-lg font-medium text-[#1A1A1A]">Quick Links</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <QuickLink href="/account/loyalty" label="Loyalty & Rewards" />
-              <QuickLink href="/account/referrals" label="Invite Friends" />
-              <QuickLink href="/account/wishlist" label="My Collections" />
+              <QuickLink href="/account/orders" label="Order History" />
+              <QuickLink href="/account/wishlist" label="My Wishlist" />
+              <QuickLink href="/account/wallet" label="My Wallet & Balance" />
+              <QuickLink href="/account/loyalty" label="Loyalty & Tier Status" />
               <QuickLink href="/account/profile" label="Profile Settings" />
             </CardContent>
           </Card>

@@ -11,38 +11,16 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { getUsersByRoleAction } from "@/actions/users.actions";
+import { Users } from "lucide-react";
 
 export const metadata = {
   title: "Customer Management | Admin",
 };
 
-export default function AdminCustomersPage() {
-  const customers = [
-    {
-      id: "usr-1",
-      name: "John Doe",
-      email: "john@example.com",
-      tier: "VIP",
-      status: "Active",
-      totalSpent: 45000,
-    },
-    {
-      id: "usr-2",
-      name: "Jane Smith",
-      email: "jane@example.com",
-      tier: "GOLD",
-      status: "Active",
-      totalSpent: 12000,
-    },
-    {
-      id: "usr-3",
-      name: "Bob Wilson",
-      email: "bob@example.com",
-      tier: "SILVER",
-      status: "Suspended",
-      totalSpent: 1500,
-    },
-  ];
+export default async function AdminCustomersPage() {
+  const result = await getUsersByRoleAction(["CUSTOMER"]);
+  const customers = result.success && result.data ? result.data : [];
 
   return (
     <div className="space-y-6 p-8">
@@ -50,66 +28,69 @@ export default function AdminCustomersPage() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
           <p className="mt-2 text-muted-foreground">
-            Manage your enterprise customers, view their loyalty tiers and
-            wallets.
+            Manage your registered customer base and account statuses.
           </p>
         </div>
       </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
-          <CardTitle>All Customers</CardTitle>
-          <div className="flex space-x-2">
-            <Input placeholder="Search customers..." className="w-64" />
-            <Button variant="secondary">Filter</Button>
-          </div>
+          <CardTitle>All Customers ({customers.length})</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Loyalty Tier</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Total Spent (BDT)</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {customers.map((c) => (
-                <TableRow key={c.id}>
-                  <TableCell className="font-medium">
-                    <Link
-                      href={`/customers/${c.id}`}
-                      className="text-blue-600 hover:underline"
-                    >
-                      {c.name}
-                    </Link>
-                  </TableCell>
-                  <TableCell>{c.email}</TableCell>
-                  <TableCell>
-                    <Badge variant="outline">{c.tier}</Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        c.status === "Active" ? "default" : "destructive"
-                      }
-                    >
-                      {c.status}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{c.totalSpent.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      <Link href={`/customers/${c.id}`}>View Details</Link>
-                    </Button>
-                  </TableCell>
+          {customers.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground">
+              <Users className="h-12 w-12 text-muted-foreground/50 mb-3" />
+              <p className="text-lg font-medium text-foreground">No customers found</p>
+              <p className="text-sm mt-1">Customer profiles will automatically appear here when shoppers register.</p>
+            </div>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Active</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {customers.map((c) => (
+                  <TableRow key={c.id}>
+                    <TableCell className="font-medium">
+                      <Link
+                        href={`/customers/${c.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
+                        {c.name}
+                      </Link>
+                    </TableCell>
+                    <TableCell>{c.email}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{c.role}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          c.status === "Active" ? "default" : "destructive"
+                        }
+                      >
+                        {c.status}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-muted-foreground">{c.lastActive}</TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/customers/${c.id}`}>View Details</Link>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
         </CardContent>
       </Card>
     </div>

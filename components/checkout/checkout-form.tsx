@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
@@ -38,6 +38,10 @@ export function CheckoutForm({
   const { cart } = useCartStore();
   const { formData, currentStep, updateStep } = useCheckoutStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [calculatedShippingFee, setCalculatedShippingFee] = useState<number | null>(null);
+  const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
+
+
 
   const form = useForm<CheckoutFormValues>({
     resolver: zodResolver(checkoutFormSchema),
@@ -59,6 +63,8 @@ export function CheckoutForm({
             formData.information?.shipping_address?.country || "Bangladesh",
         },
         save_information: false,
+        create_account: false,
+        password: "",
       },
       shipping: {
         shipping_method: formData.shipping?.shipping_method || "home_delivery",
@@ -77,6 +83,32 @@ export function CheckoutForm({
   );
   const activeStep = currentStep === "COMPLETED" ? "REVIEW" : currentStep;
 
+  const calculateShippingForCity = useCallback(async (city: string, method: string) => {
+    if (!city) return;
+    setIsCalculatingShipping(true);
+    try {
+      const isCOD = form.getValues("payment.payment_method") === "COD";
+      const cartTotal = (cart?.items || []).reduce((total, item) => {
+        const price = item.variant?.sale_price || item.variant?.price || item.product?.sale_price || item.product?.price || 0;
+        return total + price * item.quantity;
+      }, 0);
+      const res = await fetch(
+        `/api/shipping/rates?district=${encodeURIComponent(city)}&city=${encodeURIComponent(city)}&weightKg=0.5&orderValue=${cartTotal}&isCOD=${isCOD}`
+      );
+      const json = await res.json();
+      if (json.success && json.data?.total != null) {
+        setCalculatedShippingFee(json.data.total);
+      } else {
+        // Fallback to local defaults when DB has no zone configured
+        setCalculatedShippingFee(method === "home_delivery" ? 100 : 150);
+      }
+    } catch {
+      setCalculatedShippingFee(method === "home_delivery" ? 100 : 150);
+    } finally {
+      setIsCalculatingShipping(false);
+    }
+  }, [cart?.items, form]);
+
   const handleNextStep = async (
     step: "INFORMATION" | "SHIPPING" | "PAYMENT" | "REVIEW"
   ) => {
@@ -84,6 +116,15 @@ export function CheckoutForm({
     let isValid = false;
     if (step === "SHIPPING") {
       isValid = await form.trigger("information");
+      if (isValid) {
+        const city = form.getValues("information.shipping_address.city");
+        const method = city && city.toLowerCase().includes("dhaka")
+          ? "home_delivery"
+          : "home_delivery_outside";
+        form.setValue("shipping.shipping_method", method);
+        // Kick off dynamic rate calculation
+        await calculateShippingForCity(city, method);
+      }
     } else if (step === "PAYMENT") {
       isValid = await form.trigger(["information", "shipping"]);
     } else if (step === "REVIEW") {
@@ -237,6 +278,47 @@ export function CheckoutForm({
             </div>
           </div>
 
+          <div className="mt-4 p-4 border border-[#222] rounded-lg bg-[#111]">
+            <FormField
+              control={form.control}
+              name="information.create_account"
+              render={({ field }) => (
+                <FormItem className="flex flex-row items-start space-x-3 space-y-0">
+                  <FormControl>
+                    <Checkbox
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                  <div className="space-y-1 leading-none">
+                    <FormLabel className="cursor-pointer font-medium">
+                      Save details & create an account
+                    </FormLabel>
+                    <p className="text-xs text-gray-400 mt-1">
+                      Check this box to easily track your order and checkout faster next time.
+                    </p>
+                  </div>
+                </FormItem>
+              )}
+            />
+
+            {form.watch("information.create_account") && (
+              <FormField
+                control={form.control}
+                name="information.password"
+                render={({ field }) => (
+                  <FormItem className="mt-4 animate-in slide-in-from-top-2">
+                    <FormLabel>Set a Password</FormLabel>
+                    <FormControl>
+                      <Input type="password" placeholder="••••••••" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
+          </div>
+
           <Button
             type="button"
             size="lg"
@@ -283,7 +365,13 @@ export function CheckoutForm({
                           </FormLabel>
                           <span className="text-xs text-gray-500 mt-1">Est. 1-2 business days</span>
                         </div>
-                        <span className="font-medium text-[#1A1A1A]">৳ 100</span>
+                        <span className="font-medium text-[#1A1A1A]">
+                          {isCalculatingShipping ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            `৳ ${calculatedShippingFee ?? 100}`
+                          )}
+                        </span>
                       </div>
                     </FormItem>
                     <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 transition-colors hover:border-black hover:bg-gray-50 data-[state=checked]:border-black data-[state=checked]:bg-gray-50">
@@ -297,7 +385,13 @@ export function CheckoutForm({
                           </FormLabel>
                           <span className="text-xs text-gray-500 mt-1">Est. 3-5 business days</span>
                         </div>
-                        <span className="font-medium text-[#1A1A1A]">৳ 150</span>
+                        <span className="font-medium text-[#1A1A1A]">
+                          {isCalculatingShipping ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            `৳ ${calculatedShippingFee ?? 150}`
+                          )}
+                        </span>
                       </div>
                     </FormItem>
                   </RadioGroup>

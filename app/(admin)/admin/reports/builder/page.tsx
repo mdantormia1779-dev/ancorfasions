@@ -23,17 +23,11 @@ import { Download, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 
-// Mock data for the builder preview
-const mockPreviewData = [
-  { date: "2026-07-20", category: "Dresses", sales: 1250, orders: 15 },
-  { date: "2026-07-21", category: "Tops", sales: 850, orders: 22 },
-  { date: "2026-07-22", category: "Outerwear", sales: 2100, orders: 8 },
-];
-
 export default function ReportBuilderPage() {
   const [reportName, setReportName] = useState("");
   const [dimensions, setDimensions] = useState<string[]>(["date"]);
   const [metrics, setMetrics] = useState<string[]>(["sales"]);
+  const [previewData, setPreviewData] = useState<Record<string, any>[]>([]);
 
   const toggleDimension = (dim: string) => {
     setDimensions((prev) =>
@@ -52,8 +46,12 @@ export default function ReportBuilderPage() {
       toast.error("Please enter a report name");
       return;
     }
+    if (previewData.length === 0) {
+      toast.error("No data available to export for this report");
+      return;
+    }
     exportToCsv(
-      mockPreviewData,
+      previewData,
       `${reportName.replace(/\s+/g, "_").toLowerCase()}.csv`
     );
     toast.success("Report exported successfully");
@@ -201,25 +199,36 @@ export default function ReportBuilderPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {mockPreviewData.map((row, i) => (
-                    <tr
-                      key={i}
-                      className="border-b transition-colors last:border-0 hover:bg-muted/50"
-                    >
-                      {dimensions.map((d) => (
-                        <td key={d} className="px-4 py-3">
-                          {(row as any)[d] || "-"}
-                        </td>
-                      ))}
-                      {metrics.map((m) => (
-                        <td key={m} className="px-4 py-3">
-                          {m === "sales" || m === "profit" || m === "refunds"
-                            ? `$${(row as any)[m] || 0}`
-                            : (row as any)[m] || 0}
-                        </td>
-                      ))}
+                  {previewData.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={dimensions.length + metrics.length}
+                        className="py-12 text-center text-muted-foreground"
+                      >
+                        No data found for the selected dimensions and date range.
+                      </td>
                     </tr>
-                  ))}
+                  ) : (
+                    previewData.map((row, i) => (
+                      <tr
+                        key={i}
+                        className="border-b transition-colors last:border-0 hover:bg-muted/50"
+                      >
+                        {dimensions.map((d) => (
+                          <td key={d} className="px-4 py-3">
+                            {(row as any)[d] || "-"}
+                          </td>
+                        ))}
+                        {metrics.map((m) => (
+                          <td key={m} className="px-4 py-3">
+                            {m === "sales" || m === "profit" || m === "refunds"
+                              ? `$${(row as any)[m] || 0}`
+                              : (row as any)[m] || 0}
+                          </td>
+                        ))}
+                      </tr>
+                    ))
+                  )}
                 </tbody>
               </table>
             </div>

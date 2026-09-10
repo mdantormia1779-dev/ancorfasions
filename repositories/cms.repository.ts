@@ -111,36 +111,75 @@ export class CMSRepository {
   async getNavigationByLocation(
     location: string
   ): Promise<CMSNavigation | null> {
-    const supabase = await createClient();
+    const { createAdminClient } = await import("@/lib/supabase/server");
+    const supabase = await createAdminClient();
     const { data, error } = await supabase
       .from("cms_menus")
       .select("*")
       .eq("location", location)
-      .single();
+      .maybeSingle();
 
     if (error) {
-      if (error.code === "PGRST116") return null;
-      throw new Error(error.message);
+      console.error("Error in getNavigationByLocation:", error.message);
+      return null;
     }
+    if (!data) return null;
     return {
       ...data,
-      items: data.menu_structure || [],
+      items: Array.isArray(data.menu_structure) ? data.menu_structure : [],
     };
+  }
+
+  async getAllNavigations(): Promise<CMSNavigation[]> {
+    const { createAdminClient } = await import("@/lib/supabase/server");
+    const supabase = await createAdminClient();
+    const { data, error } = await supabase
+      .from("cms_menus")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (error) {
+      console.error("Error fetching all navigations:", error.message);
+      return [];
+    }
+    return (data || []).map((d) => ({
+      ...d,
+      items: Array.isArray(d.menu_structure) ? d.menu_structure : [],
+    }));
   }
 
   async saveNavigation(location: string, name: string, items: any[]): Promise<CMSNavigation> {
     const { createAdminClient } = await import("@/lib/supabase/server");
     const supabase = await createAdminClient();
+    const cleanLocation = location.trim().toLowerCase().replace(/\s+/g, "_");
+    const cleanItems = Array.isArray(items) ? items : [];
+
     const { data, error } = await supabase
       .from("cms_menus")
-      .upsert({ location, name, menu_structure: items }, { onConflict: "location" })
+      .upsert(
+        {
+          location: cleanLocation,
+          name: name.trim(),
+          menu_structure: cleanItems,
+          updated_at: new Date().toISOString(),
+        },
+        { onConflict: "location" }
+      )
       .select()
       .single();
     
     if (error) throw new Error(error.message);
     return {
       ...data,
-      items: data.menu_structure || [],
+      items: Array.isArray(data.menu_structure) ? data.menu_structure : [],
     };
   }
+
+  async deleteNavigation(id: string): Promise<void> {
+    const { createAdminClient } = await import("@/lib/supabase/server");
+    const supabase = await createAdminClient();
+    const { error } = await supabase.from("cms_menus").delete().eq("id", id);
+    if (error) throw new Error(error.message);
+  }
 }
+
