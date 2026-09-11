@@ -9,7 +9,12 @@ CREATE INDEX IF NOT EXISTS idx_carts_updated_at ON public.carts(updated_at DESC)
 CREATE INDEX IF NOT EXISTS idx_cart_items_cart_id ON public.cart_items(cart_id);
 CREATE INDEX IF NOT EXISTS idx_cart_items_variant_id ON public.cart_items(variant_id);
 
--- 2. Ensure Unique Constraint on (cart_id, variant_id) to Prevent Duplicate Lines
+-- 2. Clean any existing legacy duplicates and add Unique Constraint on (cart_id, variant_id)
+DELETE FROM public.cart_items a USING public.cart_items b
+WHERE a.id < b.id 
+  AND a.cart_id = b.cart_id 
+  AND a.variant_id = b.variant_id;
+
 DO $$
 BEGIN
     IF NOT EXISTS (
