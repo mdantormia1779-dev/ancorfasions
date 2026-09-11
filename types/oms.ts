@@ -155,3 +155,34 @@ export interface RefundRequest {
   created_at: string;
   updated_at: string;
 }
+
+export interface OrderCustomerDetails {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  full_name: string;
+  phone?: string | null;
+  email?: string | null;
+  tier?: string | null;
+}
+
+export interface OrderAddressDetails {
+  id?: string;
+  recipient_name?: string | null;
+  phone?: string | null;
+  address_line_1?: string | null;
+  address_line_2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  zip?: string | null;
+  country?: string | null;
+  address_type?: string | null;
+}
+
+export interface OrderWithDetails extends Order {
+  items: OrderItem[];
+  customer?: OrderCustomerDetails | null;
+  shippingAddress?: OrderAddressDetails | null;
+  billingAddress?: OrderAddressDetails | null;
+}
+

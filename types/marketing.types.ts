@@ -9,7 +9,14 @@ export interface CampaignAudience {
 
 export type CampaignType = "email" | "sms" | "push" | "drip";
 export type CampaignStatus =
-  "draft" | "scheduled" | "running" | "completed" | "paused";
+  | "draft"
+  | "scheduled"
+  | "running"
+  | "sending"
+  | "sent"
+  | "completed"
+  | "paused"
+  | "failed";
 
 export interface Campaign {
   id: string;

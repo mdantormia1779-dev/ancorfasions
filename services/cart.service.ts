@@ -1,27 +1,17 @@
-import { CartRepository } from "@/repositories/cart.repository";
+import { CartService as LibCartService } from "@/lib/services/cart.service";
 import { Cart, CartItem } from "@/types/checkout.types";
 
 export class CartService {
-  private cartRepository: CartRepository;
-
-  constructor() {
-    this.cartRepository = new CartRepository();
-  }
-
   async getCart(cartId: string): Promise<Cart | null> {
-    return await this.cartRepository.getCartById(cartId);
+    return await LibCartService.getOrCreateCart(null, null, cartId);
   }
 
   async getCartByUser(userId: string): Promise<Cart | null> {
-    return await this.cartRepository.getCartByUserId(userId);
+    return await LibCartService.getOrCreateCart(userId);
   }
 
   async initializeCart(userId?: string, sessionId?: string): Promise<Cart> {
-    if (userId) {
-      const existing = await this.cartRepository.getCartByUserId(userId);
-      if (existing) return existing;
-    }
-    return await this.cartRepository.createCart(userId, sessionId);
+    return await LibCartService.getOrCreateCart(userId, sessionId);
   }
 
   async addToCart(
@@ -29,34 +19,26 @@ export class CartService {
     productId: string,
     quantity: number,
     variantId?: string
-  ): Promise<CartItem> {
-    if (quantity <= 0) throw new Error("Quantity must be greater than zero");
-
-    // In a real scenario, we'd also check inventory using a ProductService here before adding.
-    // Assuming validation is handled or stock is sufficient for now.
-
-    return await this.cartRepository.addItem(
-      cartId,
-      productId,
-      quantity,
-      variantId
-    );
+  ): Promise<any> {
+    await LibCartService.addItem(null, cartId, productId, variantId || null, quantity);
+    const cart = await LibCartService.getOrCreateCart(null, null, cartId);
+    return cart.items?.[cart.items.length - 1];
   }
 
-  async updateQuantity(itemId: string, quantity: number): Promise<CartItem> {
-    if (quantity <= 0) throw new Error("Quantity must be greater than zero");
-    return await this.cartRepository.updateItemQuantity(itemId, quantity);
+  async updateQuantity(itemId: string, quantity: number): Promise<any> {
+    await LibCartService.updateQuantity(itemId, quantity);
   }
 
   async removeFromCart(itemId: string): Promise<void> {
-    await this.cartRepository.removeItem(itemId);
+    await LibCartService.removeItem(itemId);
   }
 
   async clearCart(cartId: string): Promise<void> {
-    await this.cartRepository.clearCart(cartId);
+    await LibCartService.clearCart(cartId);
   }
 
   async mergeGuestCart(guestCartId: string, userId: string): Promise<void> {
-    await this.cartRepository.mergeCart(guestCartId, userId);
+    await LibCartService.mergeGuestCart(guestCartId, userId);
   }
 }
+

@@ -6,15 +6,22 @@ import { Button } from "@/components/ui/button";
 import { Star, Trash2, Edit } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
+import { deleteCustomerReviewAction } from "@/app/actions/customer.actions";
 
 export function ReviewsList({ initialReviews }: { initialReviews: any[] }) {
   const [reviews, setReviews] = useState(initialReviews);
   const [isPending, startTransition] = useTransition();
 
   const handleDelete = (id: string) => {
-    // In a real implementation, you would call a server action here.
-    toast.success("Review deleted (mock)");
-    setReviews(reviews.filter((r) => r.id !== id));
+    startTransition(async () => {
+      const res = await deleteCustomerReviewAction(id);
+      if (res.success) {
+        toast.success("Review deleted successfully");
+        setReviews((prev) => prev.filter((r) => r.id !== id));
+      } else {
+        toast.error(res.error || "Failed to delete review");
+      }
+    });
   };
 
   if (reviews.length === 0) {

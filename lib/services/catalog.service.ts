@@ -1,41 +1,54 @@
+import { ProductListParams } from "@/repositories/catalog.repository";
 import {
-  CatalogRepository,
-  ProductListParams,
-} from "@/repositories/catalog.repository";
+  getCachedCategories,
+  getCachedBrands,
+  getCachedFeaturedProducts,
+  getCachedNewArrivals,
+  getCachedProducts,
+  getCachedProductBySlug,
+} from "@/lib/cache/catalog-cache";
 
 export class CatalogService {
   /**
-   * Get all active categories
+   * Get all active categories (Cached with 300s TTL)
    */
   static async getCategories() {
-    return CatalogRepository.getCategories();
+    return getCachedCategories();
   }
 
   /**
-   * Get featured products
+   * Get all active brands (Cached with 300s TTL)
+   */
+  static async getBrands() {
+    return getCachedBrands(true);
+  }
+
+  /**
+   * Get featured products (Cached with 60s TTL)
    */
   static async getFeaturedProducts(limit = 4) {
-    return CatalogRepository.getFeaturedProducts(limit);
+    return getCachedFeaturedProducts(limit);
   }
 
   /**
-   * Get newest products
+   * Get newest products (Cached with 60s TTL)
    */
   static async getNewArrivals(limit = 4) {
-    return CatalogRepository.getNewArrivals(limit);
+    return getCachedNewArrivals(limit);
   }
 
   /**
-   * Get products with filtering and pagination
+   * Get products with filtering and pagination (Cached with 60s TTL by params)
    */
   static async getProducts(params: ProductListParams) {
-    return CatalogRepository.getProducts(params);
+    return getCachedProducts(params);
   }
 
   /**
-   * Get a single product by slug
+   * Get a single product by slug (Cached with 60s TTL)
    */
   static async getProductBySlug(slug: string) {
-    return CatalogRepository.getProductBySlug(slug);
+    return getCachedProductBySlug(slug);
   }
 }
+

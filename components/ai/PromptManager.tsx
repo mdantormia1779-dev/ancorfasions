@@ -6,8 +6,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+export interface AIPromptTemplate {
+  id: string;
+  name: string;
+  system_prompt?: string;
+  user_template?: string;
+  user_prompt_template?: string;
+  model?: string;
+  created_at?: string;
+}
+
 export function PromptManager() {
-  const [prompts, setPrompts] = useState<any[]>([]);
+  const [prompts, setPrompts] = useState<AIPromptTemplate[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Form state

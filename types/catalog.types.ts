@@ -72,7 +72,9 @@ export const ProductSchema = z.object({
   description: z.string().optional().nullable(),
   categoryId: z.string().uuid("Please select a valid category"),
   brandId: z.string().uuid().optional().nullable().or(z.literal("").transform(() => null)),
-  basePrice: z.number().min(0),
+  basePrice: z.number().min(0, "Sell price must be 0 or greater"),
+  costPrice: z.number().min(0).optional().nullable(),
+  salePrice: z.number().min(0).optional().nullable(),
   sku: z.string().max(100).optional().nullable().or(z.literal("").transform(() => null)),
   barcode: z.string().max(100).optional().nullable().or(z.literal("").transform(() => null)),
   status: ProductStatus.default("DRAFT"),
@@ -95,6 +97,7 @@ export const ProductSchema = z.object({
   seo: ProductSeoSchema.optional().nullable(),
   tags: z.array(TagSchema).optional(),
 });
+
 
 // ============================================================================
 // TYPES
@@ -204,6 +207,27 @@ export type Review = {
   // joined
   customer: { first_name: string | null; last_name: string | null; email: string } | null;
   product: { name: string; slug: string } | null;
+};
+
+// ============================================================================
+// SIZE CHART TYPES
+// ============================================================================
+
+export type SizeChartMeasurements = {
+  units: string[];
+  columns: string[];
+  rows: Record<string, string | number>[];
+};
+
+export type SizeChart = {
+  id: string;
+  name: string;
+  category_id: string | null;
+  product_id: string | null;
+  is_default: boolean;
+  measurements: SizeChartMeasurements;
+  created_at: string;
+  updated_at: string;
 };
 
 // ============================================================================

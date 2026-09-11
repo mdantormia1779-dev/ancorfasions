@@ -31,8 +31,19 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+export interface AdminUserListItem {
+  id: string;
+  name: string;
+  email: string;
+  phone?: string | null;
+  role: string;
+  status: string;
+  lastActive: string;
+  avatar?: string | null;
+}
+
 export default function UserManagementPage() {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<AdminUserListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
 

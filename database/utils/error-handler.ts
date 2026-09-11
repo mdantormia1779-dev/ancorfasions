@@ -1,4 +1,5 @@
 import { PostgrestError } from "@supabase/supabase-js";
+import { logServerError } from "@/lib/utils/error-handler";
 
 export class DatabaseError extends Error {
   constructor(
@@ -39,8 +40,11 @@ export function handlePostgresError(error: PostgrestError): DatabaseError {
       break;
   }
 
-  // TODO: Add logging integration here (e.g., Sentry, Winston, Datadog)
-  console.error(`[DB Error ${error.code}]: ${error.message}`, error.details);
+  logServerError("DATABASE_POSTGRES", error, {
+    code: error.code,
+    details: error.details,
+    hint: error.hint,
+  });
 
   return new DatabaseError(
     customMessage,

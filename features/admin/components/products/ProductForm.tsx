@@ -8,7 +8,6 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { Plus, Trash2, Upload, ImagePlus, X, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-// eslint-disable-next-line @typescript-eslint/no-unused-vars, no-unused-vars
 import Image from "next/image";
 
 import { Button } from "@/components/ui/button";
@@ -48,6 +47,25 @@ const CURRENCY_SYMBOL = "৳";
 
 type ProductFormValues = z.infer<typeof CreateProductSchema>;
 
+interface CategoryOption {
+  id: string;
+  name: string;
+  slug?: string;
+  parentId?: string | null;
+}
+
+interface BrandOption {
+  id: string;
+  name: string;
+  slug?: string;
+}
+
+interface TagOption {
+  id: string;
+  name: string;
+  slug?: string;
+}
+
 interface ProductFormProps {
   initialData?: Product;
   /** Where to navigate after a successful create or update. Defaults to /admin/products */
@@ -58,9 +76,9 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [categories, setCategories] = useState<any[]>([]);
-  const [brands, setBrands] = useState<any[]>([]);
-  const [tags, setTags] = useState<any[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
+  const [brands, setBrands] = useState<BrandOption[]>([]);
+  const [tags, setTags] = useState<TagOption[]>([]);
 
   useEffect(() => {
     async function loadData() {
@@ -136,6 +154,8 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     shortDescription: initialData?.shortDescription || "",
     description: initialData?.description || "",
     basePrice: initialData?.basePrice || 0,
+    costPrice: initialData?.costPrice ?? undefined,
+    salePrice: initialData?.salePrice ?? undefined,
     sku: initialData?.sku || "",
     barcode: initialData?.barcode || "",
     status: initialData?.status || "DRAFT",
@@ -678,13 +698,14 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
               <CardHeader>
                 <CardTitle className="text-lg">Pricing</CardTitle>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-4">
+                {/* Sell Price */}
                 <FormField
                   control={form.control}
                   name="basePrice"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Base Price ({CURRENCY_SYMBOL})</FormLabel>
+                      <FormLabel>Sell Price ({CURRENCY_SYMBOL}) <span className="text-red-500">*</span></FormLabel>
                       <FormControl>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">{CURRENCY_SYMBOL}</span>
@@ -701,6 +722,67 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                           />
                         </div>
                       </FormControl>
+                      <FormDescription>The price customers pay</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Buy / Cost Price */}
+                <FormField
+                  control={form.control}
+                  name="costPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Buy Price / Cost ({CURRENCY_SYMBOL})</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">{CURRENCY_SYMBOL}</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00"
+                            className="pl-8"
+                            {...field}
+                            value={field.value ?? ""}
+                            onChange={(e) =>
+                              field.onChange(e.target.value ? parseFloat(e.target.value) : null)
+                            }
+                          />
+                        </div>
+                      </FormControl>
+                      <FormDescription>Your purchase cost (not shown to customers)</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                {/* Sale / Discount Price */}
+                <FormField
+                  control={form.control}
+                  name="salePrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Sale / Discount Price ({CURRENCY_SYMBOL})</FormLabel>
+                      <FormControl>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-medium">{CURRENCY_SYMBOL}</span>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            placeholder="0.00 (optional)"
+                            className="pl-8"
+                            {...field}
+                            value={field.value ?? ""}
+                            onChange={(e) =>
+                              field.onChange(e.target.value ? parseFloat(e.target.value) : null)
+                            }
+                          />
+                        </div>
+                      </FormControl>
+                      <FormDescription>Discounted price shown to customers (optional)</FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

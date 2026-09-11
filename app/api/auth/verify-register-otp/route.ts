@@ -1,75 +1,112 @@
-import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/admin-client";
+import { logServerError } from "@/lib/utils/error-handler";
+import { cookies } from "next/headers";
+import { CartService } from "@/lib/services/cart.service";
 
 export async function POST(request: Request) {
   try {
     const { email, otp, name, password, phone } = await request.json();
 
     if (!email || !otp || !name || !password) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Missing required fields: email, otp, name, and password are required." },
+        { status: 400 }
+      );
     }
 
-    const supabase = await createClient();
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanOtp = otp.trim();
+    const supabase = createAdminClient();
+    const nowIso = new Date().toISOString();
 
-    // Verify OTP
+    // 1. Verify OTP with Admin Client to bypass RLS safely on server
     const { data: otpRecords, error: otpError } = await supabase
-      .from('registration_otps')
-      .select('*')
-      .eq('email', email)
-      .eq('otp', otp)
-      .gte('expires_at', new Date().toISOString())
-      .order('created_at', { ascending: false })
+      .from("registration_otps")
+      .select("*")
+      .eq("email", cleanEmail)
+      .eq("otp", cleanOtp)
+      .gte("expires_at", nowIso)
+      .order("created_at", { ascending: false })
       .limit(1);
 
     if (otpError) {
-      console.error('Error verifying OTP:', otpError);
-      return NextResponse.json({ error: 'Error verifying OTP' }, { status: 500 });
+      logServerError("AUTH_VERIFY_REGISTER_OTP_QUERY", otpError, { email: cleanEmail });
+      return NextResponse.json({ error: "Error verifying OTP code." }, { status: 500 });
     }
 
     if (!otpRecords || otpRecords.length === 0) {
-      return NextResponse.json({ error: 'Invalid or expired OTP' }, { status: 400 });
+      return NextResponse.json(
+        { error: "Invalid or expired verification code." },
+        { status: 400 }
+      );
     }
 
-    // Register user in Auth
+    // 2. Register user via Supabase Auth
     const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
+      email: cleanEmail,
       password,
       options: {
         data: {
           name,
-          phone: phone || '',
-        }
-      }
+          phone: phone || "",
+          role: "customer",
+        },
+      },
     });
 
     if (authError) {
-       return NextResponse.json({ error: authError.message }, { status: 400 });
+      return NextResponse.json({ error: authError.message }, { status: 400 });
     }
 
-    // Note: If you have a trigger on auth.users to create profiles, it will run.
-    // Otherwise, we manually insert or update the profile with the 'customer' role.
+    // 3. Upsert customer profile
     if (authData.user) {
-        // We explicitly set role to 'customer' to avoid them getting admin or employee roles
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .upsert({
-            id: authData.user.id,
-            email: email,
-            full_name: name,
-            role: 'customer' // Enforce customer role!
-          });
-          
-        if (profileError) {
-           console.warn('Failed to upsert profile role:', profileError);
-        }
+      const { error: profileError } = await supabase.from("profiles").upsert({
+        id: authData.user.id,
+        email: cleanEmail,
+        full_name: name,
+        role: "customer",
+      });
+
+      if (profileError) {
+        logServerError("AUTH_REGISTER_PROFILE_UPSERT", profileError, { userId: authData.user.id });
+      }
+
+      // Also ensure entry in customer_profiles
+      await supabase.from("customer_profiles").upsert({
+        id: authData.user.id,
+        email: cleanEmail,
+        first_name: name.split(" ")[0] || name,
+        last_name: name.split(" ").slice(1).join(" ") || "",
+        phone: phone || null,
+        is_active: true,
+      });
     }
 
-    // Delete the used OTP
-    await supabase.from('registration_otps').delete().eq('id', otpRecords[0].id);
+    // 4. Invalidate and delete used OTP to prevent reuse
+    await supabase.from("registration_otps").delete().eq("email", cleanEmail);
 
-    return NextResponse.json({ message: 'Registration successful', user: authData.user });
-  } catch (error) {
-    console.error('Error in verify-register-otp:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    // 5. Merge guest cart if applicable
+    if (authData.user) {
+      const cookieStore = await cookies();
+      const guestSessionId = cookieStore.get("af_guest_session")?.value;
+      if (guestSessionId) {
+        try {
+          await CartService.mergeGuestCart(guestSessionId, authData.user.id);
+          cookieStore.delete("af_guest_session");
+        } catch (mergeError) {
+          logServerError("AUTH_REGISTER_CART_MERGE", mergeError, { userId: authData.user.id });
+        }
+      }
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: "Registration successful",
+      user: authData.user,
+    });
+  } catch (error: any) {
+    logServerError("AUTH_VERIFY_REGISTER_FATAL", error);
+    return NextResponse.json({ error: "Internal server error occurred." }, { status: 500 });
   }
 }

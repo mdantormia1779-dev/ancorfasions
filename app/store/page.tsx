@@ -20,6 +20,10 @@ interface Product {
 
 const CATEGORIES = ['All', "Men's Wear", "Women's Wear", 'Casual', 'Formal', 'Accessories', 'New Arrivals'];
 
+export interface StoreCartItem extends Product {
+  quantity: number;
+}
+
 export default function StorefrontPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +31,7 @@ export default function StorefrontPage() {
   const [searchQuery, setSearchQuery] = useState('');
 
   // Cart & Wishlist State
-  const [cartItems, setCartItems] = useState<any[]>([]);
+  const [cartItems, setCartItems] = useState<StoreCartItem[]>([]);
   const [favorites, setFavorites] = useState<Product[]>([]);
   
   // Modals State

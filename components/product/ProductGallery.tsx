@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 
@@ -11,6 +11,11 @@ interface ProductGalleryProps {
 export function ProductGallery({ images }: ProductGalleryProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
 
+  // When images array changes (e.g. variant selection), reset index to 0
+  useEffect(() => {
+    setCurrentIndex(0);
+  }, [images]);
+
   if (!images || images.length === 0) {
     return (
       <div className="flex aspect-[3/4] w-full items-center justify-center bg-zinc-100">
@@ -18,6 +23,8 @@ export function ProductGallery({ images }: ProductGalleryProps) {
       </div>
     );
   }
+
+  const safeIndex = Math.min(currentIndex, Math.max(0, images.length - 1));
 
   return (
     <div className="flex flex-col-reverse gap-4 md:flex-row">
@@ -28,7 +35,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
             key={idx}
             onClick={() => setCurrentIndex(idx)}
             className={`relative h-24 w-20 shrink-0 overflow-hidden transition-all duration-300 ${
-              currentIndex === idx
+              safeIndex === idx
                 ? "border-b-2 border-black opacity-100"
                 : "border-b-2 border-transparent opacity-50 hover:opacity-100"
             }`}
@@ -57,17 +64,17 @@ export function ProductGallery({ images }: ProductGalleryProps) {
       >
         <AnimatePresence mode="wait">
           <motion.div
-            key={currentIndex}
+            key={safeIndex}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.5 }}
+            transition={{ duration: 0.3 }}
             className="absolute inset-0 transition-transform duration-300 ease-out group-hover:scale-125"
             style={{ transformOrigin: 'var(--mouse-x, 50%) var(--mouse-y, 50%)' }}
           >
             <Image
-              src={images[currentIndex]}
-              alt={`Product image ${currentIndex + 1}`}
+              src={images[safeIndex] || images[0]}
+              alt={`Product image ${safeIndex + 1}`}
               fill
               priority
               sizes="(max-width: 768px) 100vw, 50vw"

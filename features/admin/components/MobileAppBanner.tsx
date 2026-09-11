@@ -36,9 +36,12 @@ export const MobileAppBanner = () => {
           size="sm" 
           className="bg-white text-[#00A1FF] hover:bg-slate-100 font-semibold"
           onClick={() => {
-             // Handle app download link here
-             alert("Coming soon!");
-          }}
+             window.open(
+               "https://play.google.com/store/search?q=anchor+fashion",
+               "_blank",
+               "noopener,noreferrer"
+             );
+           }}
         >
           Get App
         </Button>

@@ -30,9 +30,29 @@ export class MarketingRepository {
 
   async createCampaign(campaign: Partial<Campaign>): Promise<Campaign> {
     const supabase = await createClient();
+    let createdBy = campaign.created_by;
+    if (!createdBy) {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user?.id) {
+        createdBy = user.id;
+      } else {
+        const { data: prof } = await supabase
+          .from("profiles")
+          .select("id")
+          .limit(1)
+          .maybeSingle();
+        createdBy = prof?.id || "00000000-0000-0000-0000-000000000000";
+      }
+    }
+
     const { data, error } = await supabase
       .from("campaigns")
-      .insert(campaign)
+      .insert({
+        ...campaign,
+        created_by: createdBy,
+      })
       .select()
       .single();
 

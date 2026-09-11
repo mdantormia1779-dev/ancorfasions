@@ -18,7 +18,7 @@ export default async function SearchPage({
   const query = typeof sp.q === "string" ? sp.q : "";
 
   // Only fetch if there is a query
-  let products = [];
+  let products: any[] = [];
   if (query) {
     const res = await CatalogRepository.getProducts({
       search: query,

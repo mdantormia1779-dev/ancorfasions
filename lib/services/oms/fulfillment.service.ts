@@ -1,24 +1,33 @@
 import { createClient } from "@/lib/supabase/server";
 import { OrderService } from "./order.service";
+import { InventoryService } from "@/services/inventory.service";
 import { FulfillShipmentInput } from "@/lib/validations/oms";
 
 export class FulfillmentService {
   private orderService = new OrderService();
+  private inventoryService = new InventoryService();
 
-  async reserveInventory(orderId: string): Promise<boolean> {
-    // In a real system, this would integrate with the Inventory module
-    // For OMS scope, we assume it updates the order_items table
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from("order_items")
-      .update({ inventory_reserved: true })
-      .eq("order_id", orderId);
-
-    if (error) {
-      console.error("Failed to reserve inventory:", error);
+  /**
+   * Confirm inventory when an order is ready to ship.
+   *
+   * This permanently converts reserved stock into shipped stock by calling
+   * confirm_order_inventory — which decrements quantity_reserved without
+   * returning it to quantity_available (the goods have left the warehouse).
+   *
+   * Previously this was a stub that only set order_items.inventory_reserved = true
+   * without touching the actual inventory_levels table. That was incorrect.
+   */
+  async confirmInventoryForShipment(orderId: string): Promise<boolean> {
+    try {
+      await this.inventoryService.confirmOrderInventory(orderId);
+      return true;
+    } catch (err) {
+      console.error(
+        `[FulfillmentService] Failed to confirm inventory for order ${orderId}:`,
+        err
+      );
       return false;
     }
-    return true;
   }
 
   async assignShipmentTracking(data: FulfillShipmentInput): Promise<boolean> {
@@ -34,7 +43,10 @@ export class FulfillmentService {
       throw new Error(`Failed to assign tracking: ${error.message}`);
     }
 
-    // Automatically progress state if possible
+    // Confirm inventory (stock physically shipped).
+    await this.confirmInventoryForShipment(data.order_id);
+
+    // Advance order state.
     await this.orderService.updateOrderStatus(
       data.order_id,
       "ready_for_shipment",

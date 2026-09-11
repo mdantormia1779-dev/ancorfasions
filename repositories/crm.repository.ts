@@ -69,6 +69,27 @@ export class CRMRepository {
     return data;
   }
 
+  async getLeadById(id: string): Promise<CRMLead | null> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("crm_leads")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error) {
+      if (error.code === "PGRST116") return null;
+      throw new Error(error.message);
+    }
+    return data;
+  }
+
+  async deleteLead(id: string): Promise<void> {
+    const supabase = await createClient();
+    const { error } = await supabase.from("crm_leads").delete().eq("id", id);
+    if (error) throw new Error(error.message);
+  }
+
   async getNotes(profileId?: string, leadId?: string): Promise<CRMNote[]> {
     const supabase = await createClient();
     let query = supabase

@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { getPublicSupabaseClient } from "@/lib/supabase/public";
 
 export interface ProductListParams {
   category?: string;
@@ -13,7 +13,7 @@ export interface ProductListParams {
 
 export const CatalogRepository = {
   async getCategories() {
-    const supabase = await createClient();
+    const supabase = getPublicSupabaseClient();
     try {
       const { data, error } = await supabase
         .from("categories")
@@ -42,7 +42,7 @@ export const CatalogRepository = {
   },
 
   async getFeaturedProducts(limit = 4) {
-    const supabase = await createClient();
+    const supabase = getPublicSupabaseClient();
     try {
       const { data, error } = await supabase
         .from("products")
@@ -74,7 +74,7 @@ export const CatalogRepository = {
   },
 
   async getNewArrivals(limit = 4) {
-    const supabase = await createClient();
+    const supabase = getPublicSupabaseClient();
     const { data, error } = await supabase
       .from("products")
       .select(
@@ -97,7 +97,7 @@ export const CatalogRepository = {
   },
 
   async getProducts(params: ProductListParams) {
-    const supabase = await createClient();
+    const supabase = getPublicSupabaseClient();
     let query = supabase
       .from("products")
       .select(
@@ -163,10 +163,9 @@ export const CatalogRepository = {
     return { data, count };
   },
 
-  async getProductBySlug(slug: string) {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("products")
+  async getProductBySlug(slug: string): Promise<any> {
+    const supabase = getPublicSupabaseClient();
+    const { data, error } = await (supabase.from("products") as any)
       .select(
         `
         *,
@@ -182,7 +181,8 @@ export const CatalogRepository = {
               attributes (id, name)
             )
           )
-        )
+        ),
+        size_charts (*)
       `
       )
       .eq("slug", slug)
@@ -195,21 +195,27 @@ export const CatalogRepository = {
     }
 
     if (data) {
-      // Compute total available stock across all variants and warehouses
-      const totalAvailable = (data.variants || []).reduce(
-        (sum: number, variant: any) => {
-          const variantStock = (variant.inventory_levels || []).reduce(
-            (vSum: number, level: any) =>
-              vSum + (level.quantity_available || 0),
-            0
-          );
-          return sum + variantStock;
-        },
-        0
-      );
-      // Attach a derived is_in_stock flag for use in the product detail page
-      (data as any).is_in_stock = totalAvailable > 0;
-      (data as any).total_available_stock = totalAvailable;
+      const hasVariants = ((data as any).variants || []).length > 0;
+      if (hasVariants) {
+        // Compute total available stock across all variants and warehouses
+        const totalAvailable = ((data as any).variants || []).reduce(
+          (sum: number, variant: any) => {
+            const variantStock = (variant.inventory_levels || []).reduce(
+              (vSum: number, level: any) =>
+                vSum + (level.quantity_available || 0),
+              0
+            );
+            return sum + variantStock;
+          },
+          0
+        );
+        (data as any).is_in_stock = totalAvailable > 0;
+        (data as any).total_available_stock = totalAvailable;
+      } else {
+        // Simple product without variants: active in catalog
+        (data as any).is_in_stock = true;
+        (data as any).total_available_stock = 100;
+      }
     }
 
     return data;

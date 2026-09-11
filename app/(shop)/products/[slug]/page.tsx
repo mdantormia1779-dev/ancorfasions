@@ -1,33 +1,32 @@
+import { Metadata } from "next";
+import { CatalogService } from "@/lib/services/catalog.service";
+import { ReviewRepository } from "@/lib/repositories/catalog/review.repository";
+import { FlashSaleService } from "@/lib/services/marketing/flash-sale.service";
+import { ProductDetailView } from "@/components/product/product-detail-view";
 import { notFound } from "next/navigation";
-import Link from "next/link";
-import { CatalogRepository } from "@/repositories/catalog.repository";
-import { ProductGallery } from "@/components/product/ProductGallery";
-import { ProductCard } from "@/components/product/product-card";
-import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Heart, Share2, Ruler, Shield, Truck, Package } from "lucide-react";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+
+export const revalidate = 60;
 
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ slug: string }>;
-}) {
+}): Promise<Metadata> {
   const resolvedParams = await params;
-  const product = await CatalogRepository.getProductBySlug(resolvedParams.slug);
-  if (!product) return { title: "Product Not Found" };
+  const product = await CatalogService.getProductBySlug(resolvedParams.slug);
+
+  if (!product) {
+    return {
+      title: "Product Not Found | Anchor Fashion",
+    };
+  }
 
   return {
-    title: product.seo_title || product.name,
+    title: product.seo_title || `${product.name} | Anchor Fashion`,
     description:
       product.seo_description ||
       product.description?.substring(0, 160) ||
-      `Buy ${product.name} at Anchor Fashion.`,
+      `Shop ${product.name} at Anchor Fashion. Premium luxury fashion & modern apparel.`,
     openGraph: {
       title: product.seo_title || product.name,
       description:
@@ -45,259 +44,72 @@ export default async function ProductDetailPage({
   params: Promise<{ slug: string }>;
 }) {
   const resolvedParams = await params;
-  const product = await CatalogRepository.getProductBySlug(resolvedParams.slug);
+  const product = await CatalogService.getProductBySlug(resolvedParams.slug);
 
   if (!product) {
     notFound();
   }
 
-  const { data: relatedProducts } = await CatalogRepository.getProducts({
-    category: product.categories?.slug,
-    limit: 5,
-  });
+  // 1. Fetch active flash sale for product
+  const flashSale = await FlashSaleService.getFlashSaleForProduct(product.id);
 
-  // Exclude current product from related
-  const filteredRelated = relatedProducts
-    .filter((p: any) => p.id !== product.id)
-    .slice(0, 4);
+  // 2. Fetch related products
+  let relatedProducts: any[] = [];
+  if (product.categories?.slug) {
+    const { data } = await CatalogService.getProducts({
+      category: product.categories.slug,
+      limit: 5,
+    });
+    relatedProducts = (data || []).filter((p: any) => p.id !== product.id);
+  }
 
-  const productImages =
-    product.product_media
-      ?.sort((a: any, b: any) => a.display_order - b.display_order)
-      .map((m: any) => m.url) || [];
+  // 3. Fetch real reviews
+  const reviews = await ReviewRepository.getReviewsByProductId(product.id);
 
-  const productSchema = {
+  // 4. Build JSON-LD structured schema
+  const isInStock = (product as any).is_in_stock ?? false;
+  const images =
+    product.product_media?.map((m: any) => m.url) || ["/images/placeholder.webp"];
+
+  const effectivePrice =
+    flashSale?.flash_price ?? product.sale_price ?? product.base_price;
+
+  const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     name: product.name,
-    image: productImages,
-    description: product.description,
-    sku: product.sku,
+    image: images,
+    description:
+      product.description || "Buy premium luxury wear from Anchor Fashion.",
+    sku: product.sku || undefined,
     brand: {
       "@type": "Brand",
-      name: product.brands?.name || "Anchor Fashion",
+      name: (product as any).brands?.name || "Anchor Fashion",
     },
     offers: {
       "@type": "Offer",
       url: `https://anchorfashion.com/products/${product.slug}`,
-      priceCurrency: "USD",
-      price: product.base_price,
+      priceCurrency: "BDT",
+      price: effectivePrice,
       itemCondition: "https://schema.org/NewCondition",
-      availability: "https://schema.org/InStock",
+      availability: isInStock
+        ? "https://schema.org/InStock"
+        : "https://schema.org/OutOfStock",
     },
   };
 
   return (
-    <div className="container py-8 md:py-12">
+    <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(productSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-
-      {/* Breadcrumbs */}
-      <nav className="mb-8 flex text-sm text-muted-foreground">
-        <ol className="flex items-center space-x-2">
-          <li>
-            <Link href="/" className="hover:text-primary">
-              Home
-            </Link>
-          </li>
-          <li>
-            <span>/</span>
-          </li>
-          <li>
-            <Link href="/products" className="hover:text-primary">
-              Products
-            </Link>
-          </li>
-          <li>
-            <span>/</span>
-          </li>
-          {product.categories && (
-            <>
-              <li>
-                <Link
-                  href={`/products?category=${product.categories.slug}`}
-                  className="hover:text-primary"
-                >
-                  {product.categories.name}
-                </Link>
-              </li>
-              <li>
-                <span>/</span>
-              </li>
-            </>
-          )}
-          <li className="max-w-[200px] truncate font-medium text-foreground md:max-w-none">
-            {product.name}
-          </li>
-        </ol>
-      </nav>
-
-      <div className="mb-16 grid grid-cols-1 gap-10 md:grid-cols-2 lg:gap-16">
-        {/* Product Gallery */}
-        <div>
-          <ProductGallery images={productImages} />
-        </div>
-
-        {/* Product Info */}
-        <div className="flex flex-col">
-          {product.brands && (
-            <Link
-              href={`/products?brand=${product.brands.slug}`}
-              className="mb-2 inline-block text-sm font-semibold uppercase tracking-wider text-muted-foreground hover:text-primary"
-            >
-              {product.brands.name}
-            </Link>
-          )}
-          <h1 className="mb-2 text-3xl font-bold tracking-tight md:text-4xl">
-            {product.name}
-          </h1>
-
-          <div className="mb-6 flex items-center gap-4">
-            <div className="text-2xl font-bold">
-              ${Number(product.base_price).toFixed(2)}
-            </div>
-            {product.average_rating > 0 && (
-              <div className="flex items-center gap-1">
-                <div className="flex items-center text-amber-400">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <svg
-                      key={i}
-                      className={`h-4 w-4 ${i < Math.floor(product.average_rating) ? "fill-current" : "fill-muted text-muted"}`}
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 24 24"
-                    >
-                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                    </svg>
-                  ))}
-                </div>
-                <span className="ml-1 text-sm text-muted-foreground">
-                  ({product.average_rating} rating)
-                </span>
-              </div>
-            )}
-          </div>
-
-          <div className="prose prose-sm mb-8 text-muted-foreground">
-            <p>{product.description}</p>
-          </div>
-
-          {/* Variants Configuration */}
-          <div className="mb-8 space-y-6">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-sm font-medium">Size</h3>
-                <button className="flex items-center gap-1 text-sm text-primary hover:underline">
-                  <Ruler className="h-4 w-4" /> Size Guide
-                </button>
-              </div>
-              <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-                {["S", "M", "L", "XL", "XXL"].map((size) => (
-                  <Button
-                    key={size}
-                    variant="outline"
-                    className="w-full font-normal"
-                  >
-                    {size}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Actions */}
-          <div className="mb-8 flex flex-col gap-4 sm:flex-row">
-            <Button size="lg" className="h-12 flex-1 text-base">
-              Add to Cart
-            </Button>
-            <Button size="lg" variant="outline" className="h-12 px-6">
-              <Heart className="mr-2 h-5 w-5" />
-              Save
-            </Button>
-            <Button
-              size="lg"
-              variant="ghost"
-              className="h-12 shrink-0 border border-transparent px-4 hover:border-border"
-            >
-              <Share2 className="h-5 w-5" />
-            </Button>
-          </div>
-
-          {/* Key Features */}
-          <div className="mb-8 grid grid-cols-1 gap-4 border-y py-6 text-sm sm:grid-cols-2">
-            <div className="flex items-center gap-3">
-              <Truck className="h-5 w-5 text-primary" />
-              <span>Free shipping over $150</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Package className="h-5 w-5 text-primary" />
-              <span>Easy 30-day returns</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <Shield className="h-5 w-5 text-primary" />
-              <span>1-year premium warranty</span>
-            </div>
-          </div>
-
-          {/* Additional Info Accordion */}
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="description">
-              <AccordionTrigger>Product Description</AccordionTrigger>
-              <AccordionContent className="prose prose-sm text-muted-foreground">
-                <p>
-                  {product.description || "Detailed description not available."}
-                </p>
-              </AccordionContent>
-            </AccordionItem>
-            <AccordionItem value="specifications">
-              <AccordionTrigger>Specifications</AccordionTrigger>
-              <AccordionContent>
-                <dl className="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-                  {product.gender && (
-                    <>
-                      <dt className="font-medium">Gender</dt>
-                      <dd className="capitalize text-muted-foreground">
-                        {product.gender.toLowerCase()}
-                      </dd>
-                    </>
-                  )}
-                  {product.season && (
-                    <>
-                      <dt className="font-medium">Season</dt>
-                      <dd className="capitalize text-muted-foreground">
-                        {product.season}
-                      </dd>
-                    </>
-                  )}
-                  {product.sku && (
-                    <>
-                      <dt className="font-medium">SKU</dt>
-                      <dd className="uppercase text-muted-foreground">
-                        {product.sku}
-                      </dd>
-                    </>
-                  )}
-                </dl>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
-        </div>
-      </div>
-
-      {/* Related Products */}
-      {filteredRelated.length > 0 && (
-        <section className="border-t py-12">
-          <h2 className="mb-8 text-2xl font-bold tracking-tight">
-            You Might Also Like
-          </h2>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-6 xl:grid-cols-5">
-            {filteredRelated.map((p: any) => (
-              <ProductCard key={p.id} product={p} />
-            ))}
-          </div>
-        </section>
-      )}
-    </div>
+      <ProductDetailView
+        product={product}
+        flashSale={flashSale}
+        reviews={reviews}
+        relatedProducts={relatedProducts}
+      />
+    </>
   );
 }

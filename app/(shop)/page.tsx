@@ -1,4 +1,9 @@
-import { CatalogRepository } from "@/repositories/catalog.repository";
+import {
+  getCachedCategories,
+  getCachedProducts,
+  getCachedFeaturedProducts,
+  getCachedHeroSlides,
+} from "@/lib/cache/catalog-cache";
 import { HomeHero } from "@/components/home/home-hero";
 import { CategoryHighlight } from "@/components/home/category-highlight";
 import { PremiumShades } from "@/components/home/premium-shades";
@@ -16,8 +21,16 @@ import { TrustBar } from "@/components/home/trust-bar";
 import { TrustStrip } from "@/components/home/trust-strip";
 import { RecentlyViewedHome } from "@/components/home/recently-viewed-home";
 import { PersonalizedSection } from "@/components/home/personalized-section";
-import { getHeroSlides } from "@/actions/cms.actions";
 import { FadeIn } from "@/components/ui/fade-in";
+import { FlashSaleService } from "@/lib/services/marketing/flash-sale.service";
+import Link from "next/link";
+import { Clock } from "lucide-react";
+
+/**
+ * High-Traffic Production Caching (10,000+ Daily Visitors)
+ * Revalidates every 60 seconds (ISR) and uses tag-based invalidation.
+ */
+export const revalidate = 60;
 
 export const metadata = {
   title: "Home | Anchor Fashion Enterprise",
@@ -26,7 +39,7 @@ export const metadata = {
 };
 
 export default async function HomePage() {
-  // Fetch dynamic data from the database
+  // Fetch cached catalog data in parallel (Served from memory across visitors)
   const [
     categories,
     mensProducts,
@@ -36,15 +49,17 @@ export default async function HomePage() {
     featuredProducts,
     trendingProducts,
     heroSlides,
+    activeFlashSales,
   ] = await Promise.all([
-    CatalogRepository.getCategories(),
-    CatalogRepository.getProducts({ category: "mens", limit: 8 }),
-    CatalogRepository.getProducts({ category: "womens", limit: 8 }),
-    CatalogRepository.getProducts({ category: "kids", limit: 4 }),
-    CatalogRepository.getProducts({ category: "accessories", limit: 4 }),
-    CatalogRepository.getFeaturedProducts(4),
-    CatalogRepository.getProducts({ sortBy: "rating", limit: 8 }),
-    getHeroSlides(),
+    getCachedCategories(),
+    getCachedProducts({ category: "mens", limit: 8 }),
+    getCachedProducts({ category: "womens", limit: 8 }),
+    getCachedProducts({ category: "kids", limit: 4 }),
+    getCachedProducts({ category: "accessories", limit: 4 }),
+    getCachedFeaturedProducts(4),
+    getCachedProducts({ sortBy: "rating", limit: 8 }),
+    getCachedHeroSlides(),
+    FlashSaleService.getActiveFlashSales(),
   ]);
 
   return (
@@ -59,6 +74,19 @@ export default async function HomePage() {
       <FadeIn delay={0.1} direction="none">
         <FeaturesBar />
       </FadeIn>
+
+      {/* 3.5 Flash Deals Banner (Dynamic) */}
+      {activeFlashSales && activeFlashSales.length > 0 && (
+        <FadeIn delay={0.15} direction="up">
+          <div className="bg-red-600 text-white py-4 px-4 text-center shadow-lg relative z-20">
+            <Link href="/flash-deals" className="flex items-center justify-center gap-3 font-bold uppercase tracking-wider hover:scale-105 transition-transform">
+              <Clock className="w-5 h-5 animate-pulse" />
+              <span>Flash Sale Live! Shop limited time deals before they're gone</span>
+              <span className="bg-black/20 px-3 py-1 rounded text-xs">Shop Now</span>
+            </Link>
+          </div>
+        </FadeIn>
+      )}
 
       {/* 3. Category Highlight Grid */}
       <FadeIn delay={0.2} direction="up">

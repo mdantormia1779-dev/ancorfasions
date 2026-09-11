@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { toast } from "sonner";
 
 interface Preferences {
   email_enabled: boolean;
@@ -62,23 +63,21 @@ export function NotificationPreferences() {
     });
 
     setSaving(false);
-    alert("Preferences saved successfully!");
+    toast.success("Preferences saved successfully!");
   };
 
   const requestPushPermission = async () => {
     if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
-      alert("Push notifications are not supported by your browser.");
+      toast.error("Push notifications are not supported by your browser.");
       return;
     }
 
     const permission = await Notification.requestPermission();
     if (permission === "granted") {
-      // In a real implementation, you would subscribe the user to the push manager here
-      // and send the subscription object to your backend via the API route we created.
       setPreferences((prev) => (prev ? { ...prev, push_enabled: true } : null));
-      alert("Push notifications enabled!");
+      toast.success("Push notifications enabled!");
     } else {
-      alert("Push notification permission denied.");
+      toast.error("Push notification permission denied.");
     }
   };
 

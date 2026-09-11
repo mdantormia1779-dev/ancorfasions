@@ -4,15 +4,19 @@ import { useCartStore } from "@/stores/use-cart-store";
 import { useCheckoutStore } from "@/stores/use-checkout-store";
 import { formatCurrency } from "@/lib/utils";
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, ShieldCheck } from "lucide-react";
+import { applyCouponAction, removeCouponAction } from "@/actions/checkout.actions";
+import { useToast } from "@/hooks/use-toast";
 
 export function OrderSummary() {
   const { cart } = useCartStore();
-  const { formData } = useCheckoutStore();
+  const { formData, session, fetchSession } = useCheckoutStore();
+  const { toast } = useToast();
   const [couponCode, setCouponCode] = useState("");
+  const [isApplying, setIsApplying] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
     discount: number;
@@ -33,23 +37,54 @@ export function OrderSummary() {
   const shippingMethod = formData.shipping?.shipping_method;
   const shippingFee =
     subtotal > 0 ? (shippingMethod === "home_delivery_outside" ? 150 : 100) : 0;
-  const tax = subtotal > 0 ? subtotal * 0.15 : 0; // 15% VAT
+  const tax = Math.max(0, subtotal * 0.15); // 15% VAT
   const discount = appliedCoupon ? appliedCoupon.discount : 0;
-  const total = subtotal + shippingFee + tax - discount;
+  const total = Math.max(0, subtotal + shippingFee + tax - discount);
 
-  const handleApplyCoupon = () => {
-    if (!couponCode.trim()) return;
-    // Mock coupon logic: 'WELCOME10' gives 10% off
-    if (couponCode.toUpperCase() === "WELCOME10") {
-      setAppliedCoupon({ code: "WELCOME10", discount: subtotal * 0.1 });
-    } else {
-      alert("Invalid coupon code");
+  useEffect(() => {
+    // If session loads and has a coupon code but we haven't applied it locally
+    if (session?.coupon_code && !appliedCoupon) {
+      handleApplyCoupon(session.coupon_code);
+    }
+  }, [session?.coupon_code]);
+
+  const handleApplyCoupon = async (codeToApply?: string) => {
+    const code = codeToApply || couponCode;
+    if (!code.trim() || !session?.id) return;
+    
+    setIsApplying(true);
+    try {
+      const res = await applyCouponAction(session.id, code, subtotal);
+      if (res.success && res.discount !== undefined) {
+        setAppliedCoupon({ code: res.code || code, discount: res.discount });
+        setCouponCode("");
+        if (!codeToApply) {
+          toast({ title: "Coupon applied successfully" });
+        }
+      } else {
+        toast({ title: "Coupon Error", description: res.error, variant: "destructive" });
+        setAppliedCoupon(null);
+      }
+    } catch (err) {
+      toast({ title: "Failed to apply coupon", variant: "destructive" });
+    } finally {
+      setIsApplying(false);
     }
   };
 
-  const handleRemoveCoupon = () => {
-    setAppliedCoupon(null);
-    setCouponCode("");
+  const handleRemoveCoupon = async () => {
+    if (!session?.id) return;
+    setIsApplying(true);
+    try {
+      await removeCouponAction(session.id);
+      setAppliedCoupon(null);
+      setCouponCode("");
+      toast({ title: "Coupon removed" });
+    } catch (err) {
+      toast({ title: "Failed to remove coupon", variant: "destructive" });
+    } finally {
+      setIsApplying(false);
+    }
   };
 
   return (
@@ -104,7 +139,8 @@ export function OrderSummary() {
             <span className="font-medium">{appliedCoupon.code}</span>
             <button
               onClick={handleRemoveCoupon}
-              className="text-xs underline hover:text-green-900"
+              disabled={isApplying}
+              className="text-xs underline hover:text-green-900 disabled:opacity-50"
             >
               Remove
             </button>
@@ -112,12 +148,13 @@ export function OrderSummary() {
         ) : (
           <div className="flex gap-2">
             <Input
-              placeholder="Code (Try WELCOME10)"
+              placeholder="Enter discount code"
               value={couponCode}
               onChange={(e) => setCouponCode(e.target.value)}
               className="flex-1"
+              disabled={isApplying}
             />
-            <Button variant="secondary" onClick={handleApplyCoupon} className="bg-[#1A1A1A] text-white hover:bg-black uppercase tracking-widest text-xs">
+            <Button variant="secondary" onClick={() => handleApplyCoupon()} disabled={isApplying} className="bg-[#1A1A1A] text-white hover:bg-black uppercase tracking-widest text-xs">
               Apply
             </Button>
           </div>

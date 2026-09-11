@@ -5,6 +5,7 @@ import { getStoreInfo } from "@/lib/actions/settings.actions";
 import { createClient } from "@/lib/supabase/server";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { FloatingPromotion } from "@/components/marketing/floating-promotion";
+import { CartDrawer } from "@/components/cart/cart-drawer";
 
 export default async function ShopLayout({
   children,
@@ -51,6 +52,7 @@ export default async function ShopLayout({
       <StoreFooter />
       <MobileBottomNav user={user} />
       <FloatingPromotion />
+      <CartDrawer />
     </div>
   );
 }

@@ -76,6 +76,115 @@ export class OrderService {
     if (!order) return null;
 
     const items = await this.orderItemsRepo.getOrderItems(id);
-    return { ...order, items };
+
+    // Fetch customer profile details if customer_id exists
+    let customer = null;
+    if (order.customer_id) {
+      try {
+        const supabase = supabaseClient || (await import("@/lib/supabase/server").then(m => m.createClient()));
+        
+        // 1. Fetch from customer_profiles (contains id, first_name, last_name, email, phone)
+        const { data: cProfile } = await supabase
+          .from("customer_profiles")
+          .select("id, first_name, last_name, email, phone")
+          .eq("id", order.customer_id)
+          .maybeSingle();
+
+        // 2. Fetch from profiles (fallback)
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id, first_name, last_name, phone, avatar_url")
+          .eq("id", order.customer_id)
+          .maybeSingle();
+
+        // 3. Fetch tier from crm_customer_profiles
+        const { data: crmProfile } = await supabase
+          .from("crm_customer_profiles")
+          .select("customer_tier")
+          .eq("profile_id", order.customer_id)
+          .maybeSingle();
+
+        // 4. If email is still missing, try auth admin client
+        let customerEmail = cProfile?.email || null;
+        if (!customerEmail) {
+          try {
+            const { createAdminClient } = await import("@/lib/supabase/server");
+            const adminSupabase = await createAdminClient();
+            const { data: authUser } = await adminSupabase.auth.admin.getUserById(order.customer_id);
+            if (authUser?.user?.email) {
+              customerEmail = authUser.user.email;
+            }
+          } catch {
+            // Admin auth not accessible in this context
+          }
+        }
+
+        const firstName = cProfile?.first_name || profile?.first_name || null;
+        const lastName = cProfile?.last_name || profile?.last_name || null;
+        const fullName = [firstName, lastName].filter(Boolean).join(" ") || (customerEmail ? customerEmail.split("@")[0] : "Registered Customer");
+        const phone = cProfile?.phone || profile?.phone || null;
+
+        if (cProfile || profile || customerEmail) {
+          customer = {
+            id: order.customer_id,
+            first_name: firstName,
+            last_name: lastName,
+            full_name: fullName,
+            phone: phone,
+            email: customerEmail,
+            tier: crmProfile?.customer_tier || "Standard",
+          };
+        }
+      } catch (err) {
+        console.error("Error fetching order customer profile:", err);
+      }
+    }
+
+    // Fetch shipping & billing addresses
+    let shippingAddress = null;
+    let billingAddress = null;
+    try {
+      const supabase = supabaseClient || (await import("@/lib/supabase/server").then(m => m.createClient()));
+      
+      // 1. Try order_addresses
+      const { data: orderAddrs } = await supabase
+        .from("order_addresses")
+        .select("*")
+        .eq("order_id", id);
+
+      if (orderAddrs && orderAddrs.length > 0) {
+        shippingAddress = orderAddrs.find((a: any) => a.address_type === "SHIPPING") || orderAddrs[0];
+        billingAddress = orderAddrs.find((a: any) => a.address_type === "BILLING") || shippingAddress;
+      }
+
+      // 2. Fallback to addresses table
+      if (!shippingAddress && order.shipping_address_id) {
+        const { data: addr } = await supabase
+          .from("addresses")
+          .select("*")
+          .eq("id", order.shipping_address_id)
+          .maybeSingle();
+        if (addr) shippingAddress = addr;
+      }
+
+      if (!billingAddress && order.billing_address_id) {
+        const { data: addr } = await supabase
+          .from("addresses")
+          .select("*")
+          .eq("id", order.billing_address_id)
+          .maybeSingle();
+        if (addr) billingAddress = addr;
+      }
+    } catch (err) {
+      console.error("Error fetching order addresses:", err);
+    }
+
+    return {
+      ...order,
+      items,
+      customer,
+      shippingAddress,
+      billingAddress,
+    };
   }
 }

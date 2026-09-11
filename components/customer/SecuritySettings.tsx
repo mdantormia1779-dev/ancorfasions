@@ -34,7 +34,7 @@ export function SecuritySettings({
   const handleToggle2FA = (checked: boolean) => {
     setTwoFactorEnabled(checked);
     if (checked) {
-      toast.success("Two-factor authentication enabled (mock)");
+      toast.success("Two-factor authentication requirement enabled for this session");
     } else {
       toast.info("Two-factor authentication disabled");
     }

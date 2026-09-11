@@ -27,3 +27,29 @@ export const dynamicFormSchema = z.object({
   redirect_url: z.string().nullable().optional(),
   is_active: z.boolean().default(true),
 });
+
+export const promotionSchema = z
+  .object({
+    name: z.string().min(2, "Promotion name must be at least 2 characters").max(255),
+    discount_percentage: z.coerce
+      .number({ invalid_type_error: "Discount must be a number" })
+      .min(1, "Discount must be at least 1%")
+      .max(100, "Discount cannot exceed 100%"),
+    start_date: z.string().min(1, "Start date is required"),
+    end_date: z.string().min(1, "End date is required"),
+    is_active: z.boolean().default(true),
+  })
+  .refine(
+    (data) => {
+      const start = new Date(data.start_date).getTime();
+      const end = new Date(data.end_date).getTime();
+      return !isNaN(start) && !isNaN(end) && start < end;
+    },
+    {
+      message: "End date must be after start date",
+      path: ["end_date"],
+    }
+  );
+
+export type PromotionFormValues = z.infer<typeof promotionSchema>;
+

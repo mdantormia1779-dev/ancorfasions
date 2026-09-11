@@ -8,6 +8,10 @@ import { CollectionRepository } from "@/lib/repositories/catalog/collection.repo
 import { AttributeRepository } from "@/lib/repositories/catalog/attribute.repository";
 import { ReviewRepository } from "@/lib/repositories/catalog/review.repository";
 import { revalidatePath } from "next/cache";
+import {
+  invalidateCategoryCache,
+  invalidateBrandCache,
+} from "@/lib/cache/invalidate-catalog";
 
 // ============================================================================
 // SCHEMAS
@@ -59,7 +63,7 @@ export const createCategoryAction = createAdminAction(
   async (input) => {
     const category = await CategoryRepository.createCategory(input);
     revalidatePath("/admin/catalog/categories");
-    revalidatePath("/(shop)", "layout");
+    invalidateCategoryCache();
     return category;
   }
 );
@@ -69,7 +73,7 @@ export const updateCategoryAction = createAdminAction(
   async ({ id, data }) => {
     const category = await CategoryRepository.updateCategory(id, data);
     revalidatePath("/admin/catalog/categories");
-    revalidatePath("/(shop)", "layout");
+    invalidateCategoryCache();
     return category;
   }
 );
@@ -77,7 +81,7 @@ export const updateCategoryAction = createAdminAction(
 export const deleteCategoryAction = createAdminAction(IdSchema, async ({ id }) => {
   await CategoryRepository.deleteCategory(id);
   revalidatePath("/admin/catalog/categories");
-  revalidatePath("/(shop)", "layout");
+  invalidateCategoryCache();
   return { success: true };
 });
 
@@ -88,7 +92,7 @@ export const deleteCategoryAction = createAdminAction(IdSchema, async ({ id }) =
 export const createBrandAction = createAdminAction(BrandSchema, async (input) => {
   const brand = await BrandRepository.createBrand(input);
   revalidatePath("/admin/catalog/brands");
-  revalidatePath("/(shop)", "layout");
+  invalidateBrandCache();
   return brand;
 });
 
@@ -97,7 +101,7 @@ export const updateBrandAction = createAdminAction(
   async ({ id, data }) => {
     const brand = await BrandRepository.updateBrand(id, data);
     revalidatePath("/admin/catalog/brands");
-    revalidatePath("/(shop)", "layout");
+    invalidateBrandCache();
     return brand;
   }
 );
@@ -105,7 +109,7 @@ export const updateBrandAction = createAdminAction(
 export const deleteBrandAction = createAdminAction(IdSchema, async ({ id }) => {
   await BrandRepository.deleteBrand(id);
   revalidatePath("/admin/catalog/brands");
-  revalidatePath("/(shop)", "layout");
+  invalidateBrandCache();
   return { success: true };
 });
 

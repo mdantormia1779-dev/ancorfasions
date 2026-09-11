@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getPublicSupabaseClient } from "@/lib/supabase/public";
 import { Brand, CreateBrandInput, UpdateBrandInput } from "@/types/catalog.types";
 
 export class BrandRepository {
@@ -8,7 +9,7 @@ export class BrandRepository {
    */
   static async getBrands(activeOnly: boolean = true): Promise<Brand[]> {
     try {
-      const supabase = await createClient();
+      const supabase = getPublicSupabaseClient();
       let query = supabase
         .from("brands")
         .select("*")

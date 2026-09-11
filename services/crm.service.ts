@@ -33,6 +33,14 @@ export class CRMService {
     return await crmRepository.getLeads();
   }
 
+  async getLeadById(id: string): Promise<CRMLead | null> {
+    return await crmRepository.getLeadById(id);
+  }
+
+  async deleteLead(id: string): Promise<void> {
+    await crmRepository.deleteLead(id);
+  }
+
   async createLead(data: unknown): Promise<CRMLead> {
     const validData = createCRMLeadSchema.parse(data);
     return await crmRepository.createLead(validData);
@@ -43,11 +51,14 @@ export class CRMService {
     return await crmRepository.updateLead(id, validData);
   }
 
-  async convertLead(id: string, profileId: string): Promise<CRMLead> {
-    return await crmRepository.updateLead(id, {
+  async convertLead(id: string, profileId?: string): Promise<CRMLead> {
+    const updateData: Partial<CRMLead> = {
       status: "converted",
-      converted_to_profile_id: profileId,
-    });
+    };
+    if (profileId) {
+      updateData.converted_to_profile_id = profileId;
+    }
+    return await crmRepository.updateLead(id, updateData);
   }
 
   async addNoteToCustomer(profileId: string, data: unknown): Promise<CRMNote> {
@@ -58,8 +69,24 @@ export class CRMService {
     return await crmRepository.createNote(validData);
   }
 
+  async getLeadNotes(leadId: string): Promise<CRMNote[]> {
+    return await crmRepository.getNotes(undefined, leadId);
+  }
+
+  async addNoteToLead(leadId: string, content: string): Promise<CRMNote> {
+    const validData = createCRMNoteSchema.parse({
+      lead_id: leadId,
+      content,
+      is_pinned: false,
+    });
+    return await crmRepository.createNote(validData);
+  }
+
+  async getLeadCommunicationLogs(leadId: string): Promise<CommunicationLog[]> {
+    return await crmRepository.getCommunicationLogs(undefined, leadId);
+  }
+
   async logCommunication(data: unknown): Promise<CommunicationLog> {
-    // Basic validation could be added here
     return await crmRepository.createCommunicationLog(data as any);
   }
 

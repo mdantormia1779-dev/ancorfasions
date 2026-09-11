@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
+import { mergeGuestCartAction } from "@/lib/actions/cart.actions";
+import { useCartStore } from "@/stores/use-cart-store";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -58,6 +60,14 @@ export function LoginForm() {
     }
 
     toast.success("Successfully logged in!");
+
+    // Merge guest cart if any
+    try {
+      await mergeGuestCartAction();
+      await useCartStore.getState().fetchCart();
+    } catch (err) {
+      console.error("Cart merge error:", err);
+    }
 
     // Role-based redirect after login
     let role =

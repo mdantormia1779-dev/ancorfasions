@@ -1,7 +1,7 @@
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { OrderRepository } from "@/lib/repositories/oms/order.repository";
-import { createClient } from "@/lib/supabase/server-client";
+import { createClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -11,11 +11,11 @@ import {
   Package,
   Truck,
   Home,
-  Download,
   XCircle,
   RefreshCcw,
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
+import { CustomerOrderInvoiceButton } from "@/features/orders/components/CustomerOrderInvoiceButton";
 
 export const metadata: Metadata = {
   title: "Order Details | Anchor Fashion",
@@ -29,9 +29,16 @@ export default async function OrderDetailsPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  // We fetch directly from Supabase since we need the items as well,
-  // and the repository might not join items by default.
-  const { data: order, error } = await supabase
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    redirect("/auth/login?redirect=/account/orders");
+  }
+
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+  let orderQuery = supabase
     .from("orders")
     .select(
       `
@@ -40,12 +47,35 @@ export default async function OrderDetailsPage({
       order_addresses(*),
       order_status_history(*)
     `
-    )
-    .eq("id", id)
-    .single();
+    );
+
+  if (isUuid) {
+    orderQuery = orderQuery.eq("id", id);
+  } else {
+    orderQuery = orderQuery.eq("order_number", id);
+  }
+
+  const { data: order, error } = await orderQuery.maybeSingle();
 
   if (error || !order) {
     notFound();
+  }
+
+  // Ensure customer can only view their own orders
+  if (order.customer_id && order.customer_id !== user.id) {
+    // Check if user is staff/admin
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .single();
+
+    const isStaff = ["ADMIN", "MANAGER", "SUPER_ADMIN", "STAFF"].includes(
+      profile?.role?.toUpperCase() || ""
+    );
+    if (!isStaff) {
+      notFound();
+    }
   }
 
   const shippingAddress = order.order_addresses?.find(
@@ -74,11 +104,8 @@ export default async function OrderDetailsPage({
           {order.status.replace(/_/g, " ")}
         </Badge>
         <div className="flex-1"></div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="mr-2 h-4 w-4" />
-            Invoice
-          </Button>
+        <div className="flex items-center gap-2">
+          <CustomerOrderInvoiceButton order={order} />
           {(order.status === "PENDING" || order.status === "PROCESSING") && (
             <Button variant="destructive" size="sm">
               <XCircle className="mr-2 h-4 w-4" />
@@ -119,7 +146,7 @@ export default async function OrderDetailsPage({
                       </p>
                     </div>
                     <div className="font-medium">
-                      {formatCurrency(item.total_price)}
+                      {formatCurrency(item.line_total ?? item.total_price ?? (Number(item.quantity) * Number(item.unit_price)))}
                     </div>
                   </div>
                 ))}
@@ -175,21 +202,21 @@ export default async function OrderDetailsPage({
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
                   <span className="text-slate-500">Subtotal</span>
-                  <span>{formatCurrency(order.subtotal)}</span>
+                  <span>{formatCurrency(order.subtotal ?? 0)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Shipping</span>
-                  <span>{formatCurrency(order.shipping_fee)}</span>
+                  <span>{formatCurrency(order.shipping_total ?? order.shipping_fee ?? 0)}</span>
                 </div>
-                {order.discount_amount > 0 && (
+                {Number(order.discount_total || order.discount_amount || 0) > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Discount</span>
-                    <span>-{formatCurrency(order.discount_amount)}</span>
+                    <span>-{formatCurrency(order.discount_total || order.discount_amount || 0)}</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t pt-2 text-base font-bold">
                   <span>Total</span>
-                  <span>{formatCurrency(order.total_amount)}</span>
+                  <span>{formatCurrency(order.grand_total ?? order.total_amount ?? 0)}</span>
                 </div>
               </div>
             </CardContent>
@@ -202,18 +229,18 @@ export default async function OrderDetailsPage({
               </CardHeader>
               <CardContent className="text-sm">
                 <p className="font-medium">
-                  {shippingAddress.first_name} {shippingAddress.last_name}
+                  {shippingAddress.recipient_name || [shippingAddress.first_name, shippingAddress.last_name].filter(Boolean).join(" ") || "Recipient"}
                 </p>
-                <p>{shippingAddress.phone}</p>
-                <p>{shippingAddress.email}</p>
+                {shippingAddress.phone && <p>{shippingAddress.phone}</p>}
+                {shippingAddress.email && <p>{shippingAddress.email}</p>}
                 <p className="mt-2">{shippingAddress.address_line_1}</p>
                 {shippingAddress.address_line_2 && (
                   <p>{shippingAddress.address_line_2}</p>
                 )}
                 <p>
-                  {shippingAddress.city}, {shippingAddress.postal_code}
+                  {[shippingAddress.city, shippingAddress.postal_code || shippingAddress.zip].filter(Boolean).join(", ")}
                 </p>
-                <p>{shippingAddress.country}</p>
+                {shippingAddress.country && <p>{shippingAddress.country}</p>}
               </CardContent>
             </Card>
           )}

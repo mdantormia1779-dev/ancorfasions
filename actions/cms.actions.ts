@@ -3,6 +3,7 @@
 import { cmsService } from "@/services/cms.service";
 import { CMSPage, CMSSection, CMSNavigation, CMSPageBlock, CMSMediaItem } from "@/types/cms.types";
 import { revalidatePath } from "next/cache";
+import { invalidateHomepageCache } from "@/lib/cache/invalidate-catalog";
 
 export async function getPages(): Promise<CMSPage[]> {
   return await cmsService.getPages();
@@ -337,9 +338,9 @@ const DEFAULT_SLIDES: HeroSlide[] = [
 ];
 
 export async function getHeroSlides(): Promise<HeroSlide[]> {
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
   try {
+    const { getPublicSupabaseClient } = await import("@/lib/supabase/public");
+    const supabase = getPublicSupabaseClient();
     const { data: banners } = await supabase
       .from("banners")
       .select("*")
@@ -349,7 +350,7 @@ export async function getHeroSlides(): Promise<HeroSlide[]> {
 
     if (!banners || banners.length === 0) return DEFAULT_SLIDES;
 
-    return banners.map((b, i) => ({
+    return (banners as any[]).map((b: any, i: number) => ({
       id: b.id,
       image_url: b.image_url,
       link_url: b.link_url || "/products",
@@ -361,9 +362,9 @@ export async function getHeroSlides(): Promise<HeroSlide[]> {
 }
 
 export async function getPromoSections(): Promise<PromoBanner[]> {
-  const { createClient } = await import("@/lib/supabase/server");
-  const supabase = await createClient();
   try {
+    const { getPublicSupabaseClient } = await import("@/lib/supabase/public");
+    const supabase = getPublicSupabaseClient();
     const now = new Date().toISOString();
     const { data } = await supabase
       .from("homepage_promotions")
@@ -371,7 +372,7 @@ export async function getPromoSections(): Promise<PromoBanner[]> {
       .or(`start_date.is.null,start_date.lte.${now}`)
       .or(`end_date.is.null,end_date.gte.${now}`)
       .order("id");
-    return data ?? [];
+    return (data as any[]) ?? [];
   } catch {
     return [];
   }
@@ -452,6 +453,7 @@ export async function upsertHeroSlideWithUpload(formData: FormData) {
       : await supabase.from("banners").insert(payload);
 
     if (error) throw error;
+    invalidateHomepageCache();
     return { success: true, image_url };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -467,6 +469,7 @@ export async function deleteHeroSlide(id: string) {
       .delete()
       .eq("id", id);
     if (error) throw error;
+    invalidateHomepageCache();
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

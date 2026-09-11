@@ -15,6 +15,7 @@ import { AnchorFashionLogo } from "@/components/shared/logo";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ADMIN_ROLES, MANAGER_ROLES } from "@/lib/constants/auth";
+import { useCartStore } from "@/stores/use-cart-store";
 
 const baseNavLinks = [
   { label: "Home", href: "/" },
@@ -130,6 +131,14 @@ export function StoreHeader({
   const [mounted, setMounted] = useState(false);
   const [isScrollingDown, setIsScrollingDown] = useState(false);
   const lastScrollY = useRef(0);
+
+  const { cart, fetchCart, setSheetOpen } = useCartStore();
+  const cartItemCount =
+    cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
 
   const role = user?.user_metadata?.role || user?.app_metadata?.role || "CUSTOMER";
   const accountHref = !user
@@ -361,16 +370,18 @@ export function StoreHeader({
             </Link>
 
             {/* Cart */}
-            <Link
-              href="/cart"
+            <button
+              onClick={() => setSheetOpen(true)}
               className="relative p-2 text-gray-700 transition-colors hover:text-black"
-              aria-label="Cart"
+              aria-label="Shopping Bag"
             >
               <ShoppingCart className="h-5 w-5" strokeWidth={1.75} />
-              <span className="absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black text-[8px] font-bold text-white">
-                0
-              </span>
-            </Link>
+              {mounted && cartItemCount > 0 && (
+                <span className="absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black text-[8px] font-bold text-white animate-in zoom-in-50">
+                  {cartItemCount > 99 ? "99+" : cartItemCount}
+                </span>
+              )}
+            </button>
           </div>
         </div>
       </header>

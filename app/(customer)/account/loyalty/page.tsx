@@ -8,6 +8,7 @@ import { Gift, CheckCircle2, Crown } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { RedeemRewardsDialog } from "@/features/customer/RedeemRewardsDialog";
 
 export default function LoyaltyPage() {
   const { points, tier, lifetimePoints } = useLoyaltyStore();
@@ -77,14 +78,10 @@ export default function LoyaltyPage() {
             <CardTitle className="text-sm font-medium uppercase tracking-widest text-[#1A1A1A]">Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <Button asChild className="w-full bg-[#1A1A1A] hover:bg-black text-white font-semibold uppercase tracking-widest h-12">
-              <Link href="/account/rewards">
-                <Gift className="mr-2 h-4 w-4" /> Redeem Rewards
-              </Link>
-            </Button>
+            <RedeemRewardsDialog userPoints={points} />
             <Button asChild variant="outline" className="w-full font-semibold uppercase tracking-widest h-12 border-gray-200 text-[#1A1A1A] hover:text-[#1A1A1A]">
-              <Link href="/account/referrals">
-                Earn More Points
+              <Link href="/account/rewards">
+                View Rewards Catalog
               </Link>
             </Button>
           </CardContent>

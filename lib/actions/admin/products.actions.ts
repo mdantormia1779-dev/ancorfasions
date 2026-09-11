@@ -9,6 +9,7 @@ import { BrandRepository } from "@/lib/repositories/catalog/brand.repository";
 import { TagRepository } from "@/lib/repositories/catalog/tag.repository";
 import { CreateProductSchema } from "@/types/catalog.types";
 import { revalidatePath } from "next/cache";
+import { invalidateProductCache } from "@/lib/cache/invalidate-catalog";
 
 // ============================================================================
 // SCHEMAS
@@ -79,7 +80,7 @@ export const createAdminProductAction = createAdminAction(
     };
     const newProduct = await ProductRepository.createProduct(payload as any);
     revalidatePath("/admin/products");
-    revalidatePath("/(shop)", "layout"); // Bust cache on frontend
+    invalidateProductCache(newProduct?.slug);
     return newProduct;
   }
 );
@@ -103,7 +104,7 @@ export const updateAdminProductAction = createAdminAction(
     );
     revalidatePath("/admin/products");
     revalidatePath(`/admin/products/${id}/edit`);
-    revalidatePath("/(shop)", "layout");
+    invalidateProductCache(updatedProduct?.slug);
     return updatedProduct;
   }
 );
@@ -116,7 +117,7 @@ export const deleteAdminProductAction = createAdminAction(
   async ({ id }) => {
     await ProductRepository.deleteProduct(id);
     revalidatePath("/admin/products");
-    revalidatePath("/(shop)", "layout");
+    invalidateProductCache();
     return { success: true };
   }
 );
@@ -146,6 +147,7 @@ export const duplicateAdminProductAction = createAdminAction(
 
     const newProduct = await ProductRepository.createProduct(copyData as any);
     revalidatePath("/admin/products");
+    invalidateProductCache(newProduct?.slug);
     return newProduct;
   }
 );
@@ -158,7 +160,7 @@ export const bulkUpdateProductStatusAction = createAdminAction(
   async ({ ids, status }) => {
     const count = await ProductRepository.bulkUpdateStatus(ids, status);
     revalidatePath("/admin/products");
-    revalidatePath("/(shop)", "layout");
+    invalidateProductCache();
     return { count };
   }
 );
@@ -171,7 +173,7 @@ export const bulkDeleteProductsAction = createAdminAction(
   async ({ ids }) => {
     const count = await ProductRepository.bulkDelete(ids);
     revalidatePath("/admin/products");
-    revalidatePath("/(shop)", "layout");
+    invalidateProductCache();
     return { count };
   }
 );

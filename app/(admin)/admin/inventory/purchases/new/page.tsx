@@ -17,14 +17,45 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 
+interface SupplierItem {
+  id: string;
+  name?: string;
+  company_name?: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+}
+
+interface WarehouseItem {
+  id: string;
+  name: string;
+  code?: string;
+  location?: string;
+}
+
+interface VariantItem {
+  id: string;
+  sku: string;
+  name?: string;
+  product_name?: string;
+  title?: string;
+  price?: number;
+}
+
+interface PurchaseOrderItem {
+  variant_id: string;
+  quantity_ordered: number;
+  unit_cost: number;
+}
+
 export default function NewPurchaseOrderPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [suppliers, setSuppliers] = useState<any[]>([]);
-  const [warehouses, setWarehouses] = useState<any[]>([]);
-  const [variants, setVariants] = useState<any[]>([]);
+  const [suppliers, setSuppliers] = useState<SupplierItem[]>([]);
+  const [warehouses, setWarehouses] = useState<WarehouseItem[]>([]);
+  const [variants, setVariants] = useState<VariantItem[]>([]);
   
-  const [items, setItems] = useState([{ variant_id: "", quantity_ordered: 1, unit_cost: 0 }]);
+  const [items, setItems] = useState<PurchaseOrderItem[]>([{ variant_id: "", quantity_ordered: 1, unit_cost: 0 }]);
 
   useEffect(() => {
     async function fetchData() {

@@ -2,6 +2,8 @@
 
 import { InventoryService } from "@/services/inventory.service";
 import { InventoryLevel, InventoryMovement } from "@/types/inventory.types";
+import { createAdminClient } from "@/lib/supabase/admin-client";
+import { revalidatePath } from "next/cache";
 
 export async function getAllInventory(
   page: number = 1,
@@ -174,6 +176,124 @@ export async function receivePurchase(
       .update({ status: "DELIVERED" })
       .eq("id", poId);
 
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
+export async function addStockAction(data: {
+  variantId: string;
+  warehouseId: string;
+  quantity: number;
+  reason: string;
+  notes?: string;
+}): Promise<{ success?: boolean; error?: string }> {
+  try {
+    if (data.quantity <= 0) throw new Error("Quantity must be greater than zero");
+    const supabase = createAdminClient();
+
+    const { data: existing, error: fetchErr } = await supabase
+      .from("inventory_levels")
+      .select("id, quantity_available")
+      .eq("variant_id", data.variantId)
+      .eq("warehouse_id", data.warehouseId)
+      .maybeSingle();
+
+    if (fetchErr) throw fetchErr;
+
+    if (existing) {
+      const { error: updateErr } = await supabase
+        .from("inventory_levels")
+        .update({ quantity_available: existing.quantity_available + data.quantity })
+        .eq("id", existing.id);
+      if (updateErr) throw updateErr;
+    } else {
+      const { error: insertErr } = await supabase
+        .from("inventory_levels")
+        .insert({
+          variant_id: data.variantId,
+          warehouse_id: data.warehouseId,
+          quantity_available: data.quantity,
+          quantity_reserved: 0,
+        });
+      if (insertErr) throw insertErr;
+    }
+
+    const { error: movErr } = await supabase.from("stock_movements").insert({
+      variant_id: data.variantId,
+      warehouse_id: data.warehouseId,
+      movement_type: "RECEIVE",
+      quantity: data.quantity,
+      reason_code: data.reason,
+      notes: data.notes || `Stock added: ${data.reason}`,
+    });
+    if (movErr) throw movErr;
+
+    revalidatePath("/admin/inventory/stock");
+    revalidatePath("/admin/inventory/movement");
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message };
+  }
+}
+
+export async function recordManualMovementAction(data: {
+  variantId: string;
+  warehouseId: string;
+  movementType: "RECEIVE" | "ADJUST" | "DAMAGE" | "RETURN";
+  quantity: number;
+  reason: string;
+  notes?: string;
+}): Promise<{ success?: boolean; error?: string }> {
+  try {
+    if (data.quantity === 0) throw new Error("Quantity cannot be zero");
+    const supabase = createAdminClient();
+    const isPositive = ["RECEIVE", "RETURN"].includes(data.movementType);
+    const delta = isPositive ? Math.abs(data.quantity) : -Math.abs(data.quantity);
+
+    const { data: existing, error: fetchErr } = await supabase
+      .from("inventory_levels")
+      .select("id, quantity_available")
+      .eq("variant_id", data.variantId)
+      .eq("warehouse_id", data.warehouseId)
+      .maybeSingle();
+
+    if (fetchErr) throw fetchErr;
+
+    if (existing) {
+      const newQty = existing.quantity_available + delta;
+      if (newQty < 0) throw new Error("Insufficient stock for this adjustment");
+      const { error: updateErr } = await supabase
+        .from("inventory_levels")
+        .update({ quantity_available: newQty })
+        .eq("id", existing.id);
+      if (updateErr) throw updateErr;
+    } else {
+      if (delta < 0) throw new Error("No inventory record found for this variant/warehouse");
+      const { error: insertErr } = await supabase
+        .from("inventory_levels")
+        .insert({
+          variant_id: data.variantId,
+          warehouse_id: data.warehouseId,
+          quantity_available: delta,
+          quantity_reserved: 0,
+        });
+      if (insertErr) throw insertErr;
+    }
+
+    const { error: movErr } = await supabase.from("stock_movements").insert({
+      variant_id: data.variantId,
+      warehouse_id: data.warehouseId,
+      movement_type: data.movementType,
+      quantity: data.quantity,
+      reason_code: data.reason,
+      notes: data.notes || data.reason,
+    });
+    if (movErr) throw movErr;
+
+    revalidatePath("/admin/inventory/movement");
+    revalidatePath("/admin/inventory/stock");
     return { success: true };
   } catch (error: any) {
     return { error: error.message };

@@ -68,6 +68,15 @@ export class CheckoutService {
     });
   }
 
+  async updateCouponStep(
+    sessionId: string,
+    couponCode: string | null
+  ): Promise<CheckoutSession> {
+    return await this.checkoutRepository.updateCheckoutSession(sessionId, {
+      coupon_code: couponCode,
+    });
+  }
+
   async deleteSession(sessionId: string): Promise<void> {
     await this.checkoutRepository.deleteCheckoutSession(sessionId);
   }

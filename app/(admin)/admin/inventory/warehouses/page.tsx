@@ -1,8 +1,7 @@
 import { Metadata } from "next";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/server";
-import { Plus, Eye } from "lucide-react";
+import { Eye } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -13,6 +12,10 @@ import {
 } from "@/components/ui/table";
 import { getAllWarehouses } from "@/actions/warehouse.actions";
 import Link from "next/link";
+import {
+  AddWarehouseButton,
+  ManageWarehouseSettingsButton,
+} from "@/features/warehouse/components/WarehousePageActions";
 
 export const metadata: Metadata = {
   title: "Warehouse Management | Anchor Fashion",
@@ -30,9 +33,7 @@ export default async function WarehousesPage() {
             Manage physical locations and zones.
           </p>
         </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" /> Add Warehouse
-        </Button>
+        <AddWarehouseButton />
       </div>
 
       <Card>
@@ -44,7 +45,7 @@ export default async function WarehousesPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Name</TableHead>
-                <TableHead>Location</TableHead>
+                <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -54,14 +55,32 @@ export default async function WarehousesPage() {
                 <TableRow key={wh.id}>
                   <TableCell className="font-medium">{wh.name}</TableCell>
                   <TableCell>{wh.type || "N/A"}</TableCell>
-                  <TableCell>{wh.is_active ? "Active" : "Inactive"}</TableCell>
+                  <TableCell>
+                    <span
+                      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
+                        wh.is_active
+                          ? "bg-emerald-100 text-emerald-800"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
+                    >
+                      {wh.is_active ? "Active" : "Inactive"}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="outline" size="sm" asChild>
-                      <Link href={`/admin/inventory/warehouses/${wh.id}`}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View
-                      </Link>
-                    </Button>
+                    <div className="flex items-center justify-end gap-2">
+                      <ManageWarehouseSettingsButton
+                        warehouseId={wh.id}
+                        warehouseName={wh.name}
+                        warehouseType={wh.type}
+                        isActive={wh.is_active}
+                      />
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/admin/inventory/warehouses/${wh.id}`}>
+                          <Eye className="mr-2 h-4 w-4" />
+                          View
+                        </Link>
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -71,7 +90,7 @@ export default async function WarehousesPage() {
                     colSpan={4}
                     className="py-6 text-center text-muted-foreground"
                   >
-                    No warehouses found.
+                    No warehouses found. Add one to get started.
                   </TableCell>
                 </TableRow>
               )}

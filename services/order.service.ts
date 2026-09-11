@@ -1,14 +1,21 @@
 import { OrderRepository } from "@/repositories/order.repository";
 import { CartService } from "./cart.service";
 import { CheckoutService } from "./checkout.service";
-import { InventoryService } from "./inventory.service";
+import { InventoryService, InventoryError, ReservationItem } from "./inventory.service";
 import { WarehouseService } from "./warehouse.service";
+import { CouponService } from "./coupon.service";
+import { FlashSaleService } from "@/lib/services/marketing/flash-sale.service";
 import {
   Order,
   OrderAddress,
   OrderItem,
   PaymentPayload,
 } from "@/types/checkout.types";
+import { createAdminClient } from "@/lib/supabase/admin-client";
+
+// 15-minute window before an unpaid reservation expires.
+// The cron route at /api/cron/release-expired-reservations uses this.
+const RESERVATION_TTL_MINUTES = 15;
 
 export class OrderService {
   private orderRepository: OrderRepository;
@@ -26,7 +33,7 @@ export class OrderService {
   }
 
   /**
-   * Generate an order number
+   * Generate an order number.
    */
   private generateOrderNumber(): string {
     const date = new Date().toISOString().slice(0, 10).replace(/-/g, "");
@@ -37,7 +44,21 @@ export class OrderService {
   }
 
   /**
-   * Place an order
+   * Place an order with atomic inventory reservation.
+   *
+   * Sequence:
+   *   1. Validate session + cart
+   *   2. Compute totals server-side (client prices are NOT trusted)
+   *   3. Create order row (status = pending_payment, reservation_expires_at set)
+   *   4. Call reserve_order_inventory RPC — atomic, all-or-nothing
+   *      → If ANY item is out of stock: order is immediately cancelled, error returned
+   *      → If ALL items reserved: return order to caller
+   *   5. Clear cart + delete session
+   *
+   * Idempotency:
+   *   idempotency_key = "order-<sessionId>" stored in the orders table with a
+   *   UNIQUE constraint. A double-click or retry will hit the constraint and
+   *   Supabase will return a conflict error, preventing duplicate orders.
    */
   async placeOrder(sessionId: string, userId?: string): Promise<Order> {
     const session = await this.checkoutService.getSession(sessionId);
@@ -55,19 +76,33 @@ export class OrderService {
       throw new Error("Cart is empty or not found");
     }
 
-    // 1. Calculate Totals
+    // ── 1. Compute totals server-side ─────────────────────────────────────
     let subtotal = 0;
     const orderItems: Partial<OrderItem>[] = [];
+    const reservationItems: ReservationItem[] = [];
+    const flashSalesToConsume: { id: string; quantity: number }[] = [];
+
+    const defaultWarehouse = await this.warehouseService.getDefaultWarehouse();
+    const warehouseId =
+      defaultWarehouse?.id || "00000000-0000-0000-0000-000000000001";
 
     for (const item of cart.items) {
       if (!item.product) continue;
 
-      const price =
+      // Server-side price resolution — client-provided prices are ignored.
+      let price =
         item.variant?.sale_price ||
         item.variant?.price ||
         item.product.sale_price ||
         item.product.price ||
         0;
+
+      const flashSale = await FlashSaleService.getFlashSaleForProduct(item.product_id);
+      if (flashSale) {
+        price = flashSale.flash_price;
+        flashSalesToConsume.push({ id: flashSale.id, quantity: item.quantity });
+      }
+
       const itemTotal = price * item.quantity;
 
       subtotal += itemTotal;
@@ -79,16 +114,51 @@ export class OrderService {
         unit_price: price,
         total_price: itemTotal,
       });
+
+      // Build reservation payload for the RPC.
+      // variant_id falls back to product_id for simple (non-variant) products.
+      const variantId = item.variant_id || item.product_id;
+      if (variantId) {
+        reservationItems.push({
+          variant_id: variantId,
+          warehouse_id: warehouseId,
+          quantity: item.quantity,
+        });
+      }
+    }
+
+    if (reservationItems.length === 0) {
+      throw new Error("No reservable items found in cart");
     }
 
     const shippingFee =
       session.shipping_method === "home_delivery_outside" ? 150 : 100;
-    const discountAmount = 0; // Coupon logic
+      
+    let discountAmount = 0;
+    let couponId: string | null = null;
+
+    if (session.coupon_code) {
+      const validation = await CouponService.validateAndCalculateDiscount(
+        session.coupon_code,
+        subtotal,
+        userId
+      );
+      if (!validation.isValid) {
+        throw new Error(validation.error || "Invalid coupon");
+      }
+      discountAmount = validation.discount;
+      couponId = validation.coupon?.id || null;
+    }
+
     const taxAmount = subtotal * 0.15;
-    const totalAmount = subtotal + shippingFee + taxAmount - discountAmount;
+    const totalAmount = Math.max(0, subtotal + shippingFee + taxAmount - discountAmount);
 
     const orderNumber = this.generateOrderNumber();
     const idempotencyKey = `order-${sessionId}`;
+
+    const reservationExpiresAt = new Date(
+      Date.now() + RESERVATION_TTL_MINUTES * 60 * 1000
+    ).toISOString();
 
     const orderData: Partial<Order> = {
       user_id: userId,
@@ -100,9 +170,11 @@ export class OrderService {
       shipping_fee: shippingFee,
       discount_amount: discountAmount,
       total_amount: totalAmount,
+      coupon_id: couponId,
       payment_method: session.payment_method,
       risk_level: "LOW",
-    };
+      reservation_expires_at: reservationExpiresAt,
+    } as Partial<Order>;
 
     const shippingAddress: Partial<OrderAddress> = {
       ...session.shipping_address_snapshot,
@@ -114,41 +186,9 @@ export class OrderService {
       address_type: "BILLING",
     };
 
-    const defaultWarehouse = await this.warehouseService.getDefaultWarehouse();
-    const warehouseId =
-      defaultWarehouse?.id || "00000000-0000-0000-0000-000000000001";
-
-    // 2. Reserve Stock (BEFORE creating the order)
-    const reservedItems: { variant_id: string; quantity: number }[] = [];
-    try {
-      for (const item of cart.items) {
-        if (!item.product) continue;
-        const variantId = item.variant_id || item.product_id || "";
-        
-        await this.inventoryService.reserveStock(
-          variantId,
-          warehouseId,
-          item.quantity
-        );
-        reservedItems.push({ variant_id: variantId, quantity: item.quantity });
-      }
-    } catch (error: any) {
-      // Rollback successfully reserved items if one fails
-      for (const reserved of reservedItems) {
-        try {
-          await this.inventoryService.releaseStock(
-            reserved.variant_id,
-            warehouseId,
-            reserved.quantity
-          );
-        } catch (releaseError) {
-          console.error(`Failed to rollback stock for variant ${reserved.variant_id}`, releaseError);
-        }
-      }
-      throw new Error(`Failed to place order: ${error.message}`);
-    }
-
-    // 3. Create Order
+    // ── 2. Create order row ────────────────────────────────────────────────
+    // Order is created BEFORE reservation so we have an order_id to pass to
+    // the RPC, and a safe cancellation target if reservation fails.
     const order = await this.orderRepository.createOrder(
       orderData,
       orderItems,
@@ -156,7 +196,77 @@ export class OrderService {
       billingAddress
     );
 
-    // 4. Clear Cart & Delete Session
+    // ── 3. Atomic inventory reservation ───────────────────────────────────
+    // Single PostgreSQL RPC call — uses SELECT FOR UPDATE + all-or-nothing
+    // transaction. If this fails, NO stock is modified.
+    try {
+      await this.inventoryService.reserveOrderInventory(
+        order.id,
+        reservationItems
+      );
+    } catch (err) {
+      // Reservation failed. Mark the order cancelled immediately so the DB
+      // state is consistent. Stock was never modified (RPC rolled back).
+      try {
+        const supabase = createAdminClient();
+        await supabase
+          .from("orders")
+          .update({ status: "CANCELLED" })
+          .eq("id", order.id);
+      } catch (cancelErr) {
+        console.error(
+          `[OrderService] Failed to cancel order ${order.id} after reservation failure:`,
+          cancelErr
+        );
+      }
+
+      if (err instanceof InventoryError) {
+        throw err; // propagate typed error to the action layer
+      }
+      throw new InventoryError(
+        "RESERVATION_FAILED",
+        "Failed to reserve inventory. Items may have just sold out."
+      );
+    }
+
+    // ── 3.5 Atomic Flash Sale Consumption ───────────────────────────────────
+    const consumedFlashSales: { id: string; quantity: number }[] = [];
+    for (const fs of flashSalesToConsume) {
+      try {
+        const result = await FlashSaleService.consumeFlashSaleStock(fs.id, fs.quantity);
+        if (!result.success) throw new Error(result.error);
+        consumedFlashSales.push(fs);
+      } catch (err) {
+        // Rollback already consumed flash sales
+        for (const cfs of consumedFlashSales) {
+          await FlashSaleService.releaseFlashSaleStock(cfs.id, cfs.quantity);
+        }
+        // Rollback inventory
+        await this.inventoryService.releaseOrderInventory(order.id);
+        // Mark order cancelled
+        await this.orderRepository.updateOrderStatus(order.id, "CANCELLED");
+        throw new Error(`Failed to consume flash sale stock: ${err instanceof Error ? err.message : "Unknown error"}`);
+      }
+    }
+
+    // ── 4. Atomic Coupon Consumption ──────────────────────────────────────────
+    if (session.coupon_code) {
+      try {
+        await CouponService.consumeCoupon(session.coupon_code, userId, order.id, discountAmount);
+      } catch (err) {
+        // Rollback flash sales
+        for (const cfs of consumedFlashSales) {
+          await FlashSaleService.releaseFlashSaleStock(cfs.id, cfs.quantity);
+        }
+        // Rollback inventory
+        await this.inventoryService.releaseOrderInventory(order.id);
+        // Mark order cancelled
+        await this.orderRepository.updateOrderStatus(order.id, "CANCELLED");
+        throw new Error(err instanceof Error ? err.message : "Failed to apply coupon");
+      }
+    }
+
+    // ── 5. Cleanup ───────────────────────────────────────────────────────────
     await this.cartService.clearCart(cart.id);
     await this.checkoutService.deleteSession(sessionId);
 
@@ -165,7 +275,6 @@ export class OrderService {
 
   /**
    * Prepare Payment Payload
-   * Generates a secure payload object depending on provider
    */
   preparePaymentPayload(
     order: Order,
@@ -173,7 +282,6 @@ export class OrderService {
     failUrl: string,
     cancelUrl: string
   ): PaymentPayload {
-    // In a real application, you would sign this payload or generate a token using the provider's SDK
     const customerName = order.shipping_address
       ? `${order.shipping_address.first_name} ${order.shipping_address.last_name}`
       : "Guest";

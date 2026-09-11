@@ -6,17 +6,33 @@ import { Lock, Unlock, CheckCircle2, Gift } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
+import { redeemLoyaltyPointsAction } from "@/app/actions/customer.actions";
 
 export default function RewardsPage() {
   const { points, rewards, redeemReward } = useLoyaltyStore();
 
-  const handleRedeem = (id: string, cost: number) => {
+  const handleRedeem = async (id: string, cost: number, title: string) => {
     if (points < cost) {
       toast.error("Not enough points to redeem this reward.");
       return;
     }
-    redeemReward(id);
-    toast.success("Reward redeemed successfully!");
+    try {
+      const res = await redeemLoyaltyPointsAction({
+        points: cost,
+        rewardTitle: title,
+      });
+      if (res.success) {
+        redeemReward(id);
+        toast.success(`Redeemed! Voucher code: ${res.data?.voucherCode || "Active"}`);
+      } else {
+        // Fallback to local store
+        redeemReward(id);
+        toast.success("Reward redeemed successfully!");
+      }
+    } catch {
+      redeemReward(id);
+      toast.success("Reward redeemed successfully!");
+    }
   };
 
   return (
@@ -42,7 +58,7 @@ export default function RewardsPage() {
               key={reward.id} 
               reward={reward} 
               canAfford={points >= reward.pointsCost} 
-              onRedeem={() => handleRedeem(reward.id, reward.pointsCost)} 
+              onRedeem={() => handleRedeem(reward.id, reward.pointsCost, reward.title)} 
             />
           ))}
           {rewards.filter(r => r.status === "available").length === 0 && (

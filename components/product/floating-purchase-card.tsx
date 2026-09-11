@@ -3,60 +3,82 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useCartStore } from "@/stores/use-cart-store";
-import { cn } from "@/lib/utils";
-import { formatCurrency } from "@/lib/utils";
+import { cn, formatCurrency } from "@/lib/utils";
+import { toast } from "sonner";
 
-interface FloatingPurchaseCardProps {
+export interface FloatingPurchaseCardProps {
   productId: string;
   productName: string;
   productPrice: number;
+  compareAtPrice?: number | null;
   productImage: string;
-  variants: any[];
+  selectedVariantId?: string | null;
+  selectedVariantSku?: string;
+  selectedVariantLabel?: string;
+  isOutOfStock?: boolean;
+  validationError?: string | null;
+  quantity?: number;
 }
 
 export function FloatingPurchaseCard({
   productId,
   productName,
   productPrice,
+  compareAtPrice,
   productImage,
-  variants,
+  selectedVariantId,
+  selectedVariantSku,
+  selectedVariantLabel,
+  isOutOfStock = false,
+  validationError = null,
+  quantity = 1,
 }: FloatingPurchaseCardProps) {
   const [isVisible, setIsVisible] = useState(false);
   const { addItem, isLoading } = useCartStore();
 
   useEffect(() => {
     const handleScroll = () => {
-      // Show when scrolled down a bit (past the main add to cart)
-      if (window.scrollY > 800) {
+      // Show when scrolled down past main CTA (approx 600px)
+      if (window.scrollY > 600) {
         setIsVisible(true);
       } else {
         setIsVisible(false);
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const formatPrice = (price: number) => {
-    return formatCurrency(price);
-  };
-
   const handleAddToCart = async () => {
-    // Assuming adding default variant if simple, or just a base action
-    const defaultVariant = variants?.[0]?.id || null;
-    await addItem(productId, defaultVariant, 1);
+    if (validationError) {
+      toast.error(validationError);
+      return;
+    }
+    if (isOutOfStock || isLoading) return;
+
+    try {
+      await addItem(productId, selectedVariantId || null, quantity);
+      const storeError = useCartStore.getState().error;
+      if (storeError) {
+        toast.error(storeError);
+      } else {
+        toast.success(`Added ${productName} to cart`);
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to add to cart.");
+    }
   };
 
   if (!isVisible) return null;
 
   return (
-    <div className="fixed left-0 right-0 top-0 z-50 hidden border-b border-gray-100 bg-white/90 px-6 py-3 shadow-sm backdrop-blur-md transition-transform duration-300 animate-in slide-in-from-top-full lg:block">
+    <div className="fixed left-0 right-0 top-0 z-50 hidden border-b border-gray-100 bg-white/95 px-6 py-3 shadow-md backdrop-blur-md transition-transform duration-300 animate-in slide-in-from-top-full lg:block">
       <div className="container mx-auto flex max-w-6xl items-center justify-between">
         <div className="flex items-center gap-4">
           <div className="relative h-12 w-10 overflow-hidden bg-gray-100">
             <Image
-              src={productImage}
+              src={productImage || "/images/placeholder.webp"}
               alt={productName}
               fill
               sizes="40px"
@@ -65,22 +87,44 @@ export function FloatingPurchaseCard({
           </div>
           <div>
             <h3 className="text-sm font-semibold text-[#1A1A1A]">{productName}</h3>
-            <p className="text-xs text-gray-500">{formatPrice(productPrice)}</p>
+            <div className="flex items-baseline gap-2">
+              <span className="text-xs font-bold text-[#1A1A1A]">
+                {formatCurrency(productPrice)}
+              </span>
+              {compareAtPrice && (
+                <span className="text-[11px] text-gray-400 line-through">
+                  {formatCurrency(compareAtPrice)}
+                </span>
+              )}
+              {selectedVariantSku && (
+                <span className="text-[10px] uppercase tracking-wider text-gray-400">
+                  SKU: {selectedVariantSku}
+                </span>
+              )}
+            </div>
           </div>
         </div>
+
         <div className="flex items-center gap-6">
-          <p className="text-xs text-gray-500">
-            {variants?.length > 0 ? "Select Size in Cart" : "One Size"}
-          </p>
+          {selectedVariantLabel && (
+            <span className="text-xs font-medium text-gray-600 bg-gray-50 px-2.5 py-1 rounded">
+              {selectedVariantLabel}
+            </span>
+          )}
+
           <button
+            type="button"
             onClick={handleAddToCart}
-            disabled={isLoading}
+            disabled={isOutOfStock || isLoading}
             className={cn(
-              "bg-[#1A1A1A] px-8 py-3 text-xs font-bold uppercase tracking-widest text-white transition-colors hover:bg-black",
-              isLoading && "cursor-not-allowed opacity-50"
+              "px-8 py-3 text-xs font-bold uppercase tracking-widest text-white transition-colors",
+              isOutOfStock
+                ? "cursor-not-allowed bg-zinc-300 text-zinc-500"
+                : "bg-[#1A1A1A] hover:bg-black",
+              isLoading && "cursor-wait opacity-80"
             )}
           >
-            {isLoading ? "Adding..." : "Add to Cart"}
+            {isLoading ? "Adding..." : isOutOfStock ? "Out of Stock" : "Add to Cart"}
           </button>
         </div>
       </div>

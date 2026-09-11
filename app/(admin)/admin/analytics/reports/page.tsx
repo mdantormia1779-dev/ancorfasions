@@ -1,5 +1,6 @@
 import { Metadata } from "next";
-import { Download, Printer, FileText } from "lucide-react";
+import Link from "next/link";
+import { Download, Filter, FileText, ArrowRight, BarChart3, Users, Package } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -13,7 +14,7 @@ import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Reports & Exports | Anchor Fashion Analytics",
-  description: "Generate and export custom BI reports",
+  description: "Generate and export custom BI enterprise reports",
 };
 
 export const dynamic = "force-dynamic";
@@ -23,88 +24,96 @@ export default async function ReportsPage() {
     <div className="space-y-6">
       <div className="flex flex-col items-start justify-between gap-4 md:flex-row md:items-center">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Custom Reports</h1>
-          <p className="text-muted-foreground">
-            Generate, print, and export CSV/Excel reports.
+          <h1 className="text-3xl font-bold tracking-tight">Enterprise Reports</h1>
+          <p className="text-muted-foreground mt-1">
+            Access automated executive exports or design multi-dimensional custom reports.
           </p>
         </div>
+        <Link href="/admin/reports/builder">
+          <Button className="flex items-center gap-2">
+            <Filter className="h-4 w-4" /> Custom Report Builder
+          </Button>
+        </Link>
       </div>
 
       <AnalyticsFilters />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
+        {/* Sales & Revenue Report */}
+        <Card className="flex flex-col justify-between">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
+              <BarChart3 className="h-5 w-5 text-primary" />
               Sales & Revenue Report
             </CardTitle>
             <CardDescription>
-              Comprehensive daily breakdown of all sales
+              Comprehensive breakdown of sales across channels & dates
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Includes dates, gross revenue, net profit, total orders, and
-              average order values.
+              Includes gross sales, orders, net profit, refunds, and units sold grouped by date, brand, or category.
             </p>
           </CardContent>
-          <CardFooter className="flex gap-2">
-            <Button variant="outline" size="sm" className="w-full" disabled>
-              <Download className="mr-2 h-4 w-4" /> CSV
-            </Button>
-            <Button variant="outline" size="sm" className="w-full" disabled>
-              <Printer className="mr-2 h-4 w-4" /> Print
-            </Button>
+          <CardFooter className="pt-2">
+            <Link href="/admin/reports/builder" className="w-full">
+              <Button variant="outline" size="sm" className="w-full gap-2">
+                Open in Custom Builder
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
           </CardFooter>
         </Card>
 
-        <Card>
+        {/* Customer Segment Report */}
+        <Card className="flex flex-col justify-between">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              Customer Segment Report
+              <Users className="h-5 w-5 text-primary" />
+              Customer Demographics & Channels
             </CardTitle>
             <CardDescription>
-              Export customer profiles & LTV data
+              Analyze regional distribution and device channels
             </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Includes emails, registration dates, total spend, and marketing
-              opt-ins.
+              Multi-dimensional analysis by customer regions, device platforms (Mobile/Desktop), and order frequency.
             </p>
           </CardContent>
-          <CardFooter className="flex gap-2">
-            <Button variant="outline" size="sm" className="w-full" disabled>
-              <Download className="mr-2 h-4 w-4" /> CSV
-            </Button>
-            <Button variant="outline" size="sm" className="w-full" disabled>
-              <Printer className="mr-2 h-4 w-4" /> Print
-            </Button>
+          <CardFooter className="pt-2">
+            <Link href="/admin/reports/builder" className="w-full">
+              <Button variant="outline" size="sm" className="w-full gap-2">
+                Open in Custom Builder
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
           </CardFooter>
         </Card>
 
-        <Card>
+        {/* Inventory Valuation Report */}
+        <Card className="flex flex-col justify-between">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <FileText className="h-5 w-5 text-primary" />
-              Inventory Valuation Report
+              <Package className="h-5 w-5 text-primary" />
+              Product Performance & Stock
             </CardTitle>
-            <CardDescription>Current stock levels and value</CardDescription>
+            <CardDescription>
+              Units moved, volume, and gross margin by collection
+            </CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              Includes SKUs, quantities, low stock alerts, and COGS estimations.
+              Evaluate category margins, brand performance, and volume throughput for seasonal planning.
             </p>
           </CardContent>
-          <CardFooter className="flex gap-2">
-            <Button variant="outline" size="sm" className="w-full" disabled>
-              <Download className="mr-2 h-4 w-4" /> CSV
-            </Button>
-            <Button variant="outline" size="sm" className="w-full" disabled>
-              <Printer className="mr-2 h-4 w-4" /> Print
-            </Button>
+          <CardFooter className="pt-2">
+            <Link href="/admin/reports/builder" className="w-full">
+              <Button variant="outline" size="sm" className="w-full gap-2">
+                Open in Custom Builder
+                <ArrowRight className="h-3.5 w-3.5" />
+              </Button>
+            </Link>
           </CardFooter>
         </Card>
       </div>

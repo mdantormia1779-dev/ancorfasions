@@ -20,6 +20,8 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
+import { mergeGuestCartAction } from "@/lib/actions/cart.actions";
+import { useCartStore } from "@/stores/use-cart-store";
 
 const formSchema = z
   .object({
@@ -61,7 +63,7 @@ export function RegisterForm() {
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email: values.email,
       password: values.password,
       options: {
@@ -75,6 +77,20 @@ export function RegisterForm() {
     if (error) {
       toast.error(error.message);
       setIsLoading(false);
+      return;
+    }
+
+    // If auto-logged in (session provided directly)
+    if (data?.user && data?.session) {
+      try {
+        await mergeGuestCartAction();
+        await useCartStore.getState().fetchCart();
+      } catch (mergeErr) {
+        console.error("Cart merge error during registration:", mergeErr);
+      }
+      setIsLoading(false);
+      toast.success("Account created successfully!");
+      router.push("/");
       return;
     }
 

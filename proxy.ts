@@ -105,12 +105,22 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/account") ||
     pathname.startsWith("/customer");
 
-  // Protect Internal API Routes as well (everything in /api/ except /api/v1 which is handled above)
-  const isInternalApiRoute = pathname.startsWith("/api/") && !pathname.startsWith("/api/v1/");
+  // Public API endpoints that must allow unauthenticated access (auth, webhooks, storefront, cron, health)
+  const isPublicApiRoute =
+    pathname.startsWith("/api/auth/") ||
+    pathname.startsWith("/api/webhooks/") ||
+    pathname.startsWith("/api/store/") ||
+    pathname.startsWith("/api/cron/") ||
+    pathname.startsWith("/api/public/") ||
+    pathname.startsWith("/api/health") ||
+    pathname.startsWith("/api/v1/");
+
+  // Protect internal/administrative API Routes
+  const isInternalApiRoute = pathname.startsWith("/api/") && !isPublicApiRoute;
   
   if (!user && (isProtectedRoute || isInternalApiRoute)) {
     if (isInternalApiRoute) {
-       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+       return NextResponse.json({ error: "Unauthorized: Authentication required" }, { status: 401 });
     }
     const redirectUrl = new URL("/auth/login", request.url);
     redirectUrl.searchParams.set("next", pathname);

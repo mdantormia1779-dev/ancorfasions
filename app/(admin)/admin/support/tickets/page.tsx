@@ -82,7 +82,7 @@ export default async function TicketManagementPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {tickets.map((ticket) => (
+                {tickets.map((ticket: any) => (
                   <TableRow key={ticket.id}>
                     <TableCell className="font-mono font-medium">
                       {ticket.id.substring(0, 8)}

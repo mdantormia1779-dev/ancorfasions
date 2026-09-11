@@ -102,3 +102,58 @@ export async function createRoleAction(data: { name: string, description: string
     return { success: false, error: error.message };
   }
 }
+
+export async function updateRoleAction(
+  id: string,
+  data: { name: string; description: string }
+) {
+  try {
+    await verifySuperAdmin();
+    const supabase = createAdminClient();
+
+    const { error } = await supabase
+      .from("roles")
+      .update({ name: data.name, description: data.description })
+      .eq("id", id);
+
+    if (error) throw error;
+
+    revalidatePath("/admin/users/roles");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[updateRoleAction]", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteRoleAction(id: string) {
+  try {
+    await verifySuperAdmin();
+    const supabase = createAdminClient();
+
+    // Check if role has users assigned
+    const { count } = await supabase
+      .from("profiles")
+      .select("*", { count: "exact", head: true })
+      .eq("role_id", id);
+
+    if ((count || 0) > 0) {
+      return {
+        success: false,
+        error: `Cannot delete role: ${count} user(s) are assigned to it. Reassign them first.`,
+      };
+    }
+
+    // Delete role_permissions first (FK constraint)
+    await supabase.from("role_permissions").delete().eq("role_id", id);
+
+    const { error } = await supabase.from("roles").delete().eq("id", id);
+    if (error) throw error;
+
+    revalidatePath("/admin/users/roles");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[deleteRoleAction]", error);
+    return { success: false, error: error.message };
+  }
+}

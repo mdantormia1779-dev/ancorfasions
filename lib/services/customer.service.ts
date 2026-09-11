@@ -109,6 +109,10 @@ export class CustomerService {
     return this.repository.getTicketDetails(ticketId, userId);
   }
 
+  async replyTicket(ticketId: string, userId: string, message: string) {
+    return this.repository.replyTicket(ticketId, userId, message);
+  }
+
   async getLoginHistory(userId: string) {
     return this.repository.getLoginHistory(userId);
   }
@@ -120,4 +124,15 @@ export class CustomerService {
   async getWishlists(userId: string) {
     return this.repository.getWishlists(userId);
   }
+
+  async deactivateProfile(userId: string, reason?: string) {
+    const { CustomerService: CanonicalCustomerService } = await import("@/services/customer.service");
+    return CanonicalCustomerService.deactivateProfile(userId, reason);
+  }
+
+  async deleteProfile(userId: string) {
+    const { CustomerService: CanonicalCustomerService } = await import("@/services/customer.service");
+    return CanonicalCustomerService.deleteProfile(userId);
+  }
 }
+

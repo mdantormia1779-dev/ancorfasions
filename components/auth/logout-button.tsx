@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useCartStore } from "@/stores/use-cart-store";
+import { logoutCartAction } from "@/lib/actions/cart.actions";
 
 interface LogoutButtonProps {
   className?: string;
@@ -21,6 +23,12 @@ export function LogoutButton({ className, hideText }: LogoutButtonProps) {
       toast.error("Failed to log out. Please try again.");
       return;
     }
+    try {
+      await logoutCartAction();
+    } catch (e) {
+      console.error("Logout cart clean error:", e);
+    }
+    useCartStore.setState({ cart: null, error: null });
     toast.success("Logged out successfully.");
     router.push("/auth/login");
     router.refresh();

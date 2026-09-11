@@ -10,6 +10,7 @@ import {
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server-client";
 import { redirect } from "next/navigation";
+import { CouponService } from "@/services/coupon.service";
 
 async function getUserId() {
   const supabase = await createClient();
@@ -60,6 +61,33 @@ export async function processPaymentAction(
     session.shipping_address_snapshot
   );
   revalidatePath("/checkout");
+}
+
+export async function applyCouponAction(sessionId: string, code: string, subtotal: number) {
+  const checkoutService = new CheckoutService();
+  const session = await checkoutService.getSession(sessionId);
+  if (!session) throw new Error("Session not found");
+  
+  const userId = await getUserId();
+  const validation = await CouponService.validateAndCalculateDiscount(code, subtotal, userId);
+  
+  if (!validation.isValid) {
+    return { success: false, error: validation.error };
+  }
+  
+  await checkoutService.updateCouponStep(sessionId, validation.coupon?.code || code);
+  revalidatePath("/checkout");
+  return { success: true, discount: validation.discount, code: validation.coupon?.code };
+}
+
+export async function removeCouponAction(sessionId: string) {
+  const checkoutService = new CheckoutService();
+  const session = await checkoutService.getSession(sessionId);
+  if (!session) throw new Error("Session not found");
+  
+  await checkoutService.updateCouponStep(sessionId, null);
+  revalidatePath("/checkout");
+  return { success: true };
 }
 
 export async function placeOrderAction(sessionId: string) {

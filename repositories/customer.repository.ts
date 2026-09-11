@@ -88,4 +88,36 @@ export class CustomerRepository {
     }
     return data;
   }
+
+  static async deactivateProfile(userId: string): Promise<boolean> {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("customer_profiles")
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq("id", userId);
+
+    if (error) {
+      console.error("Error deactivating customer profile:", error);
+      throw new Error(error.message);
+    }
+    return true;
+  }
+
+  static async deleteProfile(userId: string): Promise<boolean> {
+    const supabase = await createClient();
+    // Delete related customer addresses first
+    await supabase.from("customer_addresses").delete().eq("customer_id", userId);
+    // Delete customer profile
+    const { error } = await supabase
+      .from("customer_profiles")
+      .delete()
+      .eq("id", userId);
+
+    if (error) {
+      console.error("Error deleting customer profile:", error);
+      throw new Error(error.message);
+    }
+    return true;
+  }
 }
+

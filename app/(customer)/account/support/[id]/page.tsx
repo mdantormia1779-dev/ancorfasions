@@ -2,21 +2,14 @@ import { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { fetchTicketDetailsAction } from "@/app/actions/customer.actions";
 import { createClient } from "@/lib/supabase/server";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardFooter,
-} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Paperclip, Send } from "lucide-react";
-import { Textarea } from "@/components/ui/textarea";
+import { ArrowLeft, Tag, Calendar, AlertCircle } from "lucide-react";
+import { SupportTicketThread } from "@/features/customer/SupportTicketThread";
 
 export const metadata: Metadata = {
-  title: "Ticket Details | Anchor Fashion",
+  title: "Ticket Details | Anchor Fashion Support",
 };
 
 export default async function SupportTicketDetailsPage({
@@ -40,82 +33,60 @@ export default async function SupportTicketDetailsPage({
   }
 
   const ticket = res.data;
+  const statusUpper = (ticket.status || "OPEN").toUpperCase();
 
-  // Initial message thread from ticket description
-  const replies = [
-    {
-      id: "r1",
-      message: ticket.description,
-      is_staff: false,
-      created_at: ticket.created_at,
-    },
-  ];
+  const getStatusBadge = (status: string) => {
+    switch (status.toUpperCase()) {
+      case "RESOLVED":
+      case "CLOSED":
+        return <Badge variant="secondary" className="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">{status}</Badge>;
+      case "PENDING":
+        return <Badge variant="outline" className="bg-amber-50 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border-amber-300">{status}</Badge>;
+      default:
+        return <Badge className="bg-primary text-primary-foreground">{status}</Badge>;
+    }
+  };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 p-6">
-      <div className="flex items-center gap-4">
-        <Button variant="outline" size="icon" asChild>
-          <Link href="/account/support">
-            <ArrowLeft className="h-4 w-4" />
-          </Link>
-        </Button>
-        <h1 className="line-clamp-1 text-3xl font-bold tracking-tight">
-          {ticket.subject}
-        </h1>
-        <Badge
-          variant={
-            ticket.status === "RESOLVED" || ticket.status === "CLOSED"
-              ? "secondary"
-              : "default"
-          }
-          className="text-sm"
-        >
-          {ticket.status}
-        </Badge>
+    <div className="mx-auto max-w-3xl space-y-6 p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Button variant="outline" size="icon" asChild className="h-9 w-9">
+            <Link href="/account/support">
+              <ArrowLeft className="h-4 w-4" />
+            </Link>
+          </Button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="line-clamp-1 text-2xl font-bold tracking-tight">
+                {ticket.subject}
+              </h1>
+              {getStatusBadge(ticket.status || "open")}
+            </div>
+            <div className="flex flex-wrap items-center gap-3 mt-1 text-xs text-muted-foreground">
+              {ticket.ticket_number && (
+                <span className="font-mono font-medium">#{ticket.ticket_number}</span>
+              )}
+              {ticket.category && (
+                <span className="flex items-center gap-1">
+                  <Tag className="h-3 w-3" /> {ticket.category}
+                </span>
+              )}
+              <span className="flex items-center gap-1">
+                <Calendar className="h-3 w-3" /> {new Date(ticket.created_at).toLocaleDateString()}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Conversation</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
-          {replies.map((reply) => (
-            <div
-              key={reply.id}
-              className={`flex ${reply.is_staff ? "justify-start" : "justify-end"}`}
-            >
-              <div
-                className={`max-w-[80%] rounded-xl p-4 ${reply.is_staff ? "bg-slate-100 dark:bg-slate-800" : "bg-primary text-primary-foreground"}`}
-              >
-                <p className="text-sm">{reply.message}</p>
-                <p
-                  className={`mt-2 text-xs ${reply.is_staff ? "text-slate-500" : "text-primary-foreground/70"}`}
-                >
-                  {new Date(reply.created_at).toLocaleString()}
-                </p>
-              </div>
-            </div>
-          ))}
-        </CardContent>
-        {ticket.status !== "CLOSED" && ticket.status !== "RESOLVED" && (
-          <CardFooter className="flex-col gap-4 border-t pt-6">
-            <Textarea
-              placeholder="Type your reply here..."
-              className="min-h-[100px]"
-            />
-            <div className="flex w-full justify-between">
-              <Button variant="outline" type="button">
-                <Paperclip className="mr-2 h-4 w-4" />
-                Attach File
-              </Button>
-              <Button type="button">
-                <Send className="mr-2 h-4 w-4" />
-                Send Reply
-              </Button>
-            </div>
-          </CardFooter>
-        )}
-      </Card>
+      <SupportTicketThread
+        ticketId={ticket.id}
+        initialDescription={ticket.description}
+        ticketCreatedAt={ticket.created_at}
+        status={ticket.status || "open"}
+        messages={ticket.messages || []}
+      />
     </div>
   );
 }

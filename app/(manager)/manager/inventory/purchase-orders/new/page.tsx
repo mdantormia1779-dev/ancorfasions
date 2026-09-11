@@ -15,13 +15,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Supplier } from "@/types/inventory.types";
+import { Supplier, Warehouse } from "@/types/inventory.types";
 
 export default function NewPurchaseOrderPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   
   const [items, setItems] = useState([{ variant_id: "", quantity_ordered: 1, unit_cost: 0 }]);
 

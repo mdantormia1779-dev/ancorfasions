@@ -5,9 +5,20 @@ import { usePathname } from "next/navigation";
 import { Home, Search, ShoppingCart, User, Heart } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ADMIN_ROLES, MANAGER_ROLES } from "@/lib/constants/auth";
+import { useCartStore } from "@/stores/use-cart-store";
+import { useState, useEffect } from "react";
 
 export function MobileBottomNav({ user }: { user: any }) {
   const pathname = usePathname();
+  const [mounted, setMounted] = useState(false);
+  const { cart } = useCartStore();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const cartItemCount =
+    cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
 
   const getInitials = (name?: string, email?: string) => {
     if (name) return name.slice(0, 2).toUpperCase();
@@ -36,6 +47,8 @@ export function MobileBottomNav({ user }: { user: any }) {
       <div className="mx-auto grid h-full max-w-lg grid-cols-5 font-medium">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
+          const isCart = item.label === "Cart";
+
           return (
             <Link
               key={item.href}
@@ -44,12 +57,19 @@ export function MobileBottomNav({ user }: { user: any }) {
                 isActive ? "text-[#1A1A1A]" : "text-gray-400 hover:text-[#1A1A1A]"
               }`}
             >
-              <item.icon
-                className={`mb-1.5 h-6 w-6 transition-transform duration-300 ${
-                  isActive ? "text-[#1A1A1A] scale-110" : ""
-                }`}
-                strokeWidth={isActive ? 2 : 1.5}
-              />
+              <div className="relative">
+                <item.icon
+                  className={`mb-1.5 h-6 w-6 transition-transform duration-300 ${
+                    isActive ? "text-[#1A1A1A] scale-110" : ""
+                  }`}
+                  strokeWidth={isActive ? 2 : 1.5}
+                />
+                {isCart && mounted && cartItemCount > 0 && (
+                  <span className="absolute -top-1 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black text-[8px] font-bold text-white">
+                    {cartItemCount > 99 ? "99+" : cartItemCount}
+                  </span>
+                )}
+              </div>
               <span className={`text-[9px] uppercase tracking-widest transition-colors ${isActive ? 'font-bold text-[#1A1A1A]' : 'font-medium'}`}>
                 {item.label}
               </span>

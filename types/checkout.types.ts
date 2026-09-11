@@ -90,6 +90,7 @@ export interface CheckoutSession {
   billing_address_snapshot?: AddressFormValues | null;
   shipping_method?: string | null;
   payment_method?: string | null;
+  coupon_code?: string | null;
   expires_at: string;
   created_at: string;
   updated_at: string;

@@ -1,10 +1,17 @@
-import { createClient } from "@/lib/supabase/server";
+import { getPublicSupabaseClient } from "@/lib/supabase/public";
+import { CatalogService } from "@/lib/services/catalog.service";
 import { Category } from "@/types/category";
 
 export const getCategoryBySlug = async (
   slug: string
 ): Promise<Category | null> => {
-  const supabase = await createClient();
+  const categories = await CatalogService.getCategories();
+  const matched = (categories as any[]).find((c) => c.slug === slug);
+  if (matched) {
+    return matched as Category;
+  }
+
+  const supabase = getPublicSupabaseClient();
   const { data, error } = await supabase
     .from("categories")
     .select("*")
@@ -16,22 +23,12 @@ export const getCategoryBySlug = async (
     console.error("Error fetching category by slug:", error);
     return null;
   }
-  return data;
+  return data as Category;
 };
 
 export const getCategories = async (): Promise<Category[]> => {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("categories")
-    .select("*")
-    .eq("is_active", true)
-    .order("display_order", { ascending: true });
-
-  if (error) {
-    console.error("Error fetching categories:", error);
-    return [];
-  }
-  return data ?? [];
+  const categories = await CatalogService.getCategories();
+  return (categories || []) as Category[];
 };
 
 export const getProducts = async (params?: {
@@ -39,9 +36,8 @@ export const getProducts = async (params?: {
   limit?: number;
   offset?: number;
 }): Promise<any[]> => {
-  const supabase = await createClient();
-  let query = supabase
-    .from("products")
+  const supabase = getPublicSupabaseClient();
+  let query = (supabase.from("products") as any)
     .select(
       `
       *,
@@ -50,7 +46,8 @@ export const getProducts = async (params?: {
       product_media (url, alt_text, is_primary)
     `
     )
-    .eq("status", "ACTIVE");
+    .eq("status", "ACTIVE")
+    .is("deleted_at", null);
 
   if (params?.categoryId) {
     query = query.eq("category_id", params.categoryId);
@@ -73,16 +70,6 @@ export const getProducts = async (params?: {
 };
 
 export const getBrands = async (): Promise<any[]> => {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("brands")
-    .select("*")
-    .eq("is_active", true)
-    .order("name", { ascending: true });
-
-  if (error) {
-    console.error("Error fetching brands:", error);
-    return [];
-  }
-  return data ?? [];
+  const brands = await CatalogService.getBrands();
+  return (brands || []) as any[];
 };

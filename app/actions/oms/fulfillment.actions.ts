@@ -22,7 +22,8 @@ export async function assignTrackingAction(input: FulfillShipmentInput) {
 
 export async function reserveInventoryAction(orderId: string) {
   try {
-    await fulfillmentService.reserveInventory(orderId);
+    // Confirms (consumes) reserved stock — stock has physically shipped.
+    await fulfillmentService.confirmInventoryForShipment(orderId);
     revalidatePath(`/admin/orders/${orderId}`);
     return { success: true };
   } catch (error: any) {

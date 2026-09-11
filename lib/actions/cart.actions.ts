@@ -14,11 +14,26 @@ async function getSessionIdentifiers() {
   const cookieStore = await cookies();
   let guestSessionId = cookieStore.get("af_guest_session")?.value;
 
+  // Auto-merge: If user is authenticated and there is a pending guest session cookie,
+  // merge the guest cart into the user's persistent cart automatically and clear the cookie.
+  if (user && guestSessionId) {
+    try {
+      await CartService.mergeGuestCart(guestSessionId, user.id);
+      cookieStore.delete("af_guest_session");
+      guestSessionId = undefined;
+    } catch (mergeErr) {
+      console.error("Auto-merge guest cart error:", mergeErr);
+    }
+  }
+
+  // If user is guest and doesn't have a session ID yet, generate one
   if (!user && !guestSessionId) {
     guestSessionId = crypto.randomUUID();
     cookieStore.set("af_guest_session", guestSessionId, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
       maxAge: 60 * 60 * 24 * 30, // 30 days
     });
   }
@@ -78,7 +93,9 @@ export async function updateCartItemQuantityAction(
 
 export async function removeFromCartAction(itemId: string) {
   try {
-    await CartService.removeItem(itemId);
+    const { userId, sessionId } = await getSessionIdentifiers();
+    // Ownership check: make sure this item belongs to the caller's cart
+    await CartService.removeItem(itemId, userId, sessionId);
     revalidatePath("/cart");
     return { success: true };
   } catch (error: any) {
@@ -86,9 +103,13 @@ export async function removeFromCartAction(itemId: string) {
   }
 }
 
-export async function clearCartAction(cartId: string) {
+export async function clearCartAction(cartId?: string) {
   try {
-    await CartService.clearCart(cartId);
+    const { userId, sessionId } = await getSessionIdentifiers();
+    const cart = await CartService.getOrCreateCart(userId, sessionId, cartId);
+    if (cart) {
+      await CartService.clearCart(cart.id, userId, sessionId);
+    }
     revalidatePath("/cart");
     return { success: true };
   } catch (error: any) {
@@ -112,6 +133,19 @@ export async function mergeGuestCartAction() {
       await CartService.mergeGuestCart(guestSessionId, user.id);
       cookieStore.delete("af_guest_session");
     }
+    revalidatePath("/cart");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function logoutCartAction() {
+  try {
+    const cookieStore = await cookies();
+    // Delete any stale guest session cookie on explicit logout
+    cookieStore.delete("af_guest_session");
+    revalidatePath("/cart");
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message };

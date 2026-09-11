@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { X, CheckCircle, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface CartItem {
   id: string;
@@ -79,11 +80,11 @@ export default function CheckoutModal({ isOpen, onClose, items, onOrderComplete 
           setFormData(prev => ({...prev, createAccount: false, password: ''}));
         }, 2000);
       } else {
-        alert(data.error || 'Failed to place order');
+        toast.error(data.error || 'Failed to place order');
       }
     } catch (error) {
       console.error(error);
-      alert('An error occurred. Please try again.');
+      toast.error('An error occurred while placing your order. Please try again.');
     } finally {
       setLoading(false);
     }

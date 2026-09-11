@@ -27,7 +27,7 @@ export class OrderService {
     discount_amount: number;
     total_amount: number;
   }> {
-    const cart = await CartService.getOrCreateCart(userId, cartId);
+    const cart = await CartService.getOrCreateCart(userId, null, cartId);
 
     if (!cart || !cart.items) {
       return {
@@ -70,7 +70,7 @@ export class OrderService {
     checkoutData: CheckoutFormValues,
     sessionId: string
   ): Promise<Order> {
-    const cart = await CartService.getOrCreateCart(userId, cartId);
+    const cart = await CartService.getOrCreateCart(userId, null, cartId);
     if (!cart || !cart.items || cart.items.length === 0) {
       throw new Error("Cart is empty");
     }

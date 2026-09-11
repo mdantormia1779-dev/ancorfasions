@@ -1,11 +1,13 @@
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
-import { getProducts } from "@/features/commerce/actions/products";
 import {
   getCategoryBySlug,
   getCategories,
   getBrands,
+  getProducts,
 } from "@/features/commerce/actions/categories";
+
+export const revalidate = 60;
 import { ProductCard } from "@/components/product/product-card";
 import { ProductFilters } from "@/components/product/product-filters";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
