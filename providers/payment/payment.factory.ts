@@ -2,6 +2,7 @@ import { IPaymentProvider } from "./payment.interface";
 import { paymentRepository } from "@/repositories/payment.repository";
 import { MockProvider } from "./mock.provider";
 import { CodProvider } from "./cod.provider";
+import { BKashPaymentProvider } from "./bkash.provider";
 
 export class PaymentProviderFactory {
   private static instance: PaymentProviderFactory;
@@ -9,7 +10,7 @@ export class PaymentProviderFactory {
 
   private constructor() {
     this.registerProvider(new MockProvider("sslcommerz"));
-    this.registerProvider(new MockProvider("bkash"));
+    this.registerProvider(new BKashPaymentProvider());
     this.registerProvider(new MockProvider("nagad"));
     this.registerProvider(new MockProvider("rocket"));
     this.registerProvider(new MockProvider("visa"));

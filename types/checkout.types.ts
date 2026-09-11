@@ -128,7 +128,15 @@ export interface Order {
 
   coupon_id?: string | null;
   payment_method: string;
+  payment_status?: string | null;
+  payment_intent_id?: string | null;
+  paid_at?: string | null;
+  reservation_expires_at?: string | null;
   notes?: string | null;
+
+  grand_total?: number;
+  shipping_total?: number;
+  discount_total?: number;
 
   risk_level: RiskLevel;
   invoice_url?: string | null;

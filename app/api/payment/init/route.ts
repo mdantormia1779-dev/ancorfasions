@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { BKashService } from "@/lib/services/payment/bkash.service";
 
 /**
  * Payment Initialization Endpoint
@@ -11,7 +12,7 @@ import { createClient } from "@/lib/supabase/server";
  * Flow:
  *   POST /checkout -> processCheckoutAction -> order created -> redirect to /api/payment/init
  *   /api/payment/init -> fetch order + credentials -> redirect to gateway
- *   Gateway -> customer pays -> webhook -> /api/webhooks/payment -> update order status
+ *   Gateway -> customer pays -> callback/webhook -> verify & capture -> update order status
  *   Gateway -> redirect to /checkout/success or /checkout/failed
  */
 export async function GET(req: Request) {
@@ -48,14 +49,82 @@ export async function GET(req: Request) {
     }
 
     // 2. Only process if the order is in PENDING_PAYMENT state
-    if (order.status !== "PENDING" && order.status !== "PENDING_PAYMENT") {
+    if (order.status !== "PENDING" && order.status !== "PENDING_PAYMENT" && order.status !== "pending_payment") {
       // Already processed, redirect to success
       return NextResponse.redirect(
         new URL(`/checkout/success?order_id=${orderId}`, req.url)
       );
     }
 
-    // 3. Fetch gateway credentials from settings table
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+
+    // 3. Special handling for bKash Tokenized Checkout
+    if (method.toUpperCase() === "BKASH") {
+      const isConfigured = await BKashService.isConfigured();
+
+      if (!isConfigured) {
+        console.warn(
+          "[Payment Init] bKash credentials not configured in environment or settings. Redirecting to success with notice."
+        );
+        return NextResponse.redirect(
+          new URL(
+            `/checkout/success?order_id=${orderId}&notice=payment_pending`,
+            req.url
+          )
+        );
+      }
+
+      try {
+        const paymentData = await BKashService.createPayment({
+          orderId: order.id,
+          orderNumber: order.order_number,
+          amount: Number(order.total_amount),
+          customerPhone: order.customer_phone,
+          callbackUrl: `${appUrl}/api/payment/bkash/callback`,
+        });
+
+        // Store payment session & intent
+        const { data: provider } = await supabase
+          .from("payment_providers")
+          .select("id")
+          .eq("code", "bkash")
+          .maybeSingle();
+
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+        await supabase.from("payment_sessions").insert({
+          provider_id: provider?.id || null,
+          order_id: order.id,
+          amount: order.total_amount,
+          currency: "BDT",
+          status: "pending",
+          gateway_url: paymentData.bkashURL,
+          expires_at: expiresAt,
+          metadata: {
+            paymentID: paymentData.paymentID,
+            orderNumber: order.order_number,
+          },
+        });
+
+        await supabase
+          .from("orders")
+          .update({
+            payment_intent_id: paymentData.paymentID,
+            payment_method: "BKASH",
+            payment_status: "PENDING",
+          })
+          .eq("id", order.id);
+
+        return NextResponse.redirect(paymentData.bkashURL);
+      } catch (bkashErr: any) {
+        console.error("[Payment Init] bKash createPayment error:", bkashErr.message);
+        return NextResponse.redirect(
+          new URL(`/checkout/failed?order_id=${orderId}&reason=bkash_init_failed`, req.url)
+        );
+      }
+    }
+
+    // 4. Fetch gateway credentials for other methods (SSLCommerz, etc.)
     const { data: settingsRow } = await supabase
       .from("settings")
       .select("value")
@@ -68,79 +137,11 @@ export async function GET(req: Request) {
       console.error(
         `[Payment Init] No credentials configured for method: ${method}`
       );
-      // If no credentials, fall back to success page (treat as COD for now)
-      // In production, you would show an error here.
       return NextResponse.redirect(
         new URL(
           `/checkout/success?order_id=${orderId}&notice=payment_pending`,
           req.url
         )
-      );
-    }
-
-    // 4. Build the gateway redirect URL based on payment method
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-
-    if (method === "BKASH") {
-      /**
-       * bKash Payment Integration
-       * In a real integration, you would:
-       * 1. Call bKash's createPayment API using the credentials
-       * 2. Get the bkashURL from the response
-       * 3. Redirect the customer there
-       *
-       * API Docs: https://developer.bkash.com/reference/create-payment
-       */
-      const bkashApiBase =
-        credentials.sandbox === "true"
-          ? "https://tokenized.sandbox.bka.sh/v1.2.0-beta"
-          : "https://tokenized.pay.bka.sh/v1.2.0-beta";
-
-      const tokenResponse = await fetch(
-        `${bkashApiBase}/tokenized/checkout/token/grant`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            username: credentials.username,
-            password: credentials.password,
-          },
-          body: JSON.stringify({
-            app_key: credentials.app_key,
-            app_secret: credentials.app_secret,
-          }),
-        }
-      );
-
-      const tokenData = await tokenResponse.json();
-
-      if (tokenData && tokenData.id_token) {
-        const paymentResponse = await fetch(
-          `${bkashApiBase}/tokenized/checkout/create`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: tokenData.id_token,
-              "X-APP-Key": credentials.app_key,
-            },
-            body: JSON.stringify({
-              amount: order.total_amount.toString(),
-              currency: "BDT",
-              intent: "sale",
-              merchantInvoiceNumber: order.order_number,
-            }),
-          }
-        );
-
-        const paymentData = await paymentResponse.json();
-        if (paymentData && paymentData.bkashURL) {
-          return NextResponse.redirect(paymentData.bkashURL);
-        }
-      }
-
-      return NextResponse.redirect(
-        new URL(`/checkout/failed?reason=bkash_init_failed`, req.url)
       );
     }
 

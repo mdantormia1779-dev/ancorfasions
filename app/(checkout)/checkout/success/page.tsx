@@ -13,9 +13,9 @@ export const metadata: Metadata = {
 export default async function CheckoutSuccessPage({
   searchParams,
 }: {
-  searchParams: { order_id?: string; notice?: string };
+  searchParams: { order_id?: string; notice?: string; trxID?: string };
 }) {
-  const { order_id, notice } = await searchParams;
+  const { order_id, notice, trxID } = await searchParams;
 
   if (!order_id) {
     redirect("/");
@@ -77,6 +77,8 @@ export default async function CheckoutSuccessPage({
     );
   }
 
+  const transactionId = trxID || order.payment_intent_id;
+
   return (
     <div className="container mx-auto max-w-3xl px-4 py-12">
       <div className="rounded-lg border bg-white p-8 text-center shadow-sm">
@@ -84,13 +86,25 @@ export default async function CheckoutSuccessPage({
           <CheckCircle className="h-8 w-8" />
         </div>
         <h1 className="mb-2 text-3xl font-bold">Thank you for your order!</h1>
-        <p className="mb-6 text-slate-500">
+        <p className="mb-4 text-slate-500">
           Your order{" "}
           <span className="font-medium text-slate-900">
             {order.order_number}
           </span>{" "}
           has been placed successfully.
         </p>
+
+        {transactionId && (
+          <div className="mx-auto mb-6 max-w-sm rounded-lg border border-emerald-200 bg-emerald-50/80 p-3 text-center">
+            <p className="text-xs font-semibold uppercase tracking-wider text-emerald-800">
+              Payment Verified via {order.payment_method || "bKash"}
+            </p>
+            <p className="mt-1 font-mono text-sm text-emerald-950">
+              TrxID: <span className="font-bold">{transactionId}</span>
+            </p>
+          </div>
+        )}
+
         <p className="mb-8 text-sm text-slate-500">
           We&apos;ve sent a confirmation email with your order details and tracking
           information.

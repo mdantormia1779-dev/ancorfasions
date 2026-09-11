@@ -13,12 +13,36 @@ export class OrderRepository {
   ): Promise<Order> {
     const supabase = await createAdminClient();
 
-    // 1. Create Order
-    const { data: order, error: orderError } = await supabase
+    // 1. Create Order with schema compatibility (grand_total vs total_amount)
+    const finalOrderData: any = {
+      ...orderData,
+      grand_total: orderData.total_amount ?? orderData.grand_total ?? 0,
+      shipping_total: orderData.shipping_fee ?? orderData.shipping_total ?? 0,
+      discount_total: orderData.discount_amount ?? orderData.discount_total ?? 0,
+    };
+
+    let { data: order, error: orderError } = await supabase
       .from("orders")
-      .insert(orderData)
+      .insert(finalOrderData)
       .select("*")
       .single();
+
+    // Fallback if migration hasn't added total_amount/shipping_fee yet
+    if (orderError && orderError.message && orderError.message.includes("column")) {
+      const sanitized = { ...finalOrderData };
+      delete sanitized.total_amount;
+      delete sanitized.shipping_fee;
+      delete sanitized.discount_amount;
+      delete sanitized.payment_method;
+      delete sanitized.payment_status;
+      const retryRes = await supabase
+        .from("orders")
+        .insert(sanitized)
+        .select("*")
+        .single();
+      order = retryRes.data;
+      orderError = retryRes.error;
+    }
 
     if (orderError)
       throw new Error(`Failed to create order: ${orderError.message}`);
@@ -96,6 +120,9 @@ export class OrderRepository {
     }
 
     if (data) {
+      data.total_amount = data.total_amount ?? data.grand_total ?? 0;
+      data.shipping_fee = data.shipping_fee ?? data.shipping_total ?? 0;
+      data.discount_amount = data.discount_amount ?? data.discount_total ?? 0;
       // Map addresses to shipping and billing
       data.shipping_address = data.addresses?.find(
         (a: any) => a.address_type === "SHIPPING"
@@ -131,6 +158,9 @@ export class OrderRepository {
     }
 
     if (data) {
+      data.total_amount = data.total_amount ?? data.grand_total ?? 0;
+      data.shipping_fee = data.shipping_fee ?? data.shipping_total ?? 0;
+      data.discount_amount = data.discount_amount ?? data.discount_total ?? 0;
       data.shipping_address = data.addresses?.find(
         (a: any) => a.address_type === "SHIPPING"
       );
@@ -141,5 +171,22 @@ export class OrderRepository {
     }
 
     return data as Order | null;
+  }
+
+  /**
+   * Update order status
+   */
+  static async updateOrderStatus(
+    orderId: string,
+    status: string,
+    notes?: string
+  ): Promise<void> {
+    const supabase = await createAdminClient();
+    await supabase.from("orders").update({ status }).eq("id", orderId);
+    await supabase.from("order_status_history").insert({
+      order_id: orderId,
+      status,
+      notes: notes || `Order status updated to ${status}`,
+    });
   }
 }

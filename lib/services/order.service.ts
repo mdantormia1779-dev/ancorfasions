@@ -3,6 +3,8 @@ import { CheckoutRepository } from "../repositories/checkout.repository";
 import { CartService } from "./cart.service";
 import { CheckoutFormValues } from "@/schemas/checkout.schema";
 import { Order, OrderItem, PaymentPayload, OrderStatus } from "@/types/checkout.types";
+import { InventoryService } from "@/services/inventory.service";
+import { WarehouseService } from "@/services/warehouse.service";
 
 export class OrderService {
   /**
@@ -90,6 +92,11 @@ export class OrderService {
     const customerName = `${shippingAddr.first_name} ${shippingAddr.last_name}`.trim();
     const customerPhone = shippingAddr.phone || null;
 
+    const reservationExpiresAt =
+      checkoutData.payment.payment_method === "COD"
+        ? null
+        : new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
     const orderData: Partial<Order> = {
       user_id: userId,
       // Store the checkout session ID so it can be cleaned up after payment.
@@ -97,13 +104,14 @@ export class OrderService {
       order_number: orderNumber,
       // Use lowercase statuses to match the DB enum and dashboard queries.
       status: (checkoutData.payment.payment_method === "COD"
-        ? "processing"
+        ? "confirmed"
         : "pending_payment") as OrderStatus,
       subtotal: summary.subtotal,
       shipping_fee: summary.shipping_fee,
       discount_amount: summary.discount_amount,
       total_amount: summary.total_amount,
       payment_method: checkoutData.payment.payment_method,
+      reservation_expires_at: reservationExpiresAt,
       notes: checkoutData.notes,
     };
 
@@ -138,6 +146,41 @@ export class OrderService {
       shippingAddress,
       billingAddress
     );
+
+    // For pending digital payments (bKash, SSLCommerz, etc.), atomically reserve inventory
+    if (checkoutData.payment.payment_method !== "COD") {
+      try {
+        const warehouseService = new WarehouseService();
+        const defaultWarehouse = await warehouseService
+          .getDefaultWarehouse()
+          .catch(() => null);
+        const warehouseId =
+          defaultWarehouse?.id || "00000000-0000-0000-0000-000000000001";
+
+        const reservationItems = cart.items
+          .filter((item) => item.variant_id || item.product_id)
+          .map((item) => ({
+            variant_id: (item.variant_id || item.product_id) as string,
+            warehouse_id: warehouseId,
+            quantity: item.quantity,
+          }));
+
+        if (reservationItems.length > 0) {
+          const inventoryService = new InventoryService();
+          await inventoryService.reserveOrderInventory(order.id, reservationItems);
+        }
+      } catch (reserveErr: any) {
+        // If reservation failed (e.g. out of stock), cancel order immediately to keep DB consistent
+        try {
+          await OrderRepository.updateOrderStatus(
+            order.id,
+            "cancelled",
+            "Reservation failed: out of stock"
+          );
+        } catch (_) {}
+        throw reserveErr;
+      }
+    }
 
     // For COD orders, payment is confirmed at delivery — clear the cart immediately.
     // For digital payment methods (SSLCommerz, bKash, etc.) we leave the cart

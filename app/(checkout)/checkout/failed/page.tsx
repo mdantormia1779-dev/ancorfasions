@@ -11,51 +11,79 @@ import Link from "next/link";
 import { StoreHeader } from "@/components/layout/store-header";
 import { StoreFooter } from "@/components/layout/store-footer";
 
-export default function CheckoutFailedPage() {
+export default async function CheckoutFailedPage({
+  searchParams,
+}: {
+  searchParams: { order_id?: string; reason?: string; message?: string };
+}) {
+  const { order_id, reason, message } = await searchParams;
+
+  const isCancelled =
+    reason === "payment_cancelled" ||
+    reason === "cancel" ||
+    message?.toLowerCase().includes("cancel");
+
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
       <StoreHeader />
       <main className="flex flex-1 items-center justify-center p-4">
         <Card className="mb-16 mt-8 w-full max-w-md border-none shadow-lg">
           <CardHeader className="pt-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-red-100">
-              <AlertCircle className="h-8 w-8 text-red-600" />
+            <div
+              className={`mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full ${
+                isCancelled ? "bg-amber-100" : "bg-red-100"
+              }`}
+            >
+              <AlertCircle
+                className={`h-8 w-8 ${
+                  isCancelled ? "text-amber-600" : "text-red-600"
+                }`}
+              />
             </div>
             <CardTitle className="text-2xl font-bold text-slate-900">
-              Payment Failed
+              {isCancelled ? "Payment Cancelled" : "Payment Incomplete"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-center">
             <p className="text-slate-600">
-              We couldn't process your payment. This could be due to a declined
-              card, insufficient funds, or a network error.
+              {isCancelled
+                ? "You cancelled the payment transaction. No amount was charged to your bKash wallet."
+                : message ||
+                  "We couldn't process your payment. This could be due to insufficient wallet balance, network timeout, or cancelled authorization."}
             </p>
-            <div className="rounded-lg border border-red-100 bg-red-50 p-4 text-left text-sm text-red-800">
-              <strong>Common reasons for failure:</strong>
-              <ul className="mt-2 list-disc space-y-1 pl-5">
-                <li>Incorrect card details or OTP.</li>
-                <li>Your bank has blocked the transaction.</li>
-                <li>Session timeout during authentication.</li>
-              </ul>
-            </div>
+            {reason && !isCancelled && (
+              <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-left text-xs font-mono text-red-800">
+                <strong>Error details:</strong> {reason}
+              </div>
+            )}
             <p className="text-sm text-slate-500">
-              Don't worry! No money has been deducted from your account. Your
-              items are still saved in your cart.
+              Don&apos;t worry! Your items are still safely saved in your shopping bag.
             </p>
           </CardContent>
           <CardFooter className="flex flex-col gap-3 pb-8">
-            <Button className="flex w-full items-center gap-2" size="lg">
-              <RefreshCcw className="h-4 w-4" /> Try Payment Again
-            </Button>
-            <Link href="/cart" className="w-full">
-              <Button
-                variant="outline"
-                className="flex w-full items-center gap-2"
-                size="lg"
-              >
-                <ArrowLeft className="h-4 w-4" /> Return to Cart
+            {order_id ? (
+              <Button asChild className="flex w-full items-center gap-2" size="lg">
+                <Link href={`/api/payment/init?order_id=${order_id}&method=BKASH`}>
+                  <RefreshCcw className="h-4 w-4" /> Retry bKash Payment
+                </Link>
               </Button>
-            </Link>
+            ) : (
+              <Button asChild className="flex w-full items-center gap-2" size="lg">
+                <Link href="/checkout">
+                  <RefreshCcw className="h-4 w-4" /> Return to Checkout
+                </Link>
+              </Button>
+            )}
+            <Button
+              asChild
+              variant="outline"
+              className="flex w-full items-center gap-2"
+              size="lg"
+            >
+              <Link href="/cart">
+                <ArrowLeft className="h-4 w-4" /> Return to Bag
+              </Link>
+            </Button>
           </CardFooter>
         </Card>
       </main>

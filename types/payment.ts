@@ -109,6 +109,8 @@ export interface PaymentInitializeRequest {
   amount: number;
   currency?: string;
   providerCode: string;
+  returnUrl?: string;
+  cancelUrl?: string;
   metadata?: Record<string, any>;
 }
 
