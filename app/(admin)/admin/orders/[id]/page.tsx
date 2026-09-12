@@ -17,6 +17,7 @@ import {
   MapPin,
   ExternalLink,
   ShoppingBag,
+  ShieldCheck,
 } from "lucide-react";
 import { OrderInvoicePrint } from "@/features/orders/components/OrderInvoicePrint";
 import { OrderPackingSlipPrint } from "@/features/orders/components/OrderPackingSlipPrint";
@@ -214,6 +215,68 @@ export default function AdminOrderDetailsPage() {
 
         {/* Right Column: Status & Customer Details */}
         <div className="space-y-6">
+          {/* COD Fraud Shield & Risk Assessment */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-amber-500" />
+                  COD Fraud Shield
+                </span>
+                <Badge
+                  className={
+                    order.risk_level === "HIGH"
+                      ? "bg-red-500/10 text-red-700 border-red-200 dark:text-red-400"
+                      : order.risk_level === "MEDIUM"
+                      ? "bg-amber-500/10 text-amber-700 border-amber-200 dark:text-amber-400"
+                      : "bg-emerald-500/10 text-emerald-700 border-emerald-200 dark:text-emerald-400"
+                  }
+                  variant="outline"
+                >
+                  Risk: {order.risk_level || "LOW"}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center justify-between text-xs py-1 border-b">
+                <span className="text-muted-foreground">Risk Score:</span>
+                <span className="font-mono font-semibold">{order.risk_score ?? 0} / 100</span>
+              </div>
+              <div className="flex items-center justify-between text-xs py-1 border-b">
+                <span className="text-muted-foreground">Verification State:</span>
+                <Badge variant="secondary" className="text-[10px] uppercase font-mono">
+                  {order.verification_status || "UNVERIFIED"}
+                </Badge>
+              </div>
+              {order.verification_verified_at && (
+                <div className="flex items-center justify-between text-xs py-1 border-b">
+                  <span className="text-muted-foreground">Verified At:</span>
+                  <span className="font-mono text-muted-foreground">
+                    {new Date(order.verification_verified_at).toLocaleString()}
+                  </span>
+                </div>
+              )}
+              {Array.isArray(order.risk_reasons) && order.risk_reasons.length > 0 && (
+                <div className="pt-2">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1.5">
+                    Explainable Risk Signals:
+                  </p>
+                  <ul className="space-y-1">
+                    {order.risk_reasons.map((reason: string, idx: number) => (
+                      <li
+                        key={idx}
+                        className="text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1 flex items-start gap-1.5"
+                      >
+                        <span className="text-primary font-bold">•</span>
+                        <span>{reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
           {/* Status Transitions */}
           <Card>
             <CardHeader>

@@ -27,7 +27,7 @@ export class OrderRepository {
       .select("*")
       .single();
 
-    // Fallback if migration hasn't added total_amount/shipping_fee yet
+    // Fallback if migration hasn't added total_amount/shipping_fee/risk columns yet
     if (orderError && orderError.message && orderError.message.includes("column")) {
       const sanitized = { ...finalOrderData };
       delete sanitized.total_amount;
@@ -35,6 +35,11 @@ export class OrderRepository {
       delete sanitized.discount_amount;
       delete sanitized.payment_method;
       delete sanitized.payment_status;
+      delete sanitized.risk_level;
+      delete sanitized.risk_score;
+      delete sanitized.risk_reasons;
+      delete sanitized.verification_status;
+      delete sanitized.verification_verified_at;
       const retryRes = await supabase
         .from("orders")
         .insert(sanitized)
@@ -87,10 +92,14 @@ export class OrderRepository {
       throw new Error(`Failed to create order items: ${itemsError.message}`);
 
     // 5. Create Order Status History
+    const statusNote = orderData.risk_level
+      ? `Order placed successfully (COD Risk: ${orderData.risk_level}, Verification: ${orderData.verification_status || "EXEMPT"})`
+      : "Order placed successfully";
+
     await supabase.from("order_status_history").insert({
       order_id: order.id,
       status: order.status,
-      notes: "Order placed successfully",
+      notes: statusNote,
       created_by: order.user_id,
     });
 

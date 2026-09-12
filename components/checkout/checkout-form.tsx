@@ -10,7 +10,11 @@ import {
   checkoutFormSchema,
   CheckoutFormValues,
 } from "@/schemas/checkout.schema";
-import { processCheckoutAction } from "@/lib/actions/checkout.actions";
+import {
+  processCheckoutAction,
+  sendCodOtpAction,
+} from "@/lib/actions/checkout.actions";
+import { CodOtpDialog } from "@/components/checkout/cod-otp-dialog";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -40,6 +44,15 @@ export function CheckoutForm({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calculatedShippingFee, setCalculatedShippingFee] = useState<number | null>(null);
   const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
+
+  // COD Fraud Shield OTP Verification states
+  const [showOtpDialog, setShowOtpDialog] = useState(false);
+  const [otpTarget, setOtpTarget] = useState("");
+  const [otpTargetType, setOtpTargetType] = useState<"email" | "phone">("email");
+  const [otpError, setOtpError] = useState<string | null>(null);
+  const [isVerifyingOtp, setIsVerifyingOtp] = useState(false);
+  const [isResendingOtp, setIsResendingOtp] = useState(false);
+  const [otpCooldown, setOtpCooldown] = useState(60);
 
 
 
@@ -143,6 +156,17 @@ export function CheckoutForm({
     try {
       const res = await processCheckoutAction(cart.id, checkoutSessionId, data);
 
+      // Check if server-side COD Fraud Shield requires OTP verification
+      if (res.verificationRequired) {
+        setOtpTarget(res.maskedTarget || data.information.email);
+        setOtpTargetType(res.targetType || "email");
+        setOtpCooldown(res.remainingCooldownSeconds || 60);
+        setOtpError(null);
+        setShowOtpDialog(true);
+        setIsSubmitting(false);
+        return;
+      }
+
       if (res.success && res.orderId) {
         toast.success("Order placed successfully!");
         if (res.paymentPayload && data.payment.payment_method !== "COD") {
@@ -160,6 +184,51 @@ export function CheckoutForm({
       toast.error("An unexpected error occurred");
     } finally {
       setIsSubmitting(false);
+    }
+  };
+
+  const handleVerifyOtp = async (otp: string) => {
+    if (!cart?.id) return;
+    setIsVerifyingOtp(true);
+    setOtpError(null);
+    try {
+      const currentData = form.getValues();
+      const res = await processCheckoutAction(
+        cart.id,
+        checkoutSessionId,
+        currentData,
+        otp
+      );
+
+      if (res.success && res.orderId) {
+        setShowOtpDialog(false);
+        toast.success("Order verified and placed successfully!");
+        router.push(`/checkout/success?order_id=${res.orderId}`);
+      } else {
+        setOtpError(res.error || "Failed to verify code. Please try again.");
+      }
+    } catch {
+      setOtpError("An error occurred during verification. Please try again.");
+    } finally {
+      setIsVerifyingOtp(false);
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setIsResendingOtp(true);
+    try {
+      const currentData = form.getValues();
+      const res = await sendCodOtpAction(checkoutSessionId, currentData);
+      if (res.success) {
+        toast.success("A new verification code has been dispatched.");
+        setOtpError(null);
+      } else {
+        setOtpError(res.error || "Failed to resend verification code.");
+      }
+    } catch {
+      setOtpError("Failed to resend verification code.");
+    } finally {
+      setIsResendingOtp(false);
     }
   };
 
@@ -531,6 +600,20 @@ export function CheckoutForm({
           </Button>
         </div>
       </form>
+
+      {/* COD Fraud Shield Verification Dialog */}
+      <CodOtpDialog
+        open={showOtpDialog}
+        onOpenChange={setShowOtpDialog}
+        maskedTarget={otpTarget}
+        targetType={otpTargetType}
+        onVerify={handleVerifyOtp}
+        onResend={handleResendOtp}
+        isVerifying={isVerifyingOtp}
+        isResending={isResendingOtp}
+        initialCooldown={otpCooldown}
+        errorMessage={otpError}
+      />
     </Form>
   );
 }

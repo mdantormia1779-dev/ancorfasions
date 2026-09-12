@@ -43,6 +43,13 @@ export interface Order {
   shipping_address_id: string | null;
   billing_address_id: string | null;
   payment_intent_id: string | null;
+  payment_method?: string | null;
+  payment_status?: string | null;
+  risk_level?: string | null;
+  risk_score?: number | null;
+  risk_reasons?: string[] | null;
+  verification_status?: string | null;
+  verification_verified_at?: string | null;
   placed_at: string | null;
   paid_at: string | null;
   shipped_at: string | null;

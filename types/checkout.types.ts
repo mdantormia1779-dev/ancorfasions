@@ -139,6 +139,10 @@ export interface Order {
   discount_total?: number;
 
   risk_level: RiskLevel;
+  risk_score?: number;
+  risk_reasons?: string[];
+  verification_status?: string;
+  verification_verified_at?: string | null;
   invoice_url?: string | null;
 
   created_at: string;

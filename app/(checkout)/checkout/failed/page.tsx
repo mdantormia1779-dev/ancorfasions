@@ -10,18 +10,44 @@ import { AlertCircle, ArrowLeft, RefreshCcw } from "lucide-react";
 import Link from "next/link";
 import { StoreHeader } from "@/components/layout/store-header";
 import { StoreFooter } from "@/components/layout/store-footer";
+import { createClient } from "@/lib/supabase/server-client";
 
 export default async function CheckoutFailedPage({
   searchParams,
 }: {
-  searchParams: { order_id?: string; reason?: string; message?: string };
+  searchParams: { order_id?: string; reason?: string; message?: string; method?: string };
 }) {
-  const { order_id, reason, message } = await searchParams;
+  const { order_id, reason, message, method } = await searchParams;
 
   const isCancelled =
     reason === "payment_cancelled" ||
     reason === "cancel" ||
+    reason === "cancelled" ||
     message?.toLowerCase().includes("cancel");
+
+  let paymentMethod = method ? method.toUpperCase() : "SSLCOMMERZ";
+  if (order_id) {
+    try {
+      const supabase = await createClient();
+      const { data: order } = await supabase
+        .from("orders")
+        .select("payment_method")
+        .eq("id", order_id)
+        .maybeSingle();
+      if (order?.payment_method) {
+        paymentMethod = order.payment_method.toUpperCase();
+      }
+    } catch {
+      // Use fallback paymentMethod
+    }
+  }
+
+  const methodLabel =
+    paymentMethod === "BKASH"
+      ? "bKash"
+      : paymentMethod === "SSLCOMMERZ"
+      ? "Cards / Mobile Banking"
+      : "Payment";
 
   return (
     <div className="flex min-h-screen flex-col bg-slate-50">
@@ -41,30 +67,34 @@ export default async function CheckoutFailedPage({
               />
             </div>
             <CardTitle className="text-2xl font-bold text-slate-900">
-              {isCancelled ? "Payment Cancelled" : "Payment Incomplete"}
+              {isCancelled ? "Payment cancelled" : "Payment failed"}
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4 text-center">
-            <p className="text-slate-600">
+            <p className="text-slate-600 font-medium">
               {isCancelled
-                ? "You cancelled the payment transaction. No amount was charged to your bKash wallet."
-                : message ||
-                  "We couldn't process your payment. This could be due to insufficient wallet balance, network timeout, or cancelled authorization."}
+                ? "Payment cancelled. You can retry payment if the order is still eligible."
+                : "Payment failed. Your order has not been marked as paid."}
             </p>
+            {message && (
+              <p className="text-sm text-slate-500">
+                {message}
+              </p>
+            )}
             {reason && !isCancelled && (
               <div className="rounded-lg border border-red-100 bg-red-50 p-3 text-left text-xs font-mono text-red-800">
                 <strong>Error details:</strong> {reason}
               </div>
             )}
             <p className="text-sm text-slate-500">
-              Don&apos;t worry! Your items are still safely saved in your shopping bag.
+              Your shopping bag items remain safely preserved.
             </p>
           </CardContent>
           <CardFooter className="flex flex-col gap-3 pb-8">
             {order_id ? (
               <Button asChild className="flex w-full items-center gap-2" size="lg">
-                <Link href={`/api/payment/init?order_id=${order_id}&method=BKASH`}>
-                  <RefreshCcw className="h-4 w-4" /> Retry bKash Payment
+                <Link href={`/api/payment/init?order_id=${order_id}&method=${paymentMethod}`}>
+                  <RefreshCcw className="h-4 w-4" /> Retry {methodLabel} Payment
                 </Link>
               </Button>
             ) : (

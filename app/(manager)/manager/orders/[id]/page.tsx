@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, Printer, Truck } from "lucide-react";
+import { ArrowLeft, Printer, Truck, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { getOrderDetailsAction } from "@/app/actions/oms/order.actions";
 import { notFound } from "next/navigation";
@@ -46,10 +46,32 @@ export default async function OrderDetailsPage({
             <h1 className="text-3xl font-bold tracking-tight">
               Order {order.order_number}
             </h1>
-            <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
+            <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
               <span>Placed on {new Date(order.created_at).toLocaleString()}</span>
               <span>•</span>
               <Badge variant="secondary" className="uppercase">{order.status}</Badge>
+              {order.risk_level && (
+                <>
+                  <span>•</span>
+                  <Badge
+                    variant="outline"
+                    className={
+                      order.risk_level === "HIGH"
+                        ? "bg-red-500/10 text-red-700 border-red-200"
+                        : order.risk_level === "MEDIUM"
+                        ? "bg-amber-500/10 text-amber-700 border-amber-200"
+                        : "bg-emerald-500/10 text-emerald-700 border-emerald-200"
+                    }
+                  >
+                    COD Risk: {order.risk_level}
+                  </Badge>
+                </>
+              )}
+              {order.verification_status && (
+                <Badge variant="secondary" className="text-[10px] uppercase font-mono">
+                  {order.verification_status}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -173,6 +195,59 @@ export default async function OrderDetailsPage({
                   (User data resolution requires CRM join)
                 </p>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-amber-500" />
+                  COD Fraud Shield
+                </span>
+                <Badge
+                  className={
+                    order.risk_level === "HIGH"
+                      ? "bg-red-500/10 text-red-700 border-red-200"
+                      : order.risk_level === "MEDIUM"
+                      ? "bg-amber-500/10 text-amber-700 border-amber-200"
+                      : "bg-emerald-500/10 text-emerald-700 border-emerald-200"
+                  }
+                  variant="outline"
+                >
+                  {order.risk_level || "LOW"}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 text-sm">
+              <div className="flex items-center justify-between text-xs py-1 border-b">
+                <span className="text-muted-foreground">Risk Score:</span>
+                <span className="font-mono font-semibold">{order.risk_score ?? 0} / 100</span>
+              </div>
+              <div className="flex items-center justify-between text-xs py-1 border-b">
+                <span className="text-muted-foreground">Verification:</span>
+                <Badge variant="secondary" className="text-[10px] uppercase font-mono">
+                  {order.verification_status || "UNVERIFIED"}
+                </Badge>
+              </div>
+              {Array.isArray(order.risk_reasons) && order.risk_reasons.length > 0 && (
+                <div className="pt-2">
+                  <p className="text-xs font-semibold text-muted-foreground mb-1">
+                    Risk Signals:
+                  </p>
+                  <ul className="space-y-1">
+                    {order.risk_reasons.map((reason: string, idx: number) => (
+                      <li
+                        key={idx}
+                        className="text-xs text-muted-foreground bg-muted/50 rounded px-2 py-1 flex items-start gap-1"
+                      >
+                        <span className="text-primary font-bold">•</span>
+                        <span>{reason}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </CardContent>
           </Card>
 

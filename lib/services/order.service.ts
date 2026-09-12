@@ -2,7 +2,7 @@ import { OrderRepository } from "../repositories/order.repository";
 import { CheckoutRepository } from "../repositories/checkout.repository";
 import { CartService } from "./cart.service";
 import { CheckoutFormValues } from "@/schemas/checkout.schema";
-import { Order, OrderItem, PaymentPayload, OrderStatus } from "@/types/checkout.types";
+import { Order, OrderItem, PaymentPayload, OrderStatus, RiskLevel } from "@/types/checkout.types";
 import { InventoryService } from "@/services/inventory.service";
 import { WarehouseService } from "@/services/warehouse.service";
 
@@ -70,11 +70,18 @@ export class OrderService {
     userId: string | null,
     guestEmail: string | null,
     checkoutData: CheckoutFormValues,
-    sessionId: string
+    sessionId: string,
+    riskMetadata?: {
+      risk_level?: RiskLevel;
+      risk_score?: number;
+      risk_reasons?: string[];
+      verification_status?: string;
+      verification_verified_at?: string | null;
+    }
   ): Promise<Order> {
     const cart = await CartService.getOrCreateCart(userId, null, cartId);
     if (!cart || !cart.items || cart.items.length === 0) {
-      throw new Error("Cart is empty");
+      throw new Error("Cart is empty or not found");
     }
 
     const summary = await this.calculateSummary(
@@ -113,9 +120,16 @@ export class OrderService {
       payment_method: checkoutData.payment.payment_method,
       reservation_expires_at: reservationExpiresAt,
       notes: checkoutData.notes,
+      risk_level: (riskMetadata?.risk_level || "LOW") as any,
+      risk_score: riskMetadata?.risk_score ?? 0,
+      risk_reasons: riskMetadata?.risk_reasons || [],
+      verification_status:
+        riskMetadata?.verification_status ||
+        (checkoutData.payment.payment_method === "COD" ? "EXEMPT" : "UNVERIFIED"),
+      verification_verified_at: riskMetadata?.verification_verified_at || null,
     };
 
-    const orderItems: Partial<OrderItem>[] = cart.items.map((item) => {
+    const orderItems: Partial<OrderItem>[] = (cart.items as any[]).map((item: any) => {
       const price =
         item.variant?.sale_price ||
         item.variant?.price ||
@@ -147,39 +161,37 @@ export class OrderService {
       billingAddress
     );
 
-    // For pending digital payments (bKash, SSLCommerz, etc.), atomically reserve inventory
-    if (checkoutData.payment.payment_method !== "COD") {
-      try {
-        const warehouseService = new WarehouseService();
-        const defaultWarehouse = await warehouseService
-          .getDefaultWarehouse()
-          .catch(() => null);
-        const warehouseId =
-          defaultWarehouse?.id || "00000000-0000-0000-0000-000000000001";
+    // Atomically reserve inventory via Prompt 2 reserveOrderInventory for all finalized orders (COD and digital)
+    try {
+      const warehouseService = new WarehouseService();
+      const defaultWarehouse = await warehouseService
+        .getDefaultWarehouse()
+        .catch(() => null);
+      const warehouseId =
+        defaultWarehouse?.id || "00000000-0000-0000-0000-000000000001";
 
-        const reservationItems = cart.items
-          .filter((item) => item.variant_id || item.product_id)
-          .map((item) => ({
-            variant_id: (item.variant_id || item.product_id) as string,
-            warehouse_id: warehouseId,
-            quantity: item.quantity,
-          }));
+      const reservationItems = (cart.items as any[])
+        .filter((item: any) => item.variant_id || item.product_id)
+        .map((item: any) => ({
+          variant_id: (item.variant_id || item.product_id) as string,
+          warehouse_id: warehouseId,
+          quantity: item.quantity,
+        }));
 
-        if (reservationItems.length > 0) {
-          const inventoryService = new InventoryService();
-          await inventoryService.reserveOrderInventory(order.id, reservationItems);
-        }
-      } catch (reserveErr: any) {
-        // If reservation failed (e.g. out of stock), cancel order immediately to keep DB consistent
-        try {
-          await OrderRepository.updateOrderStatus(
-            order.id,
-            "cancelled",
-            "Reservation failed: out of stock"
-          );
-        } catch (_) {}
-        throw reserveErr;
+      if (reservationItems.length > 0) {
+        const inventoryService = new InventoryService();
+        await inventoryService.reserveOrderInventory(order.id, reservationItems);
       }
+    } catch (reserveErr: any) {
+      // If reservation failed (e.g. out of stock), cancel order immediately to keep DB consistent
+      try {
+        await OrderRepository.updateOrderStatus(
+          order.id,
+          "cancelled",
+          "Reservation failed: out of stock"
+        );
+      } catch (_) {}
+      throw reserveErr;
     }
 
     // For COD orders, payment is confirmed at delivery — clear the cart immediately.

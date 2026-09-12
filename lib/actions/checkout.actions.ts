@@ -9,6 +9,8 @@ import {
   checkoutFormSchema,
 } from "@/schemas/checkout.schema";
 import { CheckoutStep } from "@/types/checkout.types";
+import { CodRiskService, CodRiskEvaluation } from "../services/fraud/cod-risk.service";
+import { CodOtpService } from "../services/fraud/cod-otp.service";
 
 async function getSessionIdentifiers() {
   const supabase = await createClient();
@@ -28,7 +30,7 @@ async function getSessionIdentifiers() {
 export async function fetchCheckoutSessionAction(cartId: string) {
   try {
     const { userId, sessionId } = await getSessionIdentifiers();
-    const guestEmail = null; // Maybe passed from frontend if known
+    const guestEmail = null;
 
     const session = await CheckoutService.getOrInitializeSession(
       cartId,
@@ -64,35 +66,204 @@ export async function calculateOrderSummaryAction(cartId: string) {
   }
 }
 
-export async function processCheckoutAction(
+/**
+ * Pre-evaluate COD risk without placing an order
+ */
+export async function evaluateCodRiskAction(
   cartId: string,
+  formData: CheckoutFormValues
+) {
+  try {
+    const parsedData = checkoutFormSchema.parse(formData);
+    const { userId } = await getSessionIdentifiers();
+    const summary = await OrderService.calculateSummary(
+      cartId,
+      userId,
+      parsedData.shipping.shipping_method
+    );
+
+    const evaluation = await CodRiskService.evaluateRisk({
+      customerId: userId || null,
+      email: parsedData.information.email,
+      phone: parsedData.information.shipping_address.phone || "",
+      totalAmount: summary.total_amount,
+      shippingAddress: parsedData.information.shipping_address,
+    });
+
+    return { success: true, evaluation };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Dispatch or resend a COD verification OTP code
+ */
+export async function sendCodOtpAction(
   checkoutSessionId: string,
   formData: CheckoutFormValues
 ) {
   try {
-    // Validate form data
     const parsedData = checkoutFormSchema.parse(formData);
+    const { userId } = await getSessionIdentifiers();
+    const summary = await OrderService.calculateSummary(
+      parsedData.shipping.shipping_method || "standard",
+      userId
+    ).catch(() => null);
 
+    const result = await CodOtpService.initiateVerification({
+      sessionId: checkoutSessionId,
+      email: parsedData.information.email,
+      phone: parsedData.information.shipping_address.phone,
+      customerName: `${parsedData.information.shipping_address.first_name} ${parsedData.information.shipping_address.last_name}`,
+      orderTotal: summary?.total_amount,
+    });
+
+    return result;
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Verify a customer-entered OTP code for the current checkout session
+ */
+export async function verifyCodOtpAction(
+  checkoutSessionId: string,
+  otpCode: string
+) {
+  try {
+    if (!otpCode || otpCode.trim().length !== 6) {
+      return { success: false, error: "Please enter a valid 6-digit verification code." };
+    }
+
+    const result = await CodOtpService.verifyOtp(checkoutSessionId, otpCode.trim());
+    return result;
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+/**
+ * Process checkout with authoritative COD Risk Assessment and OTP Verification Guards
+ */
+export async function processCheckoutAction(
+  cartId: string,
+  checkoutSessionId: string,
+  formData: CheckoutFormValues,
+  otpCode?: string
+) {
+  try {
+    // 1. Validate form data
+    const parsedData = checkoutFormSchema.parse(formData);
     const { userId, sessionId } = await getSessionIdentifiers();
 
-    // Check if session ID exists for guest, if not use a fallback empty string or error
     if (!userId && !sessionId) {
       throw new Error("No valid session found for checkout.");
     }
 
     const guestEmail = parsedData.information.email;
 
-    // Create Order
-    // The OrderService uses the checkout session to retrieve all necessary data
+    // 2. Compute authoritative server-side order summary
+    const summary = await OrderService.calculateSummary(
+      cartId,
+      userId,
+      parsedData.shipping.shipping_method
+    );
+
+    let riskMetadata: {
+      risk_level?: string;
+      risk_score?: number;
+      risk_reasons?: string[];
+      verification_status?: string;
+      verification_verified_at?: string | null;
+    } = {
+      risk_level: "LOW",
+      risk_score: 0,
+      risk_reasons: [],
+      verification_status: "UNVERIFIED",
+    };
+
+    // 3. COD Fraud Shield Evaluation
+    if (parsedData.payment.payment_method === "COD") {
+      const riskEvaluation = await CodRiskService.evaluateRisk({
+        customerId: userId || null,
+        email: parsedData.information.email,
+        phone: parsedData.information.shipping_address.phone || "",
+        totalAmount: summary.total_amount,
+        shippingAddress: parsedData.information.shipping_address,
+      });
+
+      // If OTP is provided in this submission, attempt verification first
+      if (otpCode && otpCode.trim()) {
+        const verifyRes = await CodOtpService.verifyOtp(checkoutSessionId, otpCode.trim());
+        if (!verifyRes.success) {
+          return {
+            success: false,
+            error: verifyRes.error || "Invalid verification code.",
+            verificationRequired: true,
+            riskLevel: riskEvaluation.riskLevel,
+            maskedTarget: CodOtpService.maskTarget(parsedData.information.email, "email"),
+          };
+        }
+      }
+
+      // Check if verification is required by risk policy
+      if (riskEvaluation.requiresVerification) {
+        const isVerified = await CodOtpService.isSessionVerified(checkoutSessionId);
+
+        if (!isVerified) {
+          // Trigger OTP dispatch if not already active
+          const otpInit = await CodOtpService.initiateVerification({
+            sessionId: checkoutSessionId,
+            email: parsedData.information.email,
+            phone: parsedData.information.shipping_address.phone,
+            customerName: `${parsedData.information.shipping_address.first_name} ${parsedData.information.shipping_address.last_name}`,
+            orderTotal: summary.total_amount,
+          });
+
+          return {
+            success: false,
+            verificationRequired: true,
+            riskLevel: riskEvaluation.riskLevel,
+            maskedTarget: otpInit.maskedTarget || CodOtpService.maskTarget(parsedData.information.email, "email"),
+            targetType: otpInit.targetType || "email",
+            remainingCooldownSeconds: otpInit.remainingCooldownSeconds,
+            error: otpInit.error,
+          };
+        }
+
+        // Customer has successfully verified!
+        riskMetadata = {
+          risk_level: riskEvaluation.riskLevel,
+          risk_score: riskEvaluation.riskScore,
+          risk_reasons: riskEvaluation.reasons,
+          verification_status: "VERIFIED",
+          verification_verified_at: new Date().toISOString(),
+        };
+      } else {
+        // Low risk or exempted by trusted customer policy
+        riskMetadata = {
+          risk_level: riskEvaluation.riskLevel,
+          risk_score: riskEvaluation.riskScore,
+          risk_reasons: riskEvaluation.reasons,
+          verification_status: "EXEMPT",
+          verification_verified_at: null,
+        };
+      }
+    }
+
+    // 4. Create Order & Atomically Reserve Inventory
     const order = await OrderService.placeOrder(
       cartId,
       userId || null,
       guestEmail || null,
       parsedData,
-      checkoutSessionId
+      checkoutSessionId,
+      riskMetadata as any
     );
 
-    // Generate Payment Payload if necessary
+    // 5. Generate Payment Payload for Digital Payment Gateways (bKash / SSLCommerz)
     let paymentPayload = null;
     if (order.payment_method !== "COD") {
       const name = `${parsedData.information.shipping_address.first_name} ${parsedData.information.shipping_address.last_name}`;

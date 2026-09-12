@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { BKashService } from "@/lib/services/payment/bkash.service";
+import { SSLCommerzService } from "@/lib/services/payment/sslcommerz.service";
 
 /**
  * Payment Initialization Endpoint
@@ -124,7 +125,119 @@ export async function GET(req: Request) {
       }
     }
 
-    // 4. Fetch gateway credentials for other methods (SSLCommerz, etc.)
+    // 4. Special handling for SSLCommerz / Card payments
+    const upperMethod = method.toUpperCase();
+    if (
+      upperMethod === "SSLCOMMERZ" ||
+      upperMethod === "CARD" ||
+      upperMethod === "VISA" ||
+      upperMethod === "MASTERCARD"
+    ) {
+      const isConfigured = await SSLCommerzService.isConfigured();
+
+      if (!isConfigured) {
+        console.warn(
+          "[Payment Init] SSLCommerz credentials not configured in environment or settings. Redirecting to success with notice."
+        );
+        return NextResponse.redirect(
+          new URL(
+            `/checkout/success?order_id=${orderId}&notice=payment_pending`,
+            req.url
+          )
+        );
+      }
+
+      try {
+        // Fetch shipping address for accurate customer and delivery details
+        const { data: shippingAddr } = await supabase
+          .from("order_addresses")
+          .select("*")
+          .eq("order_id", order.id)
+          .eq("address_type", "SHIPPING")
+          .maybeSingle();
+
+        const tranId = `${order.order_number}-${Date.now().toString().slice(-6)}`;
+
+        const paymentData = await SSLCommerzService.initiatePayment({
+          orderId: order.id,
+          orderNumber: order.order_number,
+          tranId,
+          amount: Number(order.total_amount),
+          currency: "BDT",
+          customerName:
+            order.customer_name ||
+            (shippingAddr
+              ? `${shippingAddr.first_name || ""} ${shippingAddr.last_name || ""}`.trim()
+              : null),
+          customerEmail: order.customer_email || shippingAddr?.email,
+          customerPhone: order.customer_phone || shippingAddr?.phone,
+          customerAddress: shippingAddr?.address_line_1,
+          customerCity: shippingAddr?.city,
+          customerPostcode: shippingAddr?.postal_code,
+          customerCountry: shippingAddr?.country || "Bangladesh",
+          shippingName: shippingAddr
+            ? `${shippingAddr.first_name || ""} ${shippingAddr.last_name || ""}`.trim()
+            : null,
+          shippingAddress: shippingAddr?.address_line_1,
+          shippingCity: shippingAddr?.city,
+          shippingPostcode: shippingAddr?.postal_code,
+          shippingCountry: shippingAddr?.country || "Bangladesh",
+          successUrl: `${appUrl}/api/payment/sslcommerz/callback?action=success`,
+          failUrl: `${appUrl}/api/payment/sslcommerz/callback?action=fail`,
+          cancelUrl: `${appUrl}/api/payment/sslcommerz/callback?action=cancel`,
+          ipnUrl: `${appUrl}/api/payment/sslcommerz/ipn`,
+        });
+
+        // Store payment session & intent
+        const { data: provider } = await supabase
+          .from("payment_providers")
+          .select("id")
+          .eq("code", "sslcommerz")
+          .maybeSingle();
+
+        const expiresAt = new Date(Date.now() + 30 * 60 * 1000).toISOString();
+
+        await supabase.from("payment_sessions").insert({
+          provider_id: provider?.id || null,
+          order_id: order.id,
+          amount: order.total_amount,
+          currency: "BDT",
+          status: "pending",
+          gateway_url: paymentData.GatewayPageURL,
+          expires_at: expiresAt,
+          metadata: {
+            tran_id: tranId,
+            sessionkey: paymentData.sessionkey,
+            orderNumber: order.order_number,
+          },
+        });
+
+        const updatePayload: Record<string, any> = {
+          payment_intent_id: tranId,
+        };
+        const { error: updErr } = await supabase
+          .from("orders")
+          .update({
+            ...updatePayload,
+            payment_method: "SSLCOMMERZ",
+            payment_status: "PENDING",
+          })
+          .eq("id", order.id);
+
+        if (updErr) {
+          await supabase.from("orders").update(updatePayload).eq("id", order.id);
+        }
+
+        return NextResponse.redirect(paymentData.GatewayPageURL!);
+      } catch (sslErr: any) {
+        console.error("[Payment Init] SSLCommerz initiatePayment error:", sslErr.message);
+        return NextResponse.redirect(
+          new URL(`/checkout/failed?order_id=${orderId}&reason=ssl_init_failed`, req.url)
+        );
+      }
+    }
+
+    // 5. Fetch gateway credentials for other methods (Stripe, PayPal, etc.)
     const { data: settingsRow } = await supabase
       .from("settings")
       .select("value")
@@ -142,59 +255,6 @@ export async function GET(req: Request) {
           `/checkout/success?order_id=${orderId}&notice=payment_pending`,
           req.url
         )
-      );
-    }
-
-    if (method === "SSLCOMMERZ") {
-      /**
-       * SSLCommerz Payment Integration
-       * In a real integration, you would:
-       * 1. POST to SSLCommerz's initiation URL with order details + credentials
-       * 2. Get the GatewayPageURL from the response
-       * 3. Redirect the customer to that URL
-       *
-       * API Docs: https://developer.sslcommerz.com/doc/v4/
-       */
-      const sslBase =
-        credentials.sandbox === "true"
-          ? "https://sandbox.sslcommerz.com/gwprocess/v4/api.php"
-          : "https://securepay.sslcommerz.com/gwprocess/v4/api.php";
-
-      const formData = new URLSearchParams();
-      formData.append("store_id", credentials.store_id);
-      formData.append("store_passwd", credentials.store_passwd);
-      formData.append("total_amount", order.total_amount.toString());
-      formData.append("currency", "BDT");
-      formData.append("tran_id", order.order_number);
-      formData.append(
-        "success_url",
-        `${appUrl}/api/webhooks/sslcommerz/success`
-      );
-      formData.append("fail_url", `${appUrl}/api/webhooks/sslcommerz/fail`);
-      formData.append("cancel_url", `${appUrl}/api/webhooks/sslcommerz/cancel`);
-      formData.append("cus_name", order.customer_name || order.customer_email || "Guest");
-      formData.append("cus_email", order.customer_email || "guest@example.com");
-      formData.append("cus_phone", order.customer_phone || "01700000000");
-      formData.append("shipping_method", "NO");
-      formData.append("product_name", "Clothing");
-      formData.append("product_category", "Fashion");
-      formData.append("product_profile", "general");
-
-      const sslResponse = await fetch(sslBase, {
-        method: "POST",
-        body: formData,
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-        },
-      });
-
-      const sslData = await sslResponse.json();
-      if (sslData && sslData.GatewayPageURL) {
-        return NextResponse.redirect(sslData.GatewayPageURL);
-      }
-
-      return NextResponse.redirect(
-        new URL(`/checkout/failed?reason=ssl_init_failed`, req.url)
       );
     }
 

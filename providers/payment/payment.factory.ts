@@ -3,18 +3,19 @@ import { paymentRepository } from "@/repositories/payment.repository";
 import { MockProvider } from "./mock.provider";
 import { CodProvider } from "./cod.provider";
 import { BKashPaymentProvider } from "./bkash.provider";
+import { SSLCommerzPaymentProvider } from "./sslcommerz.provider";
 
 export class PaymentProviderFactory {
   private static instance: PaymentProviderFactory;
   private providers: Map<string, IPaymentProvider> = new Map();
 
   private constructor() {
-    this.registerProvider(new MockProvider("sslcommerz"));
+    this.registerProvider(new SSLCommerzPaymentProvider("sslcommerz"));
     this.registerProvider(new BKashPaymentProvider());
     this.registerProvider(new MockProvider("nagad"));
     this.registerProvider(new MockProvider("rocket"));
-    this.registerProvider(new MockProvider("visa"));
-    this.registerProvider(new MockProvider("mastercard"));
+    this.registerProvider(new SSLCommerzPaymentProvider("visa"));
+    this.registerProvider(new SSLCommerzPaymentProvider("mastercard"));
     this.registerProvider(new CodProvider());
   }
 
