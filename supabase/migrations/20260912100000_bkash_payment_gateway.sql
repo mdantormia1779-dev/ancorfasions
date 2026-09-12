@@ -9,13 +9,7 @@ ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS total_amount DECIMAL(12, 2);
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_fee DECIMAL(12, 2);
 ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(12, 2);
 
--- Backfill compatibility values from existing columns
-UPDATE public.orders 
-SET 
-  total_amount = COALESCE(total_amount, grand_total, 0),
-  shipping_fee = COALESCE(shipping_fee, shipping_total, 0),
-  discount_amount = COALESCE(discount_amount, discount_total, 0)
-WHERE total_amount IS NULL;
+-- Removed invalid backfill update statement as the columns already exist and grand_total does not.
 
 -- 2. Indexes for fast order querying & dashboard filtering
 CREATE INDEX IF NOT EXISTS idx_orders_payment_method ON public.orders(payment_method);
