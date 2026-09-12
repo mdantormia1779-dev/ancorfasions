@@ -95,6 +95,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9.0.0",
     "eslint-config-next": "16.2.12",
+    "jsdom": "^30.0.1",
     "postcss": "^8.4.41",
     "prettier": "^3.3.3",
     "prettier-plugin-tailwindcss": "^0.6.6",
