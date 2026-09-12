@@ -149,6 +149,25 @@ export const rejectReturnSchema = z.object({
   reason: z.string().min(5, "Rejection reason is required").max(500),
 });
 
+export const submitCustomerReturnSchema = z.object({
+  orderId: z.string().uuid("Invalid order ID"),
+  reason: z.string().min(2, "Return reason is required").max(500),
+  customerNote: z.string().max(1000).optional(),
+  refundMethod: z.enum(["ORIGINAL_PAYMENT", "WALLET", "MANUAL"]).default("ORIGINAL_PAYMENT"),
+  exchangeRequested: z.boolean().default(false),
+  exchangeVariantId: z.string().uuid().optional(),
+  photoUrls: z.array(z.string().url()).max(10).optional(),
+  items: z
+    .array(
+      z.object({
+        orderItemId: z.string().uuid("Invalid order item ID"),
+        quantity: z.number().int().min(1, "Quantity must be at least 1"),
+        reason: z.string().max(500).optional(),
+      })
+    )
+    .min(1, "At least one item must be selected for return"),
+});
+
 export const updateReturnStatusSchema = z.object({
   returnId: z.string().uuid("Invalid return ID"),
   status: returnStatusSchema,

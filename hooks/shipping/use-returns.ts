@@ -136,3 +136,76 @@ export function useCompleteReturn() {
     },
   });
 }
+
+// ============================================================================
+// Customer Self-Service Hooks
+// ============================================================================
+
+export function useCustomerReturns() {
+  return useQuery({
+    queryKey: ["customer", "returns"] as const,
+    queryFn: async () => {
+      const { fetchCustomerReturnsAction } = await import(
+        "@/actions/returns.actions"
+      );
+      const res = await fetchCustomerReturnsAction();
+      if (!res.success) throw new Error(res.error);
+      return res.data;
+    },
+    staleTime: 30_000,
+  });
+}
+
+export function useCustomerReturnDetail(returnId: string | undefined) {
+  return useQuery({
+    queryKey: ["customer", "returns", returnId] as const,
+    queryFn: async () => {
+      const { fetchCustomerReturnDetailAction } = await import(
+        "@/actions/returns.actions"
+      );
+      const res = await fetchCustomerReturnDetailAction(returnId!);
+      if (!res.success) throw new Error(res.error);
+      return res.data;
+    },
+    enabled: !!returnId,
+    staleTime: 15_000,
+  });
+}
+
+export function useReturnEligibility(orderId: string | undefined) {
+  return useQuery({
+    queryKey: ["customer", "orders", orderId, "return-eligibility"] as const,
+    queryFn: async () => {
+      const { checkReturnEligibilityAction } = await import(
+        "@/actions/returns.actions"
+      );
+      const res = await checkReturnEligibilityAction(orderId!);
+      if (!res.success) throw new Error(res.error);
+      return res.data;
+    },
+    enabled: !!orderId,
+    staleTime: 10_000,
+  });
+}
+
+export function useSubmitCustomerReturn() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: any) => {
+      const { submitCustomerReturnAction } = await import(
+        "@/actions/returns.actions"
+      );
+      const res = await submitCustomerReturnAction(payload);
+      if (!res.success) throw new Error(res.error);
+      return res.data;
+    },
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ["customer", "returns"] });
+      qc.invalidateQueries({
+        queryKey: ["customer", "orders", variables.orderId, "return-eligibility"],
+      });
+      qc.invalidateQueries({ queryKey: returnKeys.all });
+    },
+  });
+}
+

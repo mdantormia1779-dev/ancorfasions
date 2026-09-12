@@ -13,6 +13,7 @@ import {
   Star,
   Bell,
   LogOut,
+  RefreshCcw,
 } from "lucide-react";
 import { LogoutButton } from "@/components/auth/logout-button";
 
@@ -37,6 +38,7 @@ export default async function AccountLayout({
     { label: "Profile Management", href: "/account/profile", icon: User },
     { label: "Account Security", href: "/account/security", icon: Shield },
     { label: "Order History", href: "/account/orders", icon: ShoppingBag },
+    { label: "Returns & Exchanges", href: "/account/returns", icon: RefreshCcw },
     { label: "Wishlist", href: "/account/wishlist", icon: Heart },
     { label: "Loyalty Program", href: "/account/loyalty", icon: Award },
     { label: "Customer Wallet", href: "/account/wallet", icon: Wallet },

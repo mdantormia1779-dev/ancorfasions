@@ -230,6 +230,18 @@ export interface ReturnRequest {
   inventory_synced_at: string | null;
   completed_at: string | null;
   notes: string | null;
+  refund_status?: "PENDING" | "APPROVED" | "PROCESSED" | "REJECTED" | "FAILED" | null;
+  refund_amount?: number | null;
+  refund_method?: "ORIGINAL_PAYMENT" | "WALLET" | "MANUAL" | null;
+  exchange_requested?: boolean;
+  exchange_variant_id?: string | null;
+  rejection_reason?: string | null;
+  customer_note?: string | null;
+  internal_note?: string | null;
+  photo_urls?: string[];
+  approved_at?: string | null;
+  rejected_at?: string | null;
+  inspected_at?: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -244,6 +256,7 @@ export interface ReturnItem {
   reason: string | null;
   condition: "good" | "damaged" | "defective" | "unknown";
   restocked: boolean;
+  refund_amount?: number | null;
   created_at: string;
 }
 
@@ -378,6 +391,11 @@ export interface CreateReturnInput {
   orderId: string;
   shipmentId?: string;
   reason: string;
+  customerNote?: string;
+  refundMethod?: "ORIGINAL_PAYMENT" | "WALLET" | "MANUAL";
+  exchangeRequested?: boolean;
+  exchangeVariantId?: string;
+  photoUrls?: string[];
   items: Array<{
     orderItemId?: string;
     sku: string;
@@ -385,6 +403,58 @@ export interface CreateReturnInput {
     quantity: number;
     reason?: string;
     condition?: "good" | "damaged" | "defective" | "unknown";
+    refundAmount?: number;
+  }>;
+}
+
+export interface ReturnEligibilityItem {
+  orderItemId: string;
+  productId: string;
+  variantId: string | null;
+  sku: string;
+  productName: string;
+  variantName: string | null;
+  purchasedQuantity: number;
+  returnedQuantity: number;
+  eligibleQuantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  allocatedDiscount: number;
+  netRefundablePerUnit: number;
+  isEligible: boolean;
+}
+
+export interface ReturnEligibilityResult {
+  orderId: string;
+  orderNumber: string;
+  orderStatus: string;
+  deliveredAt: string | null;
+  returnWindowDays: number;
+  isWindowOpen: boolean;
+  windowExpiresAt: string | null;
+  isDelivered: boolean;
+  isCustomerOwned: boolean;
+  isOrderEligible: boolean;
+  ineligibilityReason?: string;
+  items: ReturnEligibilityItem[];
+  maxRefundableAmount: number;
+  paymentMethod: string;
+  hasActiveReturn: boolean;
+  activeReturnId?: string;
+}
+
+export interface SubmitCustomerReturnInput {
+  orderId: string;
+  reason: string;
+  customerNote?: string;
+  refundMethod: "ORIGINAL_PAYMENT" | "WALLET" | "MANUAL";
+  exchangeRequested?: boolean;
+  exchangeVariantId?: string;
+  photoUrls?: string[];
+  items: Array<{
+    orderItemId: string;
+    quantity: number;
+    reason?: string;
   }>;
 }
 

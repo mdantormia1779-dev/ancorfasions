@@ -155,6 +155,69 @@ export class ReturnRepository {
   }
 
   /**
+   * Get returns by customer ID.
+   */
+  async getReturnsByCustomerId(customerId: string): Promise<ReturnWithItems[]> {
+    const supabase = this.getClient();
+
+    const { data, error } = await supabase
+      .from("returns")
+      .select(
+        `
+        *,
+        items:return_items(*)
+      `
+      )
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false });
+
+    if (error) throw new Error(`Get returns by customer failed: ${error.message}`);
+    return (data ?? []) as ReturnWithItems[];
+  }
+
+  /**
+   * Get active return items for an order (excluding rejected/cancelled).
+   * Used to check already requested/returned quantities.
+   */
+  async getActiveReturnItemsForOrder(
+    orderId: string
+  ): Promise<Array<ReturnItem & { return_status: string }>> {
+    const supabase = this.getClient();
+
+    const { data, error } = await supabase
+      .from("returns")
+      .select(
+        `
+        id,
+        status,
+        items:return_items(*)
+      `
+      )
+      .eq("order_id", orderId)
+      .not("status", "in", "('rejected','cancelled')");
+
+    if (error) {
+      console.error("Error fetching active return items for order:", error);
+      return [];
+    }
+
+    const result: Array<ReturnItem & { return_status: string }> = [];
+    if (data) {
+      for (const ret of data) {
+        if (Array.isArray(ret.items)) {
+          for (const it of ret.items) {
+            result.push({
+              ...it,
+              return_status: ret.status,
+            });
+          }
+        }
+      }
+    }
+    return result;
+  }
+
+  /**
    * Get return items for a return.
    */
   async getReturnItems(returnId: string): Promise<ReturnItem[]> {
@@ -180,3 +243,4 @@ export class ReturnRepository {
       .eq("id", returnItemId);
   }
 }
+

@@ -11,11 +11,18 @@ import {
   approveReturnSchema,
   rejectReturnSchema,
   returnFiltersSchema,
+  submitCustomerReturnSchema,
 } from "@/schemas/shipping.schema";
 import { createClient } from "@/lib/supabase/server-client";
+import { createAdminClient } from "@/lib/supabase/admin-client";
+import {
+  ReturnEligibilityResult,
+  ReturnWithItems,
+} from "@/types/shipping.types";
 
 type ActionResponse<T = void> =
-  { success: true; data: T } | { success: false; error: string };
+  | { success: true; data: T }
+  | { success: false; error: string };
 
 async function getCurrentUser() {
   const supabase = await createClient();
@@ -28,6 +35,187 @@ async function getCurrentUser() {
     return null;
   }
 }
+
+// ============================================================================
+// Customer Self-Service Actions
+// ============================================================================
+
+/**
+ * Check authoritative return eligibility for an order
+ */
+export async function checkReturnEligibilityAction(
+  orderId: string
+): Promise<ActionResponse<ReturnEligibilityResult>> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, error: "Please log in to check return eligibility." };
+    }
+
+    const service = new ReturnsService();
+    const result = await service.checkReturnEligibility(orderId, user.id);
+    return { success: true, data: result };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Submit a customer return request
+ */
+export async function submitCustomerReturnAction(
+  raw: Record<string, any>
+): Promise<ActionResponse<{ returnId: string; returnNumber: string }>> {
+  const parse = submitCustomerReturnSchema.safeParse(raw);
+  if (!parse.success) {
+    return {
+      success: false,
+      error: parse.error.errors[0]?.message ?? "Validation failed",
+    };
+  }
+
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, error: "Please log in to submit a return request." };
+    }
+
+    const service = new ReturnsService();
+    const returnRecord = await service.submitCustomerReturn(
+      parse.data as any,
+      user.id
+    );
+
+    revalidatePath("/account/returns");
+    revalidatePath(`/account/orders/${parse.data.orderId}`);
+    revalidatePath("/admin/shipping/returns");
+
+    return {
+      success: true,
+      data: {
+        returnId: returnRecord.id,
+        returnNumber: returnRecord.return_number,
+      },
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Fetch all returns for the authenticated customer
+ */
+export async function fetchCustomerReturnsAction(): Promise<
+  ActionResponse<ReturnWithItems[]>
+> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, error: "Please log in to view returns." };
+    }
+
+    const service = new ReturnsService();
+    const returns = await service.getCustomerReturns(user.id);
+    return { success: true, data: returns };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Fetch return details for a specific return owned by customer
+ */
+export async function fetchCustomerReturnDetailAction(
+  returnId: string
+): Promise<ActionResponse<ReturnWithItems>> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, error: "Please log in to view return details." };
+    }
+
+    const service = new ReturnsService();
+    const returnRecord = await service.getCustomerReturnDetail(returnId, user.id);
+    if (!returnRecord) {
+      return { success: false, error: "Return record not found." };
+    }
+
+    return { success: true, data: returnRecord };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Secure Photo Proof Upload for returns
+ */
+export async function uploadReturnProofAction(
+  formData: FormData
+): Promise<ActionResponse<{ url: string }>> {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return { success: false, error: "Authentication required to upload proof." };
+    }
+
+    const file = formData.get("file") as File | null;
+    if (!file) {
+      return { success: false, error: "No image file provided." };
+    }
+
+    // 1. Validate MIME type
+    const validMimes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+    if (!validMimes.includes(file.type.toLowerCase())) {
+      return {
+        success: false,
+        error: "Invalid file type. Only JPG, PNG, and WebP images are permitted.",
+      };
+    }
+
+    // 2. Validate file size (max 5MB)
+    const maxSizeBytes = 5 * 1024 * 1024;
+    if (file.size > maxSizeBytes) {
+      return {
+        success: false,
+        error: "File size exceeds 5MB limit. Please upload a smaller image.",
+      };
+    }
+
+    // 3. Upload to return_proofs storage bucket
+    const adminSupabase = createAdminClient();
+    const timestamp = Date.now();
+    const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, "_");
+    const filePath = `${user.id}/${timestamp}_${sanitizedName}`;
+
+    const buffer = Buffer.from(await file.arrayBuffer());
+
+    const { error: uploadErr } = await adminSupabase.storage
+      .from("return_proofs")
+      .upload(filePath, buffer, {
+        contentType: file.type,
+        upsert: true,
+      });
+
+    if (uploadErr) {
+      throw new Error(`Upload failed: ${uploadErr.message}`);
+    }
+
+    const { data: publicData } = adminSupabase.storage
+      .from("return_proofs")
+      .getPublicUrl(filePath);
+
+    return {
+      success: true,
+      data: { url: publicData.publicUrl },
+    };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+// ============================================================================
+// Admin & Management Actions
+// ============================================================================
 
 export async function createReturnRequestAction(
   raw: Record<string, any>
@@ -160,11 +348,12 @@ export async function markReturnReceivedAction(
 }
 
 export async function syncReturnInventoryAction(
-  returnId: string
+  returnId: string,
+  itemConditions: Record<string, "good" | "damaged" | "defective"> = {}
 ): Promise<ActionResponse<{ returnId: string }>> {
   try {
     const service = new ReturnsService();
-    await service.syncReturnInventory(returnId);
+    await service.processReturnRestock(returnId, itemConditions);
 
     revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
@@ -186,6 +375,23 @@ export async function completeReturnAction(
     revalidatePath(`/admin/shipping/returns/${returnId}`);
 
     return { success: true, data: { returnId } };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function processReturnRefundAction(
+  returnId: string
+): Promise<ActionResponse<{ success: boolean; method: string; refundRef?: string }>> {
+  try {
+    const user = await getCurrentUser();
+    const service = new ReturnsService();
+    const result = await service.processReturnRefund(returnId, user?.id);
+
+    revalidatePath("/admin/shipping/returns");
+    revalidatePath(`/admin/shipping/returns/${returnId}`);
+
+    return { success: true, data: result };
   } catch (err: any) {
     return { success: false, error: err.message };
   }

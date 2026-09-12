@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { CustomerOrderInvoiceButton } from "@/features/orders/components/CustomerOrderInvoiceButton";
+import { ReturnRequestDialog } from "@/components/returns/return-request-dialog";
 
 export const metadata: Metadata = {
   title: "Order Details | Anchor Fashion",
@@ -61,6 +62,19 @@ export default async function OrderDetailsPage({
     notFound();
   }
 
+  // Fetch any return requests for this order
+  const { data: orderReturns } = await supabase
+    .from("returns")
+    .select("*")
+    .eq("order_id", order.id)
+    .order("created_at", { ascending: false });
+
+  const activeReturn = orderReturns?.find((r: any) =>
+    ["requested", "approved", "pickup_scheduled", "picked_up", "in_transit", "received"].includes(
+      r.status
+    )
+  );
+
   // Ensure customer can only view their own orders
   if (order.customer_id && order.customer_id !== user.id) {
     // Check if user is staff/admin
@@ -82,6 +96,10 @@ export default async function OrderDetailsPage({
     (a: any) => a.address_type === "SHIPPING"
   );
 
+  const isDelivered =
+    order.status?.toUpperCase() === "COMPLETED" ||
+    order.status?.toUpperCase() === "DELIVERED";
+
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
       <div className="flex items-center gap-4">
@@ -94,11 +112,7 @@ export default async function OrderDetailsPage({
           Order {order.order_number}
         </h1>
         <Badge
-          variant={
-            order.status === "COMPLETED" || order.status === "DELIVERED"
-              ? "default"
-              : "secondary"
-          }
+          variant={isDelivered ? "default" : "secondary"}
           className="text-sm"
         >
           {order.status.replace(/_/g, " ")}
@@ -112,12 +126,19 @@ export default async function OrderDetailsPage({
               Cancel Order
             </Button>
           )}
-          {(order.status === "COMPLETED" || order.status === "DELIVERED") && (
-            <Button variant="outline" size="sm">
-              <RefreshCcw className="mr-2 h-4 w-4" />
-              Return Item
+          {activeReturn ? (
+            <Button variant="outline" size="sm" asChild>
+              <Link href={`/account/returns/${activeReturn.id}`}>
+                <RefreshCcw className="mr-2 h-4 w-4 text-primary" />
+                Return {activeReturn.status.toUpperCase()} · View
+              </Link>
             </Button>
-          )}
+          ) : isDelivered ? (
+            <ReturnRequestDialog
+              orderId={order.id}
+              orderNumber={order.order_number}
+            />
+          ) : null}
         </div>
       </div>
 
