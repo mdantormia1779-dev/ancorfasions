@@ -17,7 +17,7 @@
 import { describe, it, expect, beforeAll, afterAll } from "vitest";
 // Use createClient without the Database generic so we avoid 'never' type
 // inference on tables that don't exist in the generated types yet.
-// eslint-disable-next-line @typescript-eslint/no-require-imports
+// eslint-disable-next-line
 const { createClient } = require("@supabase/supabase-js");
 
 // ── Test environment guard ─────────────────────────────────────────────────
@@ -29,7 +29,7 @@ const skipMessage =
   "SKIPPED: Set SUPABASE_TEST_URL and SUPABASE_TEST_SERVICE_ROLE_KEY to run concurrency tests against a live test database.";
 
 // ── Test fixtures ──────────────────────────────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
+// eslint-disable-next-line
 let supabase: any;
 let testVariantId: string;
 let testWarehouseId: string;
