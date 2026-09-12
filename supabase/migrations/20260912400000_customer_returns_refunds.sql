@@ -28,7 +28,7 @@ ALTER TABLE public.return_items
   ADD COLUMN IF NOT EXISTS refund_amount DECIMAL(12, 2) DEFAULT 0;
 
 -- 3. Indexes for fast querying
-CREATE INDEX IF NOT EXISTS idx_returns_customer_id ON public.returns(customer_id);
+CREATE INDEX IF NOT EXISTS idx_returns_user_id ON public.returns(user_id);
 CREATE INDEX IF NOT EXISTS idx_returns_order_id ON public.returns(order_id);
 CREATE INDEX IF NOT EXISTS idx_returns_status ON public.returns(status);
 CREATE INDEX IF NOT EXISTS idx_returns_created_at ON public.returns(created_at);
@@ -76,7 +76,7 @@ CREATE POLICY "Customers can view their returns"
   ON public.returns
   FOR SELECT
   TO authenticated
-  USING (customer_id = auth.uid());
+  USING (user_id = auth.uid());
 
 -- Customers can insert their own returns (must belong to auth.uid())
 DROP POLICY IF EXISTS "Customers can insert their returns" ON public.returns;
@@ -84,7 +84,7 @@ CREATE POLICY "Customers can insert their returns"
   ON public.returns
   FOR INSERT
   TO authenticated
-  WITH CHECK (customer_id = auth.uid());
+  WITH CHECK (user_id = auth.uid());
 
 -- Customers can view return items belonging to their returns
 DROP POLICY IF EXISTS "Customers can view their return items" ON public.return_items;
@@ -96,7 +96,7 @@ CREATE POLICY "Customers can view their return items"
     EXISTS (
       SELECT 1 FROM public.returns
       WHERE returns.id = return_items.return_id
-        AND returns.customer_id = auth.uid()
+        AND returns.user_id = auth.uid()
     )
   );
 

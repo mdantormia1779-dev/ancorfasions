@@ -54,7 +54,7 @@ CREATE TABLE IF NOT EXISTS public.cod_verifications (
 );
 
 -- 3. Indexes for rapid risk analysis & verification querying
-CREATE INDEX IF NOT EXISTS idx_orders_customer_status ON public.orders(customer_id, status);
+CREATE INDEX IF NOT EXISTS idx_orders_user_status ON public.orders(user_id, status);
 CREATE INDEX IF NOT EXISTS idx_orders_created_at ON public.orders(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_order_addresses_phone ON public.order_addresses(phone);
 CREATE INDEX IF NOT EXISTS idx_order_addresses_email ON public.order_addresses(email);
