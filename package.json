@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "test": "vitest run --passWithNoTests",
+    "test:e2e": "echo 'No E2E tests configured yet'"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.24",
