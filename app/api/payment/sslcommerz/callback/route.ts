@@ -321,6 +321,32 @@ async function handleSSLCommerzCallback(req: NextRequest) {
           .eq("id", paymentSession.id);
       }
 
+      // Check if order was cancelled while payment was pending (Late Payment Callback Race)
+      if ((order.status || "").toLowerCase() === "cancelled") {
+        console.warn(
+          `[SSLCommerz Callback] Payment succeeded for order ${order.order_number}, but order is already CANCELLED. Setting payment_status to REFUND_PENDING.`
+        );
+
+        await supabase.from("orders").update({
+          payment_method: "SSLCOMMERZ",
+          payment_status: "REFUND_PENDING",
+          payment_intent_id: confirmedTrxId,
+          paid_at: nowIso,
+        }).eq("id", order.id);
+
+        await supabase.from("order_status_history").insert({
+          order_id: order.id,
+          status: "cancelled",
+          notes: `Late payment callback captured TrxID ${confirmedTrxId} for cancelled order. Marked for refund.`,
+          created_by: order.customer_id || order.user_id || null,
+        });
+
+        return NextResponse.redirect(
+          new URL(`/checkout/failed?order_id=${order.id}&reason=order_already_cancelled_refund_pending`, appUrl),
+          303
+        );
+      }
+
       // Update order to confirmed & captured
       const capturePayload: Record<string, any> = {
         status: "confirmed",

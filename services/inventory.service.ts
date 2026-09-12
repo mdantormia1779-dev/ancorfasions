@@ -320,6 +320,46 @@ export class InventoryService {
     });
 
     if (error) {
+      // If RPC fails due to stock_movements schema mismatch, perform fallback release
+      if (error.message.includes("stock_movements") || error.message.includes("movement_type")) {
+        const { data: items } = await supabase
+          .from("order_items")
+          .select("variant_id, allocated_warehouse_id, quantity")
+          .eq("order_id", orderId)
+          .eq("inventory_reserved", true);
+
+        if (items && items.length > 0) {
+          for (const item of items) {
+            if (item.allocated_warehouse_id && item.variant_id) {
+              const { data: level } = await supabase
+                .from("inventory_levels")
+                .select("quantity_available, quantity_reserved")
+                .eq("variant_id", item.variant_id)
+                .eq("warehouse_id", item.allocated_warehouse_id)
+                .maybeSingle();
+
+              if (level) {
+                await supabase
+                  .from("inventory_levels")
+                  .update({
+                    quantity_available: (level.quantity_available || 0) + item.quantity,
+                    quantity_reserved: Math.max(0, (level.quantity_reserved || 0) - item.quantity),
+                  })
+                  .eq("variant_id", item.variant_id)
+                  .eq("warehouse_id", item.allocated_warehouse_id);
+              }
+            }
+          }
+
+          await supabase
+            .from("order_items")
+            .update({ inventory_reserved: false, allocated_warehouse_id: null })
+            .eq("order_id", orderId)
+            .eq("inventory_reserved", true);
+        }
+        return;
+      }
+
       throw new InventoryError(
         "RELEASE_FAILED",
         `Failed to release inventory for order ${orderId}: ${error.message}`

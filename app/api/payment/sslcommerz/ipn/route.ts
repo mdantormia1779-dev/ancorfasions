@@ -233,6 +233,33 @@ export async function POST(req: NextRequest) {
         .eq("id", paymentSession.id);
     }
 
+    // Check if order was cancelled while payment was pending (Late Payment Callback Race)
+    if ((order.status || "").toLowerCase() === "cancelled") {
+      console.warn(
+        `[SSLCommerz IPN] Payment verified for order ${order.order_number}, but order is already CANCELLED. Setting payment_status to REFUND_PENDING.`
+      );
+
+      await supabase.from("orders").update({
+        payment_method: "SSLCOMMERZ",
+        payment_status: "REFUND_PENDING",
+        payment_intent_id: confirmedTrxId,
+        paid_at: nowIso,
+      }).eq("id", order.id);
+
+      await supabase.from("order_status_history").insert({
+        order_id: order.id,
+        status: "cancelled",
+        notes: `Late IPN captured TrxID ${confirmedTrxId} for cancelled order. Marked for refund.`,
+        created_by: order.customer_id || order.user_id || null,
+      });
+
+      return NextResponse.json({
+        status: "ORDER_ALREADY_CANCELLED",
+        message: "Payment captured for cancelled order. Order remains cancelled and marked for refund.",
+        trxID: confirmedTrxId,
+      });
+    }
+
     // Update order status to confirmed
     const capturePayload: Record<string, any> = {
       status: "confirmed",

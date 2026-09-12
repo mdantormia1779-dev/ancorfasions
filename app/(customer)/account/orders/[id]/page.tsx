@@ -17,6 +17,7 @@ import {
 import { formatCurrency } from "@/lib/utils";
 import { CustomerOrderInvoiceButton } from "@/features/orders/components/CustomerOrderInvoiceButton";
 import { ReturnRequestDialog } from "@/components/returns/return-request-dialog";
+import { CancelOrderDialog } from "@/components/orders/cancel-order-dialog";
 
 export const metadata: Metadata = {
   title: "Order Details | Anchor Fashion",
@@ -120,11 +121,8 @@ export default async function OrderDetailsPage({
         <div className="flex-1"></div>
         <div className="flex items-center gap-2">
           <CustomerOrderInvoiceButton order={order} />
-          {(order.status === "PENDING" || order.status === "PROCESSING") && (
-            <Button variant="destructive" size="sm">
-              <XCircle className="mr-2 h-4 w-4" />
-              Cancel Order
-            </Button>
+          {(order.status === "PENDING" || order.status === "PROCESSING" || order.status === "PENDING_PAYMENT" || order.status === "CONFIRMED") && (
+            <CancelOrderDialog orderId={order.id} orderNumber={order.order_number} />
           )}
           {activeReturn ? (
             <Button variant="outline" size="sm" asChild>
@@ -144,6 +142,19 @@ export default async function OrderDetailsPage({
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="space-y-6 md:col-span-2">
+          {order.status === "CANCELLED" && (
+            <Card className="border-destructive/50 bg-destructive/5">
+              <CardHeader>
+                <CardTitle className="text-destructive">Cancellation Details</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2 text-sm">
+                <p><span className="font-medium text-slate-500">Reason:</span> {order.cancellation_reason || "Not specified"}</p>
+                {order.cancellation_note && <p><span className="font-medium text-slate-500">Note:</span> {order.cancellation_note}</p>}
+                <p><span className="font-medium text-slate-500">Cancelled At:</span> {order.cancelled_at ? new Date(order.cancelled_at).toLocaleString() : "Unknown"}</p>
+              </CardContent>
+            </Card>
+          )}
+
           <Card>
             <CardHeader>
               <CardTitle>Order Items</CardTitle>
