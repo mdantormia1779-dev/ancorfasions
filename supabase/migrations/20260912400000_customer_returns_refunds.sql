@@ -9,20 +9,19 @@
 -- ============================================================================
 
 -- 1. Extend public.returns table
-ALTER TABLE public.returns
-  ADD COLUMN IF NOT EXISTS refund_status VARCHAR(50) DEFAULT 'PENDING',
-  ADD COLUMN IF NOT EXISTS refund_amount DECIMAL(12, 2) DEFAULT 0,
-  ADD COLUMN IF NOT EXISTS refund_method VARCHAR(50) DEFAULT 'ORIGINAL_PAYMENT',
-  ADD COLUMN IF NOT EXISTS exchange_requested BOOLEAN DEFAULT false,
-  ADD COLUMN IF NOT EXISTS exchange_variant_id UUID,
-  ADD COLUMN IF NOT EXISTS rejection_reason TEXT,
-  ADD COLUMN IF NOT EXISTS customer_note TEXT,
-  ADD COLUMN IF NOT EXISTS internal_note TEXT,
-  ADD COLUMN IF NOT EXISTS photo_urls TEXT[] DEFAULT '{}',
-  ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS inspected_at TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS refund_status VARCHAR(50) DEFAULT 'PENDING';
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS refund_amount DECIMAL(12, 2) DEFAULT 0;
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS refund_method VARCHAR(50) DEFAULT 'ORIGINAL_PAYMENT';
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS exchange_requested BOOLEAN DEFAULT false;
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS exchange_variant_id UUID;
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS rejection_reason TEXT;
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS customer_note TEXT;
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS internal_note TEXT;
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS photo_urls TEXT[] DEFAULT '{}';
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS approved_at TIMESTAMPTZ;
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS rejected_at TIMESTAMPTZ;
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS inspected_at TIMESTAMPTZ;
+ALTER TABLE public.returns ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
 
 -- 2. Extend public.return_items table
 ALTER TABLE public.return_items

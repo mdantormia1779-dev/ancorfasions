@@ -3,12 +3,11 @@
 -- ==============================================================================
 
 -- 1. Add payment tracking & compatibility columns to orders table
-ALTER TABLE public.orders 
-ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50),
-ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'PENDING',
-ADD COLUMN IF NOT EXISTS total_amount DECIMAL(12, 2),
-ADD COLUMN IF NOT EXISTS shipping_fee DECIMAL(12, 2),
-ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(12, 2);
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_method VARCHAR(50);
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_status VARCHAR(50) DEFAULT 'PENDING';
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS total_amount DECIMAL(12, 2);
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS shipping_fee DECIMAL(12, 2);
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS discount_amount DECIMAL(12, 2);
 
 -- Backfill compatibility values from existing columns
 UPDATE public.orders 
