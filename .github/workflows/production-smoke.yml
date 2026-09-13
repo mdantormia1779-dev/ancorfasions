@@ -32,7 +32,7 @@ jobs:
 
       - name: Run Playwright Tests
         run: |
-          npm ci
+          npm install
           npx playwright install --with-deps
           npx playwright test tests/smoke.spec.ts
         env:
