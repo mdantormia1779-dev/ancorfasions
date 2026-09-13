@@ -70,6 +70,13 @@ export default async function OrderDetailsPage({
     .eq("order_id", order.id)
     .order("created_at", { ascending: false });
 
+  // Fetch shipments
+  const { data: shipments } = await supabase
+    .from("shipments")
+    .select("*, courier_providers(name, logo_url)")
+    .eq("order_id", order.id)
+    .order("created_at", { ascending: false });
+
   const activeReturn = orderReturns?.find((r: any) =>
     ["requested", "approved", "pickup_scheduled", "picked_up", "in_transit", "received"].includes(
       r.status
@@ -185,6 +192,55 @@ export default async function OrderDetailsPage({
               </div>
             </CardContent>
           </Card>
+
+          {shipments && shipments.length > 0 && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Truck className="h-5 w-5" />
+                  Shipment Tracking
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {shipments.map((shipment: any) => (
+                    <div key={shipment.id} className="rounded-lg border p-4">
+                      <div className="mb-2 flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">
+                            {shipment.courier_providers?.name || shipment.courier_provider_code || "Courier"}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            Tracking: {shipment.tracking_number || "Pending"}
+                          </p>
+                        </div>
+                        <Badge variant="outline" className="uppercase">
+                          {shipment.status.replace(/_/g, " ")}
+                        </Badge>
+                      </div>
+                      {shipment.tracking_number && (
+                        <Button variant="secondary" size="sm" className="w-full mt-2" asChild>
+                          <a
+                            href={
+                              shipment.courier_provider_code === "steadfast"
+                                ? `https://steadfast.com.bd/t/${shipment.tracking_number}`
+                                : shipment.courier_provider_code === "pathao"
+                                ? `https://pathao.com/bn/courier-tracking-2/?consignment_id=${shipment.tracking_number}`
+                                : "#"
+                            }
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Track Package
+                          </a>
+                        </Button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
 
           <Card>
             <CardHeader>

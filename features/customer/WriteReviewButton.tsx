@@ -6,7 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, Loader2, Star, ShoppingBag } from "lucide-react";
+import { PlusCircle, Loader2, Star, X, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import {
   Dialog,
@@ -37,6 +37,7 @@ import {
   createReviewAction,
   fetchPurchasedProductsAction,
 } from "@/app/actions/customer.actions";
+import { createClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const reviewSchema = z.object({
@@ -64,6 +65,7 @@ export function WriteReviewButton({
   const [loading, setLoading] = useState(false);
   const [loadingProducts, setLoadingProducts] = useState(false);
   const [hoverRating, setHoverRating] = useState(0);
+  const [files, setFiles] = useState<File[]>([]);
   const [availableProducts, setAvailableProducts] = useState<
     Array<{
       productId: string;
@@ -103,16 +105,70 @@ export function WriteReviewButton({
 
   const selectedRating = form.watch("rating");
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      const selectedFiles = Array.from(e.target.files);
+      if (files.length + selectedFiles.length > 3) {
+        toast.error("You can only upload up to 3 images.");
+        return;
+      }
+      
+      const validFiles = selectedFiles.filter(f => {
+        if (f.size > 5 * 1024 * 1024) {
+          toast.error(`${f.name} exceeds the 5MB limit.`);
+          return false;
+        }
+        return true;
+      });
+
+      setFiles((prev) => [...prev, ...validFiles]);
+    }
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadImages = async (): Promise<string[]> => {
+    if (files.length === 0) return [];
+    
+    const supabase = createClient();
+    const uploadedUrls: string[] = [];
+
+    for (const file of files) {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+      const filePath = `${form.getValues("productId")}/${fileName}`;
+
+      const { data, error } = await supabase.storage
+        .from('review_images')
+        .upload(filePath, file);
+
+      if (error) {
+        console.error("Upload error:", error);
+        toast.error(`Failed to upload ${file.name}`);
+      } else if (data) {
+        const { data: { publicUrl } } = supabase.storage
+          .from('review_images')
+          .getPublicUrl(data.path);
+        uploadedUrls.push(publicUrl);
+      }
+    }
+    
+    return uploadedUrls;
+  };
+
   const onSubmit = async (values: ReviewForm) => {
     setLoading(true);
     try {
+      const imageUrls = await uploadImages();
+
       const res = await createReviewAction({
         productId: values.productId,
-        orderId: values.orderId || undefined,
         rating: values.rating,
         title: values.title || undefined,
         body: values.body,
-        comment: values.body,
+        images: imageUrls,
       });
 
       if (res.error) {
@@ -121,6 +177,7 @@ export function WriteReviewButton({
         toast.success("Thank you! Your review has been submitted for moderation.");
         setOpen(false);
         form.reset();
+        setFiles([]);
         router.refresh();
       }
     } catch (err: any) {
@@ -138,7 +195,7 @@ export function WriteReviewButton({
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[520px]">
+        <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Write a Product Review</DialogTitle>
             <DialogDescription>
@@ -188,13 +245,9 @@ export function WriteReviewButton({
                           </SelectContent>
                         </Select>
                       ) : (
-                        <FormControl>
-                          <Input
-                            placeholder="Enter Product ID"
-                            {...field}
-                            className="text-xs"
-                          />
-                        </FormControl>
+                        <div className="text-xs text-red-500 border border-red-100 bg-red-50 p-3 rounded-md">
+                          You do not have any eligible products to review. Only delivered purchases can be reviewed.
+                        </div>
                       )}
                       <FormMessage />
                     </FormItem>
@@ -278,6 +331,46 @@ export function WriteReviewButton({
                 )}
               />
 
+              {/* Photo Upload */}
+              <div className="space-y-3">
+                <FormLabel>Add Photos (Max 3)</FormLabel>
+                <div className="flex items-center gap-3">
+                  <label className="flex flex-col items-center justify-center w-20 h-20 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 border-gray-300">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <UploadCloud className="w-6 h-6 text-gray-400 mb-1" />
+                      <span className="text-[10px] text-gray-500">Upload</span>
+                    </div>
+                    <input 
+                      type="file" 
+                      className="hidden" 
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      onChange={handleFileChange}
+                      disabled={files.length >= 3 || loading}
+                    />
+                  </label>
+
+                  {/* Previews */}
+                  {files.map((file, index) => (
+                    <div key={index} className="relative w-20 h-20 rounded-lg overflow-hidden border">
+                      <img 
+                        src={URL.createObjectURL(file)} 
+                        alt="Preview" 
+                        className="object-cover w-full h-full"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => removeFile(index)}
+                        className="absolute top-1 right-1 bg-black/50 text-white rounded-full p-0.5 hover:bg-black"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[10px] text-gray-400">Supported formats: JPEG, PNG, WEBP (Max 5MB each)</p>
+              </div>
+
               <DialogFooter className="pt-2">
                 <Button
                   type="button"
@@ -285,12 +378,13 @@ export function WriteReviewButton({
                   onClick={() => {
                     setOpen(false);
                     form.reset();
+                    setFiles([]);
                   }}
                   disabled={loading}
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={loading || selectedRating === 0}>
+                <Button type="submit" disabled={loading || selectedRating === 0 || (!productId && availableProducts.length === 0)}>
                   {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Submit Review
                 </Button>

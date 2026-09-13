@@ -68,7 +68,55 @@ export class OrderService {
       );
     }
 
-    return this.orderRepo.updateOrderStatus(id, newStatus, updatedBy);
+    const updated = await this.orderRepo.updateOrderStatus(id, newStatus, updatedBy);
+
+    // Check for referral qualification and loyalty points
+    const lowerStatus = newStatus.toLowerCase();
+    if (lowerStatus === "delivered" || lowerStatus === "completed") {
+      try {
+        const { ReferralService } = await import("@/services/referral.service");
+        await ReferralService.qualifyReferral(id);
+
+        // Earn loyalty points
+        if (order.customer_id) {
+          const subtotal = Number(order.subtotal || 0);
+          if (subtotal >= 1000) {
+            const pointsToEarn = Math.floor(subtotal / 100);
+            const { LoyaltyService } = await import("@/services/loyalty.service");
+            await LoyaltyService.earnPoints({
+              userId: order.customer_id,
+              points: pointsToEarn,
+              referenceId: order.id,
+              referenceType: "ORDER",
+              description: `Earned from Order ${order.order_number}`
+            });
+          }
+        }
+      } catch (err) {
+        console.error(`[OrderService] Failed to qualify referral or earn loyalty for order ${id}:`, err);
+      }
+    } else if (lowerStatus === "cancelled" || lowerStatus === "refunded" || lowerStatus === "returned") {
+      try {
+        // Reverse loyalty points
+        if (order.customer_id) {
+          const subtotal = Number(order.subtotal || 0);
+          const pointsToReverse = Math.floor(subtotal / 100);
+          if (pointsToReverse > 0) {
+            const { LoyaltyService } = await import("@/services/loyalty.service");
+            await LoyaltyService.reversePoints({
+              userId: order.customer_id,
+              referenceId: order.id,
+              pointsToReverse,
+              reason: `Order ${newStatus.toUpperCase()}`
+            });
+          }
+        }
+      } catch (err) {
+        console.error(`[OrderService] Failed to reverse loyalty for order ${id}:`, err);
+      }
+    }
+
+    return updated;
   }
 
   async getOrderDetails(id: string, supabaseClient?: any) {

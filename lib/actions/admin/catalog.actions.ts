@@ -12,6 +12,8 @@ import {
   invalidateCategoryCache,
   invalidateBrandCache,
 } from "@/lib/cache/invalidate-catalog";
+import { LoyaltyService } from "@/services/loyalty.service";
+import { createClient } from "@/lib/supabase/server";
 
 // ============================================================================
 // SCHEMAS
@@ -204,6 +206,29 @@ export const approveReviewAction = createAdminAction(
   IdSchema,
   async ({ id }) => {
     await ReviewRepository.approveReview(id);
+    
+    // Fetch review to get the customer id
+    const supabase = await createClient();
+    const { data: review } = await supabase
+      .from("customer_reviews")
+      .select("customer_id")
+      .eq("id", id)
+      .single();
+      
+    if (review?.customer_id) {
+      try {
+        await LoyaltyService.earnPoints({
+          userId: review.customer_id,
+          points: 50,
+          referenceType: 'REVIEW',
+          referenceId: id,
+          description: 'Reward for verified product review',
+        });
+      } catch (e) {
+        console.error("Failed to issue loyalty points for review:", e);
+      }
+    }
+    
     revalidatePath("/admin/products/reviews");
     return { success: true };
   }

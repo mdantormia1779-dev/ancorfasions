@@ -619,6 +619,13 @@ export class ReturnsService {
         status: "completed",
       });
 
+      try {
+        const { ReferralService } = await import("@/services/referral.service");
+        await ReferralService.reverseReferralReward(returnRecord.order_id);
+      } catch (err) {
+        console.error("Failed to reverse referral reward:", err);
+      }
+
       return { success: true, method: "WALLET", refundRef: returnRecord.return_number };
     }
 
@@ -660,6 +667,14 @@ export class ReturnsService {
               status: "completed",
               internal_note: `bKash refund completed. TrxID: ${res.refundTrxID}`,
             });
+
+            try {
+              const { ReferralService } = await import("@/services/referral.service");
+              await ReferralService.reverseReferralReward(returnRecord.order_id);
+            } catch (err) {
+              console.error("Failed to reverse referral reward:", err);
+            }
+
             return { success: true, method: "BKASH", refundRef: res.refundTrxID };
           }
         } catch (bkErr: any) {
@@ -697,6 +712,14 @@ export class ReturnsService {
               status: "completed",
               internal_note: `SSLCommerz refund initiated. Ref: ${res.refund_ref_id || res.trans_id}`,
             });
+
+            try {
+              const { ReferralService } = await import("@/services/referral.service");
+              await ReferralService.reverseReferralReward(returnRecord.order_id);
+            } catch (err) {
+              console.error("Failed to reverse referral reward:", err);
+            }
+
             return { success: true, method: "SSLCOMMERZ", refundRef: res.refund_ref_id };
           }
         } catch (sslErr: any) {

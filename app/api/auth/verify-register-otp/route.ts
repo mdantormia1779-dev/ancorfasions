@@ -3,6 +3,7 @@ import { createAdminClient } from "@/lib/supabase/admin-client";
 import { logServerError } from "@/lib/utils/error-handler";
 import { cookies } from "next/headers";
 import { CartService } from "@/lib/services/cart.service";
+import { ReferralService } from "@/services/referral.service";
 
 export async function POST(request: Request) {
   try {
@@ -96,6 +97,16 @@ export async function POST(request: Request) {
           cookieStore.delete("af_guest_session");
         } catch (mergeError) {
           logServerError("AUTH_REGISTER_CART_MERGE", mergeError, { userId: authData.user.id });
+        }
+      }
+
+      // 6. Process Referral Attribution
+      const referralCode = cookieStore.get("af_referral_code")?.value;
+      if (referralCode) {
+        try {
+          await ReferralService.attributeReferral(referralCode, authData.user.id);
+        } catch (refError) {
+          logServerError("AUTH_REGISTER_REFERRAL", refError, { userId: authData.user.id });
         }
       }
     }

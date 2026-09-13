@@ -1,7 +1,9 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import { Suspense } from "react";
 import { RegisterForm } from "@/features/auth/components/register-form";
+import { ReferralCapture } from "./referral-capture";
 
 export const metadata: Metadata = {
   title: "Create an account | Anchor Fashion",
@@ -11,6 +13,9 @@ export const metadata: Metadata = {
 export default function RegisterPage() {
   return (
     <div className="flex flex-col items-center">
+      <Suspense fallback={null}>
+        <ReferralCapture />
+      </Suspense>
       {/* Logo */}
       <div className="mb-6">
         <Link href="/">

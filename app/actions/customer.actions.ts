@@ -124,6 +124,15 @@ export async function fetchLoyaltyAction() {
   }
 }
 
+export async function fetchRewardCatalogAction() {
+  try {
+    const catalog = await LoyaltyService.getCatalog();
+    return { success: true, data: catalog };
+  } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
 export async function fetchAccountSummaryAction() {
   try {
     const userId = await getUserId();
@@ -280,20 +289,10 @@ export async function fetchPurchasedProductsAction(): Promise<{
       .eq("customer_id", userId);
 
     if (ordersError || !orders || orders.length === 0) {
-      // Fallback to catalog products so customer can still submit review
-      const { data: catalogProducts } = await supabase
-        .from("products")
-        .select("id, name")
-        .limit(10);
-
+      // Instead of failing completely or showing catalog, just return empty so they can't review anything
       return {
         success: true,
-        data: (catalogProducts || []).map((p) => ({
-          productId: p.id,
-          productName: p.name,
-          orderId: "",
-          orderNumber: "Catalog Product",
-        })),
+        data: []
       };
     }
 
@@ -330,19 +329,9 @@ export async function fetchPurchasedProductsAction(): Promise<{
     }
 
     if (purchased.length === 0) {
-      const { data: catalogProducts } = await supabase
-        .from("products")
-        .select("id, name")
-        .limit(10);
-
       return {
         success: true,
-        data: (catalogProducts || []).map((p) => ({
-          productId: p.id,
-          productName: p.name,
-          orderId: "",
-          orderNumber: "Catalog Product",
-        })),
+        data: []
       };
     }
 
@@ -354,12 +343,12 @@ export async function fetchPurchasedProductsAction(): Promise<{
 
 export async function createReviewAction(data: {
   productId: string;
-  orderId?: string;
   rating: number;
   title?: string;
   body?: string;
   comment?: string;
   review_text?: string;
+  images?: string[];
 }): Promise<{ success?: boolean; data?: any; error?: string }> {
   try {
     const userId = await getUserId();
@@ -367,6 +356,12 @@ export async function createReviewAction(data: {
 
     if (data.rating < 1 || data.rating > 5) {
       return { error: "Rating must be between 1 and 5" };
+    }
+
+    const reviewContent = data.review_text || data.comment || data.body || data.title || "Verified product review";
+    
+    if (reviewContent.length > 2000) {
+      return { error: "Review is too long (maximum 2000 characters)" };
     }
 
     // Check if user already reviewed this product in customer_reviews
@@ -381,17 +376,41 @@ export async function createReviewAction(data: {
       return { error: "You have already reviewed this product" };
     }
 
-    const reviewContent = data.review_text || data.comment || data.body || data.title || "Verified product review";
+    // Verify Purchase: User must have a DELIVERED or COMPLETED order containing this product
+    const { data: eligibleOrders } = await supabase
+      .from("orders")
+      .select("id")
+      .eq("customer_id", userId)
+      .in("status", ["DELIVERED", "COMPLETED"]);
+
+    if (!eligibleOrders || eligibleOrders.length === 0) {
+      return { error: "You must purchase and receive this product before reviewing it." };
+    }
+    
+    const orderIds = eligibleOrders.map(o => o.id);
+
+    const { data: verifiedItem } = await supabase
+      .from("order_items")
+      .select("order_id")
+      .eq("product_id", data.productId)
+      .in("order_id", orderIds)
+      .limit(1)
+      .maybeSingle();
+
+    if (!verifiedItem) {
+      return { error: "You must purchase and receive this product before reviewing it." };
+    }
 
     const { data: review, error } = await supabase
       .from("customer_reviews")
       .insert({
         customer_id: userId,
         product_id: data.productId,
-        order_id: data.orderId || null,
+        order_id: verifiedItem.order_id,
         rating: data.rating,
         title: data.title || null,
         review_text: reviewContent,
+        images: data.images || [],
         is_approved: false,
       })
       .select()
@@ -400,6 +419,7 @@ export async function createReviewAction(data: {
     if (error) throw error;
 
     revalidatePath("/account/reviews");
+    revalidatePath(`/products/${data.productId}`);
     return { success: true, data: review };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -494,23 +514,17 @@ export async function transferWalletAction(data: {
 }
 
 export async function redeemLoyaltyPointsAction(data: {
-  points: number;
-  rewardTitle: string;
-  creditWallet?: boolean;
-  walletCreditAmount?: number;
+  rewardId: string;
 }): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
     const userId = await getUserId();
-    if (!data.points || data.points <= 0) {
-      return { success: false, error: "Points must be greater than zero" };
+    if (!data.rewardId) {
+      return { success: false, error: "Reward ID is required" };
     }
 
     const result = await LoyaltyService.redeemPoints({
       userId,
-      points: Number(data.points),
-      rewardTitle: data.rewardTitle,
-      creditWallet: data.creditWallet,
-      walletCreditAmount: data.walletCreditAmount,
+      rewardId: data.rewardId,
     });
 
     revalidatePath("/account/loyalty");

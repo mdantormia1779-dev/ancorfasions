@@ -3,6 +3,17 @@ import { LoyaltyRepository } from "@/repositories/loyalty.repository";
 import { LoyaltyAccount, LoyaltyTransaction } from "@/types/customer.types";
 import { WalletService } from "@/services/wallet.service";
 
+export interface RewardCatalogItem {
+  id: string;
+  title: string;
+  description: string;
+  points_cost: number;
+  reward_type: "DISCOUNT_VOUCHER" | "WALLET_CREDIT" | "FREE_SHIPPING" | "PHYSICAL_GIFT";
+  reward_value: number;
+  is_active: boolean;
+  stock: number;
+}
+
 export class LoyaltyService {
   private static async getClient() {
     try {
@@ -12,9 +23,6 @@ export class LoyaltyService {
     }
   }
 
-  /**
-   * Fetch customer loyalty account, creating default SILVER tier if not yet present
-   */
   static async getAccount(userId: string): Promise<LoyaltyAccount> {
     const existing = await LoyaltyRepository.getAccount(userId);
     if (existing) return existing;
@@ -50,15 +58,44 @@ export class LoyaltyService {
     return created;
   }
 
-  static async getTransactions(
-    accountId: string
-  ): Promise<LoyaltyTransaction[]> {
+  static async getTransactions(accountId: string): Promise<LoyaltyTransaction[]> {
     return LoyaltyRepository.getTransactions(accountId);
   }
 
-  /**
-   * Earn loyalty points (e.g. from purchases, reviews, referrals)
-   */
+  static async getCatalog(): Promise<RewardCatalogItem[]> {
+    const supabase = await this.getClient();
+    const { data, error } = await supabase
+      .from("reward_catalog")
+      .select("*")
+      .eq("is_active", true)
+      .order("points_cost", { ascending: true });
+    
+    if (error) {
+      console.error("Failed to fetch reward catalog:", error);
+      return [];
+    }
+    return data;
+  }
+
+  static async getSettings(): Promise<any> {
+    const supabase = await this.getClient();
+    const { data, error } = await supabase
+      .from("settings")
+      .select("value")
+      .eq("key", "loyalty_rewards_settings")
+      .single();
+    
+    if (error || !data) {
+      return {
+        points_per_currency: 1,
+        currency_amount: 100,
+        min_order_amount: 1000,
+        signup_bonus: 50
+      };
+    }
+    return data.value;
+  }
+
   static async earnPoints(params: {
     userId: string;
     points: number;
@@ -73,10 +110,34 @@ export class LoyaltyService {
     const account = await this.getAccount(params.userId);
     const supabase = await this.getClient();
 
+    const isUuid = Boolean(
+      params.referenceId &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.referenceId)
+    );
+
+    const refId = isUuid ? params.referenceId : null;
+
+    // Insert transaction. The DB partial unique constraint prevents double earning for the same referenceId and type.
+    const { error: insertError } = await supabase.from("loyalty_transactions").insert({
+      loyalty_account_id: account.id,
+      type: "EARN",
+      points: params.points,
+      description: params.description || `Earned ${params.points} loyalty points`,
+      reference_type: params.referenceType || "MANUAL",
+      reference_id: refId,
+    });
+
+    if (insertError) {
+      if (insertError.code === "23505") { // unique_violation
+        console.warn(`Idempotency check: Points already earned for ${params.referenceType} ${refId}`);
+        return { account, pointsEarned: 0 };
+      }
+      throw new Error(`Failed to insert loyalty transaction: ${insertError.message}`);
+    }
+
     const newBalance = account.points_balance + params.points;
     const newTotalEarned = account.total_points_earned + params.points;
 
-    // Recalculate tier based on lifetime earned points
     let newTier: "SILVER" | "GOLD" | "PLATINUM" | "VIP" = "SILVER";
     if (newTotalEarned >= 10000) newTier = "VIP";
     else if (newTotalEarned >= 5000) newTier = "PLATINUM";
@@ -99,97 +160,55 @@ export class LoyaltyService {
       throw new Error(`Failed to update loyalty balance: ${updateError?.message}`);
     }
 
-    const isUuid = Boolean(
-      params.referenceId &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(params.referenceId)
-    );
-
-    // Record transaction
-    await supabase.from("loyalty_transactions").insert({
-      loyalty_account_id: account.id,
-      type: "EARN",
-      points: params.points,
-      description: params.description || `Earned ${params.points} loyalty points`,
-      reference_type: params.referenceType || "MANUAL",
-      reference_id: isUuid ? params.referenceId : null,
-    });
-
     return { account: updatedAccount, pointsEarned: params.points };
   }
 
-  /**
-   * Redeem loyalty points for discounts, store credit vouchers, or gift rewards
-   */
-  static async redeemPoints(params: {
+  static async reversePoints(params: {
     userId: string;
-    points: number;
-    rewardTitle?: string;
-    creditWallet?: boolean;
-    walletCreditAmount?: number;
-  }): Promise<{ account: LoyaltyAccount; voucherCode: string; walletCredited?: boolean }> {
-    if (params.points <= 0) {
-      throw new Error("Points to redeem must be greater than zero");
-    }
-
-    const account = await this.getAccount(params.userId);
-    if (account.points_balance < params.points) {
-      throw new Error(
-        `Insufficient points balance. You have ${account.points_balance} points, but need ${params.points}.`
-      );
-    }
-
+    referenceId: string;
+    pointsToReverse: number;
+    reason: string;
+  }): Promise<{ success: boolean; pointsReversed: number; newBalance?: number; reason?: string }> {
     const supabase = await this.getClient();
-    const newBalance = account.points_balance - params.points;
-    const newTotalRedeemed = account.total_points_redeemed + params.points;
-
-    const { data: updatedAccount, error: updateError } = await supabase
-      .from("loyalty_accounts")
-      .update({
-        points_balance: newBalance,
-        total_points_redeemed: newTotalRedeemed,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("id", account.id)
-      .select()
-      .single();
-
-    if (updateError || !updatedAccount) {
-      throw new Error(`Failed to redeem points: ${updateError?.message}`);
-    }
-
-    const voucherCode = `RW-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
-
-    // Record redemption log
-    const desc = params.rewardTitle
-      ? `Redeemed: ${params.rewardTitle} (Voucher: ${voucherCode})`
-      : `Redeemed ${params.points} points for voucher ${voucherCode}`;
-
-    await supabase.from("loyalty_transactions").insert({
-      loyalty_account_id: account.id,
-      type: "REDEEM",
-      points: params.points,
-      description: desc,
-      reference_type: "REWARD_REDEMPTION",
-      reference_id: null,
+    const { data, error } = await supabase.rpc("reverse_loyalty_points", {
+      p_customer_id: params.userId,
+      p_reference_id: params.referenceId,
+      p_points: params.pointsToReverse,
+      p_reason: params.reason
     });
 
-    let walletCredited = false;
-    // If reward option converts points into wallet credit
-    if (params.creditWallet && params.walletCreditAmount && params.walletCreditAmount > 0) {
-      try {
-        await WalletService.topUp({
-          userId: params.userId,
-          amount: params.walletCreditAmount,
-          paymentMethod: "Loyalty Points Conversion",
-          paymentRef: voucherCode,
-          description: `Loyalty points redemption reward voucher [${voucherCode}]`,
-        });
-        walletCredited = true;
-      } catch (err) {
-        console.error("Failed to auto-credit wallet from loyalty redemption:", err);
-      }
+    if (error) {
+      throw new Error(`Failed to reverse points: ${error.message}`);
     }
 
-    return { account: updatedAccount, voucherCode, walletCredited };
+    const result = data as any;
+    if (result.success && result.reversed) {
+      return { success: true, pointsReversed: result.points_reversed };
+    } else {
+      return { success: false, pointsReversed: 0, reason: result.reason };
+    }
+  }
+
+  static async redeemPoints(params: {
+    userId: string;
+    rewardId: string;
+  }): Promise<{ success: boolean; voucherCode?: string; pointsDeducted?: number; newBalance?: number }> {
+    const supabase = await this.getClient();
+    const { data, error } = await supabase.rpc("redeem_loyalty_points", {
+      p_customer_id: params.userId,
+      p_reward_id: params.rewardId
+    });
+
+    if (error) {
+      throw new Error(`Redemption failed: ${error.message}`);
+    }
+
+    const result = data as any;
+    return {
+      success: result.success,
+      voucherCode: result.voucher_code,
+      pointsDeducted: result.points_deducted,
+      newBalance: result.new_balance
+    };
   }
 }

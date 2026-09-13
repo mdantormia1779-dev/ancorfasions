@@ -9,6 +9,7 @@ import { updateOrderStatusAction } from "@/app/actions/oms/order.actions";
 import { toast } from "sonner";
 import { Order } from "@/types/oms";
 import { CourierProviderRecord } from "@/types/shipping.types";
+import { dispatchOrderAction } from "@/app/actions/oms/shipping.actions";
 import { CheckCircle2, Package, Truck } from "lucide-react";
 
 export function FulfillmentForm({
@@ -48,18 +49,7 @@ export function FulfillmentForm({
     }
     
     setLoading(true);
-    // In a real app, this would call shipping.actions.ts -> createShipmentAction
-    // and integrate with Pathao/Steadfast API. For this MVP, we simulate success
-    // and just advance the status to ready_for_shipment.
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const res = await updateOrderStatusAction({
-      order_id: order.id,
-      new_status: "ready_for_shipment",
-    });
-    
+    const res = await dispatchOrderAction(order.id, selectedCourier as any);
     setLoading(false);
     
     if (res.success) {

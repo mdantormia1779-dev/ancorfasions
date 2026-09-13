@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -13,60 +13,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Gift, Sparkles, Loader2, CheckCircle2, Wallet, Copy, ExternalLink } from "lucide-react";
+import { Gift, Sparkles, Loader2, CheckCircle2, Wallet, Copy } from "lucide-react";
 import { toast } from "sonner";
-import { redeemLoyaltyPointsAction } from "@/app/actions/customer.actions";
+import { redeemLoyaltyPointsAction, fetchRewardCatalogAction } from "@/app/actions/customer.actions";
 import Link from "next/link";
-
-interface RewardOption {
-  id: string;
-  title: string;
-  description: string;
-  pointsCost: number;
-  creditWallet: boolean;
-  walletCreditAmount?: number;
-}
-
-const REWARD_OPTIONS: RewardOption[] = [
-  {
-    id: "rw-wallet-50",
-    title: "৳50 Store Credit (Instant Wallet Top-up)",
-    description: "Convert points directly to ৳50 store balance credited to your customer wallet.",
-    pointsCost: 500,
-    creditWallet: true,
-    walletCreditAmount: 50,
-  },
-  {
-    id: "rw-wallet-120",
-    title: "৳120 Store Credit (Instant Wallet Top-up)",
-    description: "Convert points directly to ৳120 store balance credited to your customer wallet.",
-    pointsCost: 1000,
-    creditWallet: true,
-    walletCreditAmount: 120,
-  },
-  {
-    id: "rw-wallet-350",
-    title: "৳350 Premium Credit (Instant Wallet Top-up)",
-    description: "Exclusive bonus exchange: Convert points directly to ৳350 store balance.",
-    pointsCost: 2500,
-    creditWallet: true,
-    walletCreditAmount: 350,
-  },
-  {
-    id: "rw-shipping",
-    title: "Free Express Delivery Voucher",
-    description: "100% discount voucher code on premium express shipping across Bangladesh.",
-    pointsCost: 300,
-    creditWallet: false,
-  },
-  {
-    id: "rw-discount-15",
-    title: "15% Off Any Fashion Item",
-    description: "A one-time 15% discount promotional code for your next online order.",
-    pointsCost: 1500,
-    creditWallet: false,
-  },
-];
 
 export function RedeemRewardsDialog({
   userPoints = 0,
@@ -76,7 +26,9 @@ export function RedeemRewardsDialog({
   triggerClassName?: string;
 }) {
   const [open, setOpen] = useState(false);
-  const [selectedOption, setSelectedOption] = useState<RewardOption>(REWARD_OPTIONS[0]);
+  const [options, setOptions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [selectedOption, setSelectedOption] = useState<any>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [voucherResult, setVoucherResult] = useState<{
     code: string;
@@ -85,10 +37,27 @@ export function RedeemRewardsDialog({
   } | null>(null);
   const router = useRouter();
 
+  useEffect(() => {
+    if (open && options.length === 0) {
+      setLoading(true);
+      fetchRewardCatalogAction().then(res => {
+        if (res.success && res.data) {
+          setOptions(res.data);
+          if (res.data.length > 0) {
+            setSelectedOption(res.data[0]);
+          }
+        }
+        setLoading(false);
+      });
+    }
+  }, [open]);
+
   const handleRedeem = async () => {
-    if (userPoints < selectedOption.pointsCost) {
+    if (!selectedOption) return;
+    
+    if (userPoints < selectedOption.points_cost) {
       toast.error(
-        `Insufficient points! You need ${selectedOption.pointsCost.toLocaleString()} pts, but have ${userPoints.toLocaleString()} pts.`
+        `Insufficient points! You need ${selectedOption.points_cost.toLocaleString()} pts, but have ${userPoints.toLocaleString()} pts.`
       );
       return;
     }
@@ -96,16 +65,13 @@ export function RedeemRewardsDialog({
     try {
       setIsSubmitting(true);
       const res = await redeemLoyaltyPointsAction({
-        points: selectedOption.pointsCost,
-        rewardTitle: selectedOption.title,
-        creditWallet: selectedOption.creditWallet,
-        walletCreditAmount: selectedOption.walletCreditAmount,
+        rewardId: selectedOption.id,
       });
 
       if (res.success && res.data) {
         setVoucherResult({
-          code: res.data.voucherCode,
-          walletCredited: res.data.walletCredited,
+          code: res.data.voucherCode || "Active",
+          walletCredited: selectedOption.credit_wallet,
           rewardTitle: selectedOption.title,
         });
         toast.success("Points successfully redeemed!");
@@ -228,9 +194,16 @@ export function RedeemRewardsDialog({
             </DialogHeader>
 
             <div className="grid gap-3 py-4 max-h-[60vh] overflow-y-auto pr-1">
-              {REWARD_OPTIONS.map((opt) => {
-                const canAfford = userPoints >= opt.pointsCost;
-                const isSelected = selectedOption.id === opt.id;
+              {loading ? (
+                <div className="py-8 text-center flex flex-col items-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                  <p className="text-xs mt-2 text-muted-foreground">Loading rewards...</p>
+                </div>
+              ) : options.length === 0 ? (
+                <p className="text-center text-sm text-muted-foreground">No rewards available.</p>
+              ) : options.map((opt) => {
+                const canAfford = userPoints >= opt.points_cost;
+                const isSelected = selectedOption?.id === opt.id;
 
                 return (
                   <Card
@@ -246,7 +219,7 @@ export function RedeemRewardsDialog({
                       <div className="space-y-1 flex-1">
                         <div className="flex items-center gap-2">
                           <h4 className="font-medium text-sm leading-tight">{opt.title}</h4>
-                          {opt.creditWallet && (
+                          {opt.credit_wallet && (
                             <Badge
                               variant="outline"
                               className="text-[10px] bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border-emerald-200 py-0"
@@ -266,7 +239,7 @@ export function RedeemRewardsDialog({
                             canAfford ? "text-primary" : "text-muted-foreground"
                           }`}
                         >
-                          {opt.pointsCost.toLocaleString()} PTS
+                          {opt.points_cost.toLocaleString()} PTS
                         </span>
                         <span
                           className={`text-[10px] uppercase font-semibold ${
@@ -288,7 +261,7 @@ export function RedeemRewardsDialog({
               </Button>
               <Button
                 onClick={handleRedeem}
-                disabled={isSubmitting || userPoints < selectedOption.pointsCost}
+                disabled={isSubmitting || !selectedOption || userPoints < selectedOption.points_cost}
                 className="gap-2"
               >
                 {isSubmitting ? (
@@ -299,7 +272,7 @@ export function RedeemRewardsDialog({
                 ) : (
                   <>
                     <Gift className="h-4 w-4" />
-                    Redeem for {selectedOption.pointsCost.toLocaleString()} PTS
+                    Redeem {selectedOption ? `for ${selectedOption.points_cost.toLocaleString()} PTS` : ''}
                   </>
                 )}
               </Button>

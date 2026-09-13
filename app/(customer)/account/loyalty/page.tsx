@@ -1,6 +1,6 @@
 "use client";
 
-import { useLoyaltyStore } from "@/stores/use-loyalty-store";
+import { useEffect, useState } from "react";
 import { TierBadge } from "@/components/customer/loyalty/tier-badges";
 import { Progress } from "@/components/ui/progress";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -9,19 +9,46 @@ import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { RedeemRewardsDialog } from "@/features/customer/RedeemRewardsDialog";
+import { fetchLoyaltyAction } from "@/app/actions/customer.actions";
 
 export default function LoyaltyPage() {
-  const { points, tier, lifetimePoints } = useLoyaltyStore();
+  const [points, setPoints] = useState<number>(0);
+  const [tier, setTier] = useState<string>("MEMBER");
+  const [lifetimePoints, setLifetimePoints] = useState<number>(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function loadLoyalty() {
+      try {
+        const res = await fetchLoyaltyAction();
+        if (res.success && res.data) {
+          setPoints(res.data.points_balance || 0);
+          setTier(res.data.tier || "MEMBER");
+          setLifetimePoints(res.data.lifetime_points || 0);
+        }
+      } catch (err) {
+        console.error("Failed to load loyalty:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadLoyalty();
+  }, []);
 
   const getNextTierInfo = () => {
-    if (tier === "Bronze") return { next: "Silver", threshold: 1000 };
-    if (tier === "Silver") return { next: "Gold", threshold: 5000 };
-    if (tier === "Gold") return { next: "Platinum", threshold: 10000 };
+    if (tier === "MEMBER") return { next: "BRONZE", threshold: 1000 };
+    if (tier === "BRONZE") return { next: "SILVER", threshold: 5000 };
+    if (tier === "SILVER") return { next: "GOLD", threshold: 15000 };
+    if (tier === "GOLD") return { next: "PLATINUM", threshold: 50000 };
     return null;
   };
 
   const nextTier = getNextTierInfo();
   const progressPercent = nextTier ? Math.min((lifetimePoints / nextTier.threshold) * 100, 100) : 100;
+
+  if (loading) {
+    return <div className="p-8 text-center text-gray-500 animate-pulse">Loading loyalty data...</div>;
+  }
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -94,22 +121,22 @@ export default function LoyaltyPage() {
           <BenefitCard 
             title="Bronze" 
             description="Access to member-only sales" 
-            active={tier === "Bronze"} 
+            active={tier === "BRONZE" || tier === "SILVER" || tier === "GOLD" || tier === "PLATINUM"} 
           />
           <BenefitCard 
             title="Silver" 
             description="Birthday gift and standard free shipping" 
-            active={tier === "Silver"} 
+            active={tier === "SILVER" || tier === "GOLD" || tier === "PLATINUM"} 
           />
           <BenefitCard 
             title="Gold" 
             description="Free express shipping and early access" 
-            active={tier === "Gold"} 
+            active={tier === "GOLD" || tier === "PLATINUM"} 
           />
           <BenefitCard 
             title="Platinum" 
             description="VIP events, priority support, and stylist" 
-            active={tier === "Platinum"} 
+            active={tier === "PLATINUM"} 
           />
         </div>
       </div>

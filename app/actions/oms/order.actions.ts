@@ -274,6 +274,25 @@ export async function cancelCustomerOrderAction(
       refundStatus = "failed/pending";
     }
 
+    // 6.5 Reverse Loyalty Points
+    try {
+      if (order.customer_id) {
+        const subtotal = Number(order.subtotal || 0);
+        const pointsToReverse = Math.floor(subtotal / 100);
+        if (pointsToReverse > 0) {
+          const { LoyaltyService } = await import("@/services/loyalty.service");
+          await LoyaltyService.reversePoints({
+            userId: order.customer_id,
+            referenceId: order.id,
+            pointsToReverse,
+            reason: "CANCELLED"
+          });
+        }
+      }
+    } catch (loyaltyError) {
+      console.error(`[cancelCustomerOrderAction] Failed to reverse loyalty for order ${order.id}`, loyaltyError);
+    }
+
     // 7. Write Order Status History (Audit Idempotency via single winner update)
     try {
       await adminSupabase.from("order_status_history").insert({

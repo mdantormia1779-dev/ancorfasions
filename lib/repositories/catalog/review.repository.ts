@@ -55,6 +55,29 @@ export class ReviewRepository {
   }
 
   /**
+   * Retrieves aggregated review stats for a product from the database view.
+   */
+  static async getReviewStatsByProductId(productId: string): Promise<any> {
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("product_review_stats")
+        .select("*")
+        .eq("product_id", productId)
+        .maybeSingle();
+
+      if (error) {
+        console.error("Error fetching product review stats:", error);
+        return null;
+      }
+      return data;
+    } catch (err) {
+      console.error("Unexpected error in getReviewStatsByProductId:", err);
+      return null;
+    }
+  }
+
+  /**
    * Approves a review (makes it publicly visible).
    */
   static async approveReview(id: string): Promise<void> {

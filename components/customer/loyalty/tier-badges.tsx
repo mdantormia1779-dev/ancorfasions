@@ -1,15 +1,16 @@
-import { LoyaltyTier } from "@/stores/use-loyalty-store";
 import { cn } from "@/lib/utils";
 import { Award, Crown, Gem, Star } from "lucide-react";
 
+export type LoyaltyTier = "Bronze" | "Silver" | "Gold" | "Platinum" | "VIP";
+
 interface TierBadgeProps {
-  tier: LoyaltyTier;
+  tier: LoyaltyTier | string;
   className?: string;
   showIcon?: boolean;
 }
 
 export function TierBadge({ tier, className, showIcon = true }: TierBadgeProps) {
-  const tierConfig = {
+  const tierConfig: Record<string, any> = {
     Bronze: {
       bg: "bg-gradient-to-r from-[#CD7F32] to-[#B87333]",
       text: "text-white",
@@ -34,9 +35,20 @@ export function TierBadge({ tier, className, showIcon = true }: TierBadgeProps) 
       shadow: "shadow-[#8C92AC]/20",
       icon: Gem,
     },
+    VIP: {
+      bg: "bg-gradient-to-r from-[#1A1A1A] to-[#4A4A4A]",
+      text: "text-white",
+      shadow: "shadow-[#1A1A1A]/20",
+      icon: Crown,
+    }
   };
 
-  const config = tierConfig[tier];
+  const config = tierConfig[tier] || {
+    bg: "bg-gray-100",
+    text: "text-gray-600",
+    shadow: "shadow-none",
+    icon: Star,
+  };
   const Icon = config.icon;
 
   return (

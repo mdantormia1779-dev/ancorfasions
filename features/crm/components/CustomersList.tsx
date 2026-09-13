@@ -8,8 +8,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { TierBadge } from "@/components/customer/loyalty/tier-badges";
-import { LoyaltyTier } from "@/stores/use-loyalty-store";
+import { TierBadge, LoyaltyTier } from "@/components/customer/loyalty/tier-badges";
 
 export type CustomerLifecycleStage =
   | "PROSPECT"

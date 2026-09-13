@@ -420,6 +420,24 @@ export class ShippingService {
       undefined,
       "webhook"
     );
+
+    // Sync to OMS for critical lifecycle events
+    try {
+      const { OrderService } = require("@/lib/services/oms/order.service");
+      const orderService = new OrderService();
+      
+      if (event.status === "delivered") {
+        await orderService.updateOrderStatus(shipment.order_id, "delivered", undefined, "webhook");
+      } else if (event.status === "returned_to_origin") {
+        await orderService.updateOrderStatus(shipment.order_id, "returned", undefined, "webhook");
+      } else if (event.status === "picked_up" || event.status === "in_transit") {
+        // If the OMS is still in ready_for_shipment, advance it. 
+        // updateOrderStatus safely catches invalid transitions
+        await orderService.updateOrderStatus(shipment.order_id, "shipped", undefined, "webhook").catch(() => {});
+      }
+    } catch (omsErr) {
+      console.error(`[ShippingService] Failed to sync webhook event to OMS for order ${shipment.order_id}:`, omsErr);
+    }
   }
 
   /**

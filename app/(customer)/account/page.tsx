@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Package, Wallet, Award, Heart, TrendingUp, CreditCard, ChevronRight, ShoppingBag, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { useLoyaltyStore } from "@/stores/use-loyalty-store";
 import { TierBadge } from "@/components/customer/loyalty/tier-badges";
 import { createClient } from "@/lib/supabase/client";
 import { formatCurrency } from "@/lib/utils";
@@ -16,12 +15,13 @@ interface AccountSummary {
   monthlySpending: number;
   savedItemsCount: number;
   walletBalance: number;
+  loyaltyPoints?: number;
+  loyaltyTier?: string;
   recentOrders: any[];
   role: string;
 }
 
 export default function AccountOverviewPage() {
-  const { tier, points } = useLoyaltyStore();
   const [loading, setLoading] = useState(true);
   const [summary, setSummary] = useState<AccountSummary>({
     firstName: "Valued Customer",
@@ -85,12 +85,21 @@ export default function AccountOverviewPage() {
           .eq("customer_id", user.id)
           .maybeSingle();
 
+        // 5. Loyalty
+        const { data: loyalty } = await supabase
+          .from("loyalty_accounts")
+          .select("points_balance, tier")
+          .eq("customer_id", user.id)
+          .maybeSingle();
+
         setSummary({
           firstName: name,
           recentOrdersCount,
           monthlySpending,
           savedItemsCount: wishlistCount || 0,
           walletBalance: Number(wallet?.balance) || 0,
+          loyaltyPoints: loyalty?.points_balance || 0,
+          loyaltyTier: loyalty?.tier || "MEMBER",
           recentOrders,
           role: userRole,
         });
@@ -137,9 +146,9 @@ export default function AccountOverviewPage() {
         </div>
         <div className="flex items-center gap-3 bg-gray-50 px-4 py-2 rounded-lg border border-gray-100">
           <Award className="h-4 w-4 text-[#C9A86A]" />
-          <span className="text-sm font-medium text-[#1A1A1A]">{points.toLocaleString()} Points</span>
+          <span className="text-sm font-medium text-[#1A1A1A]">{(summary.loyaltyPoints || 0).toLocaleString()} Points</span>
           <div className="w-px h-4 bg-gray-200 mx-1" />
-          <TierBadge tier={tier} showIcon={false} />
+          <TierBadge tier={summary.loyaltyTier || "MEMBER"} showIcon={false} />
         </div>
       </div>
 
