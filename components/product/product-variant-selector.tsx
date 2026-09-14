@@ -227,11 +227,19 @@ export function ProductVariantSelector({
   const isOutOfStock = currentStock <= 0;
   const isLowStock = currentStock > 0 && currentStock <= 5;
 
-  // Max selectable quantity (capped at available stock, max 10)
+  // Max selectable quantity (capped at available stock, max 10, or flash sale limit)
   const maxAllowedQuantity = useMemo(() => {
     if (isOutOfStock) return 0;
-    return Math.min(Math.max(1, currentStock), 10);
-  }, [isOutOfStock, currentStock]);
+    let limit = Math.min(Math.max(1, currentStock), 10);
+    
+    // Cap at flash sale remaining stock if active
+    if (flashSale && flashSale.stock_allocated > flashSale.stock_sold) {
+      const flashSaleRemaining = flashSale.stock_allocated - flashSale.stock_sold;
+      limit = Math.min(limit, Math.max(1, flashSaleRemaining));
+    }
+    
+    return limit;
+  }, [isOutOfStock, currentStock, flashSale]);
 
   // Clamp quantity if stock changes
   useEffect(() => {

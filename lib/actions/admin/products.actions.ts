@@ -139,7 +139,7 @@ export const duplicateAdminProductAction = createAdminAction(
       categoryId: original.categoryId,
       brandId: original.brandId || undefined,
       basePrice: original.basePrice,
-      sku: original.sku ? `${original.sku}-COPY` : undefined,
+      sku: original.sku ? `${original.sku}-COPY-${Date.now().toString(36).toUpperCase()}` : undefined,
       status: "DRAFT" as const, // Always draft on copy
       isFeatured: false,
       // ... we could copy SEO and Media too, but keeping it simple for now

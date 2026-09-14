@@ -68,7 +68,11 @@ export default function NewPurchaseOrderPage() {
     }
 
     // Filter out invalid items
-    const validItems = items.filter(i => i.variant_id.trim() !== "" && i.quantity_ordered > 0);
+    const validItems = items.filter(i => 
+      i.variant_id.trim() !== "" && 
+      i.quantity_ordered > 0 && 
+      !isNaN(i.unit_cost)
+    );
     
     if (validItems.length === 0) {
       toast.error("Please add at least one valid item to the order.");
@@ -80,7 +84,7 @@ export default function NewPurchaseOrderPage() {
     const expectedDelivery = formData.get("expected_delivery_date") as string;
 
     const poData = {
-      po_number: `PO-${Date.now().toString().slice(-6)}`, // Simple auto-generation
+      po_number: `PO-${new Date().toISOString().slice(0,10).replace(/-/g, '')}-${Math.random().toString(36).substring(2, 6).toUpperCase()}`, // Unique date + random chars
       supplier_id,
       destination_warehouse_id,
       status: "DRAFT" as const,
@@ -185,8 +189,8 @@ export default function NewPurchaseOrderPage() {
                     type="number" 
                     required 
                     min="1" 
-                    value={item.quantity_ordered}
-                    onChange={(e) => handleItemChange(index, "quantity_ordered", parseInt(e.target.value))}
+                    value={item.quantity_ordered || ""}
+                    onChange={(e) => handleItemChange(index, "quantity_ordered", parseInt(e.target.value) || 0)}
                   />
                 </div>
                 <div className="space-y-2 w-full md:w-32">
@@ -196,8 +200,8 @@ export default function NewPurchaseOrderPage() {
                     required 
                     min="0" 
                     step="0.01" 
-                    value={item.unit_cost}
-                    onChange={(e) => handleItemChange(index, "unit_cost", parseFloat(e.target.value))}
+                    value={item.unit_cost || ""}
+                    onChange={(e) => handleItemChange(index, "unit_cost", parseFloat(e.target.value) || 0)}
                   />
                 </div>
                 {items.length > 1 && (

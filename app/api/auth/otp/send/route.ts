@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 2. Abuse Prevention: Check rate limits
+    // 2. Abuse Prevention: Check rate limits for Email
     const rateCheck = await OtpStore.checkRateLimit(
       email,
       RATE_LIMIT_SECONDS,
@@ -57,6 +57,26 @@ export async function POST(request: Request) {
         },
         { status: 429 }
       );
+    }
+
+    // 2b. Abuse Prevention: Check rate limits for IP Address
+    const forwardedFor = request.headers.get("x-forwarded-for");
+    const ip = forwardedFor ? forwardedFor.split(",")[0].trim() : "unknown-ip";
+    
+    if (ip !== "unknown-ip") {
+      const ipRateCheck = await OtpStore.checkRateLimit(
+        `ip:${ip}`,
+        RATE_LIMIT_SECONDS,
+        MAX_ATTEMPTS_PER_WINDOW * 3, // slightly higher threshold for shared IPs (NAT)
+        ABUSE_WINDOW_MINUTES
+      );
+      
+      if (ipRateCheck.rateLimited || ipRateCheck.abuseExceeded) {
+        return NextResponse.json(
+          { error: "Too many requests from this IP address. Please try again later." },
+          { status: 429 }
+        );
+      }
     }
 
     // 3. Generate Cryptographically Secure 6-digit OTP
