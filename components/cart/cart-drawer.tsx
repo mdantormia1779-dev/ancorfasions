@@ -41,7 +41,7 @@ export function CartDrawer() {
       return sum + price * item.quantity;
     }, 0) || 0;
 
-  const FREE_SHIPPING_THRESHOLD = 5000;
+  const FREE_SHIPPING_THRESHOLD = 999;
   const progress = Math.min((subtotal / FREE_SHIPPING_THRESHOLD) * 100, 100);
   const amountNeeded = FREE_SHIPPING_THRESHOLD - subtotal;
   
