@@ -57,8 +57,10 @@ export interface Order {
   cancelled_at: string | null;
   created_at: string;
   updated_at: string;
-  created_by: string | null;
   updated_by: string | null;
+  order_source?: string;
+  branch_id?: string;
+  notes?: string | null;
 }
 
 export interface OrderItem {

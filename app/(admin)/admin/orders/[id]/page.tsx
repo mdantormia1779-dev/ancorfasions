@@ -19,8 +19,6 @@ import {
   ShoppingBag,
   ShieldCheck,
 } from "lucide-react";
-import { OrderInvoicePrint } from "@/features/orders/components/OrderInvoicePrint";
-import { OrderPackingSlipPrint } from "@/features/orders/components/OrderPackingSlipPrint";
 import { toast } from "sonner";
 
 export default function AdminOrderDetailsPage() {
@@ -28,9 +26,6 @@ export default function AdminOrderDetailsPage() {
   const orderId = params.id as string;
   const { order, isLoading, updateStatus, isUpdatingStatus } =
     useOrderDetails(orderId);
-
-  const [showInvoice, setShowInvoice] = useState(false);
-  const [showPackingSlip, setShowPackingSlip] = useState(false);
 
   if (isLoading) return <div className="p-8 text-muted-foreground">Loading order details...</div>;
   if (!order) return <div className="p-8 text-destructive">Order not found</div>;
@@ -82,19 +77,23 @@ export default function AdminOrderDetailsPage() {
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
-            onClick={() => setShowInvoice(true)}
+            asChild
             className="gap-2"
           >
-            <Printer className="h-4 w-4" />
-            Print Invoice
+            <Link href={`/admin/orders/${order.id}/invoice`} target="_blank">
+              <Printer className="h-4 w-4" />
+              Print Invoice
+            </Link>
           </Button>
           <Button
             variant="outline"
-            onClick={() => setShowPackingSlip(true)}
+            asChild
             className="gap-2"
           >
-            <FileText className="h-4 w-4" />
-            Print Packing Slip
+            <Link href={`/admin/orders/${order.id}/packing-slip`} target="_blank">
+              <FileText className="h-4 w-4" />
+              Print Packing Slip
+            </Link>
           </Button>
         </div>
       </div>
@@ -486,21 +485,6 @@ export default function AdminOrderDetailsPage() {
         </div>
       </div>
 
-      {/* Invoice Printable View */}
-      {showInvoice && (
-        <OrderInvoicePrint
-          order={typedOrder}
-          onClose={() => setShowInvoice(false)}
-        />
-      )}
-
-      {/* Packing Slip Printable View */}
-      {showPackingSlip && (
-        <OrderPackingSlipPrint
-          order={typedOrder}
-          onClose={() => setShowPackingSlip(false)}
-        />
-      )}
     </div>
   );
 }

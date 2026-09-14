@@ -487,7 +487,8 @@ export class ReturnsService {
    */
   async processReturnRestock(
     returnId: string,
-    itemConditions: Record<string, "good" | "damaged" | "defective"> = {}
+    itemConditions: Record<string, "good" | "damaged" | "defective"> = {},
+    adminUserId?: string
   ): Promise<ReturnRequest> {
     const supabase = createAdminClient();
     const returnRecord = await this.returnRepo.getReturnById(returnId);
@@ -506,9 +507,20 @@ export class ReturnsService {
           .eq("id", item.id);
       }
 
-      // Restock only if condition is GOOD and item was not previously restocked
-      if (condition === "good" && !item.restocked) {
-        if (item.order_item_id) {
+      // Restock only if condition is GOOD
+      if (condition === "good") {
+        // ATOMIC LOCK: Try to set restocked = true where restocked = false
+        const { data: updatedItem, error: updateErr } = await supabase
+          .from("return_items")
+          .update({ restocked: true } as any)
+          .eq("id", item.id)
+          .eq("restocked", false)
+          .select("id")
+          .maybeSingle();
+          
+        if (updateErr) console.error("Atomic restock lock error:", updateErr);
+
+        if (updatedItem && item.order_item_id) {
           const { data: orderItem } = await supabase
             .from("order_items")
             .select("variant_id, allocated_warehouse_id")
@@ -561,17 +573,14 @@ export class ReturnsService {
             }
           }
         }
-
-        // Mark item as restocked idempotently
-        await this.returnRepo.markItemRestocked(item.id);
       }
     }
 
-    return this.returnRepo.updateReturn(returnId, {
+    return this.returnRepo.atomicUpdateStatus(returnId, ["received", "inventory_synced"], {
       status: "inventory_synced",
       inventory_synced_at: new Date().toISOString(),
       inspected_at: new Date().toISOString(),
-    });
+    }, adminUserId);
   }
 
   /**
@@ -588,6 +597,15 @@ export class ReturnsService {
 
     if (returnRecord.refund_status === "PROCESSED") {
       return { success: true, method: returnRecord.refund_method || "ORIGINAL_PAYMENT" };
+    }
+
+    // ATOMIC LOCK: Prevent concurrent refund processing
+    try {
+      await this.returnRepo.atomicUpdateRefundStatus(returnId, ["PENDING", null], {
+        refund_status: "PROCESSING"
+      }, adminUserId);
+    } catch (lockError) {
+      return { success: false, method: "UNKNOWN", error: "Refund is already being processed or was completed." };
     }
 
     const { data: order } = await supabase
@@ -793,10 +811,10 @@ export class ReturnsService {
     returnId: string,
     updatedBy?: string
   ): Promise<ReturnRequest> {
-    return this.returnRepo.updateReturn(returnId, {
+    return this.returnRepo.atomicUpdateStatus(returnId, ["requested"], {
       status: "approved",
       approved_at: new Date().toISOString(),
-    });
+    }, updatedBy);
   }
 
   /**
@@ -807,12 +825,12 @@ export class ReturnsService {
     reason?: string,
     updatedBy?: string
   ): Promise<ReturnRequest> {
-    return this.returnRepo.updateReturn(returnId, {
+    return this.returnRepo.atomicUpdateStatus(returnId, ["requested"], {
       status: "rejected",
       rejection_reason: reason ?? null,
       rejected_at: new Date().toISOString(),
       notes: reason ?? null,
-    });
+    }, updatedBy);
   }
 
   /**
@@ -822,7 +840,7 @@ export class ReturnsService {
     returnId: string,
     courierCode?: string
   ): Promise<ReturnRequest> {
-    return this.returnRepo.updateReturn(returnId, {
+    return this.returnRepo.atomicUpdateStatus(returnId, ["approved"], {
       status: "pickup_scheduled",
     });
   }
@@ -831,7 +849,7 @@ export class ReturnsService {
    * Mark return as picked up.
    */
   async markReturnPickedUp(returnId: string): Promise<ReturnRequest> {
-    return this.returnRepo.updateReturn(returnId, {
+    return this.returnRepo.atomicUpdateStatus(returnId, ["approved", "pickup_scheduled"], {
       status: "picked_up",
       picked_up_at: new Date().toISOString(),
     });
@@ -840,11 +858,11 @@ export class ReturnsService {
   /**
    * Mark return as received at warehouse.
    */
-  async markReturnReceived(returnId: string): Promise<ReturnRequest> {
-    return this.returnRepo.updateReturn(returnId, {
+  async markReturnReceived(returnId: string, updatedBy?: string): Promise<ReturnRequest> {
+    return this.returnRepo.atomicUpdateStatus(returnId, ["approved", "pickup_scheduled", "picked_up", "in_transit"], {
       status: "received",
       received_at: new Date().toISOString(),
-    });
+    }, updatedBy);
   }
 
   /**
@@ -857,11 +875,11 @@ export class ReturnsService {
   /**
    * Complete the return process.
    */
-  async completeReturn(returnId: string): Promise<ReturnRequest> {
-    return this.returnRepo.updateReturn(returnId, {
+  async completeReturn(returnId: string, updatedBy?: string): Promise<ReturnRequest> {
+    return this.returnRepo.atomicUpdateStatus(returnId, ["inventory_synced", "received"], {
       status: "completed",
       completed_at: new Date().toISOString(),
-    });
+    }, updatedBy);
   }
 
   /**
@@ -871,7 +889,7 @@ export class ReturnsService {
     returnId: string,
     reason?: string
   ): Promise<ReturnRequest> {
-    return this.returnRepo.updateReturn(returnId, {
+    return this.returnRepo.atomicUpdateStatus(returnId, ["requested"], {
       status: "cancelled",
       notes: reason ?? null,
     });

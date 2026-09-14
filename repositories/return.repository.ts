@@ -65,6 +65,83 @@ export class ReturnRepository {
   }
 
   /**
+   * Atomic state transition: updates status only if current status is in allowed array.
+   * Automatically logs to order_notes.
+   */
+  async atomicUpdateStatus(
+    id: string,
+    allowedCurrentStatuses: string[],
+    data: Partial<ReturnRequest> & { status: string },
+    actorId?: string
+  ): Promise<ReturnRequest> {
+    const supabase = this.getClient();
+    
+    const { data: updated, error } = await supabase
+      .from("returns")
+      .update(data as any)
+      .eq("id", id)
+      .in("status", allowedCurrentStatuses)
+      .select()
+      .maybeSingle();
+
+    if (error) throw new Error(`Atomic status update failed: ${error.message}`);
+    if (!updated) throw new Error(`Invalid state transition. Return ${id} is not in an allowed state: ${allowedCurrentStatuses.join(", ")}`);
+    
+    // Audit Log
+    await supabase.from("order_notes").insert({
+      order_id: updated.order_id,
+      author_id: actorId || null,
+      note: `[RETURN] Status changed to '${data.status}' for Return #${updated.return_number}`,
+      is_customer_visible: false,
+    });
+
+    return updated as ReturnRequest;
+  }
+
+  /**
+   * Atomic refund transition: updates refund_status only if it is in allowed array (or null).
+   * Automatically logs to order_notes.
+   */
+  async atomicUpdateRefundStatus(
+    id: string,
+    allowedCurrentStatuses: (string | null)[],
+    data: Partial<ReturnRequest> & { refund_status: string },
+    actorId?: string
+  ): Promise<ReturnRequest> {
+    const supabase = this.getClient();
+    
+    const conditionParts = [];
+    const validStrings = allowedCurrentStatuses.filter(s => s !== null);
+    if (validStrings.length > 0) {
+      conditionParts.push(`refund_status.in.(${validStrings.join(",")})`);
+    }
+    if (allowedCurrentStatuses.includes(null)) {
+      conditionParts.push(`refund_status.is.null`);
+    }
+    
+    const { data: updated, error } = await supabase
+      .from("returns")
+      .update(data as any)
+      .eq("id", id)
+      .or(conditionParts.join(","))
+      .select()
+      .maybeSingle();
+
+    if (error) throw new Error(`Atomic refund status update failed: ${error.message}`);
+    if (!updated) throw new Error(`Refund already processed or locked by another transaction.`);
+    
+    // Audit Log
+    await supabase.from("order_notes").insert({
+      order_id: updated.order_id,
+      author_id: actorId || null,
+      note: `[RETURN] Refund status changed to '${data.status || data.refund_status}' for Return #${updated.return_number}`,
+      is_customer_visible: false,
+    });
+
+    return updated as ReturnRequest;
+  }
+
+  /**
    * Get return by ID.
    */
   async getReturnById(id: string): Promise<ReturnRequest | null> {
@@ -130,13 +207,16 @@ export class ReturnRepository {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    let query = supabase.from("returns").select("*", { count: "exact" });
+    let query = supabase.from("returns").select("*, orders!inner(branch_id)", { count: "exact" });
 
     if (filters.status) query = query.eq("status", filters.status);
     if (filters.dateFrom) query = query.gte("created_at", filters.dateFrom);
     if (filters.dateTo) query = query.lte("created_at", filters.dateTo);
     if (filters.search) {
       query = query.or(`return_number.ilike.%${filters.search}%`);
+    }
+    if (filters.branchId) {
+      query = query.eq("orders.branch_id", filters.branchId);
     }
 
     const { data, error, count } = await query

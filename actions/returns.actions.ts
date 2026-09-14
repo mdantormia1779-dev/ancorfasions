@@ -36,6 +36,38 @@ async function getCurrentUser() {
   }
 }
 
+async function requireBranchAccess(returnId: string) {
+  const user = await getCurrentUser();
+  if (!user) throw new Error("Unauthorized");
+
+  const adminClient = createAdminClient();
+  const { data: profile } = await adminClient
+    .from("employee_profiles")
+    .select("branch_id, roles")
+    .eq("id", user.id)
+    .maybeSingle();
+
+  const isGlobalAdmin = profile?.roles?.includes("admin") || user.app_metadata?.role === "admin";
+  if (isGlobalAdmin) return true;
+
+  if (!profile?.branch_id) {
+    throw new Error("Unauthorized: No branch assigned.");
+  }
+
+  const { data: returnData, error } = await adminClient
+    .from("returns")
+    .select("orders!inner(branch_id)")
+    .eq("id", returnId)
+    .maybeSingle();
+
+  if (error || !returnData) throw new Error("Return not found.");
+  // @ts-ignore
+  if (returnData.orders.branch_id !== profile.branch_id) {
+    throw new Error("Unauthorized: You can only access returns for your branch.");
+  }
+  return true;
+}
+
 // ============================================================================
 // Customer Self-Service Actions
 // ============================================================================
@@ -261,6 +293,7 @@ export async function approveReturnAction(
   }
 
   try {
+    await requireBranchAccess(returnId);
     const user = await getCurrentUser();
     const service = new ReturnsService();
     await service.approveReturn(returnId, user?.id);
@@ -287,6 +320,7 @@ export async function rejectReturnAction(
   }
 
   try {
+    await requireBranchAccess(returnId);
     const user = await getCurrentUser();
     const service = new ReturnsService();
     await service.rejectReturn(returnId, reason, user?.id);
@@ -309,8 +343,27 @@ export async function fetchReturnsAction(
   }
 
   try {
+    const user = await getCurrentUser();
+    let branchId: string | undefined;
+
+    if (user) {
+      const adminClient = createAdminClient();
+      const { data: profile } = await adminClient
+        .from("employee_profiles")
+        .select("branch_id, roles")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      const isGlobalAdmin = profile?.roles?.includes("admin") || user.app_metadata?.role === "admin";
+      if (!isGlobalAdmin && profile?.branch_id) {
+        branchId = profile.branch_id;
+      }
+    }
+
+    const filters = { ...parse.data, branchId };
+
     const service = new ReturnsService();
-    const result = await service.listReturns(parse.data as any);
+    const result = await service.listReturns(filters as any);
     return { success: true, data: result };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -321,6 +374,7 @@ export async function fetchReturnByIdAction(
   returnId: string
 ): Promise<ActionResponse<any>> {
   try {
+    await requireBranchAccess(returnId);
     const service = new ReturnsService();
     const returnRecord = await service.getReturnWithItems(returnId);
 
@@ -335,8 +389,10 @@ export async function markReturnReceivedAction(
   returnId: string
 ): Promise<ActionResponse<{ returnId: string }>> {
   try {
+    await requireBranchAccess(returnId);
+    const user = await getCurrentUser();
     const service = new ReturnsService();
-    await service.markReturnReceived(returnId);
+    await service.markReturnReceived(returnId, user?.id);
 
     revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
@@ -352,8 +408,10 @@ export async function syncReturnInventoryAction(
   itemConditions: Record<string, "good" | "damaged" | "defective"> = {}
 ): Promise<ActionResponse<{ returnId: string }>> {
   try {
+    await requireBranchAccess(returnId);
+    const user = await getCurrentUser();
     const service = new ReturnsService();
-    await service.processReturnRestock(returnId, itemConditions);
+    await service.processReturnRestock(returnId, itemConditions, user?.id);
 
     revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
@@ -368,8 +426,10 @@ export async function completeReturnAction(
   returnId: string
 ): Promise<ActionResponse<{ returnId: string }>> {
   try {
+    await requireBranchAccess(returnId);
+    const user = await getCurrentUser();
     const service = new ReturnsService();
-    await service.completeReturn(returnId);
+    await service.completeReturn(returnId, user?.id);
 
     revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
@@ -384,6 +444,7 @@ export async function processReturnRefundAction(
   returnId: string
 ): Promise<ActionResponse<{ success: boolean; method: string; refundRef?: string }>> {
   try {
+    await requireBranchAccess(returnId);
     const user = await getCurrentUser();
     const service = new ReturnsService();
     const result = await service.processReturnRefund(returnId, user?.id);

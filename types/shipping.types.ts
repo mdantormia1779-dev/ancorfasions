@@ -230,7 +230,7 @@ export interface ReturnRequest {
   inventory_synced_at: string | null;
   completed_at: string | null;
   notes: string | null;
-  refund_status?: "PENDING" | "APPROVED" | "PROCESSED" | "REJECTED" | "FAILED" | null;
+  refund_status?: "PENDING" | "PROCESSING" | "APPROVED" | "PROCESSED" | "REJECTED" | "FAILED" | null;
   refund_amount?: number | null;
   refund_method?: "ORIGINAL_PAYMENT" | "WALLET" | "MANUAL" | null;
   exchange_requested?: boolean;
@@ -513,6 +513,7 @@ export interface ReturnFilters {
   search?: string;
   page?: number;
   limit?: number;
+  branchId?: string;
 }
 
 export interface PaginatedResult<T> {

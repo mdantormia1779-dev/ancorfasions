@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useOrders } from "@/hooks/oms/use-orders";
+import { useReturns } from "@/hooks/shipping/use-returns";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -15,27 +15,44 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { OrderStatus } from "@/types/oms";
 
 export default function AdminReturnsOrdersPage() {
   const [page, setPage] = useState(1);
-  const status: OrderStatus = "returned";
-  const { data, isLoading, error } = useOrders({ page, limit: 10, status });
+  const [search, setSearch] = useState("");
+  const { data, isLoading, error } = useReturns({ page, limit: 10, search });
 
-  if (error) return <div>Error loading orders</div>;
+  if (error) return <div className="p-6 text-red-500">Error loading returns</div>;
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case "requested": return <Badge variant="secondary">Requested</Badge>;
+      case "approved": return <Badge variant="default">Approved</Badge>;
+      case "rejected": return <Badge variant="destructive">Rejected</Badge>;
+      case "received": return <Badge variant="outline">Received</Badge>;
+      case "completed": return <Badge variant="outline" className="bg-green-100 text-green-800">Completed</Badge>;
+      default: return <Badge variant="outline">{status}</Badge>;
+    }
+  };
 
   return (
     <div className="space-y-6 p-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight">Returns</h1>
-        <Button>Export Orders</Button>
+        <h1 className="text-3xl font-bold tracking-tight">Return Management</h1>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Returned Orders</CardTitle>
+          <CardTitle>Return Requests</CardTitle>
           <div className="flex space-x-2">
-            <Input placeholder="Search order number..." className="max-w-xs" />
+            <Input 
+              placeholder="Search return number..." 
+              className="max-w-xs" 
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
           </div>
         </CardHeader>
         <CardContent>
@@ -45,41 +62,45 @@ export default function AdminReturnsOrdersPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Order #</TableHead>
+                  <TableHead>Return #</TableHead>
                   <TableHead>Date</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Total</TableHead>
+                  <TableHead>Reason</TableHead>
+                  <TableHead>Refund Amount</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Refund Status</TableHead>
                   <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data?.data?.map((order: any) => (
-                  <TableRow key={order.id}>
+                {data?.data?.map((ret: any) => (
+                  <TableRow key={ret.id}>
                     <TableCell className="font-medium">
                       <Link
-                        href={`/admin/orders/${order.id}`}
+                        href={`/admin/orders/returns/${ret.id}`}
                         className="text-blue-600 hover:underline"
                       >
-                        {order.order_number}
+                        {ret.return_number}
                       </Link>
                     </TableCell>
                     <TableCell>
-                      {new Date(order.created_at).toLocaleDateString()}
+                      {new Date(ret.created_at).toLocaleDateString()}
                     </TableCell>
+                    <TableCell className="capitalize">{ret.reason}</TableCell>
+                    <TableCell>৳{ret.refund_amount?.toFixed(2) || "0.00"}</TableCell>
+                    <TableCell>{getStatusBadge(ret.status)}</TableCell>
                     <TableCell>
-                      {order.customer ? `${order.customer.first_name || ""} ${order.customer.last_name || ""}`.trim() || order.customer.email : order.customer_id || "Guest"}
-                    </TableCell>
-                    <TableCell>${order.grand_total.toFixed(2)}</TableCell>
-                    <TableCell>
-                      <Badge variant="destructive">
-                        {order.status}
-                      </Badge>
+                      {ret.refund_status === "PROCESSED" ? (
+                         <Badge variant="outline" className="bg-green-100 text-green-800">Refunded</Badge>
+                      ) : ret.refund_status === "PENDING" ? (
+                        <Badge variant="secondary">Pending Refund</Badge>
+                      ) : (
+                        <span className="text-gray-400">-</span>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
-                      <Link href={`/admin/orders/${order.id}`}>
+                      <Link href={`/admin/orders/returns/${ret.id}`}>
                         <Button variant="outline" size="sm">
-                          View
+                          Review
                         </Button>
                       </Link>
                     </TableCell>
@@ -87,8 +108,8 @@ export default function AdminReturnsOrdersPage() {
                 ))}
                 {(!data?.data || data.data.length === 0) && (
                   <TableRow>
-                    <TableCell colSpan={6} className="py-4 text-center text-muted-foreground">
-                      No returned orders found.
+                    <TableCell colSpan={7} className="py-8 text-center text-muted-foreground">
+                      No returns found matching your criteria.
                     </TableCell>
                   </TableRow>
                 )}
@@ -96,7 +117,7 @@ export default function AdminReturnsOrdersPage() {
             </Table>
           )}
 
-          {!isLoading && (
+          {!isLoading && data && (
             <div className="mt-4 flex items-center justify-between">
               <Button
                 variant="outline"
@@ -105,10 +126,10 @@ export default function AdminReturnsOrdersPage() {
               >
                 Previous
               </Button>
-              <span className="text-sm text-muted-foreground">Page {page}</span>
+              <span className="text-sm text-muted-foreground">Page {page} of {data.totalPages || 1}</span>
               <Button
                 variant="outline"
-                disabled={!data?.data || data.data.length < 10}
+                disabled={page >= (data.totalPages || 1)}
                 onClick={() => setPage((p) => p + 1)}
               >
                 Next

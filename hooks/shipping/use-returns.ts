@@ -137,6 +137,24 @@ export function useCompleteReturn() {
   });
 }
 
+export function useProcessReturnRefund() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (returnId: string) => {
+      const { processReturnRefundAction } = await import(
+        "@/actions/returns.actions"
+      );
+      const res = await processReturnRefundAction(returnId);
+      if (!res.success) throw new Error(res.error);
+      return res.data;
+    },
+    onSuccess: (_, returnId) => {
+      qc.invalidateQueries({ queryKey: returnKeys.all });
+      qc.invalidateQueries({ queryKey: returnKeys.detail(returnId) });
+    },
+  });
+}
+
 // ============================================================================
 // Customer Self-Service Hooks
 // ============================================================================
