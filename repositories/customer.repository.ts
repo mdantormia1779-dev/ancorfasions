@@ -119,5 +119,38 @@ export class CustomerRepository {
     }
     return true;
   }
+
+  // --- CRM Additions ---
+
+  static async logActivity(userId: string, activityType: string, metadata: any = {}) {
+    const supabase = await createClient();
+    const { error } = await supabase.from("customer_activity_logs").insert([
+      { user_id: userId, activity_type: activityType, metadata }
+    ]);
+    if (error) {
+      console.error("Failed to log customer activity:", error);
+    }
+  }
+
+  static async getCustomerCRMStats(userId: string) {
+    const supabase = await createClient();
+    
+    const [ordersRes, activityRes, segmentsRes] = await Promise.all([
+      supabase.from("orders").select("total_amount, created_at").eq("user_id", userId).eq("status", "COMPLETED"),
+      supabase.from("customer_activity_logs").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
+      supabase.from("user_segments").select("customer_segments(name, description)").eq("user_id", userId)
+    ]);
+
+    const orders = ordersRes.data || [];
+    const lifetimeValue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+    const orderCount = orders.length;
+
+    return {
+      lifetimeValue,
+      orderCount,
+      recentActivity: activityRes.data || [],
+      segments: segmentsRes.data?.map(s => s.customer_segments) || []
+    };
+  }
 }
 

@@ -154,15 +154,56 @@ export class CouponService {
         p_order_id: orderId
       });
 
-      if (error) {
-        console.error("Error releasing coupon atomically:", error);
-        throw new Error(error.message || "Failed to release coupon");
-      }
-
       return true;
     } catch (err: any) {
       console.error("Failed to release coupon:", err);
       return false; // don't throw, since this is used in cleanup
     }
+  }
+
+  /**
+   * Validates an advanced Promo Rule
+   */
+  static async validatePromoRule(
+    code: string,
+    subtotal: number,
+    cartItems: any[]
+  ) {
+    const supabase = this.getAdminClient();
+    const { data: promo, error } = await supabase
+      .from("promo_rules")
+      .select("*")
+      .ilike("code", code.trim())
+      .single();
+
+    if (error || !promo) return { isValid: false, discount: 0, error: "INVALID_PROMO" };
+    if (!promo.is_active) return { isValid: false, discount: 0, error: "PROMO_INACTIVE" };
+    
+    const now = new Date();
+    if (now < new Date(promo.start_date) || (promo.end_date && now > new Date(promo.end_date))) {
+      return { isValid: false, discount: 0, error: "PROMO_EXPIRED" };
+    }
+
+    if (promo.usage_limit && promo.usage_count >= promo.usage_limit) {
+      return { isValid: false, discount: 0, error: "PROMO_LIMIT_REACHED" };
+    }
+
+    const conditions = promo.conditions || {};
+    
+    // Check Cart Threshold
+    if (conditions.min_cart_value && subtotal < conditions.min_cart_value) {
+      return { isValid: false, discount: 0, error: "MIN_CART_VALUE_NOT_MET" };
+    }
+
+    let discountAmount = 0;
+    if (promo.discount_type === "PERCENTAGE") {
+      discountAmount = (subtotal * promo.discount_value) / 100;
+    } else if (promo.discount_type === "FIXED") {
+      discountAmount = promo.discount_value;
+    }
+
+    if (discountAmount > subtotal) discountAmount = subtotal;
+
+    return { isValid: true, promo, discount: Math.round(discountAmount * 100) / 100 };
   }
 }
