@@ -30,3 +30,6 @@ export const blogPostSchema = z.object({
   reading_time_minutes: z.number().nullable().optional(),
   published_at: z.coerce.date().nullable().optional(),
 });
+
+
+
