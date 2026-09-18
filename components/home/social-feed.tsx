@@ -4,7 +4,7 @@ import { ArrowRight, Instagram } from "lucide-react";
 
 export function SocialFeed() {
   const images = [
-    "https://images.unsplash.com/photo-1512413914595-6541f71dfac8?w=500&q=80",
+    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=500&q=80",
     "https://images.unsplash.com/photo-1532453288672-3a27e9be9efd?w=500&q=80",
     "https://images.unsplash.com/photo-1485965120184-e220f721d03e?w=500&q=80",
     "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=500&q=80",
@@ -42,6 +42,7 @@ export function SocialFeed() {
                 src={src}
                 alt={`Instagram Post ${index + 1}`}
                 fill
+                sizes="(max-width: 768px) 50vw, 25vw"
                 className="object-cover transition-transform duration-700 group-hover:scale-110"
               />
               <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors duration-300 group-hover:bg-black/40">

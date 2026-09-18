@@ -32,15 +32,19 @@ export async function getWarehouseById(
   }
 }
 
+import { revalidatePath } from "next/cache";
+
 export async function createWarehouse(
-  input: Partial<Warehouse>
+  input: Partial<Warehouse> & { code?: string }
 ): Promise<{ data?: Warehouse; error?: string }> {
   try {
     const service = new WarehouseService();
     const data = await service.createWarehouse(input);
+    revalidatePath("/admin/inventory/warehouses");
+    revalidatePath("/admin/operations/warehouses");
     return { data };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: error.message || "Failed to create warehouse" };
   }
 }
 

@@ -9,7 +9,7 @@ declare global {
   }
 }
 
-declare const self: WorkerGlobalScope;
+declare const self: any;
 
 const serwist = new Serwist({
   precacheEntries: self.__SW_MANIFEST,
@@ -31,7 +31,7 @@ const serwist = new Serwist({
 
 serwist.addEventListeners();
 
-self.addEventListener("push", (event) => {
+self.addEventListener("push", (event: any) => {
   const data = event.data ? event.data.json() : {};
   const title = data.title || "New Notification";
   const options = {
@@ -44,12 +44,12 @@ self.addEventListener("push", (event) => {
   event.waitUntil(self.registration.showNotification(title, options));
 });
 
-self.addEventListener("notificationclick", (event) => {
+self.addEventListener("notificationclick", (event: any) => {
   event.notification.close();
   const urlToOpen = event.notification.data?.url || "/";
   
   event.waitUntil(
-    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients) => {
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((windowClients: any) => {
       // Check if there is already a window/tab open with the target URL
       for (let i = 0; i < windowClients.length; i++) {
         const client = windowClients[i];

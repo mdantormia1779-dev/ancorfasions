@@ -89,16 +89,48 @@ const RenderVideo = ({ content }: { content: any }) => (
   </section>
 );
 
+import { createClient } from "@/lib/supabase/server";
+import { STAFF_ROLES } from "@/lib/constants/auth";
+
 export default async function CMSPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams?: Promise<{ preview?: string }>;
 }) {
   const { slug } = await params;
-  
+  const sParams = searchParams ? await searchParams : {};
+  const isPreviewRequested = sParams.preview === "true";
+
   const page = await getPageBySlug(slug);
 
-  if (!page || page.status !== "PUBLISHED") {
+  if (!page) {
+    return notFound();
+  }
+
+  let isAuthorizedPreview = false;
+  if (isPreviewRequested) {
+    try {
+      const supabase = await createClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
+        const role = user.user_metadata?.role || user.app_metadata?.role || "";
+        isAuthorizedPreview = STAFF_ROLES.some(
+          (r) => r.toLowerCase() === String(role).toLowerCase()
+        );
+      }
+    } catch {
+      isAuthorizedPreview = false;
+    }
+  }
+
+  const isPublished = String(page.status).toUpperCase() === "PUBLISHED";
+
+  if (!isPublished && !isAuthorizedPreview) {
     return notFound();
   }
 
@@ -106,6 +138,11 @@ export default async function CMSPage({
 
   return (
     <div className="flex min-h-screen flex-col">
+      {!isPublished && isAuthorizedPreview && (
+        <div className="bg-amber-500 text-slate-950 px-4 py-2 text-center text-xs font-semibold uppercase tracking-wider sticky top-0 z-50 flex items-center justify-center gap-2 shadow-sm">
+          <span>Admin Preview Mode — This page is currently {page.status}</span>
+        </div>
+      )}
       <StoreHeader />
       <main className="flex-1 bg-white">
         {blocks.length === 0 ? (

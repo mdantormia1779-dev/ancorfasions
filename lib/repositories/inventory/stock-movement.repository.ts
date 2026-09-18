@@ -4,17 +4,26 @@ export class StockMovementRepository {
   static async getMovements() {
     try {
       const supabase = await createClient();
-      let query = supabase
+      const { data, error } = await supabase
+        .from("stock_movements")
+        .select("*, variants(sku, name), warehouses(name)")
+        .order("created_at", { ascending: false });
+
+      if (!error && data) {
+        return data;
+      }
+
+      // Fallback query if relation syntax fails
+      const { data: fallbackData, error: fallbackError } = await supabase
         .from("stock_movements")
         .select("*")
         .order("created_at", { ascending: false });
 
-      const { data, error } = await query;
-      if (error) {
-        console.error("Error fetching stock movements:", error);
+      if (fallbackError) {
+        console.error("Error fetching stock movements:", fallbackError);
         return [];
       }
-      return data || [];
+      return fallbackData || [];
     } catch (err) {
       console.error("Unexpected error in getMovements:", err);
       return [];

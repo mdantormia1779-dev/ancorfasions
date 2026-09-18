@@ -188,10 +188,21 @@ export async function addStockAction(data: {
   quantity: number;
   reason: string;
   notes?: string;
-}): Promise<{ success?: boolean; error?: string }> {
+}): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    if (data.quantity <= 0) throw new Error("Quantity must be greater than zero");
+    if (!data.quantity || data.quantity <= 0) {
+      return { success: false, error: "Quantity must be greater than zero" };
+    }
     const supabase = createAdminClient();
+
+    // Verify variant and warehouse exist
+    const [{ data: variant }, { data: warehouse }] = await Promise.all([
+      supabase.from("variants").select("id").eq("id", data.variantId).maybeSingle(),
+      supabase.from("warehouses").select("id").eq("id", data.warehouseId).maybeSingle(),
+    ]);
+
+    if (!variant) return { success: false, error: "Product variant not found" };
+    if (!warehouse) return { success: false, error: "Warehouse not found" };
 
     const { data: existing, error: fetchErr } = await supabase
       .from("inventory_levels")
@@ -202,54 +213,105 @@ export async function addStockAction(data: {
 
     if (fetchErr) throw fetchErr;
 
+    const previousQuantity = existing?.quantity_available || 0;
+    const newQuantity = previousQuantity + data.quantity;
+    let inventoryId: string;
+
     if (existing) {
       const { error: updateErr } = await supabase
         .from("inventory_levels")
-        .update({ quantity_available: existing.quantity_available + data.quantity })
+        .update({
+          quantity_available: newQuantity,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", existing.id);
       if (updateErr) throw updateErr;
+      inventoryId = existing.id;
     } else {
-      const { error: insertErr } = await supabase
+      const { data: inserted, error: insertErr } = await supabase
         .from("inventory_levels")
         .insert({
           variant_id: data.variantId,
           warehouse_id: data.warehouseId,
           quantity_available: data.quantity,
           quantity_reserved: 0,
-        });
+        })
+        .select("id")
+        .single();
       if (insertErr) throw insertErr;
+      inventoryId = inserted?.id;
     }
 
-    const { error: movErr } = await supabase.from("stock_movements").insert({
-      variant_id: data.variantId,
-      warehouse_id: data.warehouseId,
-      movement_type: "RECEIVE",
-      quantity: data.quantity,
-      reason_code: data.reason,
-      notes: data.notes || `Stock added: ${data.reason}`,
-    });
-    if (movErr) throw movErr;
+    // Record stock movement
+    try {
+      await supabase.from("stock_movements").insert({
+        variant_id: data.variantId,
+        warehouse_id: data.warehouseId,
+        movement_type: "RECEIVE",
+        quantity: data.quantity,
+        previous_quantity: previousQuantity,
+        new_quantity: newQuantity,
+        reason_code: data.reason,
+        notes: data.notes || `Stock added: ${data.reason}`,
+      });
+    } catch {
+      await supabase.from("stock_movements").insert({
+        variant_id: data.variantId,
+        warehouse_id: data.warehouseId,
+        movement_type: "RECEIVE",
+        quantity: data.quantity,
+        notes: data.notes || `Stock added: ${data.reason}`,
+      });
+    }
 
     revalidatePath("/admin/inventory/stock");
     revalidatePath("/admin/inventory/movement");
-    return { success: true };
+    return { success: true, data: { id: inventoryId, quantity_available: newQuantity } };
   } catch (error: any) {
-    return { error: error.message };
+    return { success: false, error: error.message || "Failed to add stock" };
   }
 }
 
 export async function recordManualMovementAction(data: {
   variantId: string;
   warehouseId: string;
-  movementType: "RECEIVE" | "ADJUST" | "DAMAGE" | "RETURN";
+  movementType: "RECEIVE" | "ADJUST" | "DAMAGE" | "RETURN" | "IN" | "OUT" | "TRANSFER" | "ADJUSTMENT";
   quantity: number;
   reason: string;
+  toWarehouseId?: string;
   notes?: string;
-}): Promise<{ success?: boolean; error?: string }> {
+}): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    if (data.quantity === 0) throw new Error("Quantity cannot be zero");
+    if (!data.quantity || data.quantity === 0) {
+      return { success: false, error: "Quantity cannot be zero" };
+    }
+
+    // If transfer, delegate to transferStock
+    if (data.movementType === "TRANSFER") {
+      if (!data.toWarehouseId) {
+        return { success: false, error: "Destination warehouse is required for transfer" };
+      }
+      if (data.warehouseId === data.toWarehouseId) {
+        return { success: false, error: "Source and destination warehouse must be different" };
+      }
+      const transferRes = await transferStock(
+        data.variantId,
+        data.warehouseId,
+        data.toWarehouseId,
+        Math.abs(data.quantity),
+        data.reason,
+        data.notes
+      );
+      if (transferRes.error) {
+        return { success: false, error: transferRes.error };
+      }
+      revalidatePath("/admin/inventory/movement");
+      revalidatePath("/admin/inventory/stock");
+      return { success: true };
+    }
+
     const supabase = createAdminClient();
-    const isPositive = ["RECEIVE", "RETURN"].includes(data.movementType);
+    const isPositive = ["RECEIVE", "IN", "RETURN"].includes(data.movementType);
     const delta = isPositive ? Math.abs(data.quantity) : -Math.abs(data.quantity);
 
     const { data: existing, error: fetchErr } = await supabase
@@ -261,16 +323,29 @@ export async function recordManualMovementAction(data: {
 
     if (fetchErr) throw fetchErr;
 
+    const previousQuantity = existing?.quantity_available || 0;
+    const newQuantity = previousQuantity + delta;
+
+    if (newQuantity < 0) {
+      return {
+        success: false,
+        error: `Insufficient stock in warehouse. Current available: ${previousQuantity}, requested reduction: ${Math.abs(delta)}.`,
+      };
+    }
+
     if (existing) {
-      const newQty = existing.quantity_available + delta;
-      if (newQty < 0) throw new Error("Insufficient stock for this adjustment");
       const { error: updateErr } = await supabase
         .from("inventory_levels")
-        .update({ quantity_available: newQty })
+        .update({
+          quantity_available: newQuantity,
+          updated_at: new Date().toISOString(),
+        })
         .eq("id", existing.id);
       if (updateErr) throw updateErr;
     } else {
-      if (delta < 0) throw new Error("No inventory record found for this variant/warehouse");
+      if (delta < 0) {
+        return { success: false, error: "No existing inventory found to deduct stock from." };
+      }
       const { error: insertErr } = await supabase
         .from("inventory_levels")
         .insert({
@@ -282,20 +357,37 @@ export async function recordManualMovementAction(data: {
       if (insertErr) throw insertErr;
     }
 
-    const { error: movErr } = await supabase.from("stock_movements").insert({
-      variant_id: data.variantId,
-      warehouse_id: data.warehouseId,
-      movement_type: data.movementType,
-      quantity: data.quantity,
-      reason_code: data.reason,
-      notes: data.notes || data.reason,
-    });
-    if (movErr) throw movErr;
+    const standardType =
+      data.movementType === "IN" ? "RECEIVE" :
+      data.movementType === "OUT" ? "DAMAGE" :
+      data.movementType === "ADJUSTMENT" ? "ADJUST" :
+      data.movementType;
+
+    try {
+      await supabase.from("stock_movements").insert({
+        variant_id: data.variantId,
+        warehouse_id: data.warehouseId,
+        movement_type: standardType,
+        quantity: delta,
+        previous_quantity: previousQuantity,
+        new_quantity: newQuantity,
+        reason_code: data.reason,
+        notes: data.notes || data.reason,
+      });
+    } catch {
+      await supabase.from("stock_movements").insert({
+        variant_id: data.variantId,
+        warehouse_id: data.warehouseId,
+        movement_type: standardType,
+        quantity: delta,
+        notes: data.notes || data.reason,
+      });
+    }
 
     revalidatePath("/admin/inventory/movement");
     revalidatePath("/admin/inventory/stock");
     return { success: true };
   } catch (error: any) {
-    return { error: error.message };
+    return { success: false, error: error.message || "Failed to record movement" };
   }
 }

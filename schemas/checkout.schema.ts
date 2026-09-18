@@ -41,11 +41,21 @@ export const checkoutShippingSchema = z.object({
   shipping_method: z.string().min(1, "Please select a shipping method"),
 });
 
+export const manualPaymentSchema = z.object({
+  sender_number: z.string().optional(),
+  transaction_id: z.string().optional(),
+  bank_name: z.string().optional(),
+  branch_name: z.string().optional(),
+  account_holder_name: z.string().optional(),
+  notes: z.string().optional(),
+});
+
 export const checkoutPaymentSchema = z
   .object({
     payment_method: z.string().min(1, "Please select a payment method"),
     billing_address_same_as_shipping: z.boolean().default(true),
     billing_address: addressSchema.optional(),
+    manual_payment: manualPaymentSchema.optional(),
   })
   .superRefine((data, ctx) => {
     if (!data.billing_address_same_as_shipping && !data.billing_address) {
@@ -54,6 +64,37 @@ export const checkoutPaymentSchema = z
         message: "Billing address is required if different from shipping",
         path: ["billing_address"],
       });
+    }
+
+    const method = data.payment_method?.toUpperCase() || "";
+    const isMfs = ["BKASH", "NAGAD", "ROCKET"].includes(method);
+    const isBank = method === "BANK_TRANSFER" || method === "BANK";
+
+    if (isMfs) {
+      if (!data.manual_payment?.sender_number || data.manual_payment.sender_number.trim().length < 11) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Please enter a valid sender phone number (min 11 digits)",
+          path: ["manual_payment", "sender_number"],
+        });
+      }
+      if (!data.manual_payment?.transaction_id || data.manual_payment.transaction_id.trim().length < 4) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Transaction ID (TrxID) is required",
+          path: ["manual_payment", "transaction_id"],
+        });
+      }
+    }
+
+    if (isBank) {
+      if (!data.manual_payment?.transaction_id || data.manual_payment.transaction_id.trim().length < 3) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Deposit/Transfer Reference or Transaction ID is required",
+          path: ["manual_payment", "transaction_id"],
+        });
+      }
     }
   });
 
@@ -73,5 +114,6 @@ export type CheckoutInformationFormValues = z.infer<
   typeof checkoutInformationSchema
 >;
 export type CheckoutShippingFormValues = z.infer<typeof checkoutShippingSchema>;
+export type ManualPaymentFormValues = z.infer<typeof manualPaymentSchema>;
 export type CheckoutPaymentFormValues = z.infer<typeof checkoutPaymentSchema>;
 export type CheckoutFormValues = z.infer<typeof checkoutFormSchema>;

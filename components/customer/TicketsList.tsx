@@ -24,23 +24,48 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { createTicketAction } from "@/app/actions/customer.actions";
-import { MessageSquare } from "lucide-react";
+import { MessageSquare, Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const ticketSchema = z.object({
+  subject: z.string().trim().min(3, "Subject must be at least 3 characters"),
+  description: z.string().trim().min(10, "Description must be at least 10 characters"),
+});
+
+type TicketFormValues = z.infer<typeof ticketSchema>;
 
 export function TicketsList({ initialTickets }: { initialTickets: any[] }) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<TicketFormValues>({
+    resolver: zodResolver(ticketSchema),
+    defaultValues: {
+      subject: "",
+      description: "",
+    },
+  });
+
+  const onSubmit = (values: TicketFormValues) => {
+    const formData = new FormData();
+    formData.append("subject", values.subject);
+    formData.append("description", values.description);
 
     startTransition(async () => {
       try {
         await createTicketAction(formData);
         toast.success("Support ticket created successfully");
+        reset();
         setIsOpen(false);
-      } catch (error) {
-        toast.error("Failed to create ticket");
+      } catch (error: any) {
+        toast.error(error.message || "Failed to create ticket");
       }
     });
   };
@@ -48,34 +73,53 @@ export function TicketsList({ initialTickets }: { initialTickets: any[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog
+          open={isOpen}
+          onOpenChange={(val) => {
+            setIsOpen(val);
+            if (!val) reset();
+          }}
+        >
           <DialogTrigger render={<Button>Open New Ticket</Button>} />
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Open Support Ticket</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleCreate} className="mt-4 space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="subject">Subject</Label>
+                <Label htmlFor="ticket_subject">Subject</Label>
                 <Input
-                  id="subject"
-                  name="subject"
-                  required
+                  id="ticket_subject"
                   placeholder="Brief description of the issue"
+                  {...register("subject")}
+                  className={errors.subject ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                {errors.subject && (
+                  <p className="text-xs text-destructive">{errors.subject.message}</p>
+                )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="ticket_description">Description</Label>
                 <Textarea
-                  id="description"
-                  name="description"
-                  required
+                  id="ticket_description"
                   placeholder="Provide details about your issue..."
                   rows={5}
+                  {...register("description")}
+                  className={errors.description ? "border-destructive focus-visible:ring-destructive" : ""}
                 />
+                {errors.description && (
+                  <p className="text-xs text-destructive">{errors.description.message}</p>
+                )}
               </div>
               <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending ? "Submitting..." : "Submit Ticket"}
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Submitting...
+                  </>
+                ) : (
+                  "Submit Ticket"
+                )}
               </Button>
             </form>
           </DialogContent>

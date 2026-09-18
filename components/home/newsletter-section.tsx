@@ -1,22 +1,40 @@
 "use client";
 
-import { ArrowRight, Sparkles } from "lucide-react";
+import { ArrowRight, Sparkles, Loader2 } from "lucide-react";
 import { Jost } from "next/font/google";
 import { toast } from "sonner";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
+const newsletterSchema = z.object({
+  email: z.string().trim().email("Please enter a valid email address"),
+});
+
+type NewsletterFormValues = z.infer<typeof newsletterSchema>;
+
 export function NewsletterSection() {
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const form = e.currentTarget;
-    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
-    if (email) {
-      toast.success(
-        "You're on the list! 🎉 Check your inbox for a 10% off code."
-      );
-      form.reset();
-    }
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<NewsletterFormValues>({
+    resolver: zodResolver(newsletterSchema),
+    defaultValues: {
+      email: "",
+    },
+  });
+
+  const onSubmit = async (values: NewsletterFormValues) => {
+    // Simulate brief network delay for UX
+    await new Promise((resolve) => setTimeout(resolve, 600));
+    toast.success(
+      `You're on the list! 🎉 Check ${values.email} for your 10% off code.`
+    );
+    reset();
   };
 
   return (
@@ -55,22 +73,38 @@ export function NewsletterSection() {
 
           {/* Form */}
           <form
-            onSubmit={handleSubmit}
-            className="mx-auto flex w-full max-w-md flex-col gap-4 sm:flex-row sm:gap-0"
+            onSubmit={handleSubmit(onSubmit)}
+            className="mx-auto w-full max-w-md"
           >
-            <input
-              type="email"
-              name="email"
-              placeholder="Enter your email address"
-              required
-              className="flex-1 border-b border-black/20 bg-transparent px-2 py-4 text-sm text-[#1A1A1A] transition-colors placeholder:text-gray-400 focus:border-black focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="group flex flex-shrink-0 items-center justify-center gap-2 whitespace-nowrap border-b border-black/20 bg-transparent px-4 py-4 text-xs font-bold uppercase tracking-[0.2em] text-[#1A1A1A] transition-all hover:border-black"
-            >
-              Subscribe <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
-            </button>
+            <div className="flex flex-col gap-4 sm:flex-row sm:gap-0">
+              <input
+                type="email"
+                placeholder="Enter your email address"
+                {...register("email")}
+                className={`flex-1 border-b bg-transparent px-2 py-4 text-sm text-[#1A1A1A] transition-colors placeholder:text-gray-400 focus:outline-none ${
+                  errors.email
+                    ? "border-red-500 focus:border-red-500"
+                    : "border-black/20 focus:border-black"
+                }`}
+              />
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="group flex flex-shrink-0 items-center justify-center gap-2 whitespace-nowrap border-b border-black/20 bg-transparent px-4 py-4 text-xs font-bold uppercase tracking-[0.2em] text-[#1A1A1A] transition-all hover:border-black disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                ) : (
+                  <>
+                    Subscribe{" "}
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
+              </button>
+            </div>
+            {errors.email && (
+              <p className="mt-2 text-left text-xs text-red-500">{errors.email.message}</p>
+            )}
           </form>
 
           <p className="mt-4 text-[11px] font-light text-gray-400">

@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { PlusCircle, Loader2, Star, X, UploadCloud } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -174,9 +175,15 @@ export function WriteReviewButton({
       if (res.error) {
         toast.error(res.error || "Failed to submit review");
       } else {
-        toast.success("Thank you! Your review has been submitted for moderation.");
+        toast.success("Thank you! Your review has been published.");
         setOpen(false);
-        form.reset();
+        form.reset({
+          productId: productId || "",
+          orderId: orderId || "",
+          rating: 0,
+          title: "",
+          body: "",
+        });
         setFiles([]);
         router.refresh();
       }
@@ -187,9 +194,24 @@ export function WriteReviewButton({
     }
   };
 
+  const handleOpenClick = async () => {
+    const supabase = createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      toast.error("Please sign in to write a product review.");
+      router.push(`/auth/login?next=${encodeURIComponent(window.location.pathname)}`);
+      return;
+    }
+
+    setOpen(true);
+  };
+
   return (
     <>
-      <Button onClick={() => setOpen(true)} className="gap-2">
+      <Button onClick={handleOpenClick} className="gap-2">
         <PlusCircle className="h-4 w-4" />
         Write a Review
       </Button>
@@ -333,7 +355,7 @@ export function WriteReviewButton({
 
               {/* Photo Upload */}
               <div className="space-y-3">
-                <FormLabel>Add Photos (Max 3)</FormLabel>
+                <Label className="text-xs font-medium">Add Photos (Max 3)</Label>
                 <div className="flex items-center gap-3">
                   <label className="flex flex-col items-center justify-center w-20 h-20 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 border-gray-300">
                     <div className="flex flex-col items-center justify-center pt-5 pb-6">

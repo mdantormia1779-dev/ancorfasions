@@ -13,14 +13,44 @@ export class BlogService {
     return await blogRepository.getPostBySlug(slug);
   }
 
+  async getPostById(id: string): Promise<BlogPost | null> {
+    return await blogRepository.getPostById(id);
+  }
+
   async createPost(data: unknown): Promise<BlogPost> {
     const validData = blogPostSchema.parse(data);
-    return await blogRepository.createPost(validData);
+    const postData: any = { ...validData };
+
+    if (!postData.featured_image && postData.cover_image) {
+      postData.featured_image = postData.cover_image;
+    }
+    delete postData.cover_image;
+
+    if (!postData.reading_time_minutes && postData.content) {
+      const words = postData.content.trim().split(/\s+/).length;
+      postData.reading_time_minutes = Math.max(1, Math.ceil(words / 200));
+    }
+
+    return await blogRepository.createPost(postData);
   }
 
   async updatePost(id: string, data: unknown): Promise<BlogPost> {
     const validData = blogPostSchema.partial().parse(data);
-    return await blogRepository.updatePost(id, validData);
+    const postData: any = { ...validData };
+
+    if (postData.cover_image !== undefined) {
+      if (!postData.featured_image && postData.cover_image) {
+        postData.featured_image = postData.cover_image;
+      }
+      delete postData.cover_image;
+    }
+
+    if (postData.content && !postData.reading_time_minutes) {
+      const words = postData.content.trim().split(/\s+/).length;
+      postData.reading_time_minutes = Math.max(1, Math.ceil(words / 200));
+    }
+
+    return await blogRepository.updatePost(id, postData);
   }
 
   async deletePost(id: string): Promise<void> {

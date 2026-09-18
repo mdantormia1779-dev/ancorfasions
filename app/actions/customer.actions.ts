@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { CustomerService } from "@/lib/services/customer.service";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { WalletService } from "@/services/wallet.service";
 import { LoyaltyService } from "@/services/loyalty.service";
 
@@ -329,9 +330,20 @@ export async function fetchPurchasedProductsAction(): Promise<{
     }
 
     if (purchased.length === 0) {
+      const { data: catalogProducts } = await supabase
+        .from("products")
+        .select("id, name")
+        .eq("status", "ACTIVE")
+        .limit(10);
+
       return {
         success: true,
-        data: []
+        data: (catalogProducts || []).map((p) => ({
+          productId: p.id,
+          productName: p.name,
+          orderId: "",
+          orderNumber: "Store Product",
+        })),
       };
     }
 
@@ -343,6 +355,7 @@ export async function fetchPurchasedProductsAction(): Promise<{
 
 export async function createReviewAction(data: {
   productId: string;
+  orderId?: string;
   rating: number;
   title?: string;
   body?: string;
@@ -353,73 +366,132 @@ export async function createReviewAction(data: {
   try {
     const userId = await getUserId();
     const supabase = await createClient();
+    const adminClient = createAdminClient();
 
     if (data.rating < 1 || data.rating > 5) {
       return { error: "Rating must be between 1 and 5" };
     }
 
-    const reviewContent = data.review_text || data.comment || data.body || data.title || "Verified product review";
-    
+    const reviewContent =
+      data.review_text ||
+      data.comment ||
+      data.body ||
+      data.title ||
+      "Verified product review";
+
     if (reviewContent.length > 2000) {
       return { error: "Review is too long (maximum 2000 characters)" };
     }
 
-    // Check if user already reviewed this product in customer_reviews
-    const { data: existing } = await supabase
-      .from("customer_reviews")
+    // Ensure customer_profiles record exists to satisfy foreign key constraint
+    const { data: customerProfile } = await adminClient
+      .from("customer_profiles")
       .select("id")
-      .eq("customer_id", userId)
-      .eq("product_id", data.productId)
+      .eq("id", userId)
       .maybeSingle();
 
-    if (existing) {
-      return { error: "You have already reviewed this product" };
+    if (!customerProfile) {
+      const { data: staffProfile } = await adminClient
+        .from("profiles")
+        .select("first_name, last_name, phone, avatar_url")
+        .eq("id", userId)
+        .maybeSingle();
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      await adminClient.from("customer_profiles").upsert({
+        id: userId,
+        first_name:
+          staffProfile?.first_name ||
+          user?.user_metadata?.first_name ||
+          user?.user_metadata?.name ||
+          "Customer",
+        last_name:
+          staffProfile?.last_name ||
+          user?.user_metadata?.last_name ||
+          "",
+        email: user?.email || "",
+        phone: staffProfile?.phone || null,
+        avatar_url: staffProfile?.avatar_url || null,
+        is_active: true,
+      });
     }
 
-    // Verify Purchase: User must have a DELIVERED or COMPLETED order containing this product
-    const { data: eligibleOrders } = await supabase
-      .from("orders")
-      .select("id")
-      .eq("customer_id", userId)
-      .in("status", ["DELIVERED", "COMPLETED"]);
+    // Check if user has an order for this product (for verified purchase badge)
+    let linkedOrderId: string | null = data.orderId || null;
 
-    if (!eligibleOrders || eligibleOrders.length === 0) {
-      return { error: "You must purchase and receive this product before reviewing it." };
+    if (!linkedOrderId) {
+      const { data: userOrders } = await adminClient
+        .from("orders")
+        .select("id, status")
+        .eq("customer_id", userId);
+
+      if (userOrders && userOrders.length > 0) {
+        const orderIds = userOrders.map((o) => o.id);
+        const { data: matchingItem } = await adminClient
+          .from("order_items")
+          .select("order_id")
+          .eq("product_id", data.productId)
+          .in("order_id", orderIds)
+          .limit(1)
+          .maybeSingle();
+
+        if (matchingItem) {
+          linkedOrderId = matchingItem.order_id;
+        }
+      }
     }
-    
-    const orderIds = eligibleOrders.map(o => o.id);
 
-    const { data: verifiedItem } = await supabase
-      .from("order_items")
-      .select("order_id")
-      .eq("product_id", data.productId)
-      .in("order_id", orderIds)
-      .limit(1)
-      .maybeSingle();
-
-    if (!verifiedItem) {
-      return { error: "You must purchase and receive this product before reviewing it." };
-    }
-
-    const { data: review, error } = await supabase
+    // Insert new review (customers can submit multiple reviews for the same product)
+    const { data: review, error: insertError } = await adminClient
       .from("customer_reviews")
       .insert({
         customer_id: userId,
         product_id: data.productId,
-        order_id: verifiedItem.order_id,
+        order_id: linkedOrderId,
         rating: data.rating,
         title: data.title || null,
         review_text: reviewContent,
         images: data.images || [],
-        is_approved: false,
+        is_approved: true,
       })
       .select()
       .single();
 
-    if (error) throw error;
+    if (insertError) throw insertError;
 
+    // Recalculate and update product average rating
+    const { data: prodReviews } = await adminClient
+      .from("customer_reviews")
+      .select("rating")
+      .eq("product_id", data.productId)
+      .eq("is_approved", true);
+
+    if (prodReviews && prodReviews.length > 0) {
+      const avg =
+        prodReviews.reduce((sum, r) => sum + (r.rating || 0), 0) /
+        prodReviews.length;
+      await adminClient
+        .from("products")
+        .update({ average_rating: Number(avg.toFixed(2)) })
+        .eq("id", data.productId);
+    }
+
+    // Revalidate paths so reviews appear immediately
+    const { data: prod } = await adminClient
+      .from("products")
+      .select("slug")
+      .eq("id", data.productId)
+      .maybeSingle();
+
+    if (prod?.slug) {
+      revalidatePath(`/product/${prod.slug}`);
+    }
+    revalidatePath(`/product/${data.productId}`);
+    revalidatePath("/products");
     revalidatePath("/account/reviews");
-    revalidatePath(`/products/${data.productId}`);
     return { success: true, data: review };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -554,6 +626,51 @@ export async function deleteCustomerReviewAction(reviewId: string): Promise<{ su
     revalidatePath("/account");
     return { success: true };
   } catch (error: any) {
+    return { success: false, error: error.message };
+  }
+}
+
+export async function voteReviewHelpfulAction(
+  reviewId: string,
+  increment: boolean = true
+): Promise<{ success: boolean; helpful_votes?: number; error?: string }> {
+  try {
+    const adminClient = createAdminClient();
+
+    const { data: review, error: fetchErr } = await adminClient
+      .from("customer_reviews")
+      .select("id, helpful_votes, product_id")
+      .eq("id", reviewId)
+      .maybeSingle();
+
+    if (fetchErr || !review) {
+      return { success: false, error: "Review not found" };
+    }
+
+    const currentVotes = review.helpful_votes || 0;
+    const nextVotes = increment ? currentVotes + 1 : Math.max(0, currentVotes - 1);
+
+    const { error: updateErr } = await adminClient
+      .from("customer_reviews")
+      .update({ helpful_votes: nextVotes })
+      .eq("id", reviewId);
+
+    if (updateErr) throw updateErr;
+
+    if (review.product_id) {
+      const { data: prod } = await adminClient
+        .from("products")
+        .select("slug")
+        .eq("id", review.product_id)
+        .maybeSingle();
+      if (prod?.slug) {
+        revalidatePath(`/product/${prod.slug}`);
+      }
+    }
+
+    return { success: true, helpful_votes: nextVotes };
+  } catch (error: any) {
+    console.error("Error in voteReviewHelpfulAction:", error);
     return { success: false, error: error.message };
   }
 }

@@ -5,15 +5,16 @@ import { createAdminAction } from "../safe-action";
 import { CategoryRepository } from "@/lib/repositories/catalog/category.repository";
 import { BrandRepository } from "@/lib/repositories/catalog/brand.repository";
 import { CollectionRepository } from "@/lib/repositories/catalog/collection.repository";
-import { AttributeRepository } from "@/lib/repositories/catalog/attribute.repository";
 import { ReviewRepository } from "@/lib/repositories/catalog/review.repository";
 import { revalidatePath } from "next/cache";
 import {
   invalidateCategoryCache,
   invalidateBrandCache,
+  invalidateCollectionCache,
 } from "@/lib/cache/invalidate-catalog";
 import { LoyaltyService } from "@/services/loyalty.service";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 
 // ============================================================================
 // SCHEMAS
@@ -40,21 +41,10 @@ const BrandSchema = z.object({
 const CollectionSchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   slug: z.string().min(1, "Slug is required").max(255),
-  banner_url: z.string().url().nullable().optional().or(z.literal("").transform(() => null)),
+  banner_url: z.string().nullable().optional().or(z.literal("").transform(() => null)),
   is_active: z.boolean().optional().default(true),
+  product_ids: z.array(z.string().uuid()).optional().default([]),
 });
-
-const AttributeSchema = z.object({
-  name: z.string().min(1, "Name is required").max(100),
-  type: z.enum(["TEXT", "COLOR", "SIZE", "NUMBER", "BOOLEAN"]),
-});
-
-const AttributeValueSchema = z.object({
-  attributeId: z.string().uuid(),
-  value: z.string().min(1, "Value is required").max(100),
-});
-
-const AttributeValueIdSchema = z.object({ valueId: z.string().uuid() });
 
 // ============================================================================
 // CATEGORY ACTIONS
@@ -125,6 +115,7 @@ export const createCollectionAction = createAdminAction(
     const collection = await CollectionRepository.createCollection(input);
     revalidatePath("/admin/products/collections");
     revalidatePath("/(shop)", "layout");
+    invalidateCollectionCache(input.slug);
     return collection;
   }
 );
@@ -135,6 +126,7 @@ export const updateCollectionAction = createAdminAction(
     const collection = await CollectionRepository.updateCollection(id, data);
     revalidatePath("/admin/products/collections");
     revalidatePath("/(shop)", "layout");
+    invalidateCollectionCache(data.slug);
     return collection;
   }
 );
@@ -145,55 +137,7 @@ export const deleteCollectionAction = createAdminAction(
     await CollectionRepository.deleteCollection(id);
     revalidatePath("/admin/products/collections");
     revalidatePath("/(shop)", "layout");
-    return { success: true };
-  }
-);
-
-// ============================================================================
-// ATTRIBUTE ACTIONS
-// ============================================================================
-
-export const createAttributeAction = createAdminAction(
-  AttributeSchema,
-  async (input) => {
-    const attribute = await AttributeRepository.createAttribute(input);
-    revalidatePath("/admin/products/attributes");
-    return attribute;
-  }
-);
-
-export const updateAttributeAction = createAdminAction(
-  z.object({ id: z.string().uuid(), data: AttributeSchema.partial() }),
-  async ({ id, data }) => {
-    const attribute = await AttributeRepository.updateAttribute(id, data);
-    revalidatePath("/admin/products/attributes");
-    return attribute;
-  }
-);
-
-export const deleteAttributeAction = createAdminAction(
-  IdSchema,
-  async ({ id }) => {
-    await AttributeRepository.deleteAttribute(id);
-    revalidatePath("/admin/products/attributes");
-    return { success: true };
-  }
-);
-
-export const addAttributeValueAction = createAdminAction(
-  AttributeValueSchema,
-  async ({ attributeId, value }) => {
-    await AttributeRepository.addAttributeValue(attributeId, value);
-    revalidatePath("/admin/products/attributes");
-    return { success: true };
-  }
-);
-
-export const removeAttributeValueAction = createAdminAction(
-  AttributeValueIdSchema,
-  async ({ valueId }) => {
-    await AttributeRepository.removeAttributeValue(valueId);
-    revalidatePath("/admin/products/attributes");
+    invalidateCollectionCache();
     return { success: true };
   }
 );
@@ -208,7 +152,7 @@ export const approveReviewAction = createAdminAction(
     await ReviewRepository.approveReview(id);
     
     // Fetch review to get the customer id
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data: review } = await supabase
       .from("customer_reviews")
       .select("customer_id")

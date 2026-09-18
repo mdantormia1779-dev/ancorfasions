@@ -11,6 +11,8 @@ export const metadata: Metadata = {
   title: "Tasks | Manager Dashboard",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function TasksPage() {
   const { data: allTasks = [] } = await fetchTasksAction();
 
@@ -89,8 +91,8 @@ export default async function TasksPage() {
                   <span className={getPriorityColor(task.priority)}>
                     {formatDate(task.due_date)}
                   </span>
-                  <span className="text-muted-foreground">
-                    {task.related_entity_type || "General"}
+                  <span className="text-muted-foreground truncate max-w-[120px]">
+                    {task.assignee_name || task.assigned_to || task.related_entity_type || "General"}
                   </span>
                 </div>
               </CardContent>
@@ -120,8 +122,8 @@ export default async function TasksPage() {
                   <span className={getPriorityColor(task.priority)}>
                     {formatDate(task.due_date)}
                   </span>
-                  <span className="text-muted-foreground">
-                    {task.related_entity_type || "General"}
+                  <span className="text-muted-foreground truncate max-w-[120px]">
+                    {task.assignee_name || task.assigned_to || task.related_entity_type || "General"}
                   </span>
                 </div>
               </CardContent>
@@ -151,8 +153,8 @@ export default async function TasksPage() {
                 </p>
                 <div className="flex items-center justify-between text-xs">
                   <span className="font-medium text-green-600">Done</span>
-                  <span className="text-muted-foreground">
-                    {task.related_entity_type || "General"}
+                  <span className="text-muted-foreground truncate max-w-[120px]">
+                    {task.assignee_name || task.assigned_to || task.related_entity_type || "General"}
                   </span>
                 </div>
               </CardContent>

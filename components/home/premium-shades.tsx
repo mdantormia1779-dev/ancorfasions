@@ -78,6 +78,7 @@ export function PremiumShades() {
                 src={col.image}
                 alt={col.title}
                 fill
+                sizes="(max-width: 768px) 50vw, (max-width: 1024px) 25vw, 25vw"
                 className="object-cover object-center transition-transform duration-1000 ease-out group-hover:scale-110"
               />
               {/* Dark overlay for text readability */}

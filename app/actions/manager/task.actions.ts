@@ -4,8 +4,66 @@ import {
   TaskRepository,
   ManagerTask,
 } from "@/lib/repositories/manager/task.repository";
+import { createAdminClient } from "@/lib/supabase/admin-client";
+import { revalidatePath } from "next/cache";
 
 const taskRepo = new TaskRepository();
+
+async function resolveAssigneePayload(
+  assigned_to?: string | null,
+  description?: string
+): Promise<{ assigned_to: string | null; description?: string }> {
+  const currentDesc = description || "";
+  if (!assigned_to || !assigned_to.trim()) {
+    return { assigned_to: null, description: currentDesc || undefined };
+  }
+
+  const trimmed = assigned_to.trim();
+  const isUuid =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+      trimmed
+    );
+
+  const supabase = createAdminClient();
+
+  if (isUuid) {
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", trimmed)
+      .maybeSingle();
+
+    if (profile) {
+      return { assigned_to: profile.id, description: currentDesc || undefined };
+    }
+  }
+
+  // Check if matches a profile by first_name or last_name
+  const { data: matchedProfiles } = await supabase
+    .from("profiles")
+    .select("id, first_name, last_name")
+    .or(`first_name.ilike.%${trimmed}%,last_name.ilike.%${trimmed}%`)
+    .limit(1);
+
+  if (matchedProfiles && matchedProfiles.length > 0) {
+    return {
+      assigned_to: matchedProfiles[0].id,
+      description: currentDesc || undefined,
+    };
+  }
+
+  // If arbitrary text or unlinked assignee, store null in Postgres foreign key
+  // and preserve assignee name in description note
+  const cleanDesc = currentDesc.replace(/\(Assignee:\s*[^)]+\)/gi, "").trim();
+  const resolvedDesc = cleanDesc
+    ? `${cleanDesc}\n(Assignee: ${trimmed})`
+    : `(Assignee: ${trimmed})`;
+
+  return {
+    assigned_to: null,
+    description: resolvedDesc,
+  };
+}
 
 export async function fetchTasksAction(status?: ManagerTask["status"]) {
   try {
@@ -17,18 +75,102 @@ export async function fetchTasksAction(status?: ManagerTask["status"]) {
   }
 }
 
+export async function fetchStaffMembersAction() {
+  try {
+    const supabase = createAdminClient();
+    const { data: profiles, error } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name, roles(name)")
+      .order("first_name", { ascending: true });
+
+    if (error) throw error;
+
+    const staff = (profiles || []).map((p: any) => ({
+      id: p.id,
+      name:
+        `${p.first_name || ""} ${p.last_name || ""}`.trim() || "Team Member",
+      role: p.roles?.name || "STAFF",
+    }));
+
+    return { success: true, data: staff };
+  } catch (error: any) {
+    console.error("fetchStaffMembersAction error:", error);
+    return { success: false, data: [] };
+  }
+}
+
 export async function createTaskAction(data: {
   title: string;
   description?: string;
   priority: "low" | "medium" | "high" | "urgent";
   status: "pending" | "in_progress" | "completed" | "archived";
   due_date?: string;
+  assigned_to?: string;
 }) {
   try {
-    const task = await taskRepo.createTask(data);
+    const { assigned_to, description } = await resolveAssigneePayload(
+      data.assigned_to,
+      data.description
+    );
+
+    const task = await taskRepo.createTask({
+      title: data.title,
+      description,
+      priority: data.priority,
+      status: data.status,
+      due_date: data.due_date ? new Date(data.due_date).toISOString() : undefined,
+      assigned_to,
+    });
+
+    revalidatePath("/admin/tasks");
+    revalidatePath("/manager/tasks");
     return { success: true, data: task };
   } catch (error: any) {
     console.error("createTaskAction error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function updateTaskAction(
+  id: string,
+  data: Partial<ManagerTask>
+) {
+  try {
+    let updatePayload: Partial<ManagerTask> = { ...data };
+
+    if (data.assigned_to !== undefined || data.description !== undefined) {
+      const { assigned_to, description } = await resolveAssigneePayload(
+        data.assigned_to,
+        data.description
+      );
+      updatePayload.assigned_to = assigned_to;
+      if (description !== undefined) {
+        updatePayload.description = description;
+      }
+    }
+
+    if (data.due_date) {
+      updatePayload.due_date = new Date(data.due_date).toISOString();
+    }
+
+    const task = await taskRepo.updateTask(id, updatePayload);
+    revalidatePath("/admin/tasks");
+    revalidatePath("/manager/tasks");
+    return { success: true, data: task };
+  } catch (error: any) {
+    console.error("updateTaskAction error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteTaskAction(id: string) {
+  try {
+    await taskRepo.deleteTask(id);
+    revalidatePath("/admin/tasks");
+    revalidatePath("/manager/tasks");
+    return { success: true };
+  } catch (error: any) {
+    console.error("deleteTaskAction error:", error);
     return { success: false, error: error.message };
   }
 }

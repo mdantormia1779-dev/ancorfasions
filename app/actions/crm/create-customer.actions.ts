@@ -13,24 +13,26 @@ export async function createCustomerAction(data: {
   try {
     const supabase = createAdminClient();
 
+    const cleanEmail = data.email.trim().toLowerCase();
+
     // Check if email already exists
     const { data: existing } = await supabase
       .from("customer_profiles")
       .select("id")
-      .eq("email", data.email)
+      .ilike("email", cleanEmail)
       .maybeSingle();
 
     if (existing) {
-      return { error: "A customer with this email already exists" };
+      return { error: `A customer with email "${data.email.trim()}" already exists.` };
     }
 
     const { data: newCustomer, error } = await supabase
       .from("customer_profiles")
       .insert({
-        first_name: data.firstName,
-        last_name: data.lastName,
-        email: data.email,
-        phone: data.phone || null,
+        first_name: data.firstName.trim(),
+        last_name: data.lastName.trim(),
+        email: cleanEmail,
+        phone: data.phone?.trim() || null,
         customer_lifecycle_stage: data.lifecycleStage || "PROSPECT",
         is_vip: false,
       })

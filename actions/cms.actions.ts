@@ -9,6 +9,10 @@ export async function getPages(): Promise<CMSPage[]> {
   return await cmsService.getPages();
 }
 
+export async function getPageById(id: string): Promise<CMSPage | null> {
+  return await cmsService.getPageById(id);
+}
+
 export async function getPageBySlug(slug: string): Promise<CMSPage | null> {
   return await cmsService.getPageBySlug(slug);
 }
@@ -64,7 +68,6 @@ export async function saveNavigation(
 ): Promise<CMSNavigation> {
   try {
     const nav = await cmsService.saveNavigation(location, name, items);
-    revalidatePath("/admin/cms/menus");
     return nav;
   } catch (err: any) {
     console.error("Error in saveNavigation:", err);
@@ -75,7 +78,6 @@ export async function saveNavigation(
 export async function deleteNavigation(id: string): Promise<void> {
   try {
     await cmsService.deleteNavigation(id);
-    revalidatePath("/admin/cms/menus");
   } catch (err: any) {
     console.error("Error in deleteNavigation:", err);
     throw new Error(err.message || "Failed to delete navigation");
@@ -300,10 +302,45 @@ export async function getSeoSettings() {
 }
 
 export type HeroSlide = {
-  id: string;
-  image_url: string;
+  id: string | number;
+  image_url?: string | null;
+  media_url?: string | null;
+  image?: string | null;
   link_url?: string | null;
-  display_order: number;
+  cta_url?: string | null;
+  ctaHref?: string | null;
+  display_order?: number;
+  title?: string | null;
+  headline?: string | null;
+  subtitle?: string | null;
+  subheadline?: string | null;
+  description?: string | null;
+  cta_text?: string | null;
+  is_active?: boolean;
+  start_date?: string | null;
+  end_date?: string | null;
+  placement?: "hero" | "promo";
+  isVideo?: boolean;
+};
+
+export type FeaturedPromoBannerData = {
+  id?: string;
+  title: string;
+  subtitle: string;
+  description?: string | null;
+  ctaText: string;
+  ctaLink: string;
+  imageUrl: string;
+};
+
+const DEFAULT_PROMO_BANNER: FeaturedPromoBannerData = {
+  title: "Mid-Season Sale Up To 50% Off",
+  subtitle: "Limited Time Offer",
+  description:
+    "Elevate your wardrobe with our latest curated collection. Exclusive pieces designed for the modern individual who values both aesthetics and comfort.",
+  ctaText: "Shop The Sale",
+  ctaLink: "/categories/sale",
+  imageUrl: "https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1600&q=80",
 };
 
 export type PromoBanner = {
@@ -320,42 +357,270 @@ const DEFAULT_SLIDES: HeroSlide[] = [
   {
     id: "default-1",
     image_url: "/images/home/hero-banner.png",
+    media_url: "/images/home/hero-banner.png",
+    image: "/images/home/hero-banner.png",
     link_url: "/products?sort=newest",
+    cta_url: "/products?sort=newest",
+    ctaHref: "/products?sort=newest",
     display_order: 0,
+    title: "Summer Collection",
+    headline: "Summer Collection",
+    subtitle: "New Arrivals",
+    subheadline: "New Arrivals",
+    cta_text: "Shop Now",
+    is_active: true,
+    placement: "hero",
   },
   {
     id: "default-2",
     image_url: "/images/home/hero-slide-2.png",
+    media_url: "/images/home/hero-slide-2.png",
+    image: "/images/home/hero-slide-2.png",
     link_url: "/categories/ethnic",
+    cta_url: "/categories/ethnic",
+    ctaHref: "/categories/ethnic",
     display_order: 1,
+    title: "Ethnic Wear",
+    headline: "Ethnic Wear",
+    subtitle: "Crafted for Elegance",
+    subheadline: "Crafted for Elegance",
+    cta_text: "Shop Now",
+    is_active: true,
+    placement: "hero",
   },
   {
     id: "default-3",
     image_url: "/images/home/hero-slide-3.png",
+    media_url: "/images/home/hero-slide-3.png",
+    image: "/images/home/hero-slide-3.png",
     link_url: "/categories/summer",
+    cta_url: "/categories/summer",
+    ctaHref: "/categories/summer",
     display_order: 2,
+    title: "Seasonal Essentials",
+    headline: "Seasonal Essentials",
+    subtitle: "Up to 40% Off",
+    subheadline: "Up to 40% Off",
+    cta_text: "Shop Now",
+    is_active: true,
+    placement: "hero",
   },
 ];
 
+function isBannerActive(b: any, now: Date): boolean {
+  if (b.status && b.status !== "active") return false;
+  if (b.start_date) {
+    const startDate = new Date(b.start_date);
+    if (startDate.getTime() > now.getTime()) return false;
+  }
+  if (b.end_date) {
+    const endDate = new Date(b.end_date);
+    if (endDate.getUTCHours() === 0 && endDate.getUTCMinutes() === 0 && endDate.getUTCSeconds() === 0) {
+      endDate.setUTCHours(23, 59, 59, 999);
+    }
+    if (endDate.getTime() < now.getTime()) return false;
+  }
+  return true;
+}
+
 export async function getHeroSlides(): Promise<HeroSlide[]> {
   try {
-    const { getPublicSupabaseClient } = await import("@/lib/supabase/public");
-    const supabase = getPublicSupabaseClient();
-    const { data: banners } = await supabase
-      .from("banners")
+    const { createAdminClient } = await import("@/lib/supabase/admin-client");
+    const supabase = createAdminClient();
+    const now = new Date();
+    const { data: banners, error } = await supabase
+      .from("cms_banners")
       .select("*")
-      .eq("placement", "HERO")
-      .eq("is_active", true)
-      .order("display_order", { ascending: true });
+      .in("type", ["hero", "sidebar"])
+      .order("created_at", { ascending: true });
 
-    if (!banners || banners.length === 0) return DEFAULT_SLIDES;
+    if (error || !banners || banners.length === 0) return DEFAULT_SLIDES;
 
-    return (banners as any[]).map((b: any, i: number) => ({
-      id: b.id,
-      image_url: b.image_url,
-      link_url: b.link_url || "/products",
-      display_order: i,
-    }));
+    const slides = (banners as any[])
+      .filter((b: any) => {
+        let placement = b.type === "sidebar" ? "promo" : "hero";
+        if (b.content) {
+          try {
+            const parsed = JSON.parse(b.content);
+            if (parsed.placement) placement = parsed.placement;
+          } catch {}
+        }
+        if (placement !== "hero") return false;
+        return isBannerActive(b, now);
+      })
+      .map((b: any, i: number) => {
+        let subtitle: string | null = null;
+        let cta_text = "Shop Now";
+        let display_order = i;
+
+        if (b.content) {
+          try {
+            const parsed = JSON.parse(b.content);
+            subtitle = parsed.subtitle ?? null;
+            cta_text = parsed.cta_text ?? "Shop Now";
+            display_order =
+              typeof parsed.display_order === "number"
+                ? parsed.display_order
+                : i;
+          } catch {
+            subtitle = b.content;
+          }
+        }
+
+        const linkUrl = b.link_url || "/products";
+        const title = b.title || null;
+        const imageUrl = b.media_url || "/images/home/hero-banner.png";
+
+        return {
+          id: b.id,
+          image_url: imageUrl,
+          media_url: imageUrl,
+          image: imageUrl,
+          link_url: linkUrl,
+          cta_url: linkUrl,
+          ctaHref: linkUrl,
+          display_order,
+          title,
+          headline: title,
+          subtitle,
+          subheadline: subtitle,
+          cta_text,
+          is_active: b.status === "active",
+          start_date: b.start_date || null,
+          end_date: b.end_date || null,
+          placement: "hero" as const,
+        };
+      });
+
+    if (slides.length === 0) return DEFAULT_SLIDES;
+    return slides.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
+  } catch {
+    return DEFAULT_SLIDES;
+  }
+}
+
+export async function getFeaturedPromoBanner(): Promise<FeaturedPromoBannerData> {
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin-client");
+    const supabase = createAdminClient();
+    const now = new Date();
+    const { data: banners, error } = await supabase
+      .from("cms_banners")
+      .select("*")
+      .in("type", ["sidebar", "hero"])
+      .order("created_at", { ascending: false });
+
+    if (error || !banners || banners.length === 0) {
+      return DEFAULT_PROMO_BANNER;
+    }
+
+    const promoBanner = (banners as any[]).find((b: any) => {
+      let placement = b.type === "sidebar" ? "promo" : "hero";
+      if (b.content) {
+        try {
+          const parsed = JSON.parse(b.content);
+          if (parsed.placement) placement = parsed.placement;
+        } catch {}
+      }
+      return placement === "promo" && isBannerActive(b, now);
+    });
+
+    if (!promoBanner) {
+      return DEFAULT_PROMO_BANNER;
+    }
+
+    let subtitle = DEFAULT_PROMO_BANNER.subtitle;
+    let description = DEFAULT_PROMO_BANNER.description;
+    let cta_text = DEFAULT_PROMO_BANNER.ctaText;
+    if (promoBanner.content) {
+      try {
+        const parsed = JSON.parse(promoBanner.content);
+        if (parsed.subtitle) subtitle = parsed.subtitle;
+        if (parsed.description) description = parsed.description;
+        if (parsed.cta_text) cta_text = parsed.cta_text;
+      } catch {}
+    }
+
+    return {
+      id: promoBanner.id,
+      title: promoBanner.title || DEFAULT_PROMO_BANNER.title,
+      subtitle: subtitle,
+      description: description,
+      ctaText: cta_text,
+      ctaLink: promoBanner.link_url || DEFAULT_PROMO_BANNER.ctaLink,
+      imageUrl: promoBanner.media_url || DEFAULT_PROMO_BANNER.imageUrl,
+    };
+  } catch {
+    return DEFAULT_PROMO_BANNER;
+  }
+}
+
+export async function getAdminHeroSlides(): Promise<HeroSlide[]> {
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin-client");
+    const supabase = createAdminClient();
+    const { data: banners, error } = await supabase
+      .from("cms_banners")
+      .select("*")
+      .in("type", ["hero", "sidebar"])
+      .order("created_at", { ascending: true });
+
+    if (error || !banners || banners.length === 0) {
+      return DEFAULT_SLIDES;
+    }
+
+    const slides = (banners as any[]).map((b: any, i: number) => {
+      let subtitle: string | null = null;
+      let description: string | null = null;
+      let cta_text = "Shop Now";
+      let display_order = i;
+      let placement: "hero" | "promo" = b.type === "sidebar" ? "promo" : "hero";
+
+      if (b.content) {
+        try {
+          const parsed = JSON.parse(b.content);
+          subtitle = parsed.subtitle ?? null;
+          description = parsed.description ?? null;
+          cta_text = parsed.cta_text ?? "Shop Now";
+          if (parsed.placement === "promo" || parsed.placement === "hero") {
+            placement = parsed.placement;
+          }
+          display_order =
+            typeof parsed.display_order === "number"
+              ? parsed.display_order
+              : i;
+        } catch {
+          subtitle = b.content;
+        }
+      }
+
+      const linkUrl = b.link_url || "/products";
+      const title = b.title || null;
+      const imageUrl = b.media_url || "/images/home/hero-banner.png";
+
+      return {
+        id: b.id,
+        image_url: imageUrl,
+        media_url: imageUrl,
+        image: imageUrl,
+        link_url: linkUrl,
+        cta_url: linkUrl,
+        ctaHref: linkUrl,
+        display_order,
+        title,
+        headline: title,
+        subtitle,
+        subheadline: subtitle,
+        description,
+        cta_text,
+        is_active: b.status === "active",
+        start_date: b.start_date || null,
+        end_date: b.end_date || null,
+        placement,
+      };
+    });
+
+    return slides.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
   } catch {
     return DEFAULT_SLIDES;
   }
@@ -382,50 +647,85 @@ export async function upsertHeroSlide(
   slide: Partial<HeroSlide> & { image_url: string; link_url: string }
 ) {
   try {
-    const { createClient } = await import("@/lib/supabase/server");
-    const supabase = await createClient();
+    const { createAdminClient } = await import("@/lib/supabase/admin-client");
+    const supabase = createAdminClient();
 
-    const payload = {
-      image_url: slide.image_url,
-      link_url: slide.link_url,
-      placement: "HERO",
-      is_active: true,
+    const placement = slide.placement || "hero";
+    const type = placement === "promo" ? "sidebar" : "hero";
+
+    const contentPayload = JSON.stringify({
+      subtitle: slide.subtitle || "",
+      description: slide.description || "",
+      cta_text: slide.cta_text || "Shop Now",
+      display_order: slide.display_order ?? 0,
+      placement,
+    });
+
+    const payload: Record<string, any> = {
+      title: slide.title?.trim() || "Hero Banner",
+      type,
+      status: slide.is_active !== false ? "active" : "inactive",
+      media_url: slide.image_url,
+      link_url: slide.link_url || "/products",
+      target_audience: "all",
+      content: contentPayload,
+      updated_at: new Date().toISOString(),
     };
 
-    const { error } = slide.id
-      ? await supabase.from("banners").update(payload).eq("id", slide.id)
-      : await supabase.from("banners").insert(payload);
+    if (slide.start_date) payload.start_date = new Date(slide.start_date).toISOString();
+    if (slide.end_date) {
+      const end = new Date(slide.end_date);
+      if (slide.end_date.length <= 10) {
+        end.setUTCHours(23, 59, 59, 999);
+      }
+      payload.end_date = end.toISOString();
+    }
+
+    const isUuid =
+      typeof slide.id === "string" &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        slide.id
+      );
+
+    const { data, error } = isUuid
+      ? await supabase.from("cms_banners").update(payload).eq("id", slide.id).select("id").single()
+      : await supabase.from("cms_banners").insert(payload).select("id").single();
 
     if (error) throw error;
-    return { success: true };
+    invalidateHomepageCache();
+    revalidatePath("/admin/cms/banners");
+    revalidatePath("/");
+    return { success: true, id: data?.id };
   } catch (error: any) {
+    console.error("upsertHeroSlide error:", error);
     return { success: false, error: error.message };
   }
 }
 
 export async function upsertHeroSlideWithUpload(formData: FormData) {
   try {
-    const { createClient } = await import("@/lib/supabase/server");
-    const supabase = await createClient();
+    const { createAdminClient } = await import("@/lib/supabase/admin-client");
+    const supabase = createAdminClient();
 
     const id = formData.get("id") as string | null;
-    const link_url = formData.get("link_url") as string || "/products";
-    const display_order = formData.get("display_order") as string || "0";
-    let image_url = formData.get("image_url") as string || "";
-    
-    // For alt_text, we will save it by combining it with link_url in a small JSON or just append as query param?
-    // Actually, since there's no alt_text column, we will just use the title column if we were using cms_banners.
-    // For now, we will ignore saving it in the db because the 'banners' table has no alt_text column.
+    const link_url = (formData.get("link_url") as string) || "/products";
+    const display_order = (formData.get("display_order") as string) || "0";
+    const placement = (formData.get("placement") as string) || "hero";
+    let image_url = (formData.get("image_url") as string) || "";
+
     const file = formData.get("file") as File | null;
 
     if (file && file.size > 0) {
-      const fileExt = file.name.split('.').pop();
+      const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
       const filePath = `hero/${fileName}`;
 
-      const { data, error } = await supabase.storage
+      const { error } = await supabase.storage
         .from("banners")
-        .upload(filePath, file);
+        .upload(filePath, file, {
+          contentType: file.type,
+          upsert: true,
+        });
 
       if (error) throw error;
 
@@ -440,38 +740,88 @@ export async function upsertHeroSlideWithUpload(formData: FormData) {
       throw new Error("Image is required");
     }
 
-    const payload = {
-      image_url,
+    const title = (formData.get("title") as string | null)?.trim() || "Hero Banner";
+    const subtitle = (formData.get("subtitle") as string | null)?.trim() || "";
+    const description = (formData.get("description") as string | null)?.trim() || "";
+    const cta_text = (formData.get("cta_text") as string | null)?.trim() || "Shop Now";
+    const isActiveVal = formData.get("is_active");
+    const is_active = isActiveVal === "true" || isActiveVal === "1" || isActiveVal === null;
+    const start_date = formData.get("start_date") as string | null;
+    const end_date = formData.get("end_date") as string | null;
+
+    const contentPayload = JSON.stringify({
+      subtitle,
+      description,
+      cta_text,
+      display_order: parseInt(display_order, 10) || 0,
+      placement,
+    });
+
+    const type = placement === "promo" ? "sidebar" : "hero";
+
+    const payload: Record<string, any> = {
+      title,
+      type,
+      status: is_active ? "active" : "inactive",
+      media_url: image_url,
       link_url,
-      placement: "HERO",
-      is_active: true,
-      display_order: parseInt(display_order, 10),
+      target_audience: "all",
+      content: contentPayload,
+      updated_at: new Date().toISOString(),
     };
 
-    const { error } = id
-      ? await supabase.from("banners").update(payload).eq("id", id)
-      : await supabase.from("banners").insert(payload);
+    if (start_date) payload.start_date = new Date(start_date).toISOString();
+    if (end_date) {
+      const end = new Date(end_date);
+      if (end_date.length <= 10) {
+        end.setUTCHours(23, 59, 59, 999);
+      }
+      payload.end_date = end.toISOString();
+    }
+
+    const isExistingUuid =
+      id &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        id
+      );
+
+    const { data, error } = isExistingUuid
+      ? await supabase.from("cms_banners").update(payload).eq("id", id).select("id").single()
+      : await supabase.from("cms_banners").insert(payload).select("id").single();
 
     if (error) throw error;
     invalidateHomepageCache();
-    return { success: true, image_url };
+    revalidatePath("/admin/cms/banners");
+    revalidatePath("/");
+    return { success: true, image_url, id: data?.id };
   } catch (error: any) {
+    console.error("upsertHeroSlideWithUpload error:", error);
     return { success: false, error: error.message };
   }
 }
 
 export async function deleteHeroSlide(id: string) {
   try {
-    const { createClient } = await import("@/lib/supabase/server");
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from("banners")
-      .delete()
-      .eq("id", id);
-    if (error) throw error;
+    const { createAdminClient } = await import("@/lib/supabase/admin-client");
+    const supabase = createAdminClient();
+    const isUuid =
+      id &&
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        id
+      );
+    if (isUuid) {
+      const { error } = await supabase
+        .from("cms_banners")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    }
     invalidateHomepageCache();
+    revalidatePath("/admin/cms/banners");
+    revalidatePath("/");
     return { success: true };
   } catch (error: any) {
+    console.error("deleteHeroSlide error:", error);
     return { success: false, error: error.message };
   }
 }

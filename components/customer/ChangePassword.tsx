@@ -13,26 +13,47 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const changePasswordSchema = z
+  .object({
+    current_password: z.string().min(1, "Current password is required"),
+    new_password: z.string().min(6, "New password must be at least 6 characters"),
+    confirm_password: z.string().min(6, "Please confirm your new password"),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    message: "Passwords do not match",
+    path: ["confirm_password"],
+  });
+
+type ChangePasswordValues = z.infer<typeof changePasswordSchema>;
 
 export function ChangePassword() {
   const [isPending, startTransition] = useTransition();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const newPass = formData.get("new_password");
-    const confirmPass = formData.get("confirm_password");
+  const {
+    register,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<ChangePasswordValues>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: {
+      current_password: "",
+      new_password: "",
+      confirm_password: "",
+    },
+  });
 
-    if (newPass !== confirmPass) {
-      toast.error("Passwords do not match");
-      return;
-    }
-
+  const onSubmit = (values: ChangePasswordValues) => {
     startTransition(async () => {
-      // Supabase auth update logic would go here, omitting for brevity
-      await new Promise((r) => setTimeout(r, 1000));
+      // Supabase auth update logic simulation
+      await new Promise((r) => setTimeout(r, 800));
       toast.success("Password updated successfully");
-      (e.target as HTMLFormElement).reset();
+      reset();
     });
   };
 
@@ -44,39 +65,55 @@ export function ChangePassword() {
           Ensure your account is using a long, random password to stay secure.
         </CardDescription>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="current_password">Current Password</Label>
             <Input
               id="current_password"
-              name="current_password"
               type="password"
-              required
+              {...register("current_password")}
+              className={errors.current_password ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.current_password && (
+              <p className="text-xs text-destructive">{errors.current_password.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="new_password">New Password</Label>
             <Input
               id="new_password"
-              name="new_password"
               type="password"
-              required
+              {...register("new_password")}
+              className={errors.new_password ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.new_password && (
+              <p className="text-xs text-destructive">{errors.new_password.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="confirm_password">Confirm New Password</Label>
             <Input
               id="confirm_password"
-              name="confirm_password"
               type="password"
-              required
+              {...register("confirm_password")}
+              className={errors.confirm_password ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.confirm_password && (
+              <p className="text-xs text-destructive">{errors.confirm_password.message}</p>
+            )}
           </div>
         </CardContent>
         <CardFooter>
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Updating..." : "Update Password"}
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              "Update Password"
+            )}
           </Button>
         </CardFooter>
       </form>

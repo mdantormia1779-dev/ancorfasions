@@ -167,11 +167,6 @@ export default async function CatalogDashboardPage() {
                   <Tag className="mr-2 h-4 w-4" /> Manage Brands
                 </Button>
               </Link>
-              <Link href="/admin/products/attributes" className="block">
-                <Button variant="outline" className="w-full justify-start">
-                  <Grid3X3 className="mr-2 h-4 w-4" /> Manage Attributes
-                </Button>
-              </Link>
             </div>
           </CardContent>
         </Card>

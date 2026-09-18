@@ -36,7 +36,7 @@ export default async function ShopLayout({
   };
 
   return (
-    <div className="flex min-h-screen flex-col pb-16 md:pb-0">
+    <div className="flex min-h-screen flex-col pb-20 md:pb-0">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(orgJsonLd) }}

@@ -51,11 +51,10 @@ export function ProductDetailView({
     flashSale || product.sale_price ? product.base_price : null
   );
   const [currentSku, setCurrentSku] = useState<string>(product.sku || "");
-  const [currentStock, setCurrentStock] = useState<number>(
-    product.total_available_stock ?? (product.is_in_stock ? 100 : 0)
-  );
+  const initialStock = product.total_available_stock ?? (product.is_in_stock ? 10 : 0);
+  const [currentStock, setCurrentStock] = useState<number>(initialStock);
   const [isOutOfStock, setIsOutOfStock] = useState<boolean>(
-    !product.is_in_stock && currentStock <= 0
+    !product.is_in_stock || initialStock <= 0
   );
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [selectedVariantLabel, setSelectedVariantLabel] = useState<string>("");
@@ -372,6 +371,7 @@ export function ProductDetailView({
       {/* Customer Reviews Section */}
       <ProductReviews
         productId={product.id}
+        productName={product.name}
         averageRating={Number(averageRating.toFixed(1))}
         totalReviews={totalReviews}
         reviews={reviews}

@@ -79,7 +79,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
       <div className="relative aspect-[4/5] overflow-hidden bg-[#F7F7F7]">
         <Link
           href={`/product/${product.slug}`}
-          className="block h-full w-full"
+          className="relative block h-full w-full"
         >
           <Image
             src={primaryImage}

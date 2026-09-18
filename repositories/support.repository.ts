@@ -196,7 +196,8 @@ export class SupportRepository {
       .eq("id", id)
       .maybeSingle();
 
-    if (error || !ticket) {
+    let finalTicket = ticket;
+    if (error || !finalTicket) {
       const { data: simpleTicket } = await supabase
         .from("support_tickets")
         .select("*")
@@ -211,19 +212,120 @@ export class SupportRepository {
         .eq("ticket_id", id)
         .order("created_at", { ascending: true });
 
-      return {
+      finalTicket = {
         ...simpleTicket,
         ticket_messages: messages || [],
       };
     }
-    return ticket;
+
+    if (finalTicket && finalTicket.profile_id) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, email, phone")
+        .eq("id", finalTicket.profile_id)
+        .maybeSingle();
+
+      if (profile) {
+        finalTicket.customer = {
+          id: profile.id,
+          first_name: profile.first_name,
+          last_name: profile.last_name,
+          full_name:
+            [profile.first_name, profile.last_name].filter(Boolean).join(" ") ||
+            "Customer",
+          email: profile.email,
+          phone: profile.phone,
+        };
+      }
+    }
+
+    return finalTicket;
+  }
+
+  static async resolveSupportAgentId(
+    agentOrUserId?: string | null
+  ): Promise<string | null> {
+    if (!agentOrUserId || agentOrUserId === "none") return null;
+    const supabase = await this.getClient();
+
+    // 1. Check if already a valid support_agents.id
+    const { data: existingAgent } = await supabase
+      .from("support_agents")
+      .select("id")
+      .eq("id", agentOrUserId)
+      .maybeSingle();
+
+    if (existingAgent) return existingAgent.id;
+
+    // 2. Check if agentOrUserId is user_id in support_agents
+    const { data: agentByUser } = await supabase
+      .from("support_agents")
+      .select("id")
+      .eq("user_id", agentOrUserId)
+      .maybeSingle();
+
+    if (agentByUser) return agentByUser.id;
+
+    // 3. Auto register agent if user profile exists
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("id")
+      .eq("id", agentOrUserId)
+      .maybeSingle();
+
+    if (profile) {
+      const { data: newAgent, error } = await supabase
+        .from("support_agents")
+        .insert({
+          user_id: profile.id,
+          current_status: "online",
+          is_active: true,
+        })
+        .select("id")
+        .maybeSingle();
+
+      if (!error && newAgent) return newAgent.id;
+    }
+
+    return null;
   }
 
   async createTicket(data: any): Promise<any> {
     const supabase = await SupportRepository.getClient();
+    const allowed = [
+      "profile_id",
+      "subject",
+      "description",
+      "category",
+      "priority",
+      "status",
+      "department_id",
+      "assigned_agent_id",
+      "order_id",
+      "sla_breach_at",
+      "first_response_at",
+      "resolved_at",
+      "closed_at",
+    ];
+    const payload: Record<string, any> = {};
+    for (const key of allowed) {
+      if (data[key] !== undefined) {
+        payload[key] = data[key];
+      }
+    }
+    if (data.customer_id && !payload.profile_id) {
+      payload.profile_id = data.customer_id;
+    }
+
+    if (payload.assigned_agent_id) {
+      payload.assigned_agent_id = await SupportRepository.resolveSupportAgentId(
+        payload.assigned_agent_id
+      );
+    }
+
     const { data: ticket, error } = await supabase
       .from("support_tickets")
-      .insert(data)
+      .insert(payload)
       .select()
       .single();
 
@@ -233,9 +335,49 @@ export class SupportRepository {
 
   async updateTicket(id: string, data: any): Promise<any> {
     const supabase = await SupportRepository.getClient();
+    const allowed = [
+      "profile_id",
+      "subject",
+      "description",
+      "category",
+      "priority",
+      "status",
+      "department_id",
+      "assigned_agent_id",
+      "order_id",
+      "sla_breach_at",
+      "first_response_at",
+      "resolved_at",
+      "closed_at",
+    ];
+    const payload: Record<string, any> = {
+      updated_at: new Date().toISOString(),
+    };
+    for (const key of allowed) {
+      if (data[key] !== undefined) {
+        payload[key] = data[key];
+      }
+    }
+    if (data.customer_id && !payload.profile_id) {
+      payload.profile_id = data.customer_id;
+    }
+
+    if (payload.assigned_agent_id !== undefined) {
+      payload.assigned_agent_id = await SupportRepository.resolveSupportAgentId(
+        payload.assigned_agent_id
+      );
+    }
+
+    if (payload.status === "resolved" && !payload.resolved_at) {
+      payload.resolved_at = new Date().toISOString();
+    }
+    if (payload.status === "closed" && !payload.closed_at) {
+      payload.closed_at = new Date().toISOString();
+    }
+
     const { data: ticket, error } = await supabase
       .from("support_tickets")
-      .update({ ...data, updated_at: new Date().toISOString() })
+      .update(payload)
       .eq("id", id)
       .select()
       .single();
@@ -244,15 +386,51 @@ export class SupportRepository {
     return ticket;
   }
 
+  async deleteTicket(id: string): Promise<boolean> {
+    const supabase = await SupportRepository.getClient();
+    try {
+      await supabase.from("ticket_attachments").delete().eq("ticket_id", id);
+      await supabase.from("ticket_messages").delete().eq("ticket_id", id);
+    } catch {}
+
+    const { error } = await supabase
+      .from("support_tickets")
+      .delete()
+      .eq("id", id);
+
+    if (error) throw new Error(error.message);
+    return true;
+  }
+
   async createTicketMessage(data: any): Promise<any> {
     const supabase = await SupportRepository.getClient();
+    const messageText = (data.message || data.body || "").trim();
+    const isInternal = !!(data.is_internal_note ?? data.is_internal);
+
+    const payload: Record<string, any> = {
+      ticket_id: data.ticket_id,
+      sender_type: data.sender_type || "AGENT",
+      message: messageText,
+      is_internal_note: isInternal,
+    };
+    if (data.sender_id) {
+      payload.sender_id = data.sender_id;
+    }
+
     const { data: msg, error } = await supabase
       .from("ticket_messages")
-      .insert(data)
+      .insert(payload)
       .select()
       .single();
 
     if (error) throw new Error(error.message);
+
+    // Touch ticket updated_at
+    await supabase
+      .from("support_tickets")
+      .update({ updated_at: new Date().toISOString() })
+      .eq("id", data.ticket_id);
+
     return msg;
   }
 
@@ -268,12 +446,59 @@ export class SupportRepository {
 
   async getAgents(): Promise<any[]> {
     const supabase = await SupportRepository.getClient();
-    const { data } = await supabase
+    let { data: agents } = await supabase
       .from("support_agents")
-      .select("*")
-      .order("created_at", { ascending: false });
+      .select("id, user_id, current_status, is_active")
+      .eq("is_active", true);
 
-    return data || [];
+    const { data: profiles } = await supabase
+      .from("profiles")
+      .select("id, first_name, last_name, phone")
+      .eq("is_active", true)
+      .limit(30);
+
+    const existingUserIds = new Set((agents || []).map((a) => a.user_id));
+
+    if (profiles && profiles.length > 0) {
+      for (const p of profiles) {
+        if (!existingUserIds.has(p.id)) {
+          const { data: newSa } = await supabase
+            .from("support_agents")
+            .insert({
+              user_id: p.id,
+              current_status: "online",
+              is_active: true,
+            })
+            .select("id, user_id, current_status, is_active")
+            .single();
+
+          if (newSa) {
+            agents = [...(agents || []), newSa];
+            existingUserIds.add(p.id);
+          }
+        }
+      }
+    }
+
+    const profileMap = (profiles || []).reduce((acc: any, p: any) => {
+      acc[p.id] = p;
+      return acc;
+    }, {});
+
+    return (agents || []).map((a) => {
+      const p = profileMap[a.user_id];
+      const name = p
+        ? [p.first_name, p.last_name].filter(Boolean).join(" ")
+        : null;
+      return {
+        id: a.id,
+        user_id: a.user_id,
+        first_name: p?.first_name || "Agent",
+        last_name: p?.last_name || "",
+        full_name: name || "Support Agent",
+        status: a.current_status || "online",
+      };
+    });
   }
 
   async createTicketAttachment(data: any): Promise<any> {

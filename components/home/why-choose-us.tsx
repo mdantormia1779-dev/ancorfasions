@@ -42,6 +42,7 @@ export function WhyChooseUs() {
               src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80"
               alt="The Anchor Fashion Difference"
               fill
+              sizes="(max-width: 1024px) 100vw, 50vw"
               className="object-cover"
             />
             <div className="absolute inset-0 bg-black/10" />

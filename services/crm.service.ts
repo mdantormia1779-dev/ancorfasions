@@ -43,7 +43,22 @@ export class CRMService {
 
   async createLead(data: unknown): Promise<CRMLead> {
     const validData = createCRMLeadSchema.parse(data);
-    return await crmRepository.createLead(validData);
+    const existing = await crmRepository.getLeadByEmail(validData.email);
+    if (existing) {
+      throw new Error(`A lead with email "${validData.email}" already exists.`);
+    }
+
+    const { notes, ...leadFields } = validData;
+    const lead = await crmRepository.createLead(leadFields);
+
+    if (notes && notes.trim() && lead?.id) {
+      await crmRepository.createNote({
+        lead_id: lead.id,
+        content: notes.trim(),
+      });
+    }
+
+    return lead;
   }
 
   async updateLead(id: string, data: unknown): Promise<CRMLead> {
@@ -92,6 +107,17 @@ export class CRMService {
 
   async getCommunicationLogs(): Promise<CommunicationLog[]> {
     return await crmRepository.getCommunicationLogs();
+  }
+
+  async updateCommunicationLog(
+    id: string,
+    data: Partial<CommunicationLog>
+  ): Promise<CommunicationLog> {
+    return await crmRepository.updateCommunicationLog(id, data);
+  }
+
+  async deleteCommunicationLog(id: string): Promise<void> {
+    await crmRepository.deleteCommunicationLog(id);
   }
 }
 

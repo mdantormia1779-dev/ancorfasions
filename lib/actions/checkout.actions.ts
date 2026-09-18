@@ -263,9 +263,29 @@ export async function processCheckoutAction(
       riskMetadata as any
     );
 
-    // 5. Generate Payment Payload for Digital Payment Gateways (bKash / SSLCommerz)
+    // 5. If Manual Payment (bKash, Nagad, Rocket, Bank Transfer), record transaction for Admin Approval
+    const methodUpper = (order.payment_method || "").toUpperCase();
+    const isManualPayment = ["BKASH", "NAGAD", "ROCKET", "BANK", "BANK_TRANSFER"].includes(methodUpper);
+
+    if (isManualPayment && parsedData.payment.manual_payment) {
+      const { recordManualPaymentTransaction } = await import("./payment.actions");
+      await recordManualPaymentTransaction({
+        order_id: order.id,
+        payment_method: methodUpper,
+        amount: order.total_amount || order.grand_total || summary.total_amount,
+        sender_number: parsedData.payment.manual_payment.sender_number,
+        transaction_id: parsedData.payment.manual_payment.transaction_id,
+        bank_name: parsedData.payment.manual_payment.bank_name,
+        branch_name: parsedData.payment.manual_payment.branch_name,
+        account_holder_name: parsedData.payment.manual_payment.account_holder_name,
+        notes: parsedData.payment.manual_payment.notes,
+        customer_id: userId || null,
+      });
+    }
+
+    // 6. Generate Payment Payload ONLY for Automated Gateway Redirects (e.g. SSLCommerz)
     let paymentPayload = null;
-    if (order.payment_method !== "COD") {
+    if (order.payment_method === "SSLCOMMERZ") {
       const name = `${parsedData.information.shipping_address.first_name} ${parsedData.information.shipping_address.last_name}`;
       paymentPayload = OrderService.generatePaymentPayload(
         order,

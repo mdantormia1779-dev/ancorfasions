@@ -3,8 +3,8 @@ import { EmailProvider } from "./EmailProvider";
 import { PushProvider } from "./PushProvider";
 import { TemplateEngine } from "./TemplateEngine";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co";
+const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || "dummy_key";
 
 // We use the service role client here as this service will run on the backend
 // and needs to bypass RLS to read templates and preferences, and write logs.

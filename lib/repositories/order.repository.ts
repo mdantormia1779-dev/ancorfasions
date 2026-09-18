@@ -13,13 +13,28 @@ export class OrderRepository {
   ): Promise<Order> {
     const supabase = await createAdminClient();
 
-    // 1. Create Order with schema compatibility (grand_total vs total_amount)
+    // 1. Create Order with schema compatibility
+    const customerId = orderData.user_id ?? (orderData as any).customer_id ?? null;
+    const customerNote = orderData.notes;
+
     const finalOrderData: any = {
       ...orderData,
+      customer_id: customerId,
       grand_total: orderData.total_amount ?? orderData.grand_total ?? 0,
       shipping_total: orderData.shipping_fee ?? orderData.shipping_total ?? 0,
       discount_total: orderData.discount_amount ?? orderData.discount_total ?? 0,
     };
+
+    // Strip fields not present in Supabase 'orders' table schema cache
+    delete finalOrderData.user_id;
+    delete finalOrderData.session_id;
+    delete finalOrderData.notes;
+    delete finalOrderData.total_amount;
+    delete finalOrderData.shipping_fee;
+    delete finalOrderData.discount_amount;
+    delete finalOrderData.items;
+    delete finalOrderData.shipping_address;
+    delete finalOrderData.billing_address;
 
     let { data: order, error: orderError } = await supabase
       .from("orders")
@@ -27,12 +42,13 @@ export class OrderRepository {
       .select("*")
       .single();
 
-    // Fallback if migration hasn't added total_amount/shipping_fee/risk columns yet
+    // Fallback if migration or schema cache reports any missing columns
     if (orderError && orderError.message && orderError.message.includes("column")) {
       const sanitized = { ...finalOrderData };
-      delete sanitized.total_amount;
-      delete sanitized.shipping_fee;
-      delete sanitized.discount_amount;
+      const colMatch = orderError.message.match(/'([^']+)' column/);
+      if (colMatch && colMatch[1]) {
+        delete sanitized[colMatch[1]];
+      }
       delete sanitized.payment_method;
       delete sanitized.payment_status;
       delete sanitized.risk_level;
@@ -51,6 +67,20 @@ export class OrderRepository {
 
     if (orderError)
       throw new Error(`Failed to create order: ${orderError.message}`);
+
+    // If customer provided a note during checkout, save it in the order_notes audit table
+    if (customerNote && customerNote.trim()) {
+      try {
+        await supabase.from("order_notes").insert({
+          order_id: order.id,
+          author_id: customerId,
+          note: customerNote.trim(),
+          is_customer_visible: true,
+        });
+      } catch (err: any) {
+        console.error("Error saving customer note to order_notes:", err);
+      }
+    }
 
     // 2. Create Shipping Address
     const { error: shippingError } = await supabase
@@ -92,7 +122,9 @@ export class OrderRepository {
       throw new Error(`Failed to create order items: ${itemsError.message}`);
 
     // 5. Create Order Status History
-    const statusNote = orderData.risk_level
+    const statusNote = customerNote
+      ? `Order placed. Customer Note: ${customerNote.trim()}`
+      : orderData.risk_level
       ? `Order placed successfully (COD Risk: ${orderData.risk_level}, Verification: ${orderData.verification_status || "EXEMPT"})`
       : "Order placed successfully";
 
@@ -100,7 +132,7 @@ export class OrderRepository {
       order_id: order.id,
       status: order.status,
       notes: statusNote,
-      created_by: order.user_id,
+      created_by: customerId,
     });
 
     // 6. Fetch complete order
@@ -132,6 +164,7 @@ export class OrderRepository {
       data.total_amount = data.total_amount ?? data.grand_total ?? 0;
       data.shipping_fee = data.shipping_fee ?? data.shipping_total ?? 0;
       data.discount_amount = data.discount_amount ?? data.discount_total ?? 0;
+      data.user_id = data.user_id ?? data.customer_id;
       // Map addresses to shipping and billing
       data.shipping_address = data.addresses?.find(
         (a: any) => a.address_type === "SHIPPING"
@@ -140,6 +173,20 @@ export class OrderRepository {
         (a: any) => a.address_type === "BILLING"
       );
       delete data.addresses;
+
+      // Populate notes from order_notes if not on order record
+      if (!data.notes) {
+        const { data: noteRows } = await supabase
+          .from("order_notes")
+          .select("note")
+          .eq("order_id", orderId)
+          .eq("is_customer_visible", true)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (noteRows && noteRows.length > 0) {
+          data.notes = noteRows[0].note;
+        }
+      }
     }
 
     return data as Order | null;
@@ -170,6 +217,7 @@ export class OrderRepository {
       data.total_amount = data.total_amount ?? data.grand_total ?? 0;
       data.shipping_fee = data.shipping_fee ?? data.shipping_total ?? 0;
       data.discount_amount = data.discount_amount ?? data.discount_total ?? 0;
+      data.user_id = data.user_id ?? data.customer_id;
       data.shipping_address = data.addresses?.find(
         (a: any) => a.address_type === "SHIPPING"
       );
@@ -177,6 +225,19 @@ export class OrderRepository {
         (a: any) => a.address_type === "BILLING"
       );
       delete data.addresses;
+
+      if (!data.notes) {
+        const { data: noteRows } = await supabase
+          .from("order_notes")
+          .select("note")
+          .eq("order_id", data.id)
+          .eq("is_customer_visible", true)
+          .order("created_at", { ascending: false })
+          .limit(1);
+        if (noteRows && noteRows.length > 0) {
+          data.notes = noteRows[0].note;
+        }
+      }
     }
 
     return data as Order | null;

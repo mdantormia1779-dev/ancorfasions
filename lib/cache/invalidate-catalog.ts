@@ -44,6 +44,23 @@ export function invalidateBrandCache() {
   }
 }
 
+export function invalidateCollectionCache(slug?: string) {
+  try {
+    revalidateTag(CACHE_TAGS.COLLECTIONS, "max");
+    revalidateTag(CACHE_TAGS.HOMEPAGE, "max");
+    revalidateTag(CACHE_TAGS.CATALOG, "max");
+    if (slug) {
+      revalidateTag(`collection-${slug}`, "max");
+    }
+    revalidatePath("/", "page");
+    revalidatePath("/collections");
+    revalidatePath("/(shop)", "layout");
+    revalidatePath("/admin/products/collections");
+  } catch (error) {
+    console.warn("Failed to invalidate collection cache tags:", error);
+  }
+}
+
 export function invalidateHomepageCache() {
   try {
     revalidateTag(CACHE_TAGS.HOMEPAGE, "max");

@@ -1,5 +1,4 @@
-import React from "react";
-import { getHeroSlides } from "@/actions/cms.actions";
+import { getAdminHeroSlides } from "@/actions/cms.actions";
 import { BannersManager } from "./BannersManager";
 
 export const metadata = {
@@ -7,7 +6,7 @@ export const metadata = {
 };
 
 export default async function BannersPage() {
-  const slides = await getHeroSlides();
+  const slides = await getAdminHeroSlides();
 
   return (
     <div className="p-8 pt-6">

@@ -77,6 +77,61 @@ export async function getAdminHeaderMessagesAction(): Promise<{
 }
 
 /**
+ * Marks a single message as READ.
+ */
+export async function markMessageAsReadAction(id: string): Promise<{ error?: string }> {
+  try {
+    const supabase = await createClient();
+    const { error } = await supabase
+      .from("communication_logs")
+      .update({ status: "READ" })
+      .eq("id", id);
+
+    if (error) return { error: error.message };
+    revalidatePath("/admin", "layout");
+    return {};
+  } catch (err: any) {
+    return { error: err.message };
+  }
+}
+
+/**
+ * Creates a new communication message.
+ */
+export async function createMessageAction(payload: {
+  profile_id?: string;
+  lead_id?: string;
+  type: string;
+  direction?: string;
+  subject?: string;
+  content: string;
+}): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    const { data, error } = await supabase
+      .from("communication_logs")
+      .insert({
+        ...payload,
+        sender_id: user?.id || null,
+        direction: payload.direction || "OUTBOUND",
+        status: "SENT",
+      })
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    revalidatePath("/admin", "layout");
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * Marks all recent unread inbound communications as READ.
  */
 export async function markAllMessagesAsReadAction(): Promise<{ error?: string }> {

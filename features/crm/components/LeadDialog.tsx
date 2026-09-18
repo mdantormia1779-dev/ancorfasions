@@ -20,6 +20,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -28,7 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Loader2, UserPlus, Pencil } from "lucide-react";
+import { Loader2, UserPlus, Pencil, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { createCRMLeadSchema } from "@/schemas/crm.schema";
 import { CRMLead } from "@/types/crm.types";
@@ -67,6 +68,7 @@ export function LeadDialog({
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(createCRMLeadSchema),
+    mode: "onTouched",
     defaultValues: {
       first_name: "",
       last_name: "",
@@ -76,12 +78,14 @@ export function LeadDialog({
       status: "new",
       source: "Direct",
       score: 0,
+      notes: "",
       custom_fields: {},
     },
   });
 
   useEffect(() => {
     if (open) {
+      form.clearErrors();
       if (mode === "edit" && initialData) {
         form.reset({
           first_name: initialData.first_name || "",
@@ -104,6 +108,7 @@ export function LeadDialog({
           status: "new",
           source: "Direct",
           score: 0,
+          notes: "",
           custom_fields: {},
         });
       }
@@ -112,10 +117,19 @@ export function LeadDialog({
 
   const onSubmit = async (values: LeadFormValues) => {
     setSubmitting(true);
+    form.clearErrors();
     try {
       if (mode === "edit" && initialData?.id) {
         const res = await updateLeadAction(initialData.id, values);
         if (res.error) {
+          if (
+            res.error.toLowerCase().includes("email") ||
+            res.error.toLowerCase().includes("already exists")
+          ) {
+            form.setError("email", { type: "server", message: res.error });
+          } else {
+            form.setError("root", { type: "server", message: res.error });
+          }
           toast.error(res.error || "Failed to update lead");
           return;
         }
@@ -124,6 +138,14 @@ export function LeadDialog({
       } else {
         const res = await createLeadAction(values);
         if (res.error) {
+          if (
+            res.error.toLowerCase().includes("email") ||
+            res.error.toLowerCase().includes("already exists")
+          ) {
+            form.setError("email", { type: "server", message: res.error });
+          } else {
+            form.setError("root", { type: "server", message: res.error });
+          }
           toast.error(res.error || "Failed to create lead");
           return;
         }
@@ -132,6 +154,10 @@ export function LeadDialog({
       }
       onOpenChange(false);
     } catch (err: any) {
+      form.setError("root", {
+        type: "server",
+        message: err.message || "An unexpected error occurred",
+      });
       toast.error(err.message || "An unexpected error occurred");
     } finally {
       setSubmitting(false);
@@ -164,6 +190,13 @@ export function LeadDialog({
 
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 py-2">
+            {form.formState.errors.root && (
+              <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive font-medium flex items-center gap-2">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{form.formState.errors.root.message}</span>
+              </div>
+            )}
+
             {/* Name: First and Last */}
             <div className="grid grid-cols-2 gap-4">
               <FormField
@@ -171,7 +204,9 @@ export function LeadDialog({
                 name="first_name"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>First Name</FormLabel>
+                    <FormLabel>
+                      First Name <span className="text-destructive">*</span>
+                    </FormLabel>
                     <FormControl>
                       <Input placeholder="e.g., Ahsan" {...field} />
                     </FormControl>
@@ -305,6 +340,26 @@ export function LeadDialog({
                       <SelectItem value="lost">Lost / Unresponsive</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            {/* Notes */}
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Internal Notes</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      placeholder="Add any initial discussion details, requirements, or sourcing requests..."
+                      className="resize-none"
+                      rows={3}
+                      {...field}
+                    />
+                  </FormControl>
                   <FormMessage />
                 </FormItem>
               )}

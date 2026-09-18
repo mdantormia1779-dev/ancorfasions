@@ -83,7 +83,7 @@ export function BrandedCollection({
   const placeholders = [
     "https://images.unsplash.com/photo-1550639525-c97d455acf70?w=500&q=80",
     "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=500&q=80",
-    "https://images.unsplash.com/photo-1596455607563-ad6193f76b11?w=500&q=80",
+    "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=500&q=80",
     "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=500&q=80",
     "https://images.unsplash.com/photo-1584273143981-41c073dfe8f8?w=500&q=80",
   ];
@@ -161,7 +161,7 @@ export function BrandedCollection({
                     <div className="relative mb-4 aspect-[4/5] w-full overflow-hidden bg-[#F7F7F7] transition-all duration-500">
                       <Link
                         href={`/product/${product.slug}`}
-                        className="block h-full w-full"
+                        className="relative block h-full w-full"
                       >
                         <Image
                           src={imageUrl}

@@ -9,17 +9,45 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { toast } from "sonner";
 import { Warehouse, WarehouseZone } from "@/types/inventory.types";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const auditSchema = z.object({
+  warehouse_id: z.string().min(1, "Please select a target warehouse"),
+  zone_id: z.string().optional().default("all"),
+  scheduled_date: z.string().min(1, "Scheduled date is required"),
+});
+
+type AuditFormValues = z.infer<typeof auditSchema>;
 
 export default function ScheduleAuditPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
   const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
   const [zones, setZones] = useState<WarehouseZone[]>([]);
-  const [selectedWarehouseId, setSelectedWarehouseId] = useState<string>("");
+  const [loadingZones, setLoadingZones] = useState(false);
+
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    formState: { errors, isSubmitting },
+  } = useForm<AuditFormValues>({
+    resolver: zodResolver(auditSchema),
+    defaultValues: {
+      warehouse_id: "",
+      zone_id: "all",
+      scheduled_date: new Date().toISOString().split("T")[0],
+    },
+  });
+
+  const selectedWarehouseId = watch("warehouse_id");
 
   useEffect(() => {
     async function fetchWarehouses() {
@@ -35,41 +63,31 @@ export default function ScheduleAuditPage() {
         setZones([]);
         return;
       }
+      setLoadingZones(true);
       const res = await getZonesByWarehouseAction(selectedWarehouseId);
+      setLoadingZones(false);
       if (res.success && res.data) setZones(res.data);
     }
     fetchZones();
   }, [selectedWarehouseId]);
 
-  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLoading(true);
+  async function onSubmit(values: AuditFormValues) {
+    try {
+      const res = await createAuditAction({
+        warehouse_id: values.warehouse_id,
+        zone_id: values.zone_id && values.zone_id !== "all" ? values.zone_id : undefined,
+        scheduled_date: values.scheduled_date || undefined,
+        status: "PLANNED",
+      });
 
-    const formData = new FormData(e.currentTarget);
-    const warehouse_id = formData.get("warehouse_id") as string;
-    const zone_id = formData.get("zone_id") as string;
-    const scheduled_date = formData.get("scheduled_date") as string;
-
-    if (!warehouse_id) {
-      toast.error("Please select a warehouse.");
-      setLoading(false);
-      return;
-    }
-
-    const res = await createAuditAction({
-      warehouse_id,
-      zone_id: zone_id || undefined,
-      scheduled_date: scheduled_date || undefined,
-      status: "PLANNED",
-    });
-
-    setLoading(false);
-
-    if (res.success) {
-      toast.success("Audit scheduled successfully");
-      router.push("/manager/inventory/audits");
-    } else {
-      toast.error(res.error || "Failed to schedule audit");
+      if (res.success) {
+        toast.success("Audit scheduled successfully");
+        router.push("/manager/inventory/audits");
+      } else {
+        toast.error(res.error || "Failed to schedule audit");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Something went wrong scheduling audit");
     }
   }
 
@@ -92,48 +110,96 @@ export default function ScheduleAuditPage() {
           <CardTitle>Audit Details</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={onSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="warehouse_id">Target Warehouse <span className="text-destructive">*</span></Label>
-              <Select name="warehouse_id" required onValueChange={(val) => setSelectedWarehouseId(val as string)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select warehouse..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {warehouses.map(w => (
-                    <SelectItem key={w.id} value={w.id}>{w.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Label htmlFor="warehouse_id">
+                Target Warehouse <span className="text-destructive">*</span>
+              </Label>
+              <Controller
+                name="warehouse_id"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={(val) => {
+                      field.onChange(val);
+                      setValue("zone_id", "all");
+                    }}
+                  >
+                    <SelectTrigger className={errors.warehouse_id ? "border-destructive focus-visible:ring-destructive" : ""}>
+                      <SelectValue placeholder="Select warehouse..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {warehouses.map((w) => (
+                        <SelectItem key={w.id} value={w.id}>
+                          {w.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
+              {errors.warehouse_id && (
+                <p className="text-xs text-destructive">{errors.warehouse_id.message}</p>
+              )}
             </div>
             
             <div className="space-y-2">
               <Label htmlFor="zone_id">Specific Zone (Optional)</Label>
-              <Select name="zone_id" disabled={!selectedWarehouseId || zones.length === 0}>
-                <SelectTrigger>
-                  <SelectValue placeholder="All Zones (or select specific zone)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="">All Zones</SelectItem>
-                  {zones.map(z => (
-                    <SelectItem key={z.id} value={z.id}>{z.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Controller
+                name="zone_id"
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={!selectedWarehouseId || loadingZones || zones.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="All Zones (or select specific zone)" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Zones</SelectItem>
+                      {zones.map((z) => (
+                        <SelectItem key={z.id} value={z.id}>
+                          {z.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+              />
               <p className="text-xs text-muted-foreground">Select a zone to limit the scope of the count.</p>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="scheduled_date">Scheduled Date</Label>
-              <Input id="scheduled_date" name="scheduled_date" type="date" required />
+              <Label htmlFor="scheduled_date">
+                Scheduled Date <span className="text-destructive">*</span>
+              </Label>
+              <Input
+                id="scheduled_date"
+                type="date"
+                {...register("scheduled_date")}
+                className={errors.scheduled_date ? "border-destructive focus-visible:ring-destructive" : ""}
+              />
+              {errors.scheduled_date && (
+                <p className="text-xs text-destructive">{errors.scheduled_date.message}</p>
+              )}
             </div>
 
             <div className="pt-4 flex justify-end gap-2">
               <Button variant="outline" type="button" asChild>
                 <Link href="/manager/inventory/audits">Cancel</Link>
               </Button>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Scheduling..." : "Schedule Audit"}
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Scheduling...
+                  </>
+                ) : (
+                  "Schedule Audit"
+                )}
               </Button>
             </div>
           </form>

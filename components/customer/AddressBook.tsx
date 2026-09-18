@@ -26,6 +26,26 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const addressSchema = z.object({
+  first_name: z.string().trim().min(1, "First name is required"),
+  last_name: z.string().trim().min(1, "Last name is required"),
+  phone: z.string().trim().min(7, "Valid phone number is required"),
+  address_line_1: z.string().trim().min(3, "Address is required"),
+  address_line_2: z.string().trim().optional(),
+  city: z.string().trim().min(2, "City is required"),
+  state: z.string().trim().min(1, "State / Division is required"),
+  zip: z.string().trim().min(1, "ZIP / Postal code is required"),
+  country: z.string().trim().min(1, "Country is required"),
+  is_default_shipping: z.boolean().default(false),
+  is_default_billing: z.boolean().default(false),
+});
+
+type AddressFormValues = z.infer<typeof addressSchema>;
 
 interface AddressBookProps {
   addresses: CustomerAddress[];
@@ -35,37 +55,51 @@ export function AddressBook({ addresses }: AddressBookProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const handleAdd = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    formData.append(
-      "is_default_shipping",
-      (
-        e.currentTarget.elements.namedItem(
-          "is_default_shipping"
-        ) as HTMLInputElement
-      ).checked
-        ? "true"
-        : "false"
-    );
-    formData.append(
-      "is_default_billing",
-      (
-        e.currentTarget.elements.namedItem(
-          "is_default_billing"
-        ) as HTMLInputElement
-      ).checked
-        ? "true"
-        : "false"
-    );
+  const {
+    register,
+    handleSubmit,
+    control,
+    reset,
+    formState: { errors },
+  } = useForm<AddressFormValues>({
+    resolver: zodResolver(addressSchema),
+    defaultValues: {
+      first_name: "",
+      last_name: "",
+      phone: "",
+      address_line_1: "",
+      address_line_2: "",
+      city: "",
+      state: "",
+      zip: "",
+      country: "BD",
+      is_default_shipping: false,
+      is_default_billing: false,
+    },
+  });
+
+  const onSubmit = (values: AddressFormValues) => {
+    const formData = new FormData();
+    formData.append("first_name", values.first_name);
+    formData.append("last_name", values.last_name);
+    formData.append("phone", values.phone);
+    formData.append("address_line_1", values.address_line_1);
+    if (values.address_line_2) formData.append("address_line_2", values.address_line_2);
+    formData.append("city", values.city);
+    formData.append("state", values.state);
+    formData.append("zip", values.zip);
+    formData.append("country", values.country);
+    formData.append("is_default_shipping", values.is_default_shipping ? "true" : "false");
+    formData.append("is_default_billing", values.is_default_billing ? "true" : "false");
 
     startTransition(async () => {
       try {
         await createAddressAction(formData);
         toast.success("Address added successfully");
+        reset();
         setIsOpen(false);
-      } catch (error) {
-        toast.error("Failed to add address");
+      } catch (error: any) {
+        toast.error(error.message || "Failed to add address");
       }
     });
   };
@@ -85,76 +119,160 @@ export function AddressBook({ addresses }: AddressBookProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xl font-semibold">Saved Addresses</h2>
-        <Dialog open={isOpen} onOpenChange={setIsOpen}>
+        <Dialog
+          open={isOpen}
+          onOpenChange={(val) => {
+            setIsOpen(val);
+            if (!val) reset();
+          }}
+        >
           <DialogTrigger render={<Button />}>Add New Address</DialogTrigger>
           <DialogContent className="max-w-md">
             <DialogHeader>
               <DialogTitle>Add Address</DialogTitle>
             </DialogHeader>
-            <form onSubmit={handleAdd} className="mt-4 space-y-4">
+            <form onSubmit={handleSubmit(onSubmit)} className="mt-4 space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="first_name">First Name</Label>
-                  <Input id="first_name" name="first_name" required />
+                  <Label htmlFor="addr_first_name">First Name</Label>
+                  <Input
+                    id="addr_first_name"
+                    {...register("first_name")}
+                    className={errors.first_name ? "border-destructive focus-visible:ring-destructive" : ""}
+                  />
+                  {errors.first_name && (
+                    <p className="text-xs text-destructive">{errors.first_name.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="last_name">Last Name</Label>
-                  <Input id="last_name" name="last_name" required />
+                  <Label htmlFor="addr_last_name">Last Name</Label>
+                  <Input
+                    id="addr_last_name"
+                    {...register("last_name")}
+                    className={errors.last_name ? "border-destructive focus-visible:ring-destructive" : ""}
+                  />
+                  {errors.last_name && (
+                    <p className="text-xs text-destructive">{errors.last_name.message}</p>
+                  )}
                 </div>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="phone">Phone Number</Label>
-                <Input id="phone" name="phone" required />
+                <Label htmlFor="addr_phone">Phone Number</Label>
+                <Input
+                  id="addr_phone"
+                  {...register("phone")}
+                  className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                {errors.phone && (
+                  <p className="text-xs text-destructive">{errors.phone.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address_line_1">Address Line 1</Label>
-                <Input id="address_line_1" name="address_line_1" required />
+                <Input
+                  id="address_line_1"
+                  {...register("address_line_1")}
+                  className={errors.address_line_1 ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                {errors.address_line_1 && (
+                  <p className="text-xs text-destructive">{errors.address_line_1.message}</p>
+                )}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="address_line_2">
                   Address Line 2 (Optional)
                 </Label>
-                <Input id="address_line_2" name="address_line_2" />
+                <Input id="address_line_2" {...register("address_line_2")} />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="city">City</Label>
-                  <Input id="city" name="city" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="state">State / Province</Label>
-                  <Input id="state" name="state" required />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="zip">ZIP / Postal Code</Label>
-                  <Input id="zip" name="zip" required />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="country">Country</Label>
+                  <Label htmlFor="addr_city">City</Label>
                   <Input
-                    id="country"
-                    name="country"
-                    required
-                    defaultValue="US"
+                    id="addr_city"
+                    {...register("city")}
+                    className={errors.city ? "border-destructive focus-visible:ring-destructive" : ""}
                   />
+                  {errors.city && (
+                    <p className="text-xs text-destructive">{errors.city.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="addr_state">State / Province</Label>
+                  <Input
+                    id="addr_state"
+                    {...register("state")}
+                    className={errors.state ? "border-destructive focus-visible:ring-destructive" : ""}
+                  />
+                  {errors.state && (
+                    <p className="text-xs text-destructive">{errors.state.message}</p>
+                  )}
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="addr_zip">ZIP / Postal Code</Label>
+                  <Input
+                    id="addr_zip"
+                    {...register("zip")}
+                    className={errors.zip ? "border-destructive focus-visible:ring-destructive" : ""}
+                  />
+                  {errors.zip && (
+                    <p className="text-xs text-destructive">{errors.zip.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="addr_country">Country</Label>
+                  <Input
+                    id="addr_country"
+                    {...register("country")}
+                    className={errors.country ? "border-destructive focus-visible:ring-destructive" : ""}
+                  />
+                  {errors.country && (
+                    <p className="text-xs text-destructive">{errors.country.message}</p>
+                  )}
                 </div>
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="is_default_shipping">
                   Set as Default Shipping
                 </Label>
-                <Switch id="is_default_shipping" name="is_default_shipping" />
+                <Controller
+                  name="is_default_shipping"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      id="is_default_shipping"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
               </div>
               <div className="flex items-center justify-between">
                 <Label htmlFor="is_default_billing">
                   Set as Default Billing
                 </Label>
-                <Switch id="is_default_billing" name="is_default_billing" />
+                <Controller
+                  name="is_default_billing"
+                  control={control}
+                  render={({ field }) => (
+                    <Switch
+                      id="is_default_billing"
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  )}
+                />
               </div>
               <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending ? "Saving..." : "Save Address"}
+                {isPending ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Address"
+                )}
               </Button>
             </form>
           </DialogContent>

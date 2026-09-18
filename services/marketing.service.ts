@@ -33,6 +33,10 @@ export class MarketingService {
     return await marketingRepository.updateCampaign(id, validData);
   }
 
+  async deleteCampaign(id: string): Promise<boolean> {
+    return await marketingRepository.deleteCampaign(id);
+  }
+
   async getAudiences(): Promise<CampaignAudience[]> {
     return await marketingRepository.getAudiences();
   }

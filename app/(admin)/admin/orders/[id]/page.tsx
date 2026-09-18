@@ -3,11 +3,25 @@
 import { useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
+import { useQueryClient } from "@tanstack/react-query";
 import { useOrderDetails } from "@/hooks/oms/use-order-details";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { OrderStatus, OrderWithDetails } from "@/types/oms";
+import {
+  approveManualPaymentAction,
+  rejectManualPaymentAction,
+} from "@/lib/actions/payment.actions";
 import {
   Printer,
   FileText,
@@ -18,14 +32,31 @@ import {
   ExternalLink,
   ShoppingBag,
   ShieldCheck,
+  Smartphone,
+  Landmark,
+  Banknote,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  Copy,
+  Check,
+  Loader2,
+  CreditCard,
 } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminOrderDetailsPage() {
   const params = useParams();
   const orderId = params.id as string;
+  const queryClient = useQueryClient();
   const { order, isLoading, updateStatus, isUpdatingStatus } =
     useOrderDetails(orderId);
+
+  const [isApproving, setIsApproving] = useState(false);
+  const [isRejecting, setIsRejecting] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectReason, setRejectReason] = useState("");
+  const [copiedTrx, setCopiedTrx] = useState(false);
 
   if (isLoading) return <div className="p-8 text-muted-foreground">Loading order details...</div>;
   if (!order) return <div className="p-8 text-destructive">Order not found</div>;
@@ -39,10 +70,67 @@ export default function AdminOrderDetailsPage() {
     }
   };
 
+  const handleCopyTrx = (text: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedTrx(true);
+    toast.success("Transaction ID copied to clipboard!");
+    setTimeout(() => setCopiedTrx(false), 2000);
+  };
+
+  const handleApprovePayment = async () => {
+    setIsApproving(true);
+    try {
+      const res = await approveManualPaymentAction(order.id, (order as any).manualPayment?.id);
+      if (res.success) {
+        toast.success("Payment verified and approved! Order marked as Paid & Confirmed.");
+        queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+      } else {
+        toast.error(res.error || "Failed to approve payment");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "An error occurred");
+    } finally {
+      setIsApproving(false);
+    }
+  };
+
+  const handleRejectPayment = async () => {
+    if (!rejectReason.trim()) {
+      toast.error("Please enter a reason for rejecting the payment.");
+      return;
+    }
+    setIsRejecting(true);
+    try {
+      const res = await rejectManualPaymentAction(
+        order.id,
+        rejectReason.trim(),
+        (order as any).manualPayment?.id
+      );
+      if (res.success) {
+        toast.success("Payment rejected successfully.");
+        setRejectDialogOpen(false);
+        setRejectReason("");
+        queryClient.invalidateQueries({ queryKey: ["order", orderId] });
+        queryClient.invalidateQueries({ queryKey: ["orders"] });
+      } else {
+        toast.error(res.error || "Failed to reject payment");
+      }
+    } catch (e: any) {
+      toast.error(e.message || "An error occurred");
+    } finally {
+      setIsRejecting(false);
+    }
+  };
+
   const typedOrder = order as unknown as OrderWithDetails;
   const customer = typedOrder.customer;
   const shipping = typedOrder.shippingAddress;
   const billing = typedOrder.billingAddress;
+  const manualPayment = typedOrder.manualPayment;
+  const paymentMethod = (order.payment_method || manualPayment?.provider_id || "").toUpperCase();
+  const isManualPayment =
+    ["BKASH", "NAGAD", "ROCKET", "BANK", "BANK_TRANSFER"].includes(paymentMethod) || !!manualPayment;
 
   const formatAddress = (addr: any) => {
     if (!addr) return null;
@@ -214,6 +302,188 @@ export default function AdminOrderDetailsPage() {
 
         {/* Right Column: Status & Customer Details */}
         <div className="space-y-6">
+          {/* Manual Payment Verification Card */}
+          {isManualPayment && (
+            <Card className="border-2 border-primary/20 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-r from-slate-900 to-slate-800 p-4 text-white">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    {paymentMethod === "BKASH" ? (
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#E2136E] text-white font-bold text-xs">
+                        bK
+                      </span>
+                    ) : paymentMethod === "NAGAD" ? (
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#F7941D] text-white font-bold text-xs">
+                        ন
+                      </span>
+                    ) : paymentMethod === "ROCKET" ? (
+                      <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#8C3494] text-white font-bold text-xs">
+                        R
+                      </span>
+                    ) : paymentMethod.includes("BANK") ? (
+                      <Landmark className="h-6 w-6 text-sky-400" />
+                    ) : (
+                      <CreditCard className="h-6 w-6 text-primary" />
+                    )}
+                    <div>
+                      <h3 className="font-bold text-sm tracking-wide">
+                        {paymentMethod.replace(/_/g, " ")} Payment
+                      </h3>
+                      <p className="text-[11px] text-slate-300">Customer Submitted Details</p>
+                    </div>
+                  </div>
+
+                  <Badge
+                    className={
+                      order.payment_status === "paid" || manualPayment?.status === "success"
+                        ? "bg-emerald-500 text-white font-semibold"
+                        : manualPayment?.status === "failed" || order.payment_status === "failed"
+                        ? "bg-rose-500 text-white font-semibold"
+                        : "bg-amber-500 text-white font-semibold animate-pulse"
+                    }
+                  >
+                    {order.payment_status === "paid" || manualPayment?.status === "success"
+                      ? "PAID / APPROVED"
+                      : manualPayment?.status === "failed"
+                      ? "REJECTED"
+                      : "PENDING APPROVAL"}
+                  </Badge>
+                </div>
+              </div>
+
+              <CardContent className="p-4 space-y-3 text-xs">
+                {/* Amount */}
+                <div className="flex items-center justify-between p-2.5 rounded bg-muted/40">
+                  <span className="text-muted-foreground font-medium">Payable Amount:</span>
+                  <span className="text-sm font-bold font-mono text-foreground">
+                    ৳ {Number(order.grand_total).toLocaleString()} BDT
+                  </span>
+                </div>
+
+                {/* Sender Number / Account Holder */}
+                <div className="grid grid-cols-2 gap-2 py-1 border-b">
+                  <span className="text-muted-foreground">
+                    {paymentMethod.includes("BANK") ? "Depositor / Account Name:" : "Sender Phone Number:"}
+                  </span>
+                  <span className="font-mono font-bold text-foreground text-right">
+                    {manualPayment?.gateway_response?.sender_number ||
+                      manualPayment?.reference_number ||
+                      manualPayment?.gateway_response?.account_holder_name ||
+                      "—"}
+                  </span>
+                </div>
+
+                {/* Transaction ID / Slip */}
+                <div className="flex items-center justify-between py-1 border-b">
+                  <span className="text-muted-foreground">Transaction ID (TrxID):</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-mono font-bold text-xs bg-muted px-2 py-0.5 rounded text-foreground">
+                      {manualPayment?.gateway_transaction_id ||
+                        manualPayment?.gateway_response?.transaction_id ||
+                        "—"}
+                    </span>
+                    {(manualPayment?.gateway_transaction_id || manualPayment?.gateway_response?.transaction_id) && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-6 w-6"
+                        type="button"
+                        onClick={() =>
+                          handleCopyTrx(
+                            manualPayment?.gateway_transaction_id ||
+                              manualPayment?.gateway_response?.transaction_id ||
+                              ""
+                          )
+                        }
+                      >
+                        {copiedTrx ? (
+                          <Check className="h-3.5 w-3.5 text-emerald-600" />
+                        ) : (
+                          <Copy className="h-3.5 w-3.5 text-muted-foreground" />
+                        )}
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bank details if Bank transfer */}
+                {paymentMethod.includes("BANK") && (
+                  <>
+                    <div className="grid grid-cols-2 gap-2 py-1 border-b">
+                      <span className="text-muted-foreground">Sender Bank Name:</span>
+                      <span className="font-semibold text-right text-foreground">
+                        {manualPayment?.gateway_response?.bank_name || "—"}
+                      </span>
+                    </div>
+                    {manualPayment?.gateway_response?.branch_name && (
+                      <div className="grid grid-cols-2 gap-2 py-1 border-b">
+                        <span className="text-muted-foreground">Branch:</span>
+                        <span className="font-semibold text-right text-foreground">
+                          {manualPayment.gateway_response.branch_name}
+                        </span>
+                      </div>
+                    )}
+                  </>
+                )}
+
+                {/* Customer note / Reference */}
+                {manualPayment?.gateway_response?.notes && (
+                  <div className="py-1 border-b">
+                    <span className="text-muted-foreground block mb-0.5">Customer Note:</span>
+                    <p className="bg-muted/60 p-2 rounded text-slate-700 dark:text-slate-300 italic text-[11px]">
+                      "{manualPayment.gateway_response.notes}"
+                    </p>
+                  </div>
+                )}
+
+                {/* Submission timestamp */}
+                {manualPayment?.created_at && (
+                  <div className="flex items-center justify-between text-[11px] text-muted-foreground pt-1">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3 w-3" /> Submitted:
+                    </span>
+                    <span>{new Date(manualPayment.created_at).toLocaleString()}</span>
+                  </div>
+                )}
+
+                {/* Action Buttons: Approve / Reject */}
+                {order.payment_status !== "paid" ? (
+                  <div className="pt-3 flex items-center gap-2 border-t">
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold gap-1.5 h-9"
+                      onClick={handleApprovePayment}
+                      disabled={isApproving || isRejecting}
+                    >
+                      {isApproving ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                      )}
+                      Approve Payment
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 border-rose-200 text-xs font-semibold gap-1.5 h-9"
+                      onClick={() => setRejectDialogOpen(true)}
+                      disabled={isApproving || isRejecting}
+                    >
+                      <XCircle className="h-3.5 w-3.5" />
+                      Reject
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="pt-2 border-t text-center">
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 font-semibold text-xs">
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
+                      Payment Verified & Approved
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
           {/* COD Fraud Shield & Risk Assessment */}
           <Card>
             <CardHeader className="pb-3">
@@ -485,6 +755,48 @@ export default function AdminOrderDetailsPage() {
         </div>
       </div>
 
+      {/* Reject Payment Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Reject Manual Payment</DialogTitle>
+            <DialogDescription>
+              Please specify the reason for rejecting this payment submission (e.g., TrxID not found in statement, incorrect amount).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <label htmlFor="reject-reason" className="text-xs font-semibold text-foreground">
+              Rejection Reason <span className="text-rose-500">*</span>
+            </label>
+            <Input
+              id="reject-reason"
+              value={rejectReason}
+              onChange={(e) => setRejectReason(e.target.value)}
+              placeholder="e.g. Transaction ID was not found in statement"
+              className="text-xs"
+            />
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setRejectDialogOpen(false)}
+              disabled={isRejecting}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={handleRejectPayment}
+              disabled={isRejecting || !rejectReason.trim()}
+            >
+              {isRejecting && <Loader2 className="h-4 w-4 animate-spin mr-1" />}
+              Confirm Rejection
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

@@ -1,8 +1,10 @@
 import {
   getCachedCategories,
+  getCachedCollections,
   getCachedProducts,
   getCachedFeaturedProducts,
   getCachedHeroSlides,
+  getCachedFeaturedPromoBanner,
 } from "@/lib/cache/catalog-cache";
 import { HomeHero } from "@/components/home/home-hero";
 import { CategoryHighlight } from "@/components/home/category-highlight";
@@ -21,6 +23,7 @@ import { TrustBar } from "@/components/home/trust-bar";
 import { TrustStrip } from "@/components/home/trust-strip";
 import { RecentlyViewedHome } from "@/components/home/recently-viewed-home";
 import { PersonalizedSection } from "@/components/home/personalized-section";
+import { LatestBlogs } from "@/components/home/latest-blogs";
 import { FadeIn } from "@/components/ui/fade-in";
 import { FlashSaleService } from "@/lib/services/marketing/flash-sale.service";
 import Link from "next/link";
@@ -42,6 +45,7 @@ export default async function HomePage() {
   // Fetch cached catalog data in parallel (Served from memory across visitors)
   const [
     categories,
+    collections,
     mensProducts,
     womensProducts,
     kidsProducts,
@@ -50,8 +54,10 @@ export default async function HomePage() {
     trendingProducts,
     heroSlides,
     activeFlashSales,
+    featuredPromoBanner,
   ] = await Promise.all([
     getCachedCategories(),
+    getCachedCollections(),
     getCachedProducts({ category: "mens", limit: 8 }),
     getCachedProducts({ category: "womens", limit: 8 }),
     getCachedProducts({ category: "kids", limit: 4 }),
@@ -60,6 +66,7 @@ export default async function HomePage() {
     getCachedProducts({ sortBy: "rating", limit: 8 }),
     getCachedHeroSlides(),
     FlashSaleService.getActiveFlashSales(),
+    getCachedFeaturedPromoBanner(),
   ]);
 
   return (
@@ -98,10 +105,10 @@ export default async function HomePage() {
         <PremiumShades />
       </FadeIn>
 
-      <div className="space-y-16 py-10 md:space-y-48 md:py-32 lg:py-40">
+      <div className="space-y-10 py-6 md:space-y-16 md:py-12 lg:space-y-20 lg:py-16">
         {/* 5. The Collection Grid */}
         <FadeIn>
-          <ExploreCollections categories={categories} />
+          <ExploreCollections collections={collections} categories={categories} />
         </FadeIn>
 
         {/* Mens Collection - MOVED DOWN */}
@@ -118,11 +125,12 @@ export default async function HomePage() {
         {/* 7. Mid-Season Promo Banner */}
         <FadeIn direction="left">
           <PromoBanner
-            title="Mid-Season Sale Up To 50% Off"
-            subtitle="Limited Time Offer"
-            ctaText="Shop The Sale"
-            ctaLink="/categories/sale"
-            imageUrl="https://images.unsplash.com/photo-1469334031218-e382a71b716b?w=1600&q=80"
+            title={featuredPromoBanner.title}
+            subtitle={featuredPromoBanner.subtitle}
+            description={featuredPromoBanner.description}
+            ctaText={featuredPromoBanner.ctaText}
+            ctaLink={featuredPromoBanner.ctaLink}
+            imageUrl={featuredPromoBanner.imageUrl}
           />
         </FadeIn>
 
@@ -142,7 +150,7 @@ export default async function HomePage() {
         </FadeIn>
 
         {/* 11. Category Collections (Mens, Womens, Kids, Accessories) */}
-        <div className="space-y-16 md:space-y-24">
+        <div className="space-y-10 md:space-y-14">
           <FadeIn>
             <BrandedCollection 
               products={mensProducts.data} 
@@ -177,7 +185,12 @@ export default async function HomePage() {
           </FadeIn>
         </div>
 
-        {/* 12. Trust Bar */}
+        {/* 12. Latest from Blog / Editorial Journal */}
+        <FadeIn>
+          <LatestBlogs />
+        </FadeIn>
+
+        {/* 13. Trust Bar */}
         <FadeIn direction="up">
           <TrustBar />
         </FadeIn>

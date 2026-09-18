@@ -3,7 +3,12 @@ import { z } from "zod";
 export const cmsPageSchema = z.object({
   title: z.string().min(1, "Title is required").max(255),
   slug: z.string().min(1, "Slug is required").max(255),
-  status: z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"]).default("DRAFT"),
+  status: z
+    .preprocess(
+      (val) => (typeof val === "string" ? val.toUpperCase() : val),
+      z.enum(["DRAFT", "PUBLISHED", "ARCHIVED"])
+    )
+    .default("DRAFT"),
   template: z.string().optional().default("default"),
   seo_metadata: z.record(z.any()).optional(),
   published_at: z.date().nullable().optional(),

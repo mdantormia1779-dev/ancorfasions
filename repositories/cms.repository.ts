@@ -13,6 +13,20 @@ export class CMSRepository {
     return data;
   }
 
+  async getPageById(id: string): Promise<CMSPage | null> {
+    const supabase = await createClient();
+    const { data, error } = await supabase
+      .from("cms_pages")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (error) {
+      throw new Error(error.message);
+    }
+    return data;
+  }
+
   async getPageBySlug(slug: string): Promise<CMSPage | null> {
     const supabase = await createClient();
     const { data, error } = await supabase

@@ -24,30 +24,48 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   }
 }
 
-export async function createPost(data: unknown): Promise<BlogPost> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export async function getPostById(id: string): Promise<BlogPost | null> {
+  try {
+    return await blogService.getPostById(id);
+  } catch (error) {
+    console.error("[getPostById Error]:", error);
+    return null;
+  }
+}
 
+export async function createPost(data: unknown): Promise<BlogPost> {
   let authorId = (data as any)?.author_id;
-  if (!authorId || authorId === "00000000-0000-0000-0000-000000000000") {
-    authorId = user?.id;
+
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!authorId || authorId === "00000000-0000-0000-0000-000000000000") {
+      authorId = user?.id;
+    }
+  } catch {
+    // Session not active
   }
 
   if (!authorId) {
-    const admin = createAdminClient();
-    const { data: profile } = await admin
-      .from("profiles")
-      .select("id")
-      .limit(1)
-      .maybeSingle();
-    authorId = profile?.id;
+    try {
+      const admin = createAdminClient();
+      const { data: profile } = await admin
+        .from("profiles")
+        .select("id")
+        .limit(1)
+        .maybeSingle();
+      authorId = profile?.id;
+    } catch {
+      // Ignore if profiles table is empty
+    }
   }
 
   const postData = {
     ...(data as any),
-    author_id: authorId,
+    ...(authorId ? { author_id: authorId } : {}),
   };
 
   const post = await blogService.createPost(postData);
@@ -58,9 +76,9 @@ export async function createPost(data: unknown): Promise<BlogPost> {
 
 export async function updatePost(id: string, data: unknown): Promise<BlogPost> {
   const post = await blogService.updatePost(id, data);
-  revalidatePath("/admin/blog");
+  revalidatePath("/admin/cms/blogs");
   revalidatePath("/blog");
-  if (post.slug) {
+  if (post?.slug) {
     revalidatePath(`/blog/${post.slug}`);
   }
   return post;
@@ -68,14 +86,24 @@ export async function updatePost(id: string, data: unknown): Promise<BlogPost> {
 
 export async function deletePost(id: string): Promise<void> {
   await blogService.deletePost(id);
-  revalidatePath("/admin/blog");
+  revalidatePath("/admin/cms/blogs");
   revalidatePath("/blog");
 }
 
 export async function getCategories(): Promise<BlogCategory[]> {
-  return await blogService.getCategories();
+  try {
+    return await blogService.getCategories();
+  } catch (error) {
+    console.error("[getCategories Error]:", error);
+    return [];
+  }
 }
 
 export async function getTags(): Promise<BlogTag[]> {
-  return await blogService.getTags();
+  try {
+    return await blogService.getTags();
+  } catch (error) {
+    console.error("[getTags Error]:", error);
+    return [];
+  }
 }

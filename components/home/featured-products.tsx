@@ -140,18 +140,20 @@ export function FeaturedProducts({ products }: { products: Product[] }) {
                     <div className="relative mb-4 aspect-[4/5] w-full overflow-hidden bg-[#F7F7F7] transition-all duration-500">
                       <Link
                         href={`/product/${product.slug}`}
-                        className="block h-full w-full"
+                        className="relative block h-full w-full"
                       >
                         <Image
                           src={imageUrl}
                           alt={product.name}
                           fill
+                          sizes="(max-width: 640px) 45vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
                           className="object-cover object-top opacity-100 transition-all duration-700 group-hover:scale-105 group-hover:opacity-0"
                         />
                         <Image
                           src={secondaryImageUrl}
                           alt={`${product.name} Alternate`}
                           fill
+                          sizes="(max-width: 640px) 45vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
                           className="absolute inset-0 object-cover object-top opacity-0 transition-all duration-700 group-hover:scale-105 group-hover:opacity-100"
                         />
                       </Link>

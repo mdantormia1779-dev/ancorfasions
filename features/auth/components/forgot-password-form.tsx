@@ -100,10 +100,11 @@ export function ForgotPasswordForm() {
             name="email"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Email</FormLabel>
+                <FormLabel className="text-slate-800 dark:text-slate-200 font-semibold text-sm">Email</FormLabel>
                 <FormControl>
                   <Input
                     placeholder="name@example.com"
+                    className="h-12 bg-slate-50/70 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:border-[#C9A86A] focus-visible:ring-[#C9A86A]/20"
                     {...field}
                     disabled={isLoading}
                   />
@@ -112,16 +113,16 @@ export function ForgotPasswordForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full h-12 bg-[#C9A86A] hover:bg-[#b09156] text-white font-semibold" disabled={isLoading}>
             {isLoading ? "Sending link..." : "Send reset link"}
           </Button>
         </form>
       </Form>
-      <div className="text-center text-sm">
+      <div className="text-center text-sm text-slate-600 dark:text-slate-400">
         Remember your password?{" "}
         <Link
           href="/auth/login"
-          className="font-medium text-primary hover:underline"
+          className="font-medium text-[#C9A86A] hover:underline"
         >
           Sign in
         </Link>

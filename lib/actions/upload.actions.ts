@@ -2,6 +2,8 @@
 
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { verifyStaff } from "@/lib/security/roles";
+import path from "path";
+import fs from "fs/promises";
 
 const ALLOWED_BUCKETS = [
   "products",
@@ -12,6 +14,7 @@ const ALLOWED_BUCKETS = [
   "avatars",
   "cms",
   "media",
+  "collections",
 ] as const;
 
 export async function uploadImageAction(formData: FormData): Promise<{
@@ -54,30 +57,79 @@ export async function uploadImageAction(formData: FormData): Promise<{
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
-    const supabase = createAdminClient();
+    // Attempt Supabase storage upload
+    try {
+      const supabase = createAdminClient();
 
-    const { data, error: uploadError } = await supabase.storage
-      .from(bucket)
-      .upload(filePath, buffer, {
-        contentType: file.type || "image/jpeg",
-        cacheControl: "3600",
-        upsert: false,
-      });
+      let { data, error: uploadError } = await supabase.storage
+        .from(bucket)
+        .upload(filePath, buffer, {
+          contentType: file.type || "image/jpeg",
+          cacheControl: "3600",
+          upsert: false,
+        });
 
-    if (uploadError) {
-      console.error("[uploadImageAction Error]:", uploadError);
-      return { success: false, error: uploadError.message };
+      // If bucket is missing, attempt to create it and retry upload
+      if (
+        uploadError &&
+        (uploadError.message?.toLowerCase().includes("not found") ||
+          uploadError.message?.toLowerCase().includes("bucket") ||
+          (uploadError as any).statusCode === "404")
+      ) {
+        try {
+          await supabase.storage.createBucket(bucket, { public: true });
+          const retryRes = await supabase.storage
+            .from(bucket)
+            .upload(filePath, buffer, {
+              contentType: file.type || "image/jpeg",
+              cacheControl: "3600",
+              upsert: true,
+            });
+          data = retryRes.data;
+          uploadError = retryRes.error;
+        } catch {
+          // Continue to fallback
+        }
+      }
+
+      if (!uploadError && data?.path) {
+        const { data: publicUrlData } = supabase.storage
+          .from(bucket)
+          .getPublicUrl(data.path);
+
+        if (publicUrlData?.publicUrl) {
+          return {
+            success: true,
+            url: publicUrlData.publicUrl,
+            path: data.path,
+          };
+        }
+      }
+
+      if (uploadError) {
+        console.warn("[uploadImageAction] Supabase storage upload failed, saving to local fallback:", uploadError.message);
+      }
+    } catch (sbError: any) {
+      console.warn("[uploadImageAction] Supabase storage exception, falling back to local file:", sbError?.message);
     }
 
-    const { data: publicUrlData } = supabase.storage
-      .from(bucket)
-      .getPublicUrl(data.path);
+    // Local Disk Fallback: Save in public/uploads/${bucket}/${folder}
+    try {
+      const uploadDir = path.join(process.cwd(), "public", "uploads", bucket, folder);
+      await fs.mkdir(uploadDir, { recursive: true });
+      const localFilePath = path.join(uploadDir, `${uniqueId}.${fileExt}`);
+      await fs.writeFile(localFilePath, buffer);
 
-    return {
-      success: true,
-      url: publicUrlData.publicUrl,
-      path: data.path,
-    };
+      const publicUrl = `/uploads/${bucket}/${folder}/${uniqueId}.${fileExt}`;
+      return {
+        success: true,
+        url: publicUrl,
+        path: filePath,
+      };
+    } catch (fsError: any) {
+      console.error("[uploadImageAction Local Save Error]:", fsError);
+      return { success: false, error: fsError.message || "Failed to upload image locally" };
+    }
   } catch (error: any) {
     console.error("[uploadImageAction Exception]:", error);
     return { success: false, error: error.message || "Failed to upload image" };

@@ -29,14 +29,18 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, ArrowRight, ShieldCheck, Lock } from "lucide-react";
+import { Loader2, ArrowRight, ShieldCheck, Lock, Smartphone, Landmark, Banknote } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
+import { AllPaymentConfigs } from "@/lib/actions/payment.actions";
+import { ManualPaymentFields } from "@/components/checkout/manual-payment-fields";
 
 export function CheckoutForm({
   checkoutSessionId,
+  paymentConfigs,
 }: {
   checkoutSessionId: string;
+  paymentConfigs?: AllPaymentConfigs;
 }) {
   const router = useRouter();
   const { cart } = useCartStore();
@@ -86,6 +90,14 @@ export function CheckoutForm({
         payment_method: formData.payment?.payment_method || "COD",
         billing_address_same_as_shipping:
           formData.payment?.billing_address_same_as_shipping ?? true,
+        manual_payment: {
+          sender_number: "",
+          transaction_id: "",
+          bank_name: "",
+          branch_name: "",
+          account_holder_name: "",
+          notes: "",
+        },
       },
       notes: formData.notes || "",
     },
@@ -169,7 +181,7 @@ export function CheckoutForm({
 
       if (res.success && res.orderId) {
         toast.success("Order placed successfully!");
-        if (res.paymentPayload && data.payment.payment_method !== "COD") {
+        if (res.paymentPayload && data.payment.payment_method === "SSLCOMMERZ") {
           // Redirect to payment initialization endpoint for gateway integration
           router.push(
             `/api/payment/init?order_id=${res.orderId}&method=${data.payment.payment_method}`
@@ -499,43 +511,152 @@ export function CheckoutForm({
           <FormField
             control={form.control}
             name="payment.payment_method"
-            render={({ field }) => (
-              <FormItem className="space-y-3">
-                <FormControl>
-                  <RadioGroup
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                    className="flex flex-col space-y-1"
-                  >
-                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
-                      <FormControl>
-                        <RadioGroupItem value="COD" />
-                      </FormControl>
-                      <FormLabel className="cursor-pointer font-medium">
-                        Cash on Delivery
-                      </FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 transition-colors hover:border-black hover:bg-gray-50">
-                      <FormControl>
-                        <RadioGroupItem value="SSLCOMMERZ" />
-                      </FormControl>
-                      <FormLabel className="cursor-pointer font-medium flex items-center gap-2">
-                        Cards / Mobile Banking <Image src="https://securepay.sslcommerz.com/public/image/SSLCommerz-Pay-With-logo-All-Size-03.png" alt="SSLCommerz" width={150} height={20} className="h-4 w-auto object-contain" />
-                      </FormLabel>
-                    </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 transition-colors hover:border-black hover:bg-gray-50">
-                      <FormControl>
-                        <RadioGroupItem value="BKASH" />
-                      </FormControl>
-                      <FormLabel className="cursor-pointer font-medium">
-                        bKash
-                      </FormLabel>
-                    </FormItem>
-                  </RadioGroup>
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
+            render={({ field }) => {
+              const currentConfigs = paymentConfigs;
+              const isCodEnabled = currentConfigs?.cod?.enabled ?? true;
+              const isBkashEnabled = currentConfigs?.bkash?.enabled ?? true;
+              const isNagadEnabled = currentConfigs?.nagad?.enabled ?? true;
+              const isRocketEnabled = currentConfigs?.rocket?.enabled ?? true;
+              const isBankEnabled = currentConfigs?.bank?.enabled ?? true;
+              const isSslEnabled = currentConfigs?.sslcommerz?.enabled ?? true;
+
+              const activeConfig =
+                field.value === "COD"
+                  ? currentConfigs?.cod
+                  : field.value === "BKASH"
+                  ? currentConfigs?.bkash
+                  : field.value === "NAGAD"
+                  ? currentConfigs?.nagad
+                  : field.value === "ROCKET"
+                  ? currentConfigs?.rocket
+                  : field.value === "BANK_TRANSFER" || field.value === "BANK"
+                  ? currentConfigs?.bank
+                  : currentConfigs?.sslcommerz;
+
+              return (
+                <FormItem className="space-y-4">
+                  <FormControl>
+                    <RadioGroup
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      className="flex flex-col space-y-2"
+                    >
+                      {isCodEnabled && (
+                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-black hover:bg-gray-50 data-[state=checked]:border-black data-[state=checked]:bg-gray-50/50">
+                          <FormControl>
+                            <RadioGroupItem value="COD" />
+                          </FormControl>
+                          <div className="flex flex-1 items-center justify-between">
+                            <FormLabel className="cursor-pointer font-medium">
+                              Cash on Delivery (ক্যাশ অন ডেলিভারি)
+                            </FormLabel>
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                              Cash
+                            </span>
+                          </div>
+                        </FormItem>
+                      )}
+
+                      {isBkashEnabled && (
+                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-[#E2136E] hover:bg-pink-50/20 data-[state=checked]:border-[#E2136E] data-[state=checked]:bg-pink-50/30">
+                          <FormControl>
+                            <RadioGroupItem value="BKASH" />
+                          </FormControl>
+                          <div className="flex flex-1 items-center justify-between">
+                            <FormLabel className="cursor-pointer font-medium flex items-center gap-2">
+                              <span className="h-2.5 w-2.5 rounded-full bg-[#E2136E]" />
+                              bKash (বিকাশ)
+                            </FormLabel>
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-pink-100 text-[#E2136E]">
+                              {currentConfigs?.bkash?.account_type || "Personal"}
+                            </span>
+                          </div>
+                        </FormItem>
+                      )}
+
+                      {isNagadEnabled && (
+                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-[#F7941D] hover:bg-orange-50/20 data-[state=checked]:border-[#F7941D] data-[state=checked]:bg-orange-50/30">
+                          <FormControl>
+                            <RadioGroupItem value="NAGAD" />
+                          </FormControl>
+                          <div className="flex flex-1 items-center justify-between">
+                            <FormLabel className="cursor-pointer font-medium flex items-center gap-2">
+                              <span className="h-2.5 w-2.5 rounded-full bg-[#F7941D]" />
+                              Nagad (নগদ)
+                            </FormLabel>
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-orange-100 text-[#F7941D]">
+                              {currentConfigs?.nagad?.account_type || "Personal"}
+                            </span>
+                          </div>
+                        </FormItem>
+                      )}
+
+                      {isRocketEnabled && (
+                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-[#8C3494] hover:bg-purple-50/20 data-[state=checked]:border-[#8C3494] data-[state=checked]:bg-purple-50/30">
+                          <FormControl>
+                            <RadioGroupItem value="ROCKET" />
+                          </FormControl>
+                          <div className="flex flex-1 items-center justify-between">
+                            <FormLabel className="cursor-pointer font-medium flex items-center gap-2">
+                              <span className="h-2.5 w-2.5 rounded-full bg-[#8C3494]" />
+                              Rocket (রকেট)
+                            </FormLabel>
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-purple-100 text-[#8C3494]">
+                              {currentConfigs?.rocket?.account_type || "Personal"}
+                            </span>
+                          </div>
+                        </FormItem>
+                      )}
+
+                      {isBankEnabled && (
+                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-blue-600 hover:bg-blue-50/20 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-50/30">
+                          <FormControl>
+                            <RadioGroupItem value="BANK_TRANSFER" />
+                          </FormControl>
+                          <div className="flex flex-1 items-center justify-between">
+                            <FormLabel className="cursor-pointer font-medium flex items-center gap-2">
+                              <Landmark className="h-4 w-4 text-blue-600" />
+                              Bank Transfer / Deposit (ব্যাংক ট্রান্সফার)
+                            </FormLabel>
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                              BEFTN / NPSB
+                            </span>
+                          </div>
+                        </FormItem>
+                      )}
+
+                      {isSslEnabled && (
+                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-black hover:bg-gray-50 data-[state=checked]:border-black data-[state=checked]:bg-gray-50/50">
+                          <FormControl>
+                            <RadioGroupItem value="SSLCOMMERZ" />
+                          </FormControl>
+                          <FormLabel className="cursor-pointer font-medium flex items-center gap-2">
+                            Cards / Mobile Banking (Online Gateway){" "}
+                            <Image
+                              src="https://securepay.sslcommerz.com/public/image/SSLCommerz-Pay-With-logo-All-Size-03.png"
+                              alt="SSLCommerz"
+                              width={150}
+                              height={20}
+                              className="h-4 w-auto object-contain"
+                            />
+                          </FormLabel>
+                        </FormItem>
+                      )}
+                    </RadioGroup>
+                  </FormControl>
+                  <FormMessage />
+
+                  {/* Dynamic Instructions and Payment Input Form */}
+                  <div className="pt-2">
+                    <ManualPaymentFields
+                      form={form}
+                      selectedMethod={field.value}
+                      config={activeConfig}
+                    />
+                  </div>
+                </FormItem>
+              );
+            }}
           />
 
           <div className="mt-8">

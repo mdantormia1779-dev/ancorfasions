@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import {
   CRMCustomer,
   CRMLead,
@@ -7,15 +7,19 @@ import {
 } from "@/types/crm.types";
 
 export class CRMRepository {
+  private getAdminClient() {
+    return createAdminClient();
+  }
+
   async getCustomers(): Promise<CRMCustomer[]> {
-    const supabase = await createClient();
+    const supabase = this.getAdminClient();
     const { data, error } = await supabase.from("crm_customers").select("*");
     if (error) throw error;
     return data as CRMCustomer[];
   }
 
   async getCustomerById(id: string): Promise<CRMCustomer> {
-    const supabase = await createClient();
+    const supabase = this.getAdminClient();
     const { data, error } = await supabase
       .from("crm_customers")
       .select("*")
@@ -29,7 +33,7 @@ export class CRMRepository {
     id: string,
     updates: Partial<CRMCustomer>
   ): Promise<CRMCustomer> {
-    const supabase = await createClient();
+    const supabase = this.getAdminClient();
     const { data, error } = await supabase
       .from("crm_customers")
       .update(updates)
@@ -41,14 +45,14 @@ export class CRMRepository {
   }
 
   async getLeads(): Promise<CRMLead[]> {
-    const supabase = await createClient();
+    const supabase = this.getAdminClient();
     const { data, error } = await supabase.from("crm_leads").select("*");
     if (error) throw error;
     return data as CRMLead[];
   }
 
   async getNotes(profileId: string): Promise<CRMNote[]> {
-    const supabase = await createClient();
+    const supabase = this.getAdminClient();
     const { data, error } = await supabase
       .from("crm_notes")
       .select("*")
@@ -59,7 +63,7 @@ export class CRMRepository {
   }
 
   async createNote(note: Partial<CRMNote>): Promise<CRMNote> {
-    const supabase = await createClient();
+    const supabase = this.getAdminClient();
     const { data, error } = await supabase
       .from("crm_notes")
       .insert(note)
@@ -70,7 +74,7 @@ export class CRMRepository {
   }
 
   async getCommunicationLogs(profileId: string): Promise<CommunicationLog[]> {
-    const supabase = await createClient();
+    const supabase = this.getAdminClient();
     const { data, error } = await supabase
       .from("communication_logs")
       .select("*")

@@ -61,10 +61,22 @@ export async function getAdminHeaderNotificationsAction(): Promise<{
 export async function markNotificationAsReadAction(id: string): Promise<{ error?: string }> {
   try {
     const supabase = await createClient();
-    const { error } = await supabase
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    let query = supabase
       .from("notifications")
       .update({ read_at: new Date().toISOString() })
       .eq("id", id);
+
+    if (user) {
+      query = query.or(`user_id.is.null,user_id.eq.${user.id}`);
+    } else {
+      query = query.is("user_id", null);
+    }
+
+    const { error } = await query;
 
     if (error) return { error: error.message };
     revalidatePath("/admin", "layout");

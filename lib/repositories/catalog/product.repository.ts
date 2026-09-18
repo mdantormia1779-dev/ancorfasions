@@ -91,7 +91,7 @@ export class ProductRepository {
       .select(
         `
         *,
-        variants(*),
+        variants(*, inventory_levels(quantity_available, warehouse_id)),
         media:product_media(*),
         seo:product_seo(*),
         tags:product_tags(tag:tags(*))
@@ -105,6 +105,20 @@ export class ProductRepository {
       throw error;
     }
 
+    // Calculate variant stock & overall stock
+    let totalStock = 0;
+    const variantsWithStock = (data.variants || []).map((v: any) => {
+      const stock = (v.inventory_levels || []).reduce(
+        (acc: number, lvl: any) => acc + (lvl.quantity_available || 0),
+        0
+      );
+      totalStock += stock;
+      return {
+        ...v,
+        stockQuantity: stock,
+      };
+    });
+
     // Normalize data
     const product = { 
       ...data,
@@ -117,6 +131,8 @@ export class ProductRepository {
       isFeatured: data.is_featured,
       createdAt: data.created_at,
       updatedAt: data.updated_at,
+      stockQuantity: totalStock,
+      variants: variantsWithStock,
     };
     if (product.seo && Array.isArray(product.seo)) {
       product.seo = product.seo[0] || null;
@@ -136,10 +152,40 @@ export class ProductRepository {
 
     const { seo, tags, media, variants, ...productData } = input;
 
-    // We need to use an RPC or just transaction equivalent if available.
-    // Since Supabase JS doesn't have native multi-table transactions out of the box,
-    // we do sequential inserts or use a stored procedure.
-    // For Enterprise, we'll do sequential here, but ideally we'd use Postgres Functions.
+    // Check duplicate main SKU
+    if (productData.sku) {
+      const { data: existingSku } = await supabase
+        .from("products")
+        .select("id")
+        .ilike("sku", productData.sku.trim())
+        .maybeSingle();
+
+      if (existingSku) {
+        throw new Error(`A product with SKU "${productData.sku}" already exists.`);
+      }
+    }
+
+    // Check duplicate slug
+    if (productData.slug) {
+      const { data: existingSlug } = await supabase
+        .from("products")
+        .select("id")
+        .eq("slug", productData.slug.trim())
+        .maybeSingle();
+
+      if (existingSlug) {
+        throw new Error(`A product with URL slug "${productData.slug}" already exists.`);
+      }
+    }
+
+    // Check duplicate variant SKUs
+    if (variants && variants.length > 0) {
+      const variantSkus = variants.map((v) => v.sku?.trim()).filter(Boolean);
+      const duplicates = variantSkus.filter((item, idx) => variantSkus.indexOf(item) !== idx);
+      if (duplicates.length > 0) {
+        throw new Error(`Duplicate variant SKU found in form: "${duplicates[0]}"`);
+      }
+    }
 
     // 1. Create Product
     const { data: newProduct, error: productError } = await supabase
@@ -154,8 +200,8 @@ export class ProductRepository {
         base_price: productData.basePrice,
         cost_price: productData.costPrice ?? null,
         sale_price: productData.salePrice ?? null,
-        sku: productData.sku,
-        barcode: productData.barcode,
+        sku: productData.sku && productData.sku.trim() ? productData.sku.trim() : null,
+        barcode: productData.barcode && productData.barcode.trim() ? productData.barcode.trim() : null,
         status: productData.status,
         gender: productData.gender,
         season: productData.season,
@@ -213,12 +259,23 @@ export class ProductRepository {
       if (mediaError) throw new Error(`Failed to create product media: ${mediaError.message}`);
     }
 
-    // 5. Create Variants
+    // 5. Create Variants & Inventory Levels
+    let defaultWarehouseId: string | null = null;
+    const { data: warehouse } = await supabase
+      .from("warehouses")
+      .select("id")
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+    if (warehouse) {
+      defaultWarehouseId = warehouse.id;
+    }
+
     if (variants && variants.length > 0) {
       const variantInserts = variants.map((v) => ({
         product_id: productId,
-        sku: v.sku,
-        barcode: v.barcode,
+        sku: v.sku?.trim() || "",
+        barcode: v.barcode && v.barcode.trim() ? v.barcode.trim() : null,
         price_override: v.priceOverride,
         sale_price: v.salePrice,
         weight: v.weight,
@@ -226,8 +283,50 @@ export class ProductRepository {
         is_active: v.isActive,
         attributes: v.attributes,
       }));
-      const { error: variantsError } = await supabase.from("variants").insert(variantInserts);
+      const { data: createdVariants, error: variantsError } = await supabase
+        .from("variants")
+        .insert(variantInserts)
+        .select("id, sku");
       if (variantsError) throw new Error(`Failed to create product variants: ${variantsError.message}`);
+
+      if (createdVariants && createdVariants.length > 0 && defaultWarehouseId) {
+        const inventoryInserts = createdVariants.map((cv, idx) => ({
+          variant_id: cv.id,
+          warehouse_id: defaultWarehouseId,
+          quantity_available: Number(variants[idx]?.stockQuantity ?? 0),
+          quantity_reserved: 0,
+          reorder_point: 10,
+        }));
+        await supabase.from("inventory_levels").insert(inventoryInserts);
+      }
+    } else {
+      // Simple product without variants: create a default variant linked to inventory_levels
+      const defaultSku =
+        productData.sku?.trim() ||
+        `${(productData.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)}-DEFAULT`;
+      const { data: defaultVariant, error: defaultVariantErr } = await supabase
+        .from("variants")
+        .insert({
+          product_id: productId,
+          sku: defaultSku,
+          barcode: productData.barcode && productData.barcode.trim() ? productData.barcode.trim() : null,
+          price_override: productData.basePrice,
+          sale_price: productData.salePrice ?? null,
+          is_active: true,
+          attributes: { Standard: "Default" },
+        })
+        .select("id")
+        .single();
+
+      if (!defaultVariantErr && defaultVariant && defaultWarehouseId) {
+        await supabase.from("inventory_levels").insert({
+          variant_id: defaultVariant.id,
+          warehouse_id: defaultWarehouseId,
+          quantity_available: Number(productData.stockQuantity ?? 0),
+          quantity_reserved: 0,
+          reorder_point: 10,
+        });
+      }
     }
 
     return this.getProductById(productId);
@@ -252,8 +351,18 @@ export class ProductRepository {
         base_price: productData.basePrice,
         cost_price: productData.costPrice,
         sale_price: productData.salePrice,
-        sku: productData.sku,
-        barcode: productData.barcode,
+        sku:
+          productData.sku !== undefined
+            ? productData.sku && productData.sku.trim()
+              ? productData.sku.trim()
+              : null
+            : undefined,
+        barcode:
+          productData.barcode !== undefined
+            ? productData.barcode && productData.barcode.trim()
+              ? productData.barcode.trim()
+              : null
+            : undefined,
         status: productData.status,
         gender: productData.gender,
         season: productData.season,
@@ -357,15 +466,35 @@ export class ProductRepository {
       }
     }
 
-    // 5. Update Variants
-    if (variants !== undefined) {
-      const { error: deleteVariantsError } = await supabase.from("variants").delete().eq("product_id", id);
-      if (deleteVariantsError) throw new Error(`Failed to delete old product variants: ${deleteVariantsError.message}`);
-      if (variants.length > 0) {
+    // 5. Update Variants & Inventory Levels
+    if (variants !== undefined || productData.stockQuantity !== undefined) {
+      let defaultWarehouseId: string | null = null;
+      const { data: warehouse } = await supabase
+        .from("warehouses")
+        .select("id")
+        .eq("is_active", true)
+        .limit(1)
+        .maybeSingle();
+      if (warehouse) {
+        defaultWarehouseId = warehouse.id;
+      }
+
+      // Delete old inventory levels and variants for this product
+      const { data: oldVariants } = await supabase
+        .from("variants")
+        .select("id")
+        .eq("product_id", id);
+      if (oldVariants && oldVariants.length > 0) {
+        const oldIds = oldVariants.map((v) => v.id);
+        await supabase.from("inventory_levels").delete().in("variant_id", oldIds);
+        await supabase.from("variants").delete().eq("product_id", id);
+      }
+
+      if (variants && variants.length > 0) {
         const variantInserts = variants.map((v) => ({
           product_id: id,
-          sku: v.sku,
-          barcode: v.barcode,
+          sku: v.sku?.trim() || "",
+          barcode: v.barcode && v.barcode.trim() ? v.barcode.trim() : null,
           price_override: v.priceOverride,
           sale_price: v.salePrice,
           weight: v.weight,
@@ -373,8 +502,58 @@ export class ProductRepository {
           is_active: v.isActive,
           attributes: v.attributes,
         }));
-        const { error: insertVariantsError } = await supabase.from("variants").insert(variantInserts);
+        const { data: createdVariants, error: insertVariantsError } = await supabase
+          .from("variants")
+          .insert(variantInserts)
+          .select("id, sku");
         if (insertVariantsError) throw new Error(`Failed to insert new product variants: ${insertVariantsError.message}`);
+
+        if (createdVariants && createdVariants.length > 0 && defaultWarehouseId) {
+          const inventoryInserts = createdVariants.map((cv, idx) => ({
+            variant_id: cv.id,
+            warehouse_id: defaultWarehouseId,
+            quantity_available: Number(variants[idx]?.stockQuantity ?? 0),
+            quantity_reserved: 0,
+            reorder_point: 10,
+          }));
+          await supabase.from("inventory_levels").insert(inventoryInserts);
+        }
+      } else if (productData.stockQuantity !== undefined || variants !== undefined) {
+        // Simple product: ensure default variant exists with updated stockQuantity
+        const { data: currentProduct } = await supabase
+          .from("products")
+          .select("sku, slug, base_price, sale_price, barcode")
+          .eq("id", id)
+          .single();
+
+        const defaultSku =
+          productData.sku?.trim() ||
+          currentProduct?.sku ||
+          `${(currentProduct?.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)}-DEFAULT`;
+
+        const { data: defaultVariant, error: defaultVariantErr } = await supabase
+          .from("variants")
+          .insert({
+            product_id: id,
+            sku: defaultSku,
+            barcode: productData.barcode ?? currentProduct?.barcode ?? null,
+            price_override: productData.basePrice ?? currentProduct?.base_price ?? 0,
+            sale_price: productData.salePrice ?? currentProduct?.sale_price ?? null,
+            is_active: true,
+            attributes: { Standard: "Default" },
+          })
+          .select("id")
+          .single();
+
+        if (!defaultVariantErr && defaultVariant && defaultWarehouseId) {
+          await supabase.from("inventory_levels").insert({
+            variant_id: defaultVariant.id,
+            warehouse_id: defaultWarehouseId,
+            quantity_available: Number(productData.stockQuantity ?? 0),
+            quantity_reserved: 0,
+            reorder_point: 10,
+          });
+        }
       }
     }
 

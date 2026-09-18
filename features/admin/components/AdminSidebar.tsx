@@ -83,10 +83,8 @@ const navigation: NavCategory[] = [
         icon: FileText,
         allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER", "MARKETING_MANAGER", "MARKETING"],
         items: [
-          { name: "Pages", href: "/admin/cms/pages" },
           { name: "Blog", href: "/admin/cms/blogs" },
           { name: "Media Library", href: "/admin/cms/media" },
-          { name: "Menus", href: "/admin/cms/menus" },
         ],
       },
       {
@@ -113,7 +111,6 @@ const navigation: NavCategory[] = [
           { name: "Categories", href: "/admin/catalog/categories" },
           { name: "Brands", href: "/admin/catalog/brands" },
           { name: "Collections", href: "/admin/products/collections" },
-          { name: "Attributes", href: "/admin/products/attributes" },
           { name: "Reviews", href: "/admin/products/reviews" },
         ],
       },
@@ -171,6 +168,7 @@ const navigation: NavCategory[] = [
         icon: CreditCard,
         allowedRoles: ["SUPERADMIN", "ADMIN"],
         items: [
+          { name: "Manual Payments", href: "/admin/finance/manual-payments" },
           { name: "Sales Report", href: "/admin/analytics/sales" },
           { name: "Expenses", href: "/admin/finance/expenses" },
           { name: "Transactions", href: "/admin/payments/transactions" },

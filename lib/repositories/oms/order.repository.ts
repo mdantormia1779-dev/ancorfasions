@@ -75,15 +75,49 @@ export class OrderRepository {
     orderData: Partial<Order> & { order_number: string }
   ): Promise<Order> {
     const supabase = await createClient();
+    const customerId = (orderData as any).user_id ?? (orderData as any).customer_id ?? null;
+    const customerNote = orderData.notes;
+
+    const payload: any = {
+      ...orderData,
+      customer_id: customerId,
+      grand_total: (orderData as any).total_amount ?? orderData.grand_total ?? 0,
+      shipping_total: (orderData as any).shipping_fee ?? orderData.shipping_total ?? 0,
+      discount_total: (orderData as any).discount_amount ?? orderData.discount_total ?? 0,
+    };
+    delete payload.user_id;
+    delete payload.session_id;
+    delete payload.notes;
+    delete payload.total_amount;
+    delete payload.shipping_fee;
+    delete payload.discount_amount;
+    delete payload.items;
+    delete payload.shipping_address;
+    delete payload.billing_address;
+
     const { data, error } = await supabase
       .from("orders")
-      .insert([orderData])
+      .insert([payload])
       .select()
       .single();
 
     if (error) {
       throw new Error(`Failed to create order: ${error.message}`);
     }
+
+    if (customerNote && customerNote.trim() && data?.id) {
+      try {
+        await supabase.from("order_notes").insert({
+          order_id: data.id,
+          author_id: customerId,
+          note: customerNote.trim(),
+          is_customer_visible: true,
+        });
+      } catch (err) {
+        console.error("Error saving order note:", err);
+      }
+    }
+
     return data as Order;
   }
 

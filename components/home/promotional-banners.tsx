@@ -32,6 +32,7 @@ export function PromotionalBanners() {
                 src="https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=500&q=80"
                 alt="Summer Offer"
                 fill
+                sizes="(max-width: 768px) 75vw, 25vw"
                 className="rounded-tl-[100px] object-cover object-left-top transition-transform duration-1000 group-hover:scale-110"
               />
               <div className="absolute inset-0 rounded-tl-[100px] bg-gradient-to-t from-black/20 to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
@@ -65,6 +66,7 @@ export function PromotionalBanners() {
                   src="https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=800&q=80"
                   alt="50% Off"
                   fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
                   className="object-cover object-top transition-transform duration-1000 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-r from-[#f9ebeb] via-transparent to-black/10 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
@@ -93,6 +95,7 @@ export function PromotionalBanners() {
                   src="https://images.unsplash.com/photo-1616683693504-3ea7e9ad6fec?w=600&q=80"
                   alt="Luxury Beauty"
                   fill
+                  sizes="(max-width: 768px) 40vw, 20vw"
                   className="object-cover object-center transition-transform duration-1000 group-hover:scale-110"
                 />
                 {/* Fixed gradient to transition smoothly from the primary color */}
@@ -125,6 +128,7 @@ export function PromotionalBanners() {
                 src="https://images.unsplash.com/photo-1594223274512-ad4803739b7c?w=600&q=80"
                 alt="Trouser Suit"
                 fill
+                sizes="(max-width: 768px) 100vw, 25vw"
                 className="object-cover object-top transition-transform duration-1000 group-hover:scale-110"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />

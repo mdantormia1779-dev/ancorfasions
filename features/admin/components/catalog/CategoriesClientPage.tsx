@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { toast } from "sonner";
 import {
   Table,
@@ -23,13 +23,6 @@ import {
   SheetDescription,
   SheetFooter,
 } from "@/components/ui/sheet";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { ConfirmDialog } from "@/features/admin/components/shared/ConfirmDialog";
 import { CatalogPageShell } from "@/features/admin/components/shared/CatalogPageShell";
 import {
@@ -38,7 +31,8 @@ import {
   deleteCategoryAction,
 } from "@/lib/actions/admin/catalog.actions";
 import { Category } from "@/types/catalog.types";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, Check, ChevronDown, Search, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface CategoriesClientPageProps {
   initialCategories: Category[];
@@ -50,6 +44,254 @@ function slugify(str: string) {
     .trim()
     .replace(/[^\w\s-]/g, "")
     .replace(/\s+/g, "-");
+}
+
+function getCategoryPath(cat: Category, allCats: Category[]): string {
+  const path = [cat.name];
+  let current = cat;
+  const visited = new Set<string>([cat.id]);
+  while (current.parent_id) {
+    const parent = allCats.find((c) => c.id === current.parent_id);
+    if (!parent || visited.has(parent.id)) break;
+    visited.add(parent.id);
+    path.unshift(parent.name);
+    current = parent;
+  }
+  return path.join(" → ");
+}
+
+interface ParentCategorySelectProps {
+  value: string | null;
+  onChange: (value: string | null) => void;
+  categories: Category[];
+  excludeId?: string | null;
+}
+
+function ParentCategorySelect({
+  value,
+  onChange,
+  categories,
+  excludeId,
+}: ParentCategorySelectProps) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Close when clicking outside the dropdown container
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+
+  // Keyboard accessibility (ESC to close)
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        setIsOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
+  // Available parent categories (exclude category itself & descendants when editing)
+  const availableParents = useMemo(() => {
+    if (!excludeId) return categories;
+
+    const descendants = new Set<string>();
+    const findChildren = (pid: string) => {
+      for (const cat of categories) {
+        if (cat.parent_id === pid && !descendants.has(cat.id)) {
+          descendants.add(cat.id);
+          findChildren(cat.id);
+        }
+      }
+    };
+    findChildren(excludeId);
+    descendants.add(excludeId);
+
+    return categories.filter((c) => !descendants.has(c.id));
+  }, [categories, excludeId]);
+
+  const parentOptionsList = useMemo(() => {
+    return availableParents
+      .map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        path: getCategoryPath(cat, categories),
+      }))
+      .sort((a, b) => a.path.localeCompare(b.path));
+  }, [availableParents, categories]);
+
+  const filteredOptions = useMemo(() => {
+    if (!search.trim()) return parentOptionsList;
+    const q = search.toLowerCase();
+    return parentOptionsList.filter(
+      (item) =>
+        item.path.toLowerCase().includes(q) || item.name.toLowerCase().includes(q)
+    );
+  }, [parentOptionsList, search]);
+
+  const selectedOption = useMemo(() => {
+    if (!value || value === "none") return null;
+    return (
+      parentOptionsList.find((p) => p.id === value) ||
+      categories.find((c) => c.id === value)
+    );
+  }, [value, parentOptionsList, categories]);
+
+  const selectedLabel = selectedOption
+    ? "path" in selectedOption
+      ? selectedOption.path
+      : selectedOption.name
+    : "None (Root)";
+
+  return (
+    <div ref={dropdownRef} className="relative w-full">
+      <button
+        type="button"
+        id="cat-parent"
+        onClick={() => {
+          setIsOpen((prev) => !prev);
+          setSearch("");
+        }}
+        className={cn(
+          "flex h-9 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs transition-colors hover:bg-accent/40 focus:outline-none focus:ring-1 focus:ring-ring text-left",
+          isOpen && "ring-1 ring-ring"
+        )}
+      >
+        <span className={cn("truncate", !selectedOption && "text-muted-foreground")}>
+          {selectedLabel}
+        </span>
+        <div className="flex items-center gap-1.5 shrink-0 ml-2">
+          {selectedOption && (
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                onChange(null);
+              }}
+              className="rounded-full p-0.5 hover:bg-muted text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
+              title="Clear parent (set as Root)"
+            >
+              <X className="h-3.5 w-3.5" />
+            </span>
+          )}
+          <ChevronDown
+            className={cn(
+              "h-4 w-4 text-muted-foreground transition-transform duration-200",
+              isOpen && "rotate-180"
+            )}
+          />
+        </div>
+      </button>
+
+      {isOpen && (
+        <div className="absolute left-0 top-[calc(100%+4px)] z-50 w-full rounded-md border bg-popover p-1 text-popover-foreground shadow-lg">
+          {parentOptionsList.length > 5 && (
+            <div className="p-1 border-b border-border/60 mb-1">
+              <div className="flex items-center gap-2 px-2 py-1 rounded-sm bg-muted/50 text-muted-foreground">
+                <Search className="h-3.5 w-3.5 shrink-0" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  placeholder="Search category..."
+                  className="w-full bg-transparent text-xs text-foreground placeholder:text-muted-foreground outline-none"
+                  autoFocus
+                />
+                {search && (
+                  <button
+                    type="button"
+                    onClick={() => setSearch("")}
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
+          <div className="max-h-56 overflow-y-auto space-y-0.5 p-0.5">
+            {/* None (Root) option */}
+            <button
+              type="button"
+              onClick={() => {
+                onChange(null);
+                setIsOpen(false);
+              }}
+              className={cn(
+                "flex w-full items-center justify-between rounded-sm px-2.5 py-1.5 text-xs text-left transition-colors hover:bg-accent hover:text-accent-foreground",
+                !selectedOption && "bg-accent/60 font-medium text-foreground"
+              )}
+            >
+              <div>
+                <div className="font-medium">None (Root)</div>
+                <div className="text-[11px] text-muted-foreground">
+                  Top-level category (no parent)
+                </div>
+              </div>
+              {!selectedOption && (
+                <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+              )}
+            </button>
+
+            {parentOptionsList.length > 0 && (
+              <div className="h-px bg-border/60 my-1" />
+            )}
+
+            {/* Filtered category items */}
+            {filteredOptions.length === 0 ? (
+              <div className="px-2.5 py-3 text-center text-xs text-muted-foreground">
+                No matching categories found.
+              </div>
+            ) : (
+              filteredOptions.map((item) => {
+                const isSelected = selectedOption && selectedOption.id === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => {
+                      onChange(item.id);
+                      setIsOpen(false);
+                    }}
+                    className={cn(
+                      "flex w-full items-center justify-between rounded-sm px-2.5 py-1.5 text-xs text-left transition-colors hover:bg-accent hover:text-accent-foreground",
+                      isSelected && "bg-accent/60 font-medium text-foreground"
+                    )}
+                  >
+                    <div className="truncate pr-2">
+                      <div className="truncate font-medium">{item.name}</div>
+                      {item.path !== item.name && (
+                        <div className="text-[10px] text-muted-foreground truncate">
+                          {item.path}
+                        </div>
+                      )}
+                    </div>
+                    {isSelected && (
+                      <Check className="h-3.5 w-3.5 shrink-0 text-primary" />
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function CategoriesClientPage({
@@ -120,7 +362,12 @@ export function CategoriesClientPage({
     const payload = {
       name: form.name,
       slug: form.slug,
-      parent_id: form.parent_id || null,
+      parent_id:
+        form.parent_id &&
+        form.parent_id !== "none" &&
+        form.parent_id.trim() !== ""
+          ? form.parent_id
+          : null,
       is_active: form.is_active,
       display_order: form.display_order,
     };
@@ -168,9 +415,6 @@ export function CategoriesClientPage({
     setConfirmOpen(false);
     setDeleteTarget(null);
   };
-
-  // Root-level categories for parent selector
-  const rootCategories = categories.filter((c) => !c.parent_id);
 
   return (
     <>
@@ -280,26 +524,14 @@ export function CategoriesClientPage({
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cat-parent">Parent Category</Label>
-              <Select
-                value={form.parent_id || "none"}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, parent_id: v === "none" ? "" : v }))
+              <ParentCategorySelect
+                value={form.parent_id}
+                onChange={(newVal) =>
+                  setForm((f) => ({ ...f, parent_id: newVal ?? "" }))
                 }
-              >
-                <SelectTrigger id="cat-parent">
-                  <SelectValue placeholder="None (Root)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">None (Root)</SelectItem>
-                  {rootCategories
-                    .filter((c) => c.id !== editTarget?.id)
-                    .map((c) => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.name}
-                      </SelectItem>
-                    ))}
-                </SelectContent>
-              </Select>
+                categories={categories}
+                excludeId={editTarget?.id}
+              />
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cat-order">Display Order</Label>

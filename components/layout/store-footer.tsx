@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { getStoreInfo, getSocialLinks } from "@/lib/actions/settings.actions";
 import { Jost } from "next/font/google";
+import { StoreFooterNewsletter } from "./StoreFooterNewsletter";
 
 const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
@@ -32,6 +33,7 @@ const footerLinks = {
   ],
   legal: [
     { label: "About Us", href: "/about" },
+    { label: "Style Blog & Journal", href: "/blog" },
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
     { label: "Cookie Policy", href: "/cookies" },
@@ -71,20 +73,7 @@ export async function StoreFooter() {
                 everyone else.
               </p>
             </div>
-            <form className="flex w-full max-w-md gap-0 md:w-auto">
-              <input
-                type="email"
-                placeholder="Your email address..."
-                required
-                className="flex-1 border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 transition-colors placeholder:text-gray-500 focus:border-[#C9A86A] focus:outline-none"
-              />
-              <button
-                type="submit"
-                className="flex items-center gap-2 whitespace-nowrap bg-[#C9A86A] px-5 py-3 text-sm font-semibold text-white transition-colors hover:bg-[#b8973e]"
-              >
-                Subscribe <ArrowRight className="h-4 w-4" />
-              </button>
-            </form>
+            <StoreFooterNewsletter />
           </div>
         </div>
       </div>

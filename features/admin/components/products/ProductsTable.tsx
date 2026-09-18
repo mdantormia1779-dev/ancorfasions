@@ -283,9 +283,9 @@ export function ProductsTable({
                 {selectedIds.length} selected
               </span>
               <DropdownMenu>
-                <DropdownMenuTrigger>
-                  <Button variant="outline">Bulk Actions</Button>
-                </DropdownMenuTrigger>
+                <DropdownMenuTrigger
+                  render={<Button variant="outline">Bulk Actions</Button>}
+                />
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem onClick={() => handleBulkAction("publish")}>
                     <CheckCircle2 className="mr-2 h-4 w-4 text-emerald-500" />
@@ -441,12 +441,17 @@ export function ProductsTable({
                     </TableCell>
                     <TableCell className="pr-4 text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger>
-                          <Button variant="ghost" className="h-8 w-8 p-0 hover:bg-slate-100">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button
+                              variant="ghost"
+                              className="h-8 w-8 p-0 hover:bg-slate-100"
+                            >
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
                         <DropdownMenuContent align="end" className="w-48">
                           <DropdownMenuItem
                             onClick={() =>

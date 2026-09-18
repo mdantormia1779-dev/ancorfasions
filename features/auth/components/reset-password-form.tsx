@@ -70,10 +70,11 @@ export function ResetPasswordForm() {
             name="password"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>New Password</FormLabel>
+                <FormLabel className="text-slate-800 dark:text-slate-200 font-semibold text-sm">New Password</FormLabel>
                 <FormControl>
                   <PasswordInput
                     placeholder="Enter new password"
+                    className="h-12 bg-slate-50/70 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:border-[#C9A86A] focus-visible:ring-[#C9A86A]/20"
                     {...field}
                     disabled={isLoading}
                   />
@@ -87,10 +88,11 @@ export function ResetPasswordForm() {
             name="confirmPassword"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Confirm New Password</FormLabel>
+                <FormLabel className="text-slate-800 dark:text-slate-200 font-semibold text-sm">Confirm New Password</FormLabel>
                 <FormControl>
                   <PasswordInput
                     placeholder="Confirm new password"
+                    className="h-12 bg-slate-50/70 dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus-visible:border-[#C9A86A] focus-visible:ring-[#C9A86A]/20"
                     {...field}
                     disabled={isLoading}
                   />
@@ -99,7 +101,7 @@ export function ResetPasswordForm() {
               </FormItem>
             )}
           />
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full h-12 bg-[#C9A86A] hover:bg-[#b09156] text-white font-semibold" disabled={isLoading}>
             {isLoading ? "Resetting password..." : "Reset password"}
           </Button>
         </form>

@@ -36,7 +36,12 @@ export const ProductVariantSchema = z.object({
   id: z.string().uuid(),
   productId: z.string().uuid(),
   sku: z.string().max(100),
-  barcode: z.string().max(100).optional().nullable(),
+  barcode: z
+    .string()
+    .max(100)
+    .optional()
+    .nullable()
+    .transform((val) => (val === undefined ? undefined : val && val.trim() ? val.trim() : null)),
   priceOverride: z.number().min(0).optional().nullable(),
   salePrice: z.number().min(0).optional().nullable(),
   weight: z.number().min(0).optional().nullable(),
@@ -50,6 +55,7 @@ export const ProductVariantSchema = z.object({
     .nullable(),
   isActive: z.boolean().default(true),
   attributes: z.record(z.string()).optional(), // { Color: 'Red', Size: 'M' }
+  stockQuantity: z.coerce.number().int().min(0).optional().default(0),
 });
 
 export const ProductMediaSchema = z.object({
@@ -68,22 +74,66 @@ export const ProductSchema = z.object({
   id: z.string().uuid(),
   name: z.string().min(1, "Product name is required").max(255),
   slug: z.string().min(1, "Slug is required").max(255),
-  shortDescription: z.string().max(500).optional().nullable(),
-  description: z.string().optional().nullable(),
+  shortDescription: z
+    .string()
+    .max(500)
+    .optional()
+    .nullable()
+    .transform((val) => (val === undefined ? undefined : val && val.trim() ? val.trim() : null)),
+  description: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((val) => (val === undefined ? undefined : val && val.trim() ? val.trim() : null)),
   categoryId: z.string().uuid("Please select a valid category"),
   brandId: z.string().uuid().optional().nullable().or(z.literal("").transform(() => null)),
   basePrice: z.number().min(0, "Sell price must be 0 or greater"),
   costPrice: z.number().min(0).optional().nullable(),
   salePrice: z.number().min(0).optional().nullable(),
-  sku: z.string().max(100).optional().nullable().or(z.literal("").transform(() => null)),
-  barcode: z.string().max(100).optional().nullable().or(z.literal("").transform(() => null)),
+  stockQuantity: z.coerce.number().int().min(0).optional().default(0),
+  sku: z
+    .string()
+    .max(100)
+    .optional()
+    .nullable()
+    .transform((val) => (val === undefined ? undefined : val && val.trim() ? val.trim() : null)),
+  barcode: z
+    .string()
+    .max(100)
+    .optional()
+    .nullable()
+    .transform((val) => (val === undefined ? undefined : val && val.trim() ? val.trim() : null)),
   status: ProductStatus.default("DRAFT"),
   gender: Gender.optional().nullable().or(z.literal("").transform(() => null)),
-  season: z.string().max(50).optional().nullable().or(z.literal("").transform(() => null)),
-  careInstructions: z.string().optional().nullable().or(z.literal("").transform(() => null)),
-  countryOfOrigin: z.string().max(100).optional().nullable().or(z.literal("").transform(() => null)),
-  warranty: z.string().max(255).optional().nullable().or(z.literal("").transform(() => null)),
-  material: z.string().max(255).optional().nullable().or(z.literal("").transform(() => null)),
+  season: z
+    .string()
+    .max(50)
+    .optional()
+    .nullable()
+    .transform((val) => (val === undefined ? undefined : val && val.trim() ? val.trim() : null)),
+  careInstructions: z
+    .string()
+    .optional()
+    .nullable()
+    .transform((val) => (val === undefined ? undefined : val && val.trim() ? val.trim() : null)),
+  countryOfOrigin: z
+    .string()
+    .max(100)
+    .optional()
+    .nullable()
+    .transform((val) => (val === undefined ? undefined : val && val.trim() ? val.trim() : null)),
+  warranty: z
+    .string()
+    .max(255)
+    .optional()
+    .nullable()
+    .transform((val) => (val === undefined ? undefined : val && val.trim() ? val.trim() : null)),
+  material: z
+    .string()
+    .max(255)
+    .optional()
+    .nullable()
+    .transform((val) => (val === undefined ? undefined : val && val.trim() ? val.trim() : null)),
   isFeatured: z.boolean().default(false),
   averageRating: z.number().min(0).max(5).default(0),
   publishedAt: z.string().optional().nullable(),
@@ -176,6 +226,9 @@ export type Collection = {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+  product_count?: number;
+  product_ids?: string[];
+  products?: any[];
 };
 
 export type AttributeValue = {
@@ -257,6 +310,7 @@ export type CreateCollectionInput = {
   slug: string;
   banner_url?: string | null;
   is_active?: boolean;
+  product_ids?: string[];
 };
 export type UpdateCollectionInput = Partial<CreateCollectionInput>;
 

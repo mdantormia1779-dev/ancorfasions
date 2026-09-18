@@ -54,6 +54,7 @@ export function SingleProductOfferBanner() {
               src="https://images.unsplash.com/photo-1547949003-9792a18a2601?w=800&q=80"
               alt="Premium Leather Weekend Bag"
               fill
+              sizes="(max-width: 768px) 100vw, 50vw"
               className="object-cover"
             />
           </div>

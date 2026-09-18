@@ -100,14 +100,16 @@ export default async function CategoryPage({
 
           {/* Sort Dropdown */}
           <DropdownMenu>
-            <DropdownMenuTrigger>
-              <Button
-                variant="outline"
-                className="flex w-full items-center justify-between gap-2 md:w-auto"
-              >
-                Sort by: Featured <ChevronDown className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
+            <DropdownMenuTrigger
+              render={
+                <Button
+                  variant="outline"
+                  className="flex w-full items-center justify-between gap-2 md:w-auto"
+                >
+                  Sort by: Featured <ChevronDown className="h-4 w-4" />
+                </Button>
+              }
+            />
             <DropdownMenuContent align="end" className="w-[200px]">
               <DropdownMenuItem>Featured</DropdownMenuItem>
               <DropdownMenuItem>Newest Arrivals</DropdownMenuItem>

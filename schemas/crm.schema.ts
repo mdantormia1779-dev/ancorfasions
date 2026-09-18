@@ -29,15 +29,23 @@ export const communicationTypeEnum = z.enum([
 export const communicationDirectionEnum = z.enum(["INBOUND", "OUTBOUND"]);
 
 export const createCRMLeadSchema = z.object({
-  first_name: z.string().optional(),
-  last_name: z.string().optional(),
-  email: z.string().email(),
-  phone: z.string().optional(),
-  company_name: z.string().optional(),
+  first_name: z
+    .string({ required_error: "First name is required" })
+    .trim()
+    .min(1, "First name is required"),
+  last_name: z.string().trim().optional(),
+  email: z
+    .string({ required_error: "Email address is required" })
+    .trim()
+    .min(1, "Email address is required")
+    .email("Please enter a valid email address"),
+  phone: z.string().trim().optional(),
+  company_name: z.string().trim().optional(),
   status: leadStatusEnum.default("new"),
-  source: z.string().optional(),
+  source: z.string().trim().optional().default("Direct"),
   assigned_agent_id: z.string().uuid().optional(),
-  score: z.number().int().default(0),
+  score: z.coerce.number().int().default(0),
+  notes: z.string().trim().optional(),
   custom_fields: z.record(z.any()).default({}),
 });
 

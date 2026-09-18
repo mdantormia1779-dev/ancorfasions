@@ -1,4 +1,5 @@
 import { Metadata } from "next";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -99,8 +100,10 @@ export default async function PurchaseOrdersPage() {
           </p>
         </div>
         <div className="flex gap-2">
-          <Button>
-            <Plus className="mr-2 h-4 w-4" /> Create PO
+          <Button asChild>
+            <Link href="/admin/inventory/purchases/new">
+              <Plus className="mr-2 h-4 w-4" /> Create PO
+            </Link>
           </Button>
         </div>
       </div>
@@ -171,12 +174,14 @@ export default async function PurchaseOrdersPage() {
                     <TableCell>{getStatusBadge(po.status)}</TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
-                        <DropdownMenuTrigger>
-                          <Button variant="ghost" className="h-8 w-8 p-0">
-                            <span className="sr-only">Open menu</span>
-                            <MoreHorizontal className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
+                        <DropdownMenuTrigger
+                          render={
+                            <Button variant="ghost" className="h-8 w-8 p-0">
+                              <span className="sr-only">Open menu</span>
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          }
+                        />
                         <DropdownMenuContent align="end">
                           <DropdownMenuGroup>
                             <DropdownMenuLabel>Actions</DropdownMenuLabel>

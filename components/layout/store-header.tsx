@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   Search,
   ShoppingCart,
@@ -9,10 +10,22 @@ import {
   Menu,
   ChevronDown,
   X,
+  Phone,
+  Mail,
+  LogIn,
+  LayoutDashboard,
+  ShieldCheck,
 } from "lucide-react";
 import { useState, useRef, useEffect } from "react";
 import { AnchorFashionLogo } from "@/components/shared/logo";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ADMIN_ROLES, MANAGER_ROLES } from "@/lib/constants/auth";
 import { useCartStore } from "@/stores/use-cart-store";
@@ -25,13 +38,16 @@ const baseNavLinks = [
     dropdown: [
       { label: "New Arrivals", href: "/products?sort=newest" },
       { label: "Best Sellers", href: "/products?sort=rating" },
+      { label: "Collections", href: "/collections" },
       { label: "Sale", href: "/categories/sale" },
       { label: "All Products", href: "/products" },
     ],
   },
   // Clothing and Accessories will be injected dynamically
+  { label: "Collections", href: "/collections" },
   { label: "New In", href: "/products?sort=newest" },
   { label: "Sale", href: "/categories/sale" },
+  { label: "Blog", href: "/blog" },
   { label: "About Us", href: "/about" },
   { label: "Contact Us", href: "/contact" },
 ];
@@ -48,27 +64,44 @@ interface DropdownItem {
   href: string;
 }
 
-function NavItem({ link }: { link: any }) {
+interface NavLinkItem {
+  label: string;
+  href: string;
+  dropdown?: DropdownItem[];
+}
+
+function NavItem({ link }: { link: NavLinkItem }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node))
+      if (ref.current && !ref.current.contains(e.target as Node)) {
         setOpen(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const isSale = link.label.toLowerCase() === "sale";
+
   if (!link.dropdown || link.dropdown.length === 0) {
     return (
       <Link
         href={link.href}
-        className="group relative py-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#1A1A1A] transition-colors hover:text-[#C9A86A]"
+        className={`group relative py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
+          isSale
+            ? "text-rose-600 hover:text-rose-700"
+            : "text-[#1A1A1A] hover:text-[#C9A86A]"
+        }`}
       >
         {link.label}
-        <span className="absolute -bottom-0.5 left-0 h-0.5 w-0 bg-[#C9A86A] transition-all duration-300 group-hover:w-full" />
+        <span
+          className={`absolute -bottom-0.5 left-0 h-0.5 w-0 transition-all duration-300 group-hover:w-full ${
+            isSale ? "bg-rose-600" : "bg-[#C9A86A]"
+          }`}
+        />
       </Link>
     );
   }
@@ -82,20 +115,26 @@ function NavItem({ link }: { link: any }) {
     >
       <Link
         href={link.href}
-        className="group flex items-center gap-1 py-1 text-xs font-semibold uppercase tracking-[0.1em] text-[#1A1A1A] transition-colors hover:text-[#C9A86A]"
+        className={`group flex items-center gap-1 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
+          isSale
+            ? "text-rose-600 hover:text-rose-700"
+            : "text-[#1A1A1A] hover:text-[#C9A86A]"
+        }`}
       >
         {link.label}
         <ChevronDown
-          className={`h-3.5 w-3.5 transition-transform duration-200 ${open ? "rotate-180 text-[#C9A86A]" : ""}`}
+          className={`h-3 w-3 transition-transform duration-200 ${
+            open ? "rotate-180 text-[#C9A86A]" : "text-gray-400"
+          }`}
         />
         <span className="absolute -bottom-0.5 left-0 h-0.5 w-0 bg-[#C9A86A] transition-all duration-300 group-hover:w-full" />
       </Link>
 
       {/* Dropdown Panel */}
       <div
-        className={`absolute left-0 top-full z-50 mt-2 w-52 origin-top border border-[#C9A86A]/20 bg-white py-2 shadow-xl transition-all duration-200 ${
+        className={`absolute left-0 top-full z-50 mt-2 min-w-[200px] origin-top border border-[#C9A86A]/20 bg-white py-2 shadow-xl transition-all duration-200 ${
           open
-            ? "translate-y-0 scale-y-100 opacity-100"
+            ? "translate-y-0 scale-y-100 opacity-100 pointer-events-auto"
             : "pointer-events-none -translate-y-1 scale-y-95 opacity-0"
         }`}
       >
@@ -103,7 +142,7 @@ function NavItem({ link }: { link: any }) {
           <Link
             key={item.href}
             href={item.href}
-            className="block px-4 py-2.5 text-xs font-medium uppercase tracking-widest text-[#1A1A1A] transition-colors hover:bg-[#C9A86A]/5 hover:text-[#C9A86A]"
+            className="block px-4 py-2 text-xs font-medium uppercase tracking-wider text-[#1A1A1A] transition-colors hover:bg-[#C9A86A]/10 hover:text-[#C9A86A]"
             onClick={() => setOpen(false)}
           >
             {item.label}
@@ -127,7 +166,11 @@ export function StoreHeader({
   announcementBar?: string;
   user?: any;
 }) {
+  const router = useRouter();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [expandedItems, setExpandedItems] = useState<string[]>(["Shop"]);
   const [mounted, setMounted] = useState(false);
   const [isScrollingDown, setIsScrollingDown] = useState(false);
   const lastScrollY = useRef(0);
@@ -140,21 +183,12 @@ export function StoreHeader({
     fetchCart();
   }, [fetchCart]);
 
-  const role = user?.user_metadata?.role || user?.app_metadata?.role || "CUSTOMER";
-  const accountHref = !user
-    ? "/auth/login"
-    : ADMIN_ROLES.includes(role)
-      ? "/admin"
-      : MANAGER_ROLES.includes(role)
-        ? "/manager"
-        : "/account/profile";
-
   useEffect(() => {
     setMounted(true);
-    
+
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      if (currentScrollY > lastScrollY.current && currentScrollY > 100) {
+      if (currentScrollY > lastScrollY.current && currentScrollY > 120) {
         setIsScrollingDown(true);
       } else {
         setIsScrollingDown(false);
@@ -165,6 +199,33 @@ export function StoreHeader({
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
+
+  const role =
+    user?.user_metadata?.role || user?.app_metadata?.role || "CUSTOMER";
+  const isAdmin = ADMIN_ROLES.includes(role);
+  const isManager = MANAGER_ROLES.includes(role);
+
+  const accountHref = !user
+    ? "/auth/login"
+    : isAdmin
+      ? "/admin"
+      : isManager
+        ? "/manager"
+        : "/account/profile";
+
+  const userDisplayName =
+    user?.user_metadata?.full_name ||
+    user?.user_metadata?.name ||
+    user?.email?.split("@")[0] ||
+    "User";
+
+  const userInitials = (
+    user?.user_metadata?.full_name ||
+    user?.email ||
+    "U"
+  )
+    .slice(0, 2)
+    .toUpperCase();
 
   // Dynamically build navLinks by inserting Clothing and Accessories with DB categories
   const clothingCategories = dbCategories
@@ -178,7 +239,7 @@ export function StoreHeader({
     .filter((c) => c.slug === "accessories" || c.parent_id === "accessories")
     .map((c) => ({ label: c.name, href: `/categories/${c.slug}` }));
 
-  const navLinks = [
+  const navLinks: NavLinkItem[] = [
     baseNavLinks[0], // Home
     baseNavLinks[1], // Shop
     {
@@ -203,61 +264,58 @@ export function StoreHeader({
               { label: "Jewellery", href: "/categories/jewellery" },
             ],
     },
-    ...baseNavLinks.slice(2), // New In, Sale, About Us, Contact Us
+    ...baseNavLinks.slice(2), // Collections, New In, Sale, Blog, About Us, Contact Us
   ];
+
+  const toggleExpand = (label: string) => {
+    setExpandedItems((prev) =>
+      prev.includes(label) ? prev.filter((item) => item !== label) : [...prev, label]
+    );
+  };
+
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = searchQuery.trim();
+    if (query) {
+      router.push(`/search?q=${encodeURIComponent(query)}`);
+      setSearchOpen(false);
+      setSearchQuery("");
+    }
+  };
 
   return (
     <>
-      {/* Topbar for Contact Info */}
+      {/* Topbar for Contact Info (Desktop & Tablet) */}
       <div className="hidden w-full border-b border-gray-100 bg-gray-50 py-1.5 text-xs text-gray-500 md:block">
-        <div className="container mx-auto flex items-center justify-between px-4 md:px-6">
-          <div className="flex items-center gap-4">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center gap-6">
             {contactPhone && (
-              <span className="flex cursor-pointer items-center gap-1 transition-colors hover:text-black">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-                </svg>
-                {contactPhone}
-              </span>
+              <a
+                href={`tel:${contactPhone}`}
+                className="flex items-center gap-1.5 transition-colors hover:text-black"
+              >
+                <Phone className="h-3 w-3 text-[#C9A86A]" />
+                <span>{contactPhone}</span>
+              </a>
             )}
             {contactEmail && (
-              <span className="flex cursor-pointer items-center gap-1 transition-colors hover:text-black">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="12"
-                  height="12"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-                {contactEmail}
-              </span>
+              <a
+                href={`mailto:${contactEmail}`}
+                className="flex items-center gap-1.5 transition-colors hover:text-black"
+              >
+                <Mail className="h-3 w-3 text-[#C9A86A]" />
+                <span>{contactEmail}</span>
+              </a>
             )}
           </div>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-5">
+            <Link href="/blog" className="transition-colors hover:text-black">
+              Blog
+            </Link>
             <Link href="/about" className="transition-colors hover:text-black">
               About Us
             </Link>
-            <Link
-              href="/contact"
-              className="transition-colors hover:text-black"
-            >
+            <Link href="/contact" className="transition-colors hover:text-black">
               Store Locator
             </Link>
           </div>
@@ -265,62 +323,252 @@ export function StoreHeader({
       </div>
 
       {/* Announcement Bar */}
-      <div className="w-full bg-[#0D1B2A] py-2.5 text-center text-[10px] font-medium uppercase tracking-[0.3em] text-white">
-        {announcementBar ??
-          "🚚 Free Shipping On Orders Over ৳999 | Easy Returns & Exchanges"}
+      <div className="w-full bg-[#0D1B2A] px-3 py-2 text-center text-[10px] font-medium uppercase tracking-wider text-white sm:py-2.5 sm:text-xs sm:tracking-[0.25em]">
+        <div className="mx-auto max-w-7xl truncate">
+          {announcementBar ??
+            "🚚 Free Shipping On Orders Over ৳999 | Easy Returns & Exchanges"}
+        </div>
       </div>
 
-      <header 
-        className={`sticky top-0 z-50 w-full border-b border-gray-100 bg-white/85 backdrop-blur-md shadow-sm transition-transform duration-300 ${
+      {/* Sticky Main Header */}
+      <header
+        className={`sticky top-0 z-40 w-full border-b border-gray-100 bg-white/95 backdrop-blur-md shadow-sm transition-transform duration-300 ${
           isScrollingDown ? "-translate-y-full" : "translate-y-0"
         }`}
       >
-        <div className="container mx-auto flex h-16 items-center justify-between px-4 md:px-6">
-          {/* Mobile Hamburger — only rendered after mount to prevent hydration mismatch */}
-          {mounted ? (
-            <Sheet>
-              <SheetTrigger className="p-2 text-gray-700 transition-colors hover:text-black md:hidden">
-                <Menu className="h-5 w-5" />
-                <span className="sr-only">Toggle menu</span>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[300px]">
-                <div className="mb-8 mt-2">
-                  <AnchorFashionLogo />
-                </div>
-                <nav className="flex flex-col gap-1">
-                  {navLinks.map((link) => (
-                    <div key={link.label}>
-                      <Link
-                        href={link.href}
-                        className="flex items-center justify-between border-b border-gray-50 px-2 py-3 text-base font-medium text-gray-800 hover:text-black"
+        <div className="mx-auto flex h-14 sm:h-16 max-w-7xl items-center justify-between px-3 sm:px-6 lg:px-8">
+          {/* Mobile & Tablet Hamburger (visible below xl breakpoint) */}
+          <div className="flex items-center xl:hidden">
+            {mounted ? (
+              <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <button
+                    type="button"
+                    className="inline-flex items-center justify-center rounded-md p-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-black focus:outline-none"
+                    aria-label="Open navigation menu"
+                  >
+                    <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
+                  </button>
+                </SheetTrigger>
+                <SheetContent
+                  side="left"
+                  className="flex h-full w-[85vw] max-w-sm flex-col p-0 bg-white border-r border-gray-200"
+                >
+                  <SheetHeader className="border-b border-gray-100 px-5 py-4 text-left">
+                    <div className="flex items-center justify-between">
+                      <AnchorFashionLogo
+                        noLink
+                        className="w-full max-w-[140px] sm:max-w-[160px]"
+                      />
+                    </div>
+                    <SheetTitle className="sr-only">Store Navigation</SheetTitle>
+                    <SheetDescription className="sr-only">
+                      Browse categories, collections and your account
+                    </SheetDescription>
+                  </SheetHeader>
+
+                  {/* Mobile Account Banner */}
+                  <div className="border-b border-gray-100 bg-gray-50/75 px-5 py-3.5">
+                    {user ? (
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0">
+                          <Avatar className="h-9 w-9 border border-[#C9A86A]/40 flex-shrink-0">
+                            <AvatarImage src={user.user_metadata?.avatar_url} />
+                            <AvatarFallback className="bg-[#0D1B2A] text-[10px] font-bold text-white">
+                              {userInitials}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-xs font-bold text-gray-900 truncate">
+                              {userDisplayName}
+                            </p>
+                            <p className="text-[11px] text-gray-500 truncate">
+                              {user.email}
+                            </p>
+                          </div>
+                        </div>
+                        <Link
+                          href={accountHref}
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="flex items-center gap-1 rounded bg-[#0D1B2A] px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-black flex-shrink-0"
+                        >
+                          {isAdmin ? (
+                            <>
+                              <ShieldCheck className="h-3 w-3" />
+                              <span>Admin</span>
+                            </>
+                          ) : isManager ? (
+                            <>
+                              <LayoutDashboard className="h-3 w-3" />
+                              <span>Portal</span>
+                            </>
+                          ) : (
+                            <span>Profile</span>
+                          )}
+                        </Link>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-xs font-bold uppercase tracking-wider text-gray-900">
+                            Welcome
+                          </p>
+                          <p className="text-[11px] text-gray-500">
+                            Sign in for orders & rewards
+                          </p>
+                        </div>
+                        <Link
+                          href="/auth/login"
+                          onClick={() => setMobileMenuOpen(false)}
+                          className="inline-flex items-center gap-1.5 rounded-full bg-[#0D1B2A] px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-black"
+                        >
+                          <LogIn className="h-3.5 w-3.5" />
+                          <span>Sign In</span>
+                        </Link>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Navigation Links Accordion */}
+                  <nav className="flex-1 overflow-y-auto px-4 py-2">
+                    <div className="divide-y divide-gray-50">
+                      {navLinks.map((link) => {
+                        const hasDropdown =
+                          Boolean(link.dropdown && link.dropdown.length > 0);
+                        const isExpanded = expandedItems.includes(link.label);
+                        const isSale = link.label.toLowerCase() === "sale";
+
+                        return (
+                          <div key={link.label} className="py-1">
+                            {hasDropdown ? (
+                              <div>
+                                <div className="flex items-center justify-between">
+                                  <Link
+                                    href={link.href}
+                                    onClick={() => setMobileMenuOpen(false)}
+                                    className="flex-1 py-2.5 text-sm font-semibold uppercase tracking-wider text-gray-800 transition-colors hover:text-[#C9A86A]"
+                                  >
+                                    {link.label}
+                                  </Link>
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleExpand(link.label)}
+                                    className="p-2 text-gray-400 hover:text-black"
+                                    aria-label={`Toggle ${link.label} subcategories`}
+                                  >
+                                    <ChevronDown
+                                      className={`h-4 w-4 transition-transform duration-200 ${
+                                        isExpanded
+                                          ? "rotate-180 text-[#C9A86A]"
+                                          : ""
+                                      }`}
+                                    />
+                                  </button>
+                                </div>
+
+                                {isExpanded && link.dropdown && (
+                                  <div className="mb-2 space-y-1 rounded-md bg-gray-50/80 px-3 py-2">
+                                    {link.dropdown.map((subItem) => (
+                                      <Link
+                                        key={subItem.href}
+                                        href={subItem.href}
+                                        onClick={() => setMobileMenuOpen(false)}
+                                        className="block py-1.5 text-xs font-medium uppercase tracking-wider text-gray-600 transition-colors hover:text-[#C9A86A]"
+                                      >
+                                        {subItem.label}
+                                      </Link>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            ) : (
+                              <Link
+                                href={link.href}
+                                onClick={() => setMobileMenuOpen(false)}
+                                className={`flex items-center justify-between py-2.5 text-sm font-semibold uppercase tracking-wider transition-colors ${
+                                  isSale
+                                    ? "text-rose-600 font-bold hover:text-rose-700"
+                                    : "text-gray-800 hover:text-[#C9A86A]"
+                                }`}
+                              >
+                                <span>{link.label}</span>
+                                {isSale && (
+                                  <span className="rounded bg-rose-100 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-normal text-rose-600">
+                                    Hot
+                                  </span>
+                                )}
+                              </Link>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </nav>
+
+                  {/* Mobile Drawer Footer Contacts */}
+                  <div className="border-t border-gray-100 bg-gray-50/60 p-4 space-y-2 text-xs text-gray-600">
+                    {contactPhone && (
+                      <a
+                        href={`tel:${contactPhone}`}
+                        className="flex items-center gap-2 transition hover:text-black"
                       >
-                        {link.label}
-                        {link.dropdown && (
-                          <ChevronDown className="h-4 w-4 text-gray-400" />
-                        )}
+                        <Phone className="h-3.5 w-3.5 text-[#C9A86A]" />
+                        <span>{contactPhone}</span>
+                      </a>
+                    )}
+                    {contactEmail && (
+                      <a
+                        href={`mailto:${contactEmail}`}
+                        className="flex items-center gap-2 transition hover:text-black"
+                      >
+                        <Mail className="h-3.5 w-3.5 text-[#C9A86A]" />
+                        <span className="truncate">{contactEmail}</span>
+                      </a>
+                    )}
+                    <div className="flex items-center justify-between pt-2 border-t border-gray-200/60 text-[11px] text-gray-500">
+                      <Link
+                        href="/about"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="hover:text-black"
+                      >
+                        About Us
+                      </Link>
+                      <Link
+                        href="/blog"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="hover:text-black"
+                      >
+                        Blog
+                      </Link>
+                      <Link
+                        href="/contact"
+                        onClick={() => setMobileMenuOpen(false)}
+                        className="hover:text-black"
+                      >
+                        Contact
                       </Link>
                     </div>
-                  ))}
-                </nav>
-              </SheetContent>
-            </Sheet>
-          ) : (
-            // Placeholder with exact same dimensions to prevent layout shift
-            <button
-              className="p-2 text-gray-700 md:hidden"
-              aria-label="Toggle menu"
-            >
-              <Menu className="h-5 w-5" />
-            </button>
-          )}
-
-          {/* Logo — Left */}
-          <div className="flex-1 md:flex-none ml-2 md:ml-0 overflow-hidden flex items-center justify-start sm:justify-center md:justify-start">
-            <AnchorFashionLogo className="w-full max-w-[140px] sm:max-w-[180px] md:max-w-[220px] lg:max-w-[280px]" />
+                  </div>
+                </SheetContent>
+              </Sheet>
+            ) : (
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-md p-2 text-gray-700"
+                aria-label="Toggle menu placeholder"
+              >
+                <Menu className="h-5 w-5 sm:h-6 sm:w-6" />
+              </button>
+            )}
           </div>
 
-          {/* Desktop Navigation — Center */}
-          <nav className="hidden items-center gap-6 lg:flex xl:gap-8">
+          {/* Logo — Center on Mobile, Left on Desktop */}
+          <div className="flex flex-1 items-center justify-center px-2 md:justify-start xl:flex-none">
+            <AnchorFashionLogo className="w-full max-w-[130px] sm:max-w-[160px] md:max-w-[190px] xl:max-w-[230px]" />
+          </div>
+
+          {/* Desktop Navigation (visible only on xl screens to guarantee ample breathing room) */}
+          <nav className="hidden items-center gap-6 xl:flex 2xl:gap-8">
             {navLinks.map((link) => (
               <NavItem key={link.label} link={link} />
             ))}
@@ -328,28 +576,27 @@ export function StoreHeader({
 
           {/* Action Icons — Right */}
           <div className="flex items-center gap-1 sm:gap-2">
-            {/* Search */}
+            {/* Search Button */}
             <button
+              type="button"
               onClick={() => setSearchOpen(true)}
-              className="p-2 text-gray-700 transition-colors hover:text-black"
-              aria-label="Search"
+              className="rounded-full p-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-black active:scale-95"
+              aria-label="Search store"
             >
               <Search className="h-5 w-5" strokeWidth={1.75} />
             </button>
 
-            {/* Account */}
+            {/* Account (hidden on tiny screens, fully accessible in bottom-nav and drawer) */}
             <Link
               href={accountHref}
-              className="p-2 text-gray-700 transition-colors hover:text-black"
-              aria-label="Account"
+              className="hidden sm:flex rounded-full p-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-black active:scale-95"
+              aria-label="My Account"
             >
               {user ? (
                 <Avatar className="h-6 w-6">
                   <AvatarImage src={user.user_metadata?.avatar_url} />
-                  <AvatarFallback className="bg-primary/10 text-[10px] font-bold text-primary">
-                    {(user.user_metadata?.full_name || user.email || "U")
-                      .slice(0, 2)
-                      .toUpperCase()}
+                  <AvatarFallback className="bg-[#0D1B2A] text-[9px] font-bold text-white">
+                    {userInitials}
                   </AvatarFallback>
                 </Avatar>
               ) : (
@@ -360,24 +607,22 @@ export function StoreHeader({
             {/* Wishlist */}
             <Link
               href="/account/wishlist"
-              className="relative p-2 text-gray-700 transition-colors hover:text-black"
+              className="relative rounded-full p-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-black active:scale-95"
               aria-label="Wishlist"
             >
               <Heart className="h-5 w-5" strokeWidth={1.75} />
-              <span className="absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black text-[8px] font-bold text-white">
-                0
-              </span>
             </Link>
 
-            {/* Cart */}
+            {/* Cart Button */}
             <button
+              type="button"
               onClick={() => setSheetOpen(true)}
-              className="relative p-2 text-gray-700 transition-colors hover:text-black"
-              aria-label="Shopping Bag"
+              className="relative rounded-full p-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-black active:scale-95"
+              aria-label="Shopping Cart"
             >
               <ShoppingCart className="h-5 w-5" strokeWidth={1.75} />
               {mounted && cartItemCount > 0 && (
-                <span className="absolute right-1 top-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black text-[8px] font-bold text-white animate-in zoom-in-50">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#0D1B2A] px-1 text-[9px] font-bold text-white shadow-sm animate-in zoom-in-50">
                   {cartItemCount > 99 ? "99+" : cartItemCount}
                 </span>
               )}
@@ -386,31 +631,47 @@ export function StoreHeader({
         </div>
       </header>
 
-      {/* Premium Full-Screen Search Overlay */}
+      {/* Full-Screen Functional Search Overlay */}
       {searchOpen && (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-white/95 px-4 pt-16 backdrop-blur-xl transition-all animate-in fade-in duration-300 md:px-12 md:pt-24 lg:px-24">
-          <div className="mx-auto w-full max-w-5xl">
-            <div className="flex w-full items-center justify-between border-b-2 border-black/10 pb-4 transition-colors focus-within:border-black">
-              <Search className="h-6 w-6 flex-shrink-0 text-gray-400 md:h-8 md:w-8" />
+        <div className="fixed inset-0 z-[100] flex flex-col bg-white/95 px-4 pt-12 sm:pt-16 backdrop-blur-xl transition-all animate-in fade-in duration-300 md:px-12 md:pt-24 lg:px-24">
+          <div className="mx-auto w-full max-w-4xl">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="flex w-full items-center justify-between border-b-2 border-black/15 pb-3 transition-colors focus-within:border-black"
+            >
+              <Search className="h-5 w-5 sm:h-7 sm:w-7 flex-shrink-0 text-gray-400" />
               <input
                 autoFocus
                 type="text"
-                placeholder="Search for elegant pieces..."
-                className="flex-1 bg-transparent px-4 py-2 font-serif text-2xl text-gray-900 placeholder-gray-300 focus:outline-none md:text-4xl"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products, collections, brands..."
+                className="flex-1 bg-transparent px-3 py-1 font-serif text-xl sm:text-2xl md:text-3xl text-gray-900 placeholder-gray-400 focus:outline-none"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  className="mr-2 text-xs font-semibold uppercase text-gray-400 hover:text-black"
+                >
+                  Clear
+                </button>
+              )}
               <button
+                type="button"
                 onClick={() => setSearchOpen(false)}
                 className="group flex items-center justify-center p-2 text-gray-400 transition-colors hover:text-black"
+                aria-label="Close search"
               >
-                <X className="h-8 w-8 transition-transform duration-300 group-hover:rotate-90" />
+                <X className="h-6 w-6 sm:h-8 sm:w-8 transition-transform duration-300 group-hover:rotate-90" />
               </button>
-            </div>
-            
-            <div className="mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              <p className="mb-6 text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
-                Popular Categories
+            </form>
+
+            <div className="mt-8 sm:mt-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <p className="mb-4 text-xs font-bold uppercase tracking-[0.2em] text-gray-400">
+                Popular Searches
               </p>
-              <div className="flex flex-wrap gap-3">
+              <div className="flex flex-wrap gap-2 sm:gap-3">
                 {[
                   "Dresses",
                   "Kurtas",
@@ -418,16 +679,19 @@ export function StoreHeader({
                   "Jewellery",
                   "Tops",
                   "Sale",
+                  "Accessories",
                 ].map((term) => (
-                  <Link
+                  <button
                     key={term}
-                    href={`/search?q=${term.toLowerCase()}`}
-                    onClick={() => setSearchOpen(false)}
-                    className="group relative px-2 py-1 text-sm font-medium text-gray-600 transition-colors hover:text-black md:text-base"
+                    type="button"
+                    onClick={() => {
+                      router.push(`/search?q=${encodeURIComponent(term.toLowerCase())}`);
+                      setSearchOpen(false);
+                    }}
+                    className="group relative rounded-full border border-gray-200 bg-white px-3.5 py-1.5 text-xs sm:text-sm font-medium text-gray-700 transition hover:border-black hover:text-black"
                   >
-                    <span className="relative z-10">{term}</span>
-                    <span className="absolute bottom-0 left-0 h-[1px] w-0 bg-black transition-all duration-300 group-hover:w-full" />
-                  </Link>
+                    {term}
+                  </button>
                 ))}
               </div>
             </div>

@@ -19,13 +19,14 @@ export default function LoginPage() {
             alt="Anchor Fashion"
             width={200}
             height={60}
-            className="h-auto w-auto max-w-[200px]"
+            style={{ width: "auto", height: "auto" }}
+            className="max-w-[200px]"
             priority
           />
         </Link>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-8 text-foreground">
+      <h1 className="text-2xl font-semibold mb-8 text-slate-900 dark:text-slate-100">
         Hello ! Welcome back
       </h1>
 
@@ -33,11 +34,11 @@ export default function LoginPage() {
         <LoginForm />
       </div>
 
-      <p className="mt-8 text-center text-sm text-muted-foreground">
+      <p className="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
         Dont Have an account?{" "}
         <Link
           href="/auth/register"
-          className="text-primary hover:underline font-medium"
+          className="text-[#C9A86A] hover:underline font-semibold"
         >
           Create Account
         </Link>

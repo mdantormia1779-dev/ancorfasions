@@ -13,6 +13,10 @@ export class CMSService {
     return await cmsRepository.getPages();
   }
 
+  async getPageById(id: string): Promise<CMSPage | null> {
+    return await cmsRepository.getPageById(id);
+  }
+
   async getPageBySlug(slug: string): Promise<CMSPage | null> {
     return await cmsRepository.getPageBySlug(slug);
   }

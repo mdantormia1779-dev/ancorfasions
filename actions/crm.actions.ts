@@ -56,7 +56,10 @@ export async function createLeadAction(data: unknown) {
     revalidatePath("/admin/crm/leads");
     return { data: lead };
   } catch (error: any) {
-    return { error: error.message };
+    if (error?.errors && Array.isArray(error.errors) && error.errors.length > 0) {
+      return { error: error.errors[0]?.message || "Validation failed" };
+    }
+    return { error: error.message || "Failed to create lead" };
   }
 }
 
@@ -66,7 +69,10 @@ export async function updateLeadAction(id: string, data: unknown) {
     revalidatePath("/admin/crm/leads");
     return { data: lead };
   } catch (error: any) {
-    return { error: error.message };
+    if (error?.errors && Array.isArray(error.errors) && error.errors.length > 0) {
+      return { error: error.errors[0]?.message || "Validation failed" };
+    }
+    return { error: error.message || "Failed to update lead" };
   }
 }
 
@@ -135,6 +141,7 @@ export async function logCommunicationAction(data: {
   content: string;
   lead_id?: string;
   profile_id?: string;
+  created_at?: string;
 }) {
   try {
     const log = await crmService.logCommunication(data);
@@ -142,6 +149,37 @@ export async function logCommunicationAction(data: {
     return { data: log };
   } catch (error: any) {
     return { error: error.message };
+  }
+}
+
+export async function updateCommunicationLogAction(
+  id: string,
+  data: {
+    type: "EMAIL" | "SMS" | "IN_APP" | "PUSH" | "CALL" | "MEETING";
+    direction: "INBOUND" | "OUTBOUND";
+    subject?: string;
+    content: string;
+    lead_id?: string;
+    profile_id?: string;
+    created_at?: string;
+  }
+) {
+  try {
+    const log = await crmService.updateCommunicationLog(id, data);
+    revalidatePath("/admin/crm/messages");
+    return { data: log };
+  } catch (error: any) {
+    return { error: error.message || "Failed to update communication log" };
+  }
+}
+
+export async function deleteCommunicationLogAction(id: string) {
+  try {
+    await crmService.deleteCommunicationLog(id);
+    revalidatePath("/admin/crm/messages");
+    return { success: true };
+  } catch (error: any) {
+    return { error: error.message || "Failed to delete communication log" };
   }
 }
 

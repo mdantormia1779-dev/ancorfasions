@@ -195,10 +195,11 @@ export const CatalogRepository = {
     }
 
     if (data) {
-      const hasVariants = ((data as any).variants || []).length > 0;
+      const variants = (data as any).variants || [];
+      const hasVariants = variants.length > 0;
       if (hasVariants) {
         // Compute total available stock across all variants and warehouses
-        const totalAvailable = ((data as any).variants || []).reduce(
+        const totalAvailable = variants.reduce(
           (sum: number, variant: any) => {
             const variantStock = (variant.inventory_levels || []).reduce(
               (vSum: number, level: any) =>
@@ -212,9 +213,9 @@ export const CatalogRepository = {
         (data as any).is_in_stock = totalAvailable > 0;
         (data as any).total_available_stock = totalAvailable;
       } else {
-        // Simple product without variants: active in catalog
-        (data as any).is_in_stock = true;
-        (data as any).total_available_stock = 100;
+        // Product without variants
+        (data as any).is_in_stock = false;
+        (data as any).total_available_stock = 0;
       }
     }
 

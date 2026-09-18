@@ -47,6 +47,11 @@ import { createWarehouse, updateWarehouse } from "@/actions/warehouse.actions";
 
 const warehouseSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
+  code: z
+    .string()
+    .min(2, "Code must be at least 2 characters")
+    .max(20, "Code must be 20 characters or less")
+    .regex(/^[A-Za-z0-9_-]+$/, "Code must contain only letters, numbers, hyphens, and underscores"),
   type: z.string().min(1, "Type is required"),
   is_active: z.boolean(),
 });
@@ -60,12 +65,15 @@ export function AddWarehouseButton() {
 
   const form = useForm<WarehouseForm>({
     resolver: zodResolver(warehouseSchema),
-    defaultValues: { name: "", type: "STANDARD", is_active: true },
+    defaultValues: { name: "", code: "", type: "STANDARD", is_active: true },
   });
 
   const onSubmit = async (values: WarehouseForm) => {
     setLoading(true);
-    const res = await createWarehouse(values);
+    const res = await createWarehouse({
+      ...values,
+      code: values.code.trim().toUpperCase(),
+    });
     setLoading(false);
     if (res.error) {
       toast.error("Failed to create warehouse", { description: res.error });
@@ -101,7 +109,38 @@ export function AddWarehouseButton() {
                   <FormItem>
                     <FormLabel>Warehouse Name</FormLabel>
                     <FormControl>
-                      <Input placeholder="e.g. Dhaka Central Warehouse" {...field} />
+                      <Input
+                        placeholder="e.g. Dhaka Central Warehouse"
+                        {...field}
+                        onChange={(e) => {
+                          field.onChange(e);
+                          if (!form.getValues("code")) {
+                            const generated = e.target.value
+                              .replace(/[^A-Za-z0-9]/g, "")
+                              .slice(0, 6)
+                              .toUpperCase();
+                            form.setValue("code", generated ? `WH-${generated}` : "");
+                          }
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Warehouse Code</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="e.g. WH-DHK-01"
+                        {...field}
+                        onChange={(e) => field.onChange(e.target.value.toUpperCase())}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

@@ -227,12 +227,29 @@ export class OrderService {
       console.error("Error fetching order addresses:", err);
     }
 
+    // Fetch manual payment transaction if available
+    let manualPayment = null;
+    try {
+      const supabase = supabaseClient || (await import("@/lib/supabase/server").then(m => m.createClient()));
+      const { data: tx } = await supabase
+        .from("payment_transactions")
+        .select("*")
+        .eq("order_id", id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      manualPayment = tx;
+    } catch (err) {
+      console.error("Error fetching manual payment transaction:", err);
+    }
+
     return {
       ...order,
       items,
       customer,
       shippingAddress,
       billingAddress,
+      manualPayment,
     };
   }
 }

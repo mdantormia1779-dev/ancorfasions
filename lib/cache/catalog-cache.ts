@@ -4,7 +4,13 @@ import {
   ProductListParams,
 } from "@/repositories/catalog.repository";
 import { BrandRepository } from "@/lib/repositories/catalog/brand.repository";
-import { getHeroSlides, HeroSlide } from "@/actions/cms.actions";
+import { CollectionRepository } from "@/lib/repositories/catalog/collection.repository";
+import {
+  getHeroSlides,
+  getFeaturedPromoBanner,
+  type HeroSlide,
+  type FeaturedPromoBannerData,
+} from "@/actions/cms.actions";
 
 /**
  * Enterprise Cache Tag Constants
@@ -15,8 +21,10 @@ export const CACHE_TAGS = {
   PRODUCTS: "products",
   CATEGORIES: "categories",
   BRANDS: "brands",
+  COLLECTIONS: "collections",
   HOMEPAGE: "homepage",
 } as const;
+
 
 /**
  * Standard Cache TTLs (Time-To-Live in seconds)
@@ -52,6 +60,40 @@ export const getCachedBrands = unstable_cache(
     revalidate: CACHE_TTL.LONG,
   }
 );
+
+/**
+ * Cached Collections Fetcher
+ * Caches all active collections; tagged for instant invalidation on collection edits.
+ */
+export const getCachedCollections = unstable_cache(
+  async (activeOnly: boolean = true) =>
+    CollectionRepository.getCollections(activeOnly),
+  ["catalog-collections-list"],
+  {
+    tags: [CACHE_TAGS.COLLECTIONS, CACHE_TAGS.HOMEPAGE, CACHE_TAGS.CATALOG],
+    revalidate: CACHE_TTL.STANDARD,
+  }
+);
+
+/**
+ * Cached Single Collection Fetcher by Slug
+ */
+export function getCachedCollectionBySlug(slug: string) {
+  const fetcher = unstable_cache(
+    async () => CollectionRepository.getCollectionBySlug(slug),
+    ["catalog-collection", slug],
+    {
+      tags: [
+        CACHE_TAGS.COLLECTIONS,
+        CACHE_TAGS.CATALOG,
+        `collection-${slug}`,
+      ],
+      revalidate: CACHE_TTL.STANDARD,
+    }
+  );
+
+  return fetcher();
+}
 
 /**
  * Cached Featured Products Fetcher
@@ -138,3 +180,16 @@ export const getCachedHeroSlides = unstable_cache(
     revalidate: CACHE_TTL.STANDARD,
   }
 );
+
+/**
+ * Cached Featured Promo Banner Fetcher
+ */
+export const getCachedFeaturedPromoBanner = unstable_cache(
+  async (): Promise<FeaturedPromoBannerData> => getFeaturedPromoBanner(),
+  ["homepage-featured-promo-banner"],
+  {
+    tags: [CACHE_TAGS.HOMEPAGE, CACHE_TAGS.CATALOG],
+    revalidate: CACHE_TTL.STANDARD,
+  }
+);
+

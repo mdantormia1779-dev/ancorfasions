@@ -23,71 +23,75 @@ import {
 import { PlusCircle, Wallet, Loader2, CheckCircle, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 import { topUpWalletAction } from "@/app/actions/customer.actions";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
 
 const PRESET_AMOUNTS = [500, 1000, 2000, 5000];
 
+const topUpSchema = z.object({
+  amount: z.coerce
+    .number({ invalid_type_error: "Please enter a valid amount" })
+    .min(50, "Minimum top-up amount is ৳50 BDT")
+    .max(25000, "Maximum top-up per transaction is ৳25,000 BDT"),
+  paymentMethod: z.string().min(1, "Please select a payment channel"),
+  paymentRef: z.string().trim().min(4, "Transaction ID must be at least 4 characters"),
+});
+
+type TopUpFormValues = z.infer<typeof topUpSchema>;
+
 export function TopUpWalletDialog() {
   const [open, setOpen] = useState(false);
-  const [amount, setAmount] = useState<number>(1000);
-  const [customAmount, setCustomAmount] = useState<string>("1000");
-  const [paymentMethod, setPaymentMethod] = useState<string>("bKash");
-  const [paymentRef, setPaymentRef] = useState<string>("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const router = useRouter();
 
-  const handleSelectPreset = (val: number) => {
-    setAmount(val);
-    setCustomAmount(val.toString());
-  };
+  const {
+    register,
+    handleSubmit,
+    control,
+    setValue,
+    watch,
+    reset,
+    formState: { errors, isSubmitting },
+  } = useForm<TopUpFormValues>({
+    resolver: zodResolver(topUpSchema),
+    defaultValues: {
+      amount: 1000,
+      paymentMethod: "bKash",
+      paymentRef: "",
+    },
+  });
 
-  const handleCustomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
-    setCustomAmount(val);
-    const num = parseFloat(val);
-    if (!isNaN(num)) {
-      setAmount(num);
-    }
+  const currentAmount = watch("amount") || 0;
+  const currentPaymentMethod = watch("paymentMethod") || "bKash";
+
+  const handleSelectPreset = (val: number) => {
+    setValue("amount", val, { shouldValidate: true });
   };
 
   const handleGenerateTestRef = () => {
-    const prefix = paymentMethod.substring(0, 3).toUpperCase();
+    const prefix = currentPaymentMethod.substring(0, 3).toUpperCase();
     const rand = Math.floor(10000000 + Math.random() * 90000000);
-    setPaymentRef(`${prefix}-${rand}`);
+    setValue("paymentRef", `${prefix}-${rand}`, { shouldValidate: true });
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
-    if (!amount || amount < 50) {
-      toast.error("Minimum top-up amount is ৳50 BDT");
-      return;
-    }
-
-    if (!paymentRef.trim()) {
-      toast.error("Please enter the payment transaction reference ID or TrxID");
-      return;
-    }
-
+  const onSubmit = async (values: TopUpFormValues) => {
     try {
-      setIsSubmitting(true);
       const res = await topUpWalletAction({
-        amount,
-        paymentMethod,
-        paymentRef: paymentRef.trim(),
+        amount: values.amount,
+        paymentMethod: values.paymentMethod,
+        paymentRef: values.paymentRef.trim(),
       });
 
       if (res.success) {
-        toast.success(`Successfully added ৳${amount.toLocaleString()} to your wallet!`);
+        toast.success(`Successfully added ৳${values.amount.toLocaleString()} to your wallet!`);
+        reset();
         setOpen(false);
-        setPaymentRef("");
         router.refresh();
       } else {
         toast.error(res.error || "Failed to process wallet top-up");
       }
     } catch (err: any) {
       toast.error(err.message || "An unexpected error occurred");
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
@@ -101,9 +105,15 @@ export function TopUpWalletDialog() {
         Top Up Balance
       </Button>
 
-      <Dialog open={open} onOpenChange={setOpen}>
+      <Dialog
+        open={open}
+        onOpenChange={(val) => {
+          setOpen(val);
+          if (!val) reset();
+        }}
+      >
         <DialogContent className="sm:max-w-[480px]">
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
               <div className="flex items-center gap-2">
                 <div className="p-2 rounded-full bg-primary/10 text-primary">
@@ -129,10 +139,10 @@ export function TopUpWalletDialog() {
                     <Button
                       key={preset}
                       type="button"
-                      variant={amount === preset ? "default" : "outline"}
+                      variant={currentAmount === preset ? "default" : "outline"}
                       size="sm"
                       className={`text-xs font-semibold ${
-                        amount === preset
+                        currentAmount === preset
                           ? "bg-primary text-primary-foreground shadow"
                           : "border-muted hover:bg-muted"
                       }`}
@@ -146,7 +156,7 @@ export function TopUpWalletDialog() {
 
               {/* Custom Amount */}
               <div className="space-y-2">
-                <Label htmlFor="amount" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                <Label htmlFor="topup_amount" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Top Up Amount (৳ BDT)
                 </Label>
                 <div className="relative">
@@ -154,20 +164,24 @@ export function TopUpWalletDialog() {
                     ৳
                   </span>
                   <Input
-                    id="amount"
+                    id="topup_amount"
                     type="number"
                     min="50"
                     step="10"
-                    value={customAmount}
-                    onChange={handleCustomChange}
-                    className="pl-8 font-semibold text-lg"
+                    {...register("amount")}
+                    className={`pl-8 font-semibold text-lg ${
+                      errors.amount ? "border-destructive focus-visible:ring-destructive" : ""
+                    }`}
                     placeholder="Enter amount"
-                    required
                   />
                 </div>
-                <p className="text-[11px] text-muted-foreground">
-                  Minimum top-up: ৳50. Maximum per transaction: ৳25,000.
-                </p>
+                {errors.amount ? (
+                  <p className="text-xs text-destructive">{errors.amount.message}</p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    Minimum top-up: ৳50. Maximum per transaction: ৳25,000.
+                  </p>
+                )}
               </div>
 
               {/* Payment Method */}
@@ -175,85 +189,98 @@ export function TopUpWalletDialog() {
                 <Label htmlFor="paymentMethod" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                   Payment Channel
                 </Label>
-                <Select value={paymentMethod} onValueChange={(val) => setPaymentMethod(val || "bKash")}>
-                  <SelectTrigger id="paymentMethod" className="h-10">
-                    <SelectValue placeholder="Select payment channel" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="bKash">bKash (Merchant / Personal)</SelectItem>
-                    <SelectItem value="Nagad">Nagad Mobile Banking</SelectItem>
-                    <SelectItem value="Rocket">Rocket (DBBL)</SelectItem>
-                    <SelectItem value="Credit Card">Visa / Mastercard / AMEX</SelectItem>
-                    <SelectItem value="Bank Transfer">Direct Bank Wire</SelectItem>
-                  </SelectContent>
-                </Select>
+                <Controller
+                  name="paymentMethod"
+                  control={control}
+                  render={({ field }) => (
+                    <Select value={field.value} onValueChange={field.onChange}>
+                      <SelectTrigger id="paymentMethod" className="h-10">
+                        <SelectValue placeholder="Select payment channel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="bKash">bKash (Merchant / Personal)</SelectItem>
+                        <SelectItem value="Nagad">Nagad Mobile Banking</SelectItem>
+                        <SelectItem value="Rocket">Rocket (DBBL)</SelectItem>
+                        <SelectItem value="Credit Card">Visa / Mastercard / AMEX</SelectItem>
+                        <SelectItem value="Bank Transfer">Direct Bank Wire</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+                />
+                {errors.paymentMethod && (
+                  <p className="text-xs text-destructive">{errors.paymentMethod.message}</p>
+                )}
               </div>
 
-            {/* Payment Reference ID */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="paymentRef" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  TrxID / Reference Code
-                </Label>
-                <button
-                  type="button"
-                  onClick={handleGenerateTestRef}
-                  className="text-[11px] text-primary hover:underline font-medium"
-                >
-                  Generate TrxID
-                </button>
+              {/* Payment Reference ID */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="paymentRef" className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                    TrxID / Reference Code
+                  </Label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateTestRef}
+                    className="text-[11px] text-primary hover:underline font-medium"
+                  >
+                    Generate TrxID
+                  </button>
+                </div>
+                <Input
+                  id="paymentRef"
+                  {...register("paymentRef")}
+                  placeholder="e.g. BK78291039 or TXN-4928"
+                  className={`font-mono text-sm tracking-wide uppercase ${
+                    errors.paymentRef ? "border-destructive focus-visible:ring-destructive" : ""
+                  }`}
+                />
+                {errors.paymentRef ? (
+                  <p className="text-xs text-destructive">{errors.paymentRef.message}</p>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">
+                    Enter the transaction ID received from your mobile banking or payment gateway confirmation SMS.
+                  </p>
+                )}
               </div>
-              <Input
-                id="paymentRef"
-                value={paymentRef}
-                onChange={(e) => setPaymentRef(e.target.value)}
-                placeholder="e.g. BK78291039 or TXN-4928"
-                className="font-mono text-sm tracking-wide uppercase"
-                required
-              />
-              <p className="text-[11px] text-muted-foreground">
-                Enter the transaction ID received from your mobile banking or payment gateway confirmation SMS.
-              </p>
+
+              <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-3 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 flex items-start gap-2 text-xs">
+                <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" />
+                <span>
+                  Protected with atomic duplicate-credit prevention. Funds are credited securely and immediately available for checkout.
+                </span>
+              </div>
             </div>
 
-            <div className="rounded-lg bg-emerald-50 dark:bg-emerald-950/30 p-3 border border-emerald-200 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 flex items-start gap-2 text-xs">
-              <ShieldCheck className="h-4 w-4 mt-0.5 shrink-0" />
-              <span>
-                Protected with atomic duplicate-credit prevention. Funds are credited securely and immediately available for checkout.
-              </span>
-            </div>
-          </div>
-
-          <DialogFooter className="gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => setOpen(false)}
-              disabled={isSubmitting}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isSubmitting || !amount || amount < 50}
-              className="gap-2"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                  Crediting Wallet...
-                </>
-              ) : (
-                <>
-                  <CheckCircle className="h-4 w-4" />
-                  Confirm ৳{amount.toLocaleString()} Top-Up
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
-  </>
-);
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setOpen(false)}
+                disabled={isSubmitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting || !currentAmount || currentAmount < 50}
+                className="gap-2"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Crediting Wallet...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="h-4 w-4" />
+                    Confirm ৳{currentAmount.toLocaleString()} Top-Up
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
 }

@@ -193,5 +193,6 @@ export interface OrderWithDetails extends Order {
   customer?: OrderCustomerDetails | null;
   shippingAddress?: OrderAddressDetails | null;
   billingAddress?: OrderAddressDetails | null;
+  manualPayment?: any | null;
 }
 

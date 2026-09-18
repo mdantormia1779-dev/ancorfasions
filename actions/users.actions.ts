@@ -185,3 +185,131 @@ export async function createUserAction(data: {
     return { success: false, error: error.message || "Failed to create user" };
   }
 }
+
+export async function toggleUserStatusAction(userId: string, currentStatus: string) {
+  try {
+    const supabase = createAdminClient();
+    const newActiveState = currentStatus !== "Active";
+
+    // 1. Update profiles table
+    const { error: profErr } = await supabase
+      .from("profiles")
+      .update({ is_active: newActiveState })
+      .eq("id", userId);
+
+    if (profErr) throw profErr;
+
+    // 2. Ban/unban in auth
+    if (!newActiveState) {
+      await supabase.auth.admin.updateUserById(userId, { ban_duration: "876000h" });
+    } else {
+      await supabase.auth.admin.updateUserById(userId, { ban_duration: "none" });
+    }
+
+    revalidatePath("/admin/users/admins");
+    revalidatePath("/admin/users/managers");
+    revalidatePath("/admin/users/staff");
+    revalidatePath("/admin/users");
+
+    return { success: true, newStatus: newActiveState ? "Active" : "Inactive" };
+  } catch (error: any) {
+    console.error("[toggleUserStatusAction]", error);
+    return { success: false, error: error.message || "Failed to update user status" };
+  }
+}
+
+export async function assignUserRoleAction(userId: string, roleName: string) {
+  try {
+    const supabase = createAdminClient();
+
+    // 1. Find role by name
+    const { data: role, error: roleErr } = await supabase
+      .from("roles")
+      .select("id, name")
+      .eq("name", roleName)
+      .single();
+
+    if (roleErr || !role) {
+      throw new Error(`Role "${roleName}" not found`);
+    }
+
+    // 2. Update profile
+    const { error: profErr } = await supabase
+      .from("profiles")
+      .update({ role_id: role.id })
+      .eq("id", userId);
+
+    if (profErr) throw profErr;
+
+    // 3. Update auth metadata
+    await supabase.auth.admin.updateUserById(userId, {
+      user_metadata: { role: role.name },
+      app_metadata: { role: role.name },
+    });
+
+    revalidatePath("/admin/users/admins");
+    revalidatePath("/admin/users/managers");
+    revalidatePath("/admin/users/staff");
+    revalidatePath("/admin/users");
+
+    return { success: true, role: role.name };
+  } catch (error: any) {
+    console.error("[assignUserRoleAction]", error);
+    return { success: false, error: error.message || "Failed to assign role" };
+  }
+}
+
+export async function updateUserProfileAction(
+  userId: string,
+  data: { firstName: string; lastName: string; phone?: string }
+) {
+  try {
+    const supabase = createAdminClient();
+
+    const { error: profErr } = await supabase
+      .from("profiles")
+      .update({
+        first_name: data.firstName,
+        last_name: data.lastName,
+        phone: data.phone || null,
+      })
+      .eq("id", userId);
+
+    if (profErr) throw profErr;
+
+    // Sync auth metadata
+    await supabase.auth.admin.updateUserById(userId, {
+      user_metadata: {
+        first_name: data.firstName,
+        last_name: data.lastName,
+        full_name: `${data.firstName} ${data.lastName}`.trim(),
+      },
+    });
+
+    revalidatePath("/admin/users/admins");
+    revalidatePath("/admin/users/managers");
+    revalidatePath("/admin/users/staff");
+    revalidatePath("/admin/users");
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("[updateUserProfileAction]", error);
+    return { success: false, error: error.message || "Failed to update profile" };
+  }
+}
+
+export async function getAllAvailableRolesAction() {
+  try {
+    const supabase = createAdminClient();
+    const { data: roles, error } = await supabase
+      .from("roles")
+      .select("id, name, description")
+      .order("name", { ascending: true });
+
+    if (error) throw error;
+    return { success: true, data: roles || [] };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to fetch roles" };
+  }
+}
+

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,7 +14,28 @@ import {
   createBinAction,
   deleteBinAction
 } from "@/app/actions/manager/warehouse.actions";
-import { Trash2, Plus } from "lucide-react";
+import { Trash2, Plus, Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const warehouseDetailsSchema = z.object({
+  name: z.string().trim().min(2, "Warehouse name must be at least 2 characters"),
+  type: z.string().trim().min(1, "Warehouse type is required"),
+});
+
+const addZoneSchema = z.object({
+  name: z.string().trim().min(2, "Zone name must be at least 2 characters"),
+});
+
+const addBinSchema = z.object({
+  zone_id: z.string().min(1, "Please select a zone"),
+  code: z.string().trim().min(2, "Bin code must be at least 2 characters"),
+});
+
+type WarehouseDetailsValues = z.infer<typeof warehouseDetailsSchema>;
+type AddZoneValues = z.infer<typeof addZoneSchema>;
+type AddBinValues = z.infer<typeof addBinSchema>;
 
 export function WarehouseManager({
   warehouse,
@@ -26,41 +46,55 @@ export function WarehouseManager({
   zones: WarehouseZone[];
   bins: WarehouseBin[];
 }) {
-  const [loading, setLoading] = useState(false);
+  const warehouseForm = useForm<WarehouseDetailsValues>({
+    resolver: zodResolver(warehouseDetailsSchema),
+    defaultValues: {
+      name: warehouse.name || "",
+      type: warehouse.type || "",
+    },
+  });
+
+  const zoneForm = useForm<AddZoneValues>({
+    resolver: zodResolver(addZoneSchema),
+    defaultValues: {
+      name: "",
+    },
+  });
+
+  const binForm = useForm<AddBinValues>({
+    resolver: zodResolver(addBinSchema),
+    defaultValues: {
+      zone_id: "",
+      code: "",
+    },
+  });
 
   // General Update
-  async function handleUpdateWarehouse(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    setLoading(true);
-    const formData = new FormData(e.currentTarget);
-    
+  async function handleUpdateWarehouse(values: WarehouseDetailsValues) {
     const res = await updateWarehouseAction(warehouse.id, {
-      name: formData.get("name") as string,
-      type: formData.get("type") as string,
+      name: values.name,
+      type: values.type,
     });
     
-    setLoading(false);
-    if (res.success) toast.success("Warehouse updated");
+    if (res.success) toast.success("Warehouse updated successfully");
     else toast.error(res.error || "Failed to update warehouse");
   }
 
   // Zones Update
-  async function handleAddZone(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const name = formData.get("name") as string;
-    
+  async function handleAddZone(values: AddZoneValues) {
     const res = await createZoneAction({
       warehouse_id: warehouse.id,
-      name,
+      name: values.name,
       type: "STORAGE",
-      is_active: true
+      is_active: true,
     });
     
     if (res.success) {
-      toast.success("Zone added");
-      (e.target as HTMLFormElement).reset();
-    } else toast.error(res.error || "Failed to add zone");
+      toast.success("Zone added successfully");
+      zoneForm.reset();
+    } else {
+      toast.error(res.error || "Failed to add zone");
+    }
   }
 
   async function handleDeleteZone(id: string) {
@@ -71,22 +105,21 @@ export function WarehouseManager({
   }
 
   // Bins Update
-  async function handleAddBin(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    
+  async function handleAddBin(values: AddBinValues) {
     const res = await createBinAction({
-      zone_id: formData.get("zone_id") as string,
-      code: formData.get("code") as string,
-      barcode: formData.get("code") as string, // Default barcode to code
+      zone_id: values.zone_id,
+      code: values.code,
+      barcode: values.code,
       capacity_volume: 0,
       capacity_weight: 0,
     }, warehouse.id);
     
     if (res.success) {
-      toast.success("Bin added");
-      (e.target as HTMLFormElement).reset();
-    } else toast.error(res.error || "Failed to add bin");
+      toast.success("Bin added successfully");
+      binForm.reset();
+    } else {
+      toast.error(res.error || "Failed to add bin");
+    }
   }
 
   async function handleDeleteBin(id: string) {
@@ -111,17 +144,38 @@ export function WarehouseManager({
             <CardDescription>Update the basic information of this warehouse.</CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleUpdateWarehouse} className="space-y-4 max-w-md">
+            <form onSubmit={warehouseForm.handleSubmit(handleUpdateWarehouse)} className="space-y-4 max-w-md">
               <div className="space-y-2">
-                <Label htmlFor="name">Warehouse Name</Label>
-                <Input id="name" name="name" defaultValue={warehouse.name} required />
+                <Label htmlFor="warehouse_name">Warehouse Name</Label>
+                <Input
+                  id="warehouse_name"
+                  {...warehouseForm.register("name")}
+                  className={warehouseForm.formState.errors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                {warehouseForm.formState.errors.name && (
+                  <p className="text-xs text-destructive">{warehouseForm.formState.errors.name.message}</p>
+                )}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="type">Warehouse Type</Label>
-                <Input id="type" name="type" defaultValue={warehouse.type} required />
+                <Label htmlFor="warehouse_type">Warehouse Type</Label>
+                <Input
+                  id="warehouse_type"
+                  {...warehouseForm.register("type")}
+                  className={warehouseForm.formState.errors.type ? "border-destructive focus-visible:ring-destructive" : ""}
+                />
+                {warehouseForm.formState.errors.type && (
+                  <p className="text-xs text-destructive">{warehouseForm.formState.errors.type.message}</p>
+                )}
               </div>
-              <Button type="submit" disabled={loading}>
-                {loading ? "Saving..." : "Save Changes"}
+              <Button type="submit" disabled={warehouseForm.formState.isSubmitting}>
+                {warehouseForm.formState.isSubmitting ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
               </Button>
             </form>
           </CardContent>
@@ -150,14 +204,29 @@ export function WarehouseManager({
               {zones.length === 0 && <p className="text-muted-foreground">No zones configured yet.</p>}
             </div>
 
-            <form onSubmit={handleAddZone} className="flex items-end gap-4 border-t pt-6">
-              <div className="space-y-2 flex-1 max-w-xs">
-                <Label htmlFor="zone_name">New Zone Name</Label>
-                <Input id="zone_name" name="name" placeholder="e.g. Aisle A" required />
+            <form onSubmit={zoneForm.handleSubmit(handleAddZone)} className="border-t pt-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+                <div className="space-y-2 flex-1 max-w-xs w-full">
+                  <Label htmlFor="zone_name">New Zone Name</Label>
+                  <Input
+                    id="zone_name"
+                    placeholder="e.g. Aisle A"
+                    {...zoneForm.register("name")}
+                    className={zoneForm.formState.errors.name ? "border-destructive focus-visible:ring-destructive" : ""}
+                  />
+                  {zoneForm.formState.errors.name && (
+                    <p className="text-xs text-destructive">{zoneForm.formState.errors.name.message}</p>
+                  )}
+                </div>
+                <Button type="submit" disabled={zoneForm.formState.isSubmitting}>
+                  {zoneForm.formState.isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="mr-2 h-4 w-4" />
+                  )}
+                  Add Zone
+                </Button>
               </div>
-              <Button type="submit">
-                <Plus className="mr-2 h-4 w-4" /> Add Zone
-              </Button>
             </form>
           </CardContent>
         </Card>
@@ -186,23 +255,45 @@ export function WarehouseManager({
               {bins.length === 0 && <p className="text-muted-foreground">No bins configured yet.</p>}
             </div>
 
-            <form onSubmit={handleAddBin} className="flex items-end gap-4 border-t pt-6">
-              <div className="space-y-2 flex-1 max-w-xs">
-                <Label htmlFor="zone_id">Select Zone</Label>
-                <select name="zone_id" className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50" required>
-                  <option value="">Select a zone...</option>
-                  {zones.map((z) => (
-                    <option key={z.id} value={z.id}>{z.name}</option>
-                  ))}
-                </select>
+            <form onSubmit={binForm.handleSubmit(handleAddBin)} className="border-t pt-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-end gap-4">
+                <div className="space-y-2 flex-1 max-w-xs w-full">
+                  <Label htmlFor="bin_zone_id">Select Zone</Label>
+                  <select
+                    id="bin_zone_id"
+                    {...binForm.register("zone_id")}
+                    className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="">Select a zone...</option>
+                    {zones.map((z) => (
+                      <option key={z.id} value={z.id}>{z.name}</option>
+                    ))}
+                  </select>
+                  {binForm.formState.errors.zone_id && (
+                    <p className="text-xs text-destructive">{binForm.formState.errors.zone_id.message}</p>
+                  )}
+                </div>
+                <div className="space-y-2 flex-1 max-w-xs w-full">
+                  <Label htmlFor="bin_code">Bin Code</Label>
+                  <Input
+                    id="bin_code"
+                    placeholder="e.g. A-12-3"
+                    {...binForm.register("code")}
+                    className={binForm.formState.errors.code ? "border-destructive focus-visible:ring-destructive" : ""}
+                  />
+                  {binForm.formState.errors.code && (
+                    <p className="text-xs text-destructive">{binForm.formState.errors.code.message}</p>
+                  )}
+                </div>
+                <Button type="submit" disabled={binForm.formState.isSubmitting}>
+                  {binForm.formState.isSubmitting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Plus className="mr-2 h-4 w-4" />
+                  )}
+                  Add Bin
+                </Button>
               </div>
-              <div className="space-y-2 flex-1 max-w-xs">
-                <Label htmlFor="bin_code">Bin Code</Label>
-                <Input id="bin_code" name="code" placeholder="e.g. A-12-3" required />
-              </div>
-              <Button type="submit">
-                <Plus className="mr-2 h-4 w-4" /> Add Bin
-              </Button>
             </form>
           </CardContent>
         </Card>

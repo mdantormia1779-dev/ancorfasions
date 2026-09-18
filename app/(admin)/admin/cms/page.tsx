@@ -10,9 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   FileText,
-  LayoutTemplate,
   Image as ImageIcon,
-  Menu,
   Settings,
   PenTool,
   Globe,
@@ -26,13 +24,6 @@ export const metadata: Metadata = {
 
 const cmsModules = [
   {
-    id: "pages",
-    name: "Pages & Landing",
-    icon: LayoutTemplate,
-    description: "Manage homepage and custom landing pages",
-    href: "/admin/cms/pages",
-  },
-  {
     id: "blogs",
     name: "Blog Posts",
     icon: FileText,
@@ -45,13 +36,6 @@ const cmsModules = [
     icon: ImageIcon,
     description: "Centralized asset and image management",
     href: "/admin/cms/media",
-  },
-  {
-    id: "navigation",
-    name: "Navigation & Menus",
-    icon: Menu,
-    description: "Configure header, footer, and category trees",
-    href: "/admin/cms/menus",
   },
   {
     id: "seo",
@@ -71,7 +55,6 @@ const cmsModules = [
 
 export default async function CMSHubPage() {
   const stats = {
-    total_pages: 24,
     published_blogs: 142,
     media_assets: 856,
     active_banners: 3,
@@ -85,34 +68,24 @@ export default async function CMSHubPage() {
             Content Management System
           </h1>
           <p className="text-muted-foreground">
-            Manage website content, landing pages, assets, and SEO.
+            Manage website blog articles, media assets, navigation, and SEO.
           </p>
         </div>
         <div className="flex gap-2">
-          <Link href="/admin/cms/pages/new">
+          <Link href="/admin/cms/blogs/new">
             <Button>
-              <FileText className="mr-2 h-4 w-4" /> New Page
+              <PenTool className="mr-2 h-4 w-4" /> New Blog
             </Button>
           </Link>
-          <Link href="/admin/cms/blogs/new">
+          <Link href="/admin/cms/media">
             <Button variant="outline">
-              <PenTool className="mr-2 h-4 w-4" /> New Blog
+              <ImageIcon className="mr-2 h-4 w-4" /> Media Library
             </Button>
           </Link>
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Pages</CardTitle>
-            <LayoutTemplate className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total_pages}</div>
-            <p className="text-xs text-muted-foreground">+2 from last week</p>
-          </CardContent>
-        </Card>
+      <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">

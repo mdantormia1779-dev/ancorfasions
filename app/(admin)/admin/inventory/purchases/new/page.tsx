@@ -96,6 +96,17 @@ export default function NewPurchaseOrderPage() {
     setItems(newItems);
   };
 
+  const [taxRate, setTaxRate] = useState<number>(0.05);
+
+  const subtotal = items.reduce((acc, item) => {
+    if (item.variant_id && item.quantity_ordered > 0) {
+      return acc + item.quantity_ordered * (Number(item.unit_cost) || 0);
+    }
+    return acc;
+  }, 0);
+  const taxAmount = subtotal * taxRate;
+  const grandTotal = subtotal + taxAmount;
+
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setLoading(true);
@@ -124,15 +135,14 @@ export default function NewPurchaseOrderPage() {
       return;
     }
 
-    const totalAmount = validItems.reduce((acc, item) => acc + (item.quantity_ordered * item.unit_cost), 0);
     const expectedDelivery = formData.get("expected_delivery_date") as string;
 
     const poData = {
       po_number: `PO-${Date.now().toString().slice(-6)}`,
       supplier_id,
       destination_warehouse_id,
-      total_amount: totalAmount,
-      expected_delivery_date: expectedDelivery || undefined
+      expected_delivery_date: expectedDelivery || undefined,
+      tax_rate: taxRate,
     };
 
     const res = await createProcurementOrder(poData, validItems);
@@ -210,67 +220,116 @@ export default function NewPurchaseOrderPage() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Order Items</CardTitle>
+            <div>
+              <CardTitle>Order Items</CardTitle>
+              <p className="text-xs text-muted-foreground mt-0.5">Line totals are automatically calculated.</p>
+            </div>
             <Button type="button" variant="outline" size="sm" onClick={handleAddItem}>
               <Plus className="mr-2 h-4 w-4" />
               Add Item
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
-            {items.map((item, index) => (
-              <div key={index} className="flex flex-col md:flex-row gap-4 items-start md:items-end p-4 border rounded-md relative">
-                <div className="space-y-2 flex-1 w-full">
-                  <Label>Product Variant</Label>
-                  <Select 
-                    value={item.variant_id}
-                    onValueChange={(val) => handleItemChange(index, "variant_id", val)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select a product variant..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {variants.map(v => (
-                        <SelectItem key={v.id} value={v.id}>
-                          {v.name} ({v.sku})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+            {items.map((item, index) => {
+              const lineTotal = (item.quantity_ordered || 0) * (Number(item.unit_cost) || 0);
+              return (
+                <div key={index} className="flex flex-col md:flex-row gap-4 items-start md:items-end p-4 border rounded-md relative bg-muted/10">
+                  <div className="space-y-2 flex-1 w-full">
+                    <Label>Product Variant</Label>
+                    <Select 
+                      value={item.variant_id}
+                      onValueChange={(val) => handleItemChange(index, "variant_id", val)}
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a product variant..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {variants.map(v => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.name} ({v.sku})
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div className="space-y-2 w-full md:w-28">
+                    <Label>Quantity</Label>
+                    <Input 
+                      type="number" 
+                      required 
+                      min="1" 
+                      value={item.quantity_ordered}
+                      onChange={(e) => handleItemChange(index, "quantity_ordered", parseInt(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className="space-y-2 w-full md:w-32">
+                    <Label>Unit Cost (BDT)</Label>
+                    <Input 
+                      type="number" 
+                      required 
+                      min="0" 
+                      step="0.01" 
+                      value={item.unit_cost}
+                      onChange={(e) => handleItemChange(index, "unit_cost", parseFloat(e.target.value) || 0)}
+                    />
+                  </div>
+                  <div className="space-y-2 w-full md:w-32">
+                    <Label className="text-muted-foreground">Line Total</Label>
+                    <div className="h-10 px-3 py-2 border rounded-md bg-muted/40 font-semibold text-sm flex items-center">
+                      BDT {lineTotal.toFixed(2)}
+                    </div>
+                  </div>
+                  {items.length > 1 && (
+                    <Button 
+                      type="button" 
+                      variant="ghost" 
+                      size="icon" 
+                      className="text-destructive md:mb-0.5 absolute top-2 right-2 md:relative md:top-0 md:right-0"
+                      onClick={() => handleRemoveItem(index)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-                <div className="space-y-2 w-full md:w-32">
-                  <Label>Quantity</Label>
-                  <Input 
-                    type="number" 
-                    required 
-                    min="1" 
-                    value={item.quantity_ordered}
-                    onChange={(e) => handleItemChange(index, "quantity_ordered", parseInt(e.target.value))}
-                  />
-                </div>
-                <div className="space-y-2 w-full md:w-32">
-                  <Label>Unit Cost (BDT)</Label>
-                  <Input 
-                    type="number" 
-                    required 
-                    min="0" 
-                    step="0.01" 
-                    value={item.unit_cost}
-                    onChange={(e) => handleItemChange(index, "unit_cost", parseFloat(e.target.value))}
-                  />
-                </div>
-                {items.length > 1 && (
-                  <Button 
-                    type="button" 
-                    variant="ghost" 
-                    size="icon" 
-                    className="text-destructive md:mb-0.5 absolute top-2 right-2 md:relative md:top-0 md:right-0"
-                    onClick={() => handleRemoveItem(index)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                )}
+              );
+            })}
+          </CardContent>
+        </Card>
+
+        {/* Financial Summary Card */}
+        <Card className="border-border">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base">Order Financial Summary</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Items Subtotal</span>
+              <span className="font-semibold">BDT {subtotal.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between items-center text-sm">
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground">Tax / VAT</span>
+                <Select
+                  value={taxRate.toString()}
+                  onValueChange={(val) => setTaxRate(parseFloat(val || "0"))}
+                >
+                  <SelectTrigger className="h-7 w-24 text-xs">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0">0%</SelectItem>
+                    <SelectItem value="0.05">5% VAT</SelectItem>
+                    <SelectItem value="0.10">10% VAT</SelectItem>
+                    <SelectItem value="0.15">15% VAT</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            ))}
+              <span className="font-semibold">BDT {taxAmount.toFixed(2)}</span>
+            </div>
+            <div className="border-t pt-3 flex justify-between text-base font-bold">
+              <span>Grand Total</span>
+              <span className="text-primary">BDT {grandTotal.toFixed(2)}</span>
+            </div>
           </CardContent>
         </Card>
 
@@ -279,7 +338,7 @@ export default function NewPurchaseOrderPage() {
             <Link href="/admin/inventory/purchases">Cancel</Link>
           </Button>
           <Button type="submit" disabled={loading || suppliers.length === 0}>
-            {loading ? "Creating..." : "Create Purchase Order"}
+            {loading ? "Creating..." : `Create Purchase Order (BDT ${grandTotal.toFixed(2)})`}
           </Button>
         </div>
       </form>

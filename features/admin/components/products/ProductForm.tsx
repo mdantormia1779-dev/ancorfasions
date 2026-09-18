@@ -138,6 +138,12 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     salePrice: v.sale_price ?? v.salePrice ?? undefined,
     isActive: v.is_active ?? v.isActive ?? true,
     attributes: v.attributes || {},
+    stockQuantity:
+      v.stockQuantity ??
+      v.stock_quantity ??
+      (Array.isArray(v.inventory_levels)
+        ? v.inventory_levels.reduce((s: number, l: any) => s + (l.quantity_available || 0), 0)
+        : 0),
   }));
 
   const normalizedSeo = initialData?.seo
@@ -156,6 +162,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     basePrice: initialData?.basePrice || 0,
     costPrice: initialData?.costPrice ?? undefined,
     salePrice: initialData?.salePrice ?? undefined,
+    stockQuantity: (initialData as any)?.stockQuantity ?? (initialData as any)?.stock_quantity ?? 0,
     sku: initialData?.sku || "",
     barcode: initialData?.barcode || "",
     status: initialData?.status || "DRAFT",
@@ -217,9 +224,18 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     const rawValues = form.getValues();
     const data = {
       ...rawValues,
+      stockQuantity: Number(rawValues.stockQuantity ?? 0),
       status,
       brandId: rawValues.brandId && rawValues.brandId !== "" && rawValues.brandId !== "none" ? rawValues.brandId : null,
       categoryId: rawValues.categoryId,
+      barcode: rawValues.barcode && rawValues.barcode.trim() !== "" ? rawValues.barcode.trim() : null,
+      sku: rawValues.sku && rawValues.sku.trim() !== "" ? rawValues.sku.trim() : null,
+      variants: rawValues.variants?.map((v) => ({
+        ...v,
+        stockQuantity: Number(v.stockQuantity ?? 0),
+        barcode: v.barcode && v.barcode.trim() !== "" ? v.barcode.trim() : null,
+        sku: v.sku?.trim() || "",
+      })),
     };
 
     if (status === "ACTIVE") setIsPublishing(true);
@@ -260,10 +276,10 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
         <div className="flex items-center justify-between flex-wrap gap-3">
           <div>
-            <h1 className="text-2xl font-bold tracking-tight text-slate-900">
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">
               {initialData ? "Edit Product" : "Create Product"}
             </h1>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-muted-foreground mt-1">
               {initialData ? `Editing: ${initialData.name}` : "Add a new product to your catalog"}
             </p>
           </div>
@@ -548,7 +564,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => appendVariant({ sku: "", isActive: true, attributes: {} })}
+                  onClick={() => appendVariant({ sku: "", isActive: true, attributes: {}, stockQuantity: 0 })}
                 >
                   <Plus className="mr-2 h-4 w-4" /> Add Variant
                 </Button>
@@ -568,7 +584,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                         <Trash2 className="mr-1 h-3 w-3" /> Remove
                       </Button>
                     </div>
-                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
                       {/* Name/Color — stored as attributes.Color */}
                       <FormField
                         control={form.control}
@@ -629,6 +645,27 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                                 type="number" step="0.01" placeholder="0.00"
                                 {...field} value={field.value ?? ""}
                                 onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                                className="h-8 text-sm"
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      <FormField
+                        control={form.control}
+                        name={`variants.${index}.stockQuantity`}
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-xs">Stock (Qty)</FormLabel>
+                            <FormControl>
+                              <Input
+                                type="number"
+                                min="0"
+                                placeholder="0"
+                                {...field}
+                                value={field.value ?? 0}
+                                onChange={(e) => field.onChange(parseInt(e.target.value, 10) || 0)}
                                 className="h-8 text-sm"
                               />
                             </FormControl>
@@ -783,6 +820,41 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                         </div>
                       </FormControl>
                       <FormDescription>Discounted price shown to customers (optional)</FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </CardContent>
+            </Card>
+
+            <Card className="border-border/60 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg">Inventory & Stock</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="stockQuantity"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Base Stock Quantity</FormLabel>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          min="0"
+                          placeholder="0"
+                          {...field}
+                          value={field.value ?? 0}
+                          onChange={(e) =>
+                            field.onChange(parseInt(e.target.value, 10) || 0)
+                          }
+                        />
+                      </FormControl>
+                      <FormDescription>
+                        {variantFields.length > 0
+                          ? "Default stock level. When variants are defined, each variant's stock is controlled individually in the variants section."
+                          : "Available stock quantity. Set to 0 to mark as Out of Stock."}
+                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

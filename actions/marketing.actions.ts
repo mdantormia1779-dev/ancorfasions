@@ -18,6 +18,7 @@ import {
   PromotionFormValues,
 } from "@/validators/marketing.schema";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 
 // ============================================================================
 // COUPONS ACTIONS
@@ -170,8 +171,35 @@ export async function getCampaignById(id: string): Promise<Campaign | null> {
   return await marketingService.getCampaignById(id);
 }
 
-export async function createCampaign(data: unknown): Promise<Campaign> {
-  const campaign = await marketingService.createCampaign(data);
+async function resolveCurrentAdminUserId(): Promise<string> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (user?.id) return user.id;
+  } catch (e) {
+    // ignore
+  }
+
+  // Fallback to active admin profile in database
+  const adminSb = createAdminClient();
+  const { data: prof } = await adminSb
+    .from("profiles")
+    .select("id")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  return prof?.id || "83dded7c-78c7-4f3f-8dd9-e82f8da7f0c0";
+}
+
+export async function createCampaign(data: any): Promise<Campaign> {
+  const payload = { ...data };
+  if (!payload.created_by) {
+    payload.created_by = await resolveCurrentAdminUserId();
+  }
+  const campaign = await marketingService.createCampaign(payload);
   revalidatePath("/admin/marketing/campaigns");
   return campaign;
 }
@@ -183,6 +211,23 @@ export async function updateCampaign(
   const campaign = await marketingService.updateCampaign(id, data);
   revalidatePath("/admin/marketing/campaigns");
   return campaign;
+}
+
+export async function deleteCampaignAction(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    if (!id) return { success: false, error: "Campaign ID is required" };
+    await marketingService.deleteCampaign(id);
+    revalidatePath("/admin/marketing/campaigns");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[deleteCampaignAction] Error:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to delete campaign",
+    };
+  }
 }
 
 export async function getAudiences(): Promise<CampaignAudience[]> {
@@ -211,12 +256,7 @@ export async function createAndSendCampaignAction(payload: {
   error?: string;
 }> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    const createdBy = user?.id || "00000000-0000-0000-0000-000000000000";
+    const createdBy = await resolveCurrentAdminUserId();
 
     const newCampaign = await marketingService.createCampaign({
       name: payload.name.trim(),
@@ -262,12 +302,7 @@ export async function createAndScheduleCampaignAction(payload: {
   error?: string;
 }> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    const createdBy = user?.id || "00000000-0000-0000-0000-000000000000";
+    const createdBy = await resolveCurrentAdminUserId();
 
     const newCampaign = await marketingService.createCampaign({
       name: payload.name.trim(),

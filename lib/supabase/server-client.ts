@@ -10,16 +10,12 @@ import { Database } from "@/types/supabase";
 export async function createClient() {
   const cookieStore = await cookies();
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL) {
-    throw new Error("NEXT_PUBLIC_SUPABASE_URL is not defined");
-  }
-  if (!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    throw new Error("NEXT_PUBLIC_SUPABASE_ANON_KEY is not defined");
-  }
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co";
+  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "dummy_key";
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    url,
+    key,
     {
       cookies: {
         getAll() {

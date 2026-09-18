@@ -15,6 +15,24 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
+import { Loader2 } from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+
+const profileSchema = z.object({
+  first_name: z.string().trim().min(1, "First name is required"),
+  last_name: z.string().trim().min(1, "Last name is required"),
+  phone: z
+    .string()
+    .trim()
+    .regex(/^(?:\+?88)?01[3-9]\d{8}$/, "Please enter a valid BD phone number (e.g. 01712345678)")
+    .or(z.literal(""))
+    .optional(),
+  date_of_birth: z.string().optional(),
+});
+
+type ProfileFormValues = z.infer<typeof profileSchema>;
 
 interface ProfileEditorProps {
   profile: CustomerProfile | null;
@@ -23,16 +41,37 @@ interface ProfileEditorProps {
 export function ProfileEditor({ profile }: ProfileEditorProps) {
   const [isPending, startTransition] = useTransition();
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileSchema),
+    defaultValues: {
+      first_name: profile?.first_name || "",
+      last_name: profile?.last_name || "",
+      phone: profile?.phone || "",
+      date_of_birth: profile?.date_of_birth ? profile.date_of_birth.split("T")[0] : "",
+    },
+  });
+
+  const onSubmit = (values: ProfileFormValues) => {
+    const formData = new FormData();
+    formData.append("first_name", values.first_name);
+    formData.append("last_name", values.last_name);
+    formData.append("phone", values.phone || "");
+    formData.append("date_of_birth", values.date_of_birth || "");
 
     startTransition(async () => {
       try {
-        await updateProfileAction(formData);
-        toast.success("Profile updated successfully");
-      } catch (error) {
-        toast.error("Failed to update profile");
+        const res = await updateProfileAction(formData);
+        if (res && res.success) {
+          toast.success("Profile updated successfully");
+        } else {
+          toast.error("Failed to update profile");
+        }
+      } catch (error: any) {
+        toast.error(error.message || "Failed to update profile");
       }
     });
   };
@@ -42,7 +81,7 @@ export function ProfileEditor({ profile }: ProfileEditorProps) {
       <CardHeader>
         <CardTitle>Profile Information</CardTitle>
       </CardHeader>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-6">
           <div className="flex items-center space-x-4">
             <Avatar className="h-20 w-20">
@@ -69,17 +108,23 @@ export function ProfileEditor({ profile }: ProfileEditorProps) {
               <Label htmlFor="first_name">First Name</Label>
               <Input
                 id="first_name"
-                name="first_name"
-                defaultValue={profile?.first_name || ""}
+                {...register("first_name")}
+                className={errors.first_name ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+              {errors.first_name && (
+                <p className="text-xs text-destructive">{errors.first_name.message}</p>
+              )}
             </div>
             <div className="space-y-2">
               <Label htmlFor="last_name">Last Name</Label>
               <Input
                 id="last_name"
-                name="last_name"
-                defaultValue={profile?.last_name || ""}
+                {...register("last_name")}
+                className={errors.last_name ? "border-destructive focus-visible:ring-destructive" : ""}
               />
+              {errors.last_name && (
+                <p className="text-xs text-destructive">{errors.last_name.message}</p>
+              )}
             </div>
           </div>
           <div className="space-y-2">
@@ -98,24 +143,37 @@ export function ProfileEditor({ profile }: ProfileEditorProps) {
             <Label htmlFor="phone">Phone Number</Label>
             <Input
               id="phone"
-              name="phone"
               type="tel"
-              defaultValue={profile?.phone || ""}
+              {...register("phone")}
+              className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.phone && (
+              <p className="text-xs text-destructive">{errors.phone.message}</p>
+            )}
           </div>
           <div className="space-y-2">
             <Label htmlFor="date_of_birth">Date of Birth</Label>
             <Input
               id="date_of_birth"
-              name="date_of_birth"
               type="date"
-              defaultValue={profile?.date_of_birth?.split("T")[0] || ""}
+              {...register("date_of_birth")}
+              className={errors.date_of_birth ? "border-destructive focus-visible:ring-destructive" : ""}
             />
+            {errors.date_of_birth && (
+              <p className="text-xs text-destructive">{errors.date_of_birth.message}</p>
+            )}
           </div>
         </CardContent>
         <CardFooter>
           <Button type="submit" disabled={isPending}>
-            {isPending ? "Saving..." : "Save Changes"}
+            {isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              "Save Changes"
+            )}
           </Button>
         </CardFooter>
       </form>

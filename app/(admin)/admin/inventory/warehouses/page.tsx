@@ -44,6 +44,7 @@ export default async function WarehousesPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>Code</TableHead>
                 <TableHead>Name</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Status</TableHead>
@@ -53,6 +54,7 @@ export default async function WarehousesPage() {
             <TableBody>
               {warehouses?.map((wh) => (
                 <TableRow key={wh.id}>
+                  <TableCell className="font-mono text-xs font-semibold">{wh.code || "—"}</TableCell>
                   <TableCell className="font-medium">{wh.name}</TableCell>
                   <TableCell>{wh.type || "N/A"}</TableCell>
                   <TableCell>

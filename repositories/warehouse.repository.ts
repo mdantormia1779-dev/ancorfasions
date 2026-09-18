@@ -32,11 +32,31 @@ export class WarehouseRepository {
     return data as Warehouse | null;
   }
 
-  async createWarehouse(warehouseData: Partial<Warehouse>): Promise<Warehouse> {
+  async createWarehouse(warehouseData: Partial<Warehouse> & { code?: string }): Promise<Warehouse> {
     const supabase = this.getAdminClient();
+    const code = (
+      warehouseData.code ||
+      warehouseData.name?.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase() ||
+      "WH"
+    ).trim().toUpperCase();
+
+    // Check if code already exists
+    const { data: existing } = await supabase
+      .from("warehouses")
+      .select("id")
+      .ilike("code", code)
+      .maybeSingle();
+
+    if (existing) {
+      throw new Error(`A warehouse with code "${code}" already exists. Please provide a unique code.`);
+    }
+
     const { data, error } = await supabase
       .from("warehouses")
-      .insert(warehouseData)
+      .insert({
+        ...warehouseData,
+        code,
+      })
       .select()
       .single();
     if (error) throw new Error(`Failed to create warehouse: ${error.message}`);

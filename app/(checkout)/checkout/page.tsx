@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { fetchCheckoutSessionAction } from "@/lib/actions/checkout.actions";
 import { fetchCartAction as getCart } from "@/lib/actions/cart.actions";
+import { getAllPaymentConfigs } from "@/lib/actions/payment.actions";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { OrderSummary } from "@/components/checkout/order-summary";
 import { CheckoutStoreInitializer } from "./initializer";
@@ -12,7 +13,10 @@ export default async function CheckoutPage() {
     redirect("/cart");
   }
 
-  const sessionRes = await fetchCheckoutSessionAction(cartRes.cart.id);
+  const [sessionRes, paymentConfigs] = await Promise.all([
+    fetchCheckoutSessionAction(cartRes.cart.id),
+    getAllPaymentConfigs(),
+  ]);
 
   if (!sessionRes.success || !sessionRes.session) {
     return (
@@ -28,7 +32,10 @@ export default async function CheckoutPage() {
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-7">
-          <CheckoutForm checkoutSessionId={sessionRes.session.id} />
+          <CheckoutForm
+            checkoutSessionId={sessionRes.session.id}
+            paymentConfigs={paymentConfigs}
+          />
         </div>
 
         <div className="order-first mb-8 lg:order-last lg:col-span-5 lg:mb-0">

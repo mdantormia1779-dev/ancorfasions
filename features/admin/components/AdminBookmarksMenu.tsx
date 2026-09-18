@@ -52,41 +52,79 @@ function saveBookmarks(bookmarks: Bookmark[]) {
   } catch {}
 }
 
+import {
+  getUserBookmarksAction,
+  addBookmarkAction,
+  removeBookmarkAction,
+} from "@/actions/admin/bookmarks.actions";
+
 export function AdminBookmarksMenu() {
   const pathname = usePathname();
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [mounted, setMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    setBookmarks(loadBookmarks());
+    // Instant initial load from cache if available
+    const cached = loadBookmarks();
+    if (cached.length > 0) setBookmarks(cached);
+
+    // Sync authoritative state from database
+    getUserBookmarksAction().then((res) => {
+      if (res.data && res.data.length > 0) {
+        const synced = res.data.map((item) => ({
+          label: item.label,
+          href: item.href,
+          addedAt: new Date(item.created_at).getTime(),
+        }));
+        setBookmarks(synced);
+        saveBookmarks(synced);
+      }
+    });
   }, []);
 
   const isBookmarked = mounted && bookmarks.some((b) => b.href === pathname);
 
-  const toggleBookmark = useCallback(() => {
-    setBookmarks((prev) => {
-      let next: Bookmark[];
-      if (prev.some((b) => b.href === pathname)) {
-        next = prev.filter((b) => b.href !== pathname);
-        toast.success("Removed from bookmarks");
-      } else {
-        const label = getPageLabel(pathname);
-        next = [...prev, { label, href: pathname, addedAt: Date.now() }];
-        toast.success(`"${label}" bookmarked!`);
-      }
+  const toggleBookmark = useCallback(async () => {
+    if (bookmarks.some((b) => b.href === pathname)) {
+      // Optimistic remove
+      const next = bookmarks.filter((b) => b.href !== pathname);
+      setBookmarks(next);
       saveBookmarks(next);
-      return next;
-    });
-  }, [pathname]);
+      toast.success("Removed from bookmarks");
 
-  const removeBookmark = useCallback((href: string) => {
-    setBookmarks((prev) => {
-      const next = prev.filter((b) => b.href !== href);
+      const res = await removeBookmarkAction(pathname);
+      if (!res.success && res.error) {
+        toast.error("Failed to sync bookmark deletion", { description: res.error });
+      }
+    } else {
+      // Optimistic add
+      const label = getPageLabel(pathname);
+      const newBm = { label, href: pathname, addedAt: Date.now() };
+      const next = [...bookmarks, newBm];
+      setBookmarks(next);
       saveBookmarks(next);
-      return next;
-    });
-  }, []);
+      toast.success(`"${label}" bookmarked!`);
+
+      const res = await addBookmarkAction(label, pathname);
+      if (!res.success && res.error) {
+        toast.error("Failed to persist bookmark", { description: res.error });
+      }
+    }
+  }, [bookmarks, pathname]);
+
+  const removeBookmark = useCallback(async (href: string) => {
+    const next = bookmarks.filter((b) => b.href !== href);
+    setBookmarks(next);
+    saveBookmarks(next);
+    toast.success("Bookmark removed");
+
+    const res = await removeBookmarkAction(href);
+    if (!res.success && res.error) {
+      toast.error("Failed to remove bookmark from server", { description: res.error });
+    }
+  }, [bookmarks]);
 
   if (!mounted) {
     // Render placeholder button to prevent layout shift during SSR

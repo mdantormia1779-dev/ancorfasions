@@ -20,10 +20,24 @@ export const metadata: Metadata = {
 
 export default async function StockControlPage() {
   const supabase = await createClient();
-  const { data: inventory } = await supabase
-    .from("inventory_levels")
-    .select("*, variants(sku, name), warehouses(name)")
-    .order("quantity_available", { ascending: true });
+  const [
+    { data: inventory },
+    { data: allWarehouses },
+    { data: allVariants },
+  ] = await Promise.all([
+    supabase
+      .from("inventory_levels")
+      .select("*, variants(sku, name), warehouses(name)")
+      .order("quantity_available", { ascending: true }),
+    supabase
+      .from("warehouses")
+      .select("id, name, code, is_active")
+      .order("name", { ascending: true }),
+    supabase
+      .from("variants")
+      .select("id, sku, name, product:products(name)")
+      .order("sku", { ascending: true }),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -34,7 +48,11 @@ export default async function StockControlPage() {
             Monitor and adjust real-time inventory levels.
           </p>
         </div>
-        <StockControlActions inventory={inventory || []} />
+        <StockControlActions
+          inventory={inventory || []}
+          allWarehouses={allWarehouses || []}
+          allVariants={allVariants || []}
+        />
       </div>
 
       <Card>

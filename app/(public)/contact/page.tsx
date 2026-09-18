@@ -1,10 +1,13 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
 import { Mail, Phone, MapPin, Clock } from "lucide-react";
 import { StoreHeader } from "@/components/layout/store-header";
 import { StoreFooter } from "@/components/layout/store-footer";
+import { ContactForm } from "@/components/contact/ContactForm";
+
+export const metadata = {
+  title: "Contact Us | Anchor Fashion",
+  description: "Get in touch with Anchor Fashion customer support.",
+};
 
 export default function ContactPage() {
   return (
@@ -79,67 +82,7 @@ export default function ContactPage() {
 
             {/* Contact Form */}
             <div className="lg:col-span-2">
-              <Card className="border shadow-sm">
-                <CardHeader>
-                  <CardTitle className="text-2xl">Send us a Message</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <form className="space-y-6">
-                    <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <label
-                          htmlFor="name"
-                          className="text-sm font-medium text-slate-700"
-                        >
-                          Full Name
-                        </label>
-                        <Input id="name" placeholder="John Doe" />
-                      </div>
-                      <div className="space-y-2">
-                        <label
-                          htmlFor="email"
-                          className="text-sm font-medium text-slate-700"
-                        >
-                          Email Address
-                        </label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder="john@example.com"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="subject"
-                        className="text-sm font-medium text-slate-700"
-                      >
-                        Subject
-                      </label>
-                      <Input
-                        id="subject"
-                        placeholder="Order Inquiry, Returns, etc."
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <label
-                        htmlFor="message"
-                        className="text-sm font-medium text-slate-700"
-                      >
-                        Message
-                      </label>
-                      <Textarea
-                        id="message"
-                        placeholder="How can we help you?"
-                        className="min-h-[150px]"
-                      />
-                    </div>
-                    <Button type="button" className="w-full sm:w-auto">
-                      Send Message
-                    </Button>
-                  </form>
-                </CardContent>
-              </Card>
+              <ContactForm />
             </div>
           </div>
         </div>
