@@ -29,8 +29,8 @@ export async function fetchLoyaltyStatsAction() {
     const data = await customerRepo.getLoyaltyStats();
     return { success: true, data };
   } catch (error: any) {
-    console.error("fetchLoyaltyStatsAction error:", error);
-    return { success: false, error: error.message, data: [] };
+    console.error("fetchLoyaltyStatsAction error:", error?.message || error);
+    return { success: false, error: error?.message || "Failed to fetch loyalty stats", data: [] };
   }
 }
 

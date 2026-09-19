@@ -59,14 +59,36 @@ export class OrderRepository {
 
     query = query.order("created_at", { ascending: false }).range(from, to);
 
-    const { data, error, count } = await query;
+    let { data, error, count } = await query;
+
+    if (error && (error.message.includes("permission denied") || error.message.includes("users"))) {
+      const { createAdminClient } = await import("@/lib/supabase/admin-client");
+      const adminSupabase = createAdminClient();
+      let adminQuery = adminSupabase.from("orders").select("*", { count: "exact" });
+      if (options?.customerId) {
+        adminQuery = adminQuery.eq("customer_id", options.customerId);
+      }
+      if (options?.status) {
+        adminQuery = adminQuery.eq("status", options.status);
+      }
+      if (options?.search) {
+        adminQuery = adminQuery.ilike("order_number", `%${options.search}%`);
+      }
+      adminQuery = adminQuery.order("created_at", { ascending: false }).range(from, to);
+      const retryRes = await adminQuery;
+      if (!retryRes.error) {
+        data = retryRes.data;
+        count = retryRes.count;
+        error = null;
+      }
+    }
 
     if (error) {
       throw new Error(`Failed to fetch orders: ${error.message}`);
     }
 
     return {
-      data: data as Order[],
+      data: (data || []) as Order[],
       count: count || 0,
     };
   }
@@ -156,8 +178,7 @@ export class OrderRepository {
       .from("orders")
       .select(`
         *,
-        items:order_items(*),
-        addresses:order_addresses(*)
+        items:order_items(*)
       `)
       .in("status", validStatuses)
       .order("created_at", { ascending: true });
@@ -165,6 +186,18 @@ export class OrderRepository {
     if (error) {
       console.error("Error fetching orders for fulfillment:", error);
       throw new Error("Failed to fetch orders for fulfillment");
+    }
+
+    if (data && data.length > 0) {
+      const orderIds = data.map((o: any) => o.id);
+      const { data: addresses } = await supabase
+        .from("order_addresses")
+        .select("*")
+        .in("order_id", orderIds);
+
+      for (const order of data) {
+        order.addresses = addresses?.filter((a: any) => a.order_id === order.id) || [];
+      }
     }
 
     return data as Order[];

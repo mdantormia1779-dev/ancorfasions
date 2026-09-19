@@ -117,6 +117,7 @@ export class OrderService {
       shipping_fee: summary.shipping_fee,
       discount_amount: summary.discount_amount,
       total_amount: summary.total_amount,
+      currency: "BDT",
       payment_method: checkoutData.payment.payment_method,
       reservation_expires_at: reservationExpiresAt,
       notes: checkoutData.notes,
@@ -141,10 +142,10 @@ export class OrderService {
         variant_id: item.variant_id,
         quantity: item.quantity,
         unit_price: price,
-        total_price: price * item.quantity,
+        line_total: price * item.quantity,
         product_name: item.product?.title || "Unknown Product",
         variant_name: item.variant?.sku ? `SKU: ${item.variant.sku}` : null,
-        sku: item.variant?.sku || null,
+        sku: item.variant?.sku || "N/A",
       } as any;
     });
 
@@ -168,7 +169,7 @@ export class OrderService {
         .getDefaultWarehouse()
         .catch(() => null);
       const warehouseId =
-        defaultWarehouse?.id || "00000000-0000-0000-0000-000000000001";
+        defaultWarehouse?.id || "85bf6ad1-be55-47b2-ab31-07b05c43bcfc";
 
       const reservationItems = (cart.items as any[])
         .filter((item: any) => item.variant_id || item.product_id)

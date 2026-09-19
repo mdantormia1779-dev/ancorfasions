@@ -71,7 +71,7 @@ export function CartDrawer() {
           {!cart || !cart.items || cart.items.length === 0 ? (
             <div className="flex h-full flex-col items-center justify-center space-y-6 text-center px-4">
               <div className="relative h-40 w-40 opacity-80 mix-blend-multiply">
-                <Image src="https://images.unsplash.com/photo-1555529771-835f59bfc50c?w=400&q=80" alt="Empty Cart" fill className="object-cover rounded-full grayscale" />
+                <Image src="https://images.unsplash.com/photo-1555529771-835f59bfc50c?w=400&q=80" alt="Empty Cart" fill sizes="160px" className="object-cover rounded-full grayscale" />
               </div>
               <div>
                 <h3 className="text-xl font-light text-[#1A1A1A]">Your cart is empty</h3>
@@ -117,7 +117,7 @@ export function CartDrawer() {
                       {upsells.map((upsell) => (
                         <div key={upsell.id} className="group relative flex flex-col gap-2">
                            <div className="relative aspect-[4/5] overflow-hidden bg-gray-100">
-                             <Image src={upsell.product_media?.[0]?.url || "/images/placeholder.webp"} alt={upsell.name} fill className="object-cover" />
+                             <Image src={upsell.product_media?.[0]?.url || "/images/placeholder.webp"} alt={upsell.name} fill sizes="(max-width: 768px) 50vw, 200px" className="object-cover" />
                            </div>
                            <p className="truncate text-xs font-medium">{upsell.name}</p>
                            <p className="text-[10px] text-gray-500">৳{upsell.base_price}</p>

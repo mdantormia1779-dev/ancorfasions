@@ -96,58 +96,69 @@ export interface SSLCommerzRefundResponse {
  * Implements authoritative session creation, server-side transaction validation,
  * order querying, IPN signature verification, and refund support.
  */
+function isValidCredential(val?: string | null): boolean {
+  if (!val || typeof val !== "string") return false;
+  const trimmed = val.trim();
+  if (!trimmed) return false;
+  const lower = trimmed.toLowerCase();
+  if (lower === "testbox" || lower === "qwerty") return true;
+  if (
+    lower.includes("your_store") ||
+    lower.includes("your-store") ||
+    lower.includes("your_store_id") ||
+    lower.includes("your_store_passwd") ||
+    lower.includes("your-sslcommerz") ||
+    lower.includes("your_password") ||
+    lower.includes("example")
+  ) {
+    return false;
+  }
+  return true;
+}
+
 export class SSLCommerzService {
   private static readonly SANDBOX_BASE = "https://sandbox.sslcommerz.com";
   private static readonly PROD_BASE = "https://securepay.sslcommerz.com";
 
   /**
    * Resolves SSLCommerz configuration hierarchically:
-   * 1. Environment variables (SSLCOMMERZ_STORE_ID, SSLCOMMERZ_STORE_PASSWORD / SSLCOMMERZ_STORE_PASSWD, SSLCOMMERZ_IS_SANDBOX)
+   * 1. DB settings table ('payment_sslcommerz') - Prioritized so dashboard updates take immediate effect
    * 2. DB payment_providers table ('sslcommerz')
-   * 3. DB settings table ('payment_sslcommerz')
+   * 3. Environment variables (SSLCOMMERZ_STORE_ID, SSLCOMMERZ_STORE_PASSWORD / SSLCOMMERZ_STORE_PASSWD)
    */
   static async getConfig(): Promise<SSLCommerzConfig> {
     const isSandboxEnv =
       process.env.SSLCOMMERZ_IS_SANDBOX === "true" ||
       process.env.NODE_ENV !== "production";
 
-    // 1. Check environment variables
-    const envStoreId = process.env.SSLCOMMERZ_STORE_ID;
-    const envStorePasswd =
-      process.env.SSLCOMMERZ_STORE_PASSWORD || process.env.SSLCOMMERZ_STORE_PASSWD;
-    const envSandbox = process.env.SSLCOMMERZ_IS_SANDBOX
-      ? process.env.SSLCOMMERZ_IS_SANDBOX === "true"
-      : isSandboxEnv;
-
-    if (envStoreId && envStorePasswd) {
-      const baseUrl = envSandbox ? this.SANDBOX_BASE : this.PROD_BASE;
-      return {
-        store_id: envStoreId,
-        store_passwd: envStorePasswd,
-        is_sandbox: envSandbox,
-        init_url: `${baseUrl}/gwprocess/v4/api.php`,
-        validation_url: `${baseUrl}/validator/api/validationserverAPI.php`,
-        query_url: `${baseUrl}/validator/api/merchantTransIDvalidationAPI.php`,
-        refund_url: `${baseUrl}/validator/api/merchantTransIDvalidationAPI.php`,
-      };
-    }
-
-    // 2. Check DB payment_providers row
+    // 1. Check DB settings table ('payment_sslcommerz') - Highest priority (Dashboard)
     try {
       const supabase = createAdminClient();
-      const { data: provider } = await supabase
-        .from("payment_providers")
-        .select("config")
-        .eq("code", "sslcommerz")
+      const { data: settingRow } = await supabase
+        .from("settings")
+        .select("value")
+        .eq("key", "payment_sslcommerz")
         .maybeSingle();
 
-      const conf = provider?.config as Record<string, any> | null;
-      if (conf?.store_id && conf?.store_passwd) {
-        const isSandbox = conf.is_sandbox ?? isSandboxEnv;
+      const settingVal = settingRow?.value as Record<string, any> | null;
+      const dbStoreId = settingVal?.store_id?.toString().trim();
+      const dbStorePass = (
+        settingVal?.store_password ||
+        settingVal?.store_passwd ||
+        settingVal?.store_pass
+      )?.toString().trim();
+
+      if (isValidCredential(dbStoreId) && isValidCredential(dbStorePass)) {
+        let isSandbox = isSandboxEnv;
+        if (settingVal?.sandbox !== undefined) {
+          isSandbox = settingVal.sandbox === true || settingVal.sandbox === "true";
+        } else if (settingVal?.is_sandbox !== undefined) {
+          isSandbox = settingVal.is_sandbox === true || settingVal.is_sandbox === "true";
+        }
         const baseUrl = isSandbox ? this.SANDBOX_BASE : this.PROD_BASE;
         return {
-          store_id: conf.store_id,
-          store_passwd: conf.store_passwd,
+          store_id: dbStoreId!,
+          store_passwd: dbStorePass!,
           is_sandbox: isSandbox,
           init_url: `${baseUrl}/gwprocess/v4/api.php`,
           validation_url: `${baseUrl}/validator/api/validationserverAPI.php`,
@@ -156,23 +167,32 @@ export class SSLCommerzService {
         };
       }
 
-      // 3. Check DB settings table
-      const { data: settingRow } = await supabase
-        .from("settings")
-        .select("value")
-        .eq("key", "payment_sslcommerz")
+      // 2. Check DB payment_providers table ('sslcommerz')
+      const { data: provider } = await supabase
+        .from("payment_providers")
+        .select("config")
+        .eq("code", "sslcommerz")
         .maybeSingle();
 
-      const settingVal = settingRow?.value as Record<string, any> | null;
-      if (settingVal?.store_id && (settingVal?.store_passwd || settingVal?.store_password)) {
-        const isSandbox =
-          settingVal.sandbox === "true" ||
-          settingVal.is_sandbox === true ||
-          isSandboxEnv;
+      const conf = provider?.config as Record<string, any> | null;
+      const provStoreId = conf?.store_id?.toString().trim();
+      const provStorePass = (
+        conf?.store_password ||
+        conf?.store_passwd ||
+        conf?.store_pass
+      )?.toString().trim();
+
+      if (isValidCredential(provStoreId) && isValidCredential(provStorePass)) {
+        let isSandbox = isSandboxEnv;
+        if (conf?.sandbox !== undefined) {
+          isSandbox = conf.sandbox === true || conf.sandbox === "true";
+        } else if (conf?.is_sandbox !== undefined) {
+          isSandbox = conf.is_sandbox === true || conf.is_sandbox === "true";
+        }
         const baseUrl = isSandbox ? this.SANDBOX_BASE : this.PROD_BASE;
         return {
-          store_id: settingVal.store_id,
-          store_passwd: settingVal.store_passwd || settingVal.store_password,
+          store_id: provStoreId!,
+          store_passwd: provStorePass!,
           is_sandbox: isSandbox,
           init_url: `${baseUrl}/gwprocess/v4/api.php`,
           validation_url: `${baseUrl}/validator/api/validationserverAPI.php`,
@@ -184,11 +204,36 @@ export class SSLCommerzService {
       console.error("[SSLCommerz Service] Database config lookup error:", dbErr);
     }
 
-    // Fallback sandbox placeholder configuration
+    // 3. Fallback to environment variables (if not placeholder dummy values)
+    const envStoreId = process.env.SSLCOMMERZ_STORE_ID?.trim();
+    const envStorePasswd = (
+      process.env.SSLCOMMERZ_STORE_PASSWORD || process.env.SSLCOMMERZ_STORE_PASSWD
+    )?.trim();
+    const envSandbox = process.env.SSLCOMMERZ_IS_SANDBOX !== undefined
+      ? process.env.SSLCOMMERZ_IS_SANDBOX === "true"
+      : isSandboxEnv;
+
+    if (isValidCredential(envStoreId) && isValidCredential(envStorePasswd)) {
+      const baseUrl = envSandbox ? this.SANDBOX_BASE : this.PROD_BASE;
+      return {
+        store_id: envStoreId!,
+        store_passwd: envStorePasswd!,
+        is_sandbox: envSandbox,
+        init_url: `${baseUrl}/gwprocess/v4/api.php`,
+        validation_url: `${baseUrl}/validator/api/validationserverAPI.php`,
+        query_url: `${baseUrl}/validator/api/merchantTransIDvalidationAPI.php`,
+        refund_url: `${baseUrl}/validator/api/merchantTransIDvalidationAPI.php`,
+      };
+    }
+
+    // Default fallback: in sandbox/dev mode, fallback to official SSLCommerz test credentials
+    const fallbackStoreId = (isValidCredential(envStoreId) ? envStoreId : isSandboxEnv ? "testbox" : "") || "";
+    const fallbackStorePasswd = (isValidCredential(envStorePasswd) ? envStorePasswd : isSandboxEnv ? "qwerty" : "") || "";
+
     const defaultBase = isSandboxEnv ? this.SANDBOX_BASE : this.PROD_BASE;
     return {
-      store_id: envStoreId || "",
-      store_passwd: envStorePasswd || "",
+      store_id: fallbackStoreId,
+      store_passwd: fallbackStorePasswd,
       is_sandbox: isSandboxEnv,
       init_url: `${defaultBase}/gwprocess/v4/api.php`,
       validation_url: `${defaultBase}/validator/api/validationserverAPI.php`,
@@ -205,9 +250,8 @@ export class SSLCommerzService {
     return Boolean(
       config.store_id &&
       config.store_passwd &&
-      config.store_id.trim() !== "" &&
-      config.store_passwd.trim() !== "" &&
-      !config.store_id.includes("your-sslcommerz-store-id")
+      isValidCredential(config.store_id) &&
+      isValidCredential(config.store_passwd)
     );
   }
 

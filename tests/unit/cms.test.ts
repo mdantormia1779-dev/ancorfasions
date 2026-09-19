@@ -3,31 +3,29 @@ import { CMSService } from "@/services/cms.service";
 
 vi.mock("@/repositories/cms.repository", () => {
   return {
-    CMSRepository: vi.fn().mockImplementation(() => {
-      return {
-        getPages: vi
-          .fn()
-          .mockResolvedValue([
-            { id: "1", title: "Home", slug: "home", status: "published" },
-          ]),
-        getPageBySlug: vi
-          .fn()
-          .mockResolvedValue({
-            id: "1",
-            title: "Home",
-            slug: "home",
-            status: "published",
-          }),
-        createPage: vi
-          .fn()
-          .mockResolvedValue({
-            id: "2",
-            title: "About",
-            slug: "about",
-            status: "draft",
-          }),
-      };
-    }),
+    CMSRepository: class {
+      getPages = vi
+        .fn()
+        .mockResolvedValue([
+          { id: "1", title: "Home", slug: "home", status: "published" },
+        ]);
+      getPageBySlug = vi
+        .fn()
+        .mockResolvedValue({
+          id: "1",
+          title: "Home",
+          slug: "home",
+          status: "published",
+        });
+      createPage = vi
+        .fn()
+        .mockResolvedValue({
+          id: "2",
+          title: "About",
+          slug: "about",
+          status: "draft",
+        });
+    },
   };
 });
 

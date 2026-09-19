@@ -46,7 +46,6 @@ export default async function OrderDetailsPage({
       `
       *,
       order_items(*),
-      order_addresses(*),
       order_status_history(*)
     `
     );
@@ -62,6 +61,13 @@ export default async function OrderDetailsPage({
   if (error || !order) {
     notFound();
   }
+
+  const { data: orderAddresses } = await supabase
+    .from("order_addresses")
+    .select("*")
+    .eq("order_id", order.id);
+
+  order.order_addresses = orderAddresses || [];
 
   // Fetch any return requests for this order
   const { data: orderReturns } = await supabase

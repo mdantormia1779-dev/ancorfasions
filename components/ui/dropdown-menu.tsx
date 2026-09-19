@@ -17,18 +17,26 @@ function DropdownMenuPortal({ ...props }: MenuPrimitive.Portal.Props) {
 function DropdownMenuTrigger({
   children,
   render,
+  asChild,
+  nativeButton,
   ...props
-}: MenuPrimitive.Trigger.Props) {
+}: MenuPrimitive.Trigger.Props & { asChild?: boolean }) {
   const effectiveRender =
-    render ??
-    (React.isValidElement(children) && React.Children.count(children) === 1
-      ? (children as React.ReactElement)
-      : undefined);
+    render !== undefined
+      ? React.isValidElement(render) &&
+        !(render.props as { children?: React.ReactNode })?.children &&
+        children
+        ? React.cloneElement(render as React.ReactElement, {}, children)
+        : render
+      : asChild && React.isValidElement(children)
+        ? (children as React.ReactElement)
+        : undefined;
 
   return (
     <MenuPrimitive.Trigger
       data-slot="dropdown-menu-trigger"
       render={effectiveRender}
+      nativeButton={nativeButton}
       {...props}
     >
       {effectiveRender ? null : children}

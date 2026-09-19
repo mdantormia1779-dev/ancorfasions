@@ -19,6 +19,7 @@ export class OrderRepository {
 
     const finalOrderData: any = {
       ...orderData,
+      currency: orderData.currency || "BDT",
       customer_id: customerId,
       grand_total: orderData.total_amount ?? orderData.grand_total ?? 0,
       shipping_total: orderData.shipping_fee ?? orderData.shipping_total ?? 0,
@@ -49,13 +50,6 @@ export class OrderRepository {
       if (colMatch && colMatch[1]) {
         delete sanitized[colMatch[1]];
       }
-      delete sanitized.payment_method;
-      delete sanitized.payment_status;
-      delete sanitized.risk_level;
-      delete sanitized.risk_score;
-      delete sanitized.risk_reasons;
-      delete sanitized.verification_status;
-      delete sanitized.verification_verified_at;
       const retryRes = await supabase
         .from("orders")
         .insert(sanitized)
@@ -113,7 +107,35 @@ export class OrderRepository {
     }
 
     // 4. Create Order Items
-    const itemsData = items.map((item) => ({ ...item, order_id: order.id }));
+    const itemsData = items.map((item: any) => {
+      const lineTotal = Number(
+        item.line_total ??
+          item.total_price ??
+          Number(item.quantity || 1) * Number(item.unit_price || 0)
+      );
+
+      const sanitized: Record<string, any> = {
+        order_id: order.id,
+        product_id: item.product_id || null,
+        variant_id: item.variant_id || null,
+        sku: item.sku || "N/A",
+        product_name: item.product_name || "Product",
+        variant_name: item.variant_name || null,
+        unit_price: Number(item.unit_price) || 0,
+        quantity: Number(item.quantity) || 1,
+        discount: Number(item.discount) || 0,
+        tax: Number(item.tax) || 0,
+        line_total: lineTotal,
+        inventory_reserved: Boolean(item.inventory_reserved ?? false),
+      };
+
+      if (item.allocated_warehouse_id) {
+        sanitized.allocated_warehouse_id = item.allocated_warehouse_id;
+      }
+
+      return sanitized;
+    });
+
     const { error: itemsError } = await supabase
       .from("order_items")
       .insert(itemsData);
@@ -149,8 +171,7 @@ export class OrderRepository {
       .select(
         `
         *,
-        items:order_items(*),
-        addresses:order_addresses(*)
+        items:order_items(*)
       `
       )
       .eq("id", orderId)
@@ -161,18 +182,22 @@ export class OrderRepository {
     }
 
     if (data) {
+      const { data: addresses } = await supabase
+        .from("order_addresses")
+        .select("*")
+        .eq("order_id", orderId);
+
       data.total_amount = data.total_amount ?? data.grand_total ?? 0;
       data.shipping_fee = data.shipping_fee ?? data.shipping_total ?? 0;
       data.discount_amount = data.discount_amount ?? data.discount_total ?? 0;
       data.user_id = data.user_id ?? data.customer_id;
       // Map addresses to shipping and billing
-      data.shipping_address = data.addresses?.find(
+      data.shipping_address = addresses?.find(
         (a: any) => a.address_type === "SHIPPING"
       );
-      data.billing_address = data.addresses?.find(
+      data.billing_address = addresses?.find(
         (a: any) => a.address_type === "BILLING"
       );
-      delete data.addresses;
 
       // Populate notes from order_notes if not on order record
       if (!data.notes) {
@@ -202,8 +227,7 @@ export class OrderRepository {
       .select(
         `
         *,
-        items:order_items(*),
-        addresses:order_addresses(*)
+        items:order_items(*)
       `
       )
       .eq("order_number", orderNumber)
@@ -214,17 +238,21 @@ export class OrderRepository {
     }
 
     if (data) {
+      const { data: addresses } = await supabase
+        .from("order_addresses")
+        .select("*")
+        .eq("order_id", data.id);
+
       data.total_amount = data.total_amount ?? data.grand_total ?? 0;
       data.shipping_fee = data.shipping_fee ?? data.shipping_total ?? 0;
       data.discount_amount = data.discount_amount ?? data.discount_total ?? 0;
       data.user_id = data.user_id ?? data.customer_id;
-      data.shipping_address = data.addresses?.find(
+      data.shipping_address = addresses?.find(
         (a: any) => a.address_type === "SHIPPING"
       );
-      data.billing_address = data.addresses?.find(
+      data.billing_address = addresses?.find(
         (a: any) => a.address_type === "BILLING"
       );
-      delete data.addresses;
 
       if (!data.notes) {
         const { data: noteRows } = await supabase

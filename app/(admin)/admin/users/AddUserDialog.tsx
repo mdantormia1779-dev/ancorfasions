@@ -102,10 +102,12 @@ export function AddUserDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button onClick={() => setOpen(true)}>
-        <UserPlus className="mr-2 h-4 w-4" />
-        Add User
-      </Button>
+      <DialogTrigger asChild>
+        <Button onClick={() => setOpen(true)}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Add User
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New User</DialogTitle>

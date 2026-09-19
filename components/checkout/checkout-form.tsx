@@ -29,7 +29,7 @@ import { Input } from "@/components/ui/input";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
-import { Loader2, ArrowRight, ShieldCheck, Lock, Smartphone, Landmark, Banknote } from "lucide-react";
+import { Loader2, ArrowRight, ShieldCheck, Lock, Smartphone, Landmark, Banknote, CreditCard } from "lucide-react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { AllPaymentConfigs } from "@/lib/actions/payment.actions";
@@ -44,7 +44,14 @@ export function CheckoutForm({
 }) {
   const router = useRouter();
   const { cart } = useCartStore();
-  const { formData, currentStep, updateStep } = useCheckoutStore();
+  const {
+    formData,
+    currentStep,
+    updateStep,
+    setInformation,
+    setShipping,
+    setPayment,
+  } = useCheckoutStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [calculatedShippingFee, setCalculatedShippingFee] = useState<number | null>(null);
   const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
@@ -137,26 +144,64 @@ export function CheckoutForm({
   const handleNextStep = async (
     step: "INFORMATION" | "SHIPPING" | "PAYMENT" | "REVIEW"
   ) => {
-    // Basic validation before moving to next step
-    let isValid = false;
-    if (step === "SHIPPING") {
-      isValid = await form.trigger("information");
-      if (isValid) {
+    try {
+      if (step === "SHIPPING") {
+        const isInfoValid = await form.trigger("information");
+        if (!isInfoValid) {
+          toast.error("Please fill in all required contact and address details.");
+          return;
+        }
         const city = form.getValues("information.shipping_address.city");
-        const method = city && city.toLowerCase().includes("dhaka")
-          ? "home_delivery"
-          : "home_delivery_outside";
-        form.setValue("shipping.shipping_method", method);
-        // Kick off dynamic rate calculation
-        await calculateShippingForCity(city, method);
-      }
-    } else if (step === "PAYMENT") {
-      isValid = await form.trigger(["information", "shipping"]);
-    } else if (step === "REVIEW") {
-      isValid = await form.trigger(["information", "shipping", "payment"]);
-    }
+        const currentShipping = form.getValues("shipping.shipping_method");
+        const defaultMethod =
+          city && city.toLowerCase().includes("dhaka")
+            ? "home_delivery"
+            : "home_delivery_outside";
+        const methodToSet = currentShipping || defaultMethod;
+        form.setValue("shipping.shipping_method", methodToSet, {
+          shouldValidate: true,
+        });
 
-    if (isValid) {
+        setInformation(form.getValues("information"));
+        setShipping({ shipping_method: methodToSet });
+        await calculateShippingForCity(city, methodToSet);
+        updateStep("SHIPPING");
+      } else if (step === "PAYMENT") {
+        // Ensure shipping method is set
+        const currentMethod = form.getValues("shipping.shipping_method");
+        if (!currentMethod) {
+          form.setValue("shipping.shipping_method", "home_delivery", {
+            shouldValidate: true,
+          });
+        }
+
+        const isShippingValid = await form.trigger("shipping.shipping_method");
+        if (!isShippingValid) {
+          toast.error("Please select a shipping method.");
+          return;
+        }
+
+        const isInfoValid = await form.trigger("information");
+        if (!isInfoValid) {
+          toast.error("Please complete your shipping address details first.");
+          updateStep("INFORMATION");
+          return;
+        }
+
+        setInformation(form.getValues("information"));
+        setShipping(form.getValues("shipping"));
+        updateStep("PAYMENT");
+      } else if (step === "REVIEW") {
+        const isPaymentValid = await form.trigger("payment");
+        if (!isPaymentValid) {
+          toast.error("Please complete your payment details.");
+          return;
+        }
+        setPayment(form.getValues("payment"));
+        updateStep("REVIEW");
+      }
+    } catch (err) {
+      console.error("Step navigation error:", err);
       updateStep(step);
     }
   };
@@ -181,11 +226,10 @@ export function CheckoutForm({
 
       if (res.success && res.orderId) {
         toast.success("Order placed successfully!");
-        if (res.paymentPayload && data.payment.payment_method === "SSLCOMMERZ") {
-          // Redirect to payment initialization endpoint for gateway integration
-          router.push(
-            `/api/payment/init?order_id=${res.orderId}&method=${data.payment.payment_method}`
-          );
+        if (data.payment.payment_method === "SSLCOMMERZ") {
+          // Redirect to payment initialization endpoint for gateway integration via full window navigation
+          window.location.href = `/api/payment/init?order_id=${res.orderId}&method=SSLCOMMERZ`;
+          return;
         } else {
           router.push(`/checkout/success?order_id=${res.orderId}`);
         }
@@ -215,6 +259,10 @@ export function CheckoutForm({
       if (res.success && res.orderId) {
         setShowOtpDialog(false);
         toast.success("Order verified and placed successfully!");
+        if (currentData.payment.payment_method === "SSLCOMMERZ") {
+          window.location.href = `/api/payment/init?order_id=${res.orderId}&method=SSLCOMMERZ`;
+          return;
+        }
         router.push(`/checkout/success?order_id=${res.orderId}`);
       } else {
         setOtpError(res.error || "Failed to verify code. Please try again.");
@@ -431,8 +479,11 @@ export function CheckoutForm({
               <FormItem className="space-y-3">
                 <FormControl>
                   <RadioGroup
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
+                    value={field.value || "home_delivery"}
+                    onValueChange={(val) => {
+                      field.onChange(val);
+                      setShipping({ shipping_method: val });
+                    }}
                     className="flex flex-col space-y-1"
                   >
                     <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
@@ -537,8 +588,14 @@ export function CheckoutForm({
                 <FormItem className="space-y-4">
                   <FormControl>
                     <RadioGroup
-                      onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value || "COD"}
+                      onValueChange={(val) => {
+                        field.onChange(val);
+                        setPayment({
+                          ...form.getValues("payment"),
+                          payment_method: val,
+                        });
+                      }}
                       className="flex flex-col space-y-2"
                     >
                       {isCodEnabled && (
@@ -626,20 +683,33 @@ export function CheckoutForm({
                       )}
 
                       {isSslEnabled && (
-                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-black hover:bg-gray-50 data-[state=checked]:border-black data-[state=checked]:bg-gray-50/50">
-                          <FormControl>
+                        <FormItem className="flex items-start space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-emerald-600 hover:bg-emerald-50/10 data-[state=checked]:border-emerald-600 data-[state=checked]:bg-emerald-50/20 data-[state=checked]:ring-1 data-[state=checked]:ring-emerald-600">
+                          <FormControl className="mt-1">
                             <RadioGroupItem value="SSLCOMMERZ" />
                           </FormControl>
-                          <FormLabel className="cursor-pointer font-medium flex items-center gap-2">
-                            Cards / Mobile Banking (Online Gateway){" "}
-                            <Image
-                              src="https://securepay.sslcommerz.com/public/image/SSLCommerz-Pay-With-logo-All-Size-03.png"
-                              alt="SSLCommerz"
-                              width={150}
-                              height={20}
-                              className="h-4 w-auto object-contain"
-                            />
-                          </FormLabel>
+                          <div className="flex flex-1 flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                              <FormLabel className="cursor-pointer font-medium flex items-center gap-2 text-sm text-gray-900">
+                                <CreditCard className="h-4 w-4 text-emerald-600" />
+                                <span>Cards / Mobile Banking (SSLCommerz Gateway)</span>
+                              </FormLabel>
+                              <p className="text-xs text-muted-foreground mt-0.5">
+                                Visa, MasterCard, bKash, Nagad, Rocket, Net Banking
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                                Instant Auto-Pay
+                              </span>
+                              <Image
+                                src="https://securepay.sslcommerz.com/public/image/SSLCommerz-Pay-With-logo-All-Size-03.png"
+                                alt="SSLCommerz"
+                                width={130}
+                                height={20}
+                                className="h-4 w-auto object-contain hidden md:inline-block"
+                              />
+                            </div>
+                          </div>
                         </FormItem>
                       )}
                     </RadioGroup>

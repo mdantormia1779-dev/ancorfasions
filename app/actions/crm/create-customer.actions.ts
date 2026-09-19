@@ -33,13 +33,22 @@ export async function createCustomerAction(data: {
         last_name: data.lastName.trim(),
         email: cleanEmail,
         phone: data.phone?.trim() || null,
-        customer_lifecycle_stage: data.lifecycleStage || "PROSPECT",
-        is_vip: false,
       })
       .select()
       .single();
 
     if (error) throw error;
+
+    if (newCustomer?.id) {
+      await supabase.from("crm_customers").insert({
+        profile_id: newCustomer.id,
+        customer_lifecycle_stage: data.lifecycleStage || "PROSPECT",
+        is_vip: false,
+        health_score: 80,
+        total_support_tickets: 0,
+        last_interaction_at: new Date().toISOString(),
+      });
+    }
 
     revalidatePath("/admin/customers");
     return { success: true, data: newCustomer };

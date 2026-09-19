@@ -30,7 +30,7 @@ export default async function InventoryDashboard() {
   const supabase = await createClient();
   const { data: inventory } = await supabase
     .from("inventory_levels")
-    .select("*, variants(sku, name, price), warehouses(name)")
+    .select("*, variants(sku, price_override, sale_price, attributes, products(name, base_price)), warehouses(name)")
     .order("quantity_available", { ascending: true });
 
   const realInventory = inventory || [];
@@ -45,7 +45,7 @@ export default async function InventoryDashboard() {
   
   // Calculate inventory value using quantity * price (or default to 0 if price is missing)
   const inventoryValue = realInventory.reduce((sum, item) => {
-    const price = (item.variants as any)?.price || 0;
+    const price = (item.variants as any)?.price_override || (item.variants as any)?.products?.base_price || 0;
     return sum + (item.quantity_available || 0) * price;
   }, 0);
   

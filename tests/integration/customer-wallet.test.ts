@@ -6,6 +6,29 @@ import { LoyaltyRepository } from "@/repositories/loyalty.repository";
 
 vi.mock("@/repositories/wallet.repository");
 vi.mock("@/repositories/loyalty.repository");
+vi.mock("@/lib/supabase/server", () => ({
+  createAdminClient: vi.fn().mockResolvedValue({
+    from: () => ({
+      select: () => ({
+        eq: () => ({
+          maybeSingle: vi.fn().mockResolvedValue({
+            data: {
+              id: "wal-1",
+              customer_id: "bc067dfd-3df4-46ce-bb93-a6e8b603ee33",
+              balance: 1500,
+              currency: "BDT",
+              is_active: true,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
+            },
+            error: null,
+          }),
+        }),
+      }),
+    }),
+  }),
+  createClient: vi.fn().mockResolvedValue({}),
+}));
 
 describe("Wallet and Loyalty Integration", () => {
   it("should retrieve wallet and transactions", async () => {

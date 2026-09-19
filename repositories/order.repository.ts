@@ -18,7 +18,6 @@ export class OrderRepository {
         `
         *,
         items:order_items(*),
-        addresses:order_addresses(*),
         status_history:order_status_history(*)
       `
       )
@@ -29,6 +28,21 @@ export class OrderRepository {
       if (error.code === "PGRST116") return null;
       console.error("Error fetching order:", error);
       throw new Error("Failed to fetch order");
+    }
+
+    if (data) {
+      const { data: addresses } = await supabase
+        .from("order_addresses")
+        .select("*")
+        .eq("order_id", id);
+
+      data.addresses = addresses || [];
+      data.shipping_address = addresses?.find(
+        (a: any) => a.address_type === "SHIPPING"
+      );
+      data.billing_address = addresses?.find(
+        (a: any) => a.address_type === "BILLING"
+      );
     }
 
     return data as Order;
@@ -42,7 +56,7 @@ export class OrderRepository {
     const { data, error } = await supabase
       .from("orders")
       .select("*")
-      .eq("user_id", userId)
+      .eq("customer_id", userId)
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -111,10 +125,34 @@ export class OrderRepository {
     }
 
     // 2. Create Order Items
-    const itemsWithOrderId = items.map((item) => ({
-      ...item,
-      order_id: order.id,
-    }));
+    const itemsWithOrderId = items.map((item: any) => {
+      const lineTotal = Number(
+        item.line_total ??
+          item.total_price ??
+          Number(item.quantity || 1) * Number(item.unit_price || 0)
+      );
+
+      const sanitized: Record<string, any> = {
+        order_id: order.id,
+        product_id: item.product_id || null,
+        variant_id: item.variant_id || null,
+        sku: item.sku || "N/A",
+        product_name: item.product_name || "Product",
+        variant_name: item.variant_name || null,
+        unit_price: Number(item.unit_price) || 0,
+        quantity: Number(item.quantity) || 1,
+        discount: Number(item.discount) || 0,
+        tax: Number(item.tax) || 0,
+        line_total: lineTotal,
+        inventory_reserved: Boolean(item.inventory_reserved ?? false),
+      };
+
+      if (item.allocated_warehouse_id) {
+        sanitized.allocated_warehouse_id = item.allocated_warehouse_id;
+      }
+
+      return sanitized;
+    });
 
     const { error: itemsError } = await supabase
       .from("order_items")
@@ -225,8 +263,7 @@ export class OrderRepository {
       .from("orders")
       .select(`
         *,
-        items:order_items(*),
-        addresses:order_addresses(*)
+        items:order_items(*)
       `)
       .in("status", validStatuses)
       .order("created_at", { ascending: true });
@@ -234,6 +271,18 @@ export class OrderRepository {
     if (error) {
       console.error("Error fetching orders for fulfillment:", error);
       throw new Error("Failed to fetch orders for fulfillment");
+    }
+
+    if (data && data.length > 0) {
+      const orderIds = data.map((o: any) => o.id);
+      const { data: addresses } = await supabase
+        .from("order_addresses")
+        .select("*")
+        .in("order_id", orderIds);
+
+      for (const order of data) {
+        order.addresses = addresses?.filter((a: any) => a.order_id === order.id) || [];
+      }
     }
 
     return data as Order[];

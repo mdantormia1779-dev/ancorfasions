@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Copy, Check, Info, Landmark, Smartphone, ShieldAlert } from "lucide-react";
+import { Copy, Check, Info, Landmark, Smartphone, ShieldAlert, ShieldCheck, CreditCard, Lock } from "lucide-react";
 import { toast } from "sonner";
 
 interface ManualPaymentFieldsProps {
@@ -54,11 +54,72 @@ export function ManualPaymentFields({
 
   if (method === "SSLCOMMERZ") {
     return (
-      <div className="rounded-lg border border-blue-200 bg-blue-50/50 p-4 text-xs text-blue-900 flex items-start gap-2.5">
-        <Info className="h-4 w-4 text-blue-600 flex-shrink-0 mt-0.5" />
-        <p className="text-blue-800 leading-relaxed">
-          You will be redirected to the secure SSLCommerz gateway to complete payment via Visa, MasterCard, Amex, or Mobile Banking.
-        </p>
+      <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-white p-5 shadow-sm space-y-4 animate-in fade-in-50 duration-300">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-sm">
+              <ShieldCheck className="h-5 w-5" />
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+                SSLCommerz Instant Payment
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                  <Check className="h-3 w-3" /> Auto Confirm
+                </span>
+              </h4>
+              <p className="text-xs text-gray-500">
+                সুরক্ষিত অনলাইন পেমেন্ট গেটওয়ে
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-[11px] font-medium text-gray-600 border border-gray-200 shadow-2xs">
+            <Lock className="h-3.5 w-3.5 text-emerald-600" />
+            <span>256-bit SSL</span>
+          </div>
+        </div>
+
+        {/* Channels Grid */}
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+            সমর্থিত পেমেন্ট মাধ্যমসমূহ (Supported Channels):
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <div className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white p-2.5 shadow-2xs">
+              <CreditCard className="h-4 w-4 text-blue-600 shrink-0" />
+              <div className="text-xs">
+                <p className="font-medium text-gray-800">Debit / Credit Card</p>
+                <p className="text-[10px] text-gray-500">Visa, Mastercard, Amex, Nexus</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white p-2.5 shadow-2xs">
+              <Smartphone className="h-4 w-4 text-pink-600 shrink-0" />
+              <div className="text-xs">
+                <p className="font-medium text-gray-800">Mobile Banking</p>
+                <p className="text-[10px] text-gray-500">bKash, Nagad, Rocket, Upay</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white p-2.5 shadow-2xs">
+              <Landmark className="h-4 w-4 text-emerald-700 shrink-0" />
+              <div className="text-xs">
+                <p className="font-medium text-gray-800">Internet Banking</p>
+                <p className="text-[10px] text-gray-500">City Touch, EBL, IBBL, Bank Asia</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Instructions */}
+        <div className="rounded-lg bg-emerald-100/50 border border-emerald-200/60 p-3 text-xs text-emerald-950 space-y-1">
+          <p className="font-medium flex items-center gap-1.5 text-emerald-900">
+            <Info className="h-3.5 w-3.5 text-emerald-700" />
+            পেমেন্ট নির্দেশিকা:
+          </p>
+          <ul className="list-disc pl-4 space-y-0.5 text-emerald-900/90 text-[11px] leading-relaxed">
+            <li>নিচের <strong>&quot;Complete Order&quot;</strong> বাটনে ক্লিক করলেই নিরাপদ SSLCommerz পোর্টালে নিয়ে যাওয়া হবে।</li>
+            <li>সেখানে আপনার কার্ড অথবা বিকাশ/নগদ সিলেক্ট করে পিন ও ওটিপি দিয়ে পেমেন্ট করুন।</li>
+            <li>পেমেন্ট শেষ হওয়ামাত্র স্বয়ংক্রিয়ভাবে আপনার অর্ডারটি কনফার্ম হয়ে যাবে (কোনো ট্রানজ্যাকশন আইডি কপি-পেস্টের প্রয়োজন নেই)।</li>
+          </ul>
+        </div>
       </div>
     );
   }

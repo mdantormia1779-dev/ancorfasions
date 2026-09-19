@@ -78,7 +78,7 @@ export class CustomerRepository {
     const supabase = await createClient();
     const { data, error } = await supabase
       .from("customer_reviews")
-      .select("*, products(name, images)")
+      .select("*, products(name, product_media(url_webp))")
       .eq("customer_id", userId)
       .order("created_at", { ascending: false });
 
@@ -136,13 +136,13 @@ export class CustomerRepository {
     const supabase = await createClient();
     
     const [ordersRes, activityRes, segmentsRes] = await Promise.all([
-      supabase.from("orders").select("total_amount, created_at").eq("user_id", userId).eq("status", "COMPLETED"),
+      supabase.from("orders").select("grand_total, created_at").eq("customer_id", userId),
       supabase.from("customer_activity_logs").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(10),
       supabase.from("user_segments").select("customer_segments(name, description)").eq("user_id", userId)
     ]);
 
     const orders = ordersRes.data || [];
-    const lifetimeValue = orders.reduce((sum, order) => sum + (order.total_amount || 0), 0);
+    const lifetimeValue = orders.reduce((sum, order) => sum + (Number(order.grand_total) || 0), 0);
     const orderCount = orders.length;
 
     return {

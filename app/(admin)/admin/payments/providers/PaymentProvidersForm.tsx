@@ -21,6 +21,8 @@ import { createClient } from "@supabase/supabase-js";
 type GatewayCredentials = {
   store_id?: string;
   store_pass?: string;
+  store_password?: string;
+  store_passwd?: string;
   merchant_id?: string;
   app_key?: string;
   app_secret?: string;
@@ -48,12 +50,28 @@ export function PaymentProvidersForm({
 
   const saveGateway = (config: GatewayConfig) => {
     startTransition(async () => {
+      let credentialsToSend = { ...config.credentials };
+      if (config.key === "payment_sslcommerz") {
+        const pass = (
+          config.credentials.store_password ||
+          config.credentials.store_pass ||
+          config.credentials.store_passwd ||
+          ""
+        ).trim();
+        credentialsToSend = {
+          ...credentialsToSend,
+          store_pass: pass,
+          store_password: pass,
+          store_passwd: pass,
+        };
+      }
+
       const res = await fetch("/api/admin/settings/payment", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           key: config.key,
-          value: { enabled: config.enabled, ...config.credentials },
+          value: { enabled: config.enabled, ...credentialsToSend },
         }),
       });
       const result = await res.json();
@@ -287,13 +305,20 @@ export function PaymentProvidersForm({
               <Label>Store Password</Label>
               <Input
                 type="password"
-                value={ssl.credentials.store_pass ?? ""}
+                value={
+                  ssl.credentials.store_pass ??
+                  ssl.credentials.store_password ??
+                  ssl.credentials.store_passwd ??
+                  ""
+                }
                 onChange={(e) =>
                   setSsl({
                     ...ssl,
                     credentials: {
                       ...ssl.credentials,
                       store_pass: e.target.value,
+                      store_password: e.target.value,
+                      store_passwd: e.target.value,
                     },
                   })
                 }

@@ -571,7 +571,7 @@ export function PaymentClient({
                   </div>
                   <Switch
                     id="sslcommerz-sandbox"
-                    checked={configs.sslcommerz?.sandbox ?? true}
+                    checked={Boolean(configs.sslcommerz?.sandbox ?? true)}
                     onCheckedChange={(c) => updateField("sslcommerz", "sandbox", c)}
                   />
                 </div>

@@ -15,7 +15,10 @@ export const dynamic = "force-dynamic";
 async function handleSSLCommerzCallback(req: NextRequest) {
   const url = new URL(req.url);
   const actionParam = url.searchParams.get("action");
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+  const forwardedProto = req.headers.get("x-forwarded-proto") || "http";
+  const forwardedHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
+  const requestOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : url.origin;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || requestOrigin;
 
   let payload: Record<string, any> = {};
 
@@ -255,7 +258,11 @@ async function handleSSLCommerzCallback(req: NextRequest) {
       // Authoritative Currency Verification
       const verifiedCurrency = (valRes.currency || "").toUpperCase();
       const expectedCurrency = (order.currency || "BDT").toUpperCase();
-      if (verifiedCurrency !== expectedCurrency) {
+      const isCurrencyMatch =
+        verifiedCurrency === expectedCurrency ||
+        (verifiedCurrency === "BDT" && (expectedCurrency === "USD" || expectedCurrency === "BDT"));
+
+      if (!isCurrencyMatch) {
         console.error(
           `[SSLCommerz Callback] Security Alert: Currency mismatch! Gateway: ${verifiedCurrency}, Order: ${expectedCurrency}`
         );

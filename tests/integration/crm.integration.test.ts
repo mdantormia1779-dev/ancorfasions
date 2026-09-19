@@ -4,6 +4,7 @@ import { CRMService } from "../../services/crm.service";
 // Mock dependencies
 vi.mock("../../repositories/crm.repository", () => ({
   crmRepository: {
+    getLeadByEmail: vi.fn().mockResolvedValue(null),
     createLead: vi
       .fn()
       .mockResolvedValue({
@@ -18,7 +19,10 @@ vi.mock("../../repositories/crm.repository", () => ({
 describe("CRM Service Integration", () => {
   it("should create a lead successfully", async () => {
     const crmService = new CRMService();
-    const result = await crmService.createLead({ email: "test@example.com" });
+    const result = await crmService.createLead({
+      first_name: "Test",
+      email: "test@example.com",
+    });
     expect(result).toHaveProperty("id");
     expect(result.email).toBe("test@example.com");
   });

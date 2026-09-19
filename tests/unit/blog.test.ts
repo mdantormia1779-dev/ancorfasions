@@ -3,18 +3,16 @@ import { BlogService } from "@/services/blog.service";
 
 vi.mock("@/repositories/blog.repository", () => {
   return {
-    BlogRepository: vi.fn().mockImplementation(() => {
-      return {
-        getPosts: vi
-          .fn()
-          .mockResolvedValue([
-            { id: "1", title: "First Post", status: "published" },
-          ]),
-        createPost: vi
-          .fn()
-          .mockResolvedValue({ id: "2", title: "New Post", status: "draft" }),
-      };
-    }),
+    BlogRepository: class {
+      getPosts = vi
+        .fn()
+        .mockResolvedValue([
+          { id: "1", title: "First Post", status: "published" },
+        ]);
+      createPost = vi
+        .fn()
+        .mockResolvedValue({ id: "2", title: "New Post", status: "draft" });
+    },
   };
 });
 

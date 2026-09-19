@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { CheckCircle, Package, Truck, Home, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/server-client";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import { redirect } from "next/navigation";
 
 export const metadata: Metadata = {
@@ -21,7 +21,7 @@ export default async function CheckoutSuccessPage({
     redirect("/");
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: order, error } = await supabase
     .from("orders")
     .select("*, order_items(*)")

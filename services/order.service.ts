@@ -112,7 +112,7 @@ export class OrderService {
         variant_id: item.variant_id,
         quantity: item.quantity,
         unit_price: price,
-        total_price: itemTotal,
+        line_total: itemTotal,
       });
 
       // Build reservation payload for the RPC.

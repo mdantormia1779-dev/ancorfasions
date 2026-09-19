@@ -105,11 +105,13 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/account") ||
     pathname.startsWith("/customer");
 
-  // Public API endpoints that must allow unauthenticated access (auth, webhooks, storefront, cron, health)
+  // Public API endpoints that must allow unauthenticated access (auth, webhooks, storefront, cron, health, payments, shipping)
   const isPublicApiRoute =
     pathname.startsWith("/api/auth/") ||
     pathname.startsWith("/api/webhooks/") ||
     pathname.startsWith("/api/store/") ||
+    pathname.startsWith("/api/shipping/") ||
+    pathname.startsWith("/api/payment/") ||
     pathname.startsWith("/api/cron/") ||
     pathname.startsWith("/api/public/") ||
     pathname.startsWith("/api/health") ||

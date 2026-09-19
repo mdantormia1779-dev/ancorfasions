@@ -60,7 +60,7 @@ export default function CustomerOrdersPage() {
                       {new Date(order.created_at).toLocaleDateString()}
                     </TableCell>
                     <TableCell>
-                      ${order.total_amount?.toFixed(2) || "0.00"}
+                      ৳{(Number(order.grand_total ?? order.total_amount) || 0).toLocaleString()}
                     </TableCell>
                     <TableCell>
                       <Badge

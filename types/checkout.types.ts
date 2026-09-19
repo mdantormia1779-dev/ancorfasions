@@ -137,6 +137,7 @@ export interface Order {
   grand_total?: number;
   shipping_total?: number;
   discount_total?: number;
+  currency?: string;
 
   risk_level: RiskLevel;
   risk_score?: number;
@@ -160,7 +161,8 @@ export interface OrderItem {
   variant_id?: string | null;
   quantity: number;
   unit_price: number;
-  total_price: number;
+  line_total?: number;
+  total_price?: number;
   created_at: string;
 }
 

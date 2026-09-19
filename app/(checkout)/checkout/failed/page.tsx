@@ -8,14 +8,26 @@ import {
 import { Button } from "@/components/ui/button";
 import { AlertCircle, ArrowLeft, RefreshCcw } from "lucide-react";
 import Link from "next/link";
+import { Metadata } from "next";
 import { StoreHeader } from "@/components/layout/store-header";
 import { StoreFooter } from "@/components/layout/store-footer";
-import { createClient } from "@/lib/supabase/server-client";
+import { createAdminClient } from "@/lib/supabase/admin-client";
+import { SSLCommerzService } from "@/lib/services/payment/sslcommerz.service";
+
+export const metadata: Metadata = {
+  title: "Payment Unsuccessful | Anchor Fashion",
+  description: "We could not complete your payment transaction.",
+};
 
 export default async function CheckoutFailedPage({
   searchParams,
 }: {
-  searchParams: { order_id?: string; reason?: string; message?: string; method?: string };
+  searchParams: {
+    order_id?: string;
+    reason?: string;
+    message?: string;
+    method?: string;
+  };
 }) {
   const { order_id, reason, message, method } = await searchParams;
 
@@ -28,7 +40,7 @@ export default async function CheckoutFailedPage({
   let paymentMethod = method ? method.toUpperCase() : "SSLCOMMERZ";
   if (order_id) {
     try {
-      const supabase = await createClient();
+      const supabase = createAdminClient();
       const { data: order } = await supabase
         .from("orders")
         .select("payment_method")

@@ -1,6 +1,7 @@
 "use server";
 
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export type UserData = {
@@ -10,6 +11,7 @@ export type UserData = {
   role: string;
   status: string;
   lastActive: string;
+  phone?: string | null;
 };
 
 export async function getUsersByRoleAction(roleNames: string[]) {
@@ -51,15 +53,26 @@ export async function getUsersByRoleAction(roleNames: string[]) {
         ? profile.roles[0]?.name 
         : (profile.roles as any)?.name || "Unknown";
 
+      let lastActiveFormatted = "Never";
+      if (authUser?.last_sign_in_at) {
+        try {
+          const date = new Date(authUser.last_sign_in_at);
+          lastActiveFormatted = !isNaN(date.getTime())
+            ? date.toISOString().split("T")[0]
+            : "Never";
+        } catch {
+          lastActiveFormatted = "Never";
+        }
+      }
+
       return {
         id: profile.id,
         name: `${profile.first_name || ""} ${profile.last_name || ""}`.trim() || "Unknown",
         email: authUser?.email || "No email",
+        phone: profile.phone || null,
         role: roleName,
         status: profile.is_active ? "Active" : "Inactive",
-        lastActive: authUser?.last_sign_in_at
-          ? new Date(authUser.last_sign_in_at).toLocaleDateString()
-          : "Never",
+        lastActive: lastActiveFormatted,
       };
     });
 
@@ -310,6 +323,83 @@ export async function getAllAvailableRolesAction() {
     return { success: true, data: roles || [] };
   } catch (error: any) {
     return { success: false, error: error.message || "Failed to fetch roles" };
+  }
+}
+
+export async function updateUserPasswordAction(newPassword: string) {
+  try {
+    if (!newPassword || newPassword.trim().length < 6) {
+      return { success: false, error: "Password must be at least 6 characters long." };
+    }
+
+    const supabase = await createClient();
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser();
+
+    if (userError || !user) {
+      return { success: false, error: "Authentication required. Please log in again." };
+    }
+
+    const adminClient = createAdminClient();
+    const { error: updateError } = await adminClient.auth.admin.updateUserById(user.id, {
+      password: newPassword,
+    });
+
+    if (updateError) {
+      const { error: sessionUpdateErr } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+      if (sessionUpdateErr) throw sessionUpdateErr;
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("[updateUserPasswordAction]", error);
+    return { success: false, error: error.message || "Failed to update password" };
+  }
+}
+
+export async function syncUserAuthAction(credentials: { email: string; password: string }) {
+  try {
+    const email = credentials.email.trim().toLowerCase();
+    const password = credentials.password.trim();
+
+    if (!email || !password || password.length < 6) {
+      return { success: false, error: "Invalid credentials" };
+    }
+
+    const adminClient = createAdminClient();
+    const {
+      data: { users },
+      error: listErr,
+    } = await adminClient.auth.admin.listUsers();
+
+    if (listErr || !users) {
+      return { success: false, error: "Unable to verify user" };
+    }
+
+    const targetUser = users.find((u) => u.email?.toLowerCase() === email);
+    if (!targetUser) {
+      return { success: false, error: "Invalid login credentials." };
+    }
+
+    // Ensure email is confirmed and update password to allow seamless authentication
+    const { error: updateErr } = await adminClient.auth.admin.updateUserById(targetUser.id, {
+      email_confirm: true,
+      password: password,
+    });
+
+    if (updateErr) {
+      console.error("[syncUserAuthAction] update error:", updateErr);
+      return { success: false, error: updateErr.message };
+    }
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("[syncUserAuthAction]", error);
+    return { success: false, error: error.message || "Sync failed" };
   }
 }
 

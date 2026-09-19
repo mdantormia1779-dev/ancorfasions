@@ -27,8 +27,9 @@ export function OperationsInventoryClient({
     const skuMatch = item.variants?.sku
       ?.toLowerCase()
       .includes(search.toLowerCase());
-    const nameMatch = item.variants?.name
-      ?.toLowerCase()
+    const productName = item.variants?.products?.name || item.variants?.name || "";
+    const nameMatch = productName
+      .toLowerCase()
       .includes(search.toLowerCase());
     
     // Simple filter toggle just to show it works
@@ -98,7 +99,7 @@ export function OperationsInventoryClient({
                         {item.variants?.sku || "N/A"}
                       </div>
                       <div className="text-xs text-muted-foreground">
-                        {item.variants?.name || "N/A"}
+                        {item.variants?.products?.name || (item.variants?.attributes ? Object.values(item.variants.attributes)[0] as string : null) || "Standard"}
                       </div>
                     </TableCell>
                     <TableCell className="text-right font-semibold">

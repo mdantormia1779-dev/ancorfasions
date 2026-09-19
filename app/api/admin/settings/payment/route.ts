@@ -53,10 +53,36 @@ export async function POST(req: Request) {
       );
     }
 
+    let finalValue = value;
+    if (key === "payment_sslcommerz" && typeof value === "object") {
+      const pass = (
+        value.store_password ||
+        value.store_pass ||
+        value.store_passwd ||
+        ""
+      ).toString().trim();
+      const isSandbox =
+        value.sandbox !== undefined
+          ? value.sandbox === true || value.sandbox === "true"
+          : value.is_sandbox !== undefined
+          ? value.is_sandbox === true || value.is_sandbox === "true"
+          : true;
+
+      finalValue = {
+        ...value,
+        store_id: (value.store_id || "").toString().trim(),
+        store_password: pass,
+        store_pass: pass,
+        store_passwd: pass,
+        sandbox: isSandbox ? "true" : "false",
+        is_sandbox: isSandbox,
+      };
+    }
+
     const { error } = await supabase
       .from("settings")
       .upsert(
-        { key, value, description: `Payment gateway configuration for ${key}` },
+        { key, value: finalValue, description: `Payment gateway configuration for ${key}` },
         { onConflict: "key" }
       );
 

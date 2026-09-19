@@ -98,13 +98,20 @@ export const CatalogRepository = {
 
   async getProducts(params: ProductListParams) {
     const supabase = getPublicSupabaseClient();
+    const catSelect = params.category
+      ? "categories!inner (name, slug)"
+      : "categories (name, slug)";
+    const brandSelect = params.brand
+      ? "brands!inner (name, slug)"
+      : "brands (name, slug)";
+
     let query = supabase
       .from("products")
       .select(
         `
         *,
-        categories!inner (name, slug),
-        brands!inner (name, slug),
+        ${catSelect},
+        ${brandSelect},
         product_media (url, alt_text, is_primary)
       `,
         { count: "exact" }

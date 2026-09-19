@@ -68,14 +68,14 @@ export async function getOperationsAnalyticsAction(timeRange: "7d" | "30d" | "90
     // 1. Orders aggregation
     let ordersQuery = supabase
       .from("orders")
-      .select("id, total_amount, status, created_at");
+      .select("id, grand_total, status, created_at");
     if (cutoffIso) {
       ordersQuery = ordersQuery.gte("created_at", cutoffIso);
     }
     const { data: orders = [] } = await ordersQuery;
 
     const safeOrders = orders || [];
-    const totalRevenue = safeOrders.reduce((sum, o) => sum + (parseFloat(o.total_amount) || 0), 0);
+    const totalRevenue = safeOrders.reduce((sum, o) => sum + (Number(o.grand_total) || 0), 0);
     const orderCount = safeOrders.length;
     const averageOrderValue = orderCount > 0 ? totalRevenue / orderCount : 0;
 
@@ -184,7 +184,7 @@ export async function getOperationsAnalyticsAction(timeRange: "7d" | "30d" | "90
       });
       if (!trendsMap[day]) trendsMap[day] = { orders: 0, returns: 0, revenue: 0 };
       trendsMap[day].orders += 1;
-      trendsMap[day].revenue += parseFloat(o.total_amount) || 0;
+      trendsMap[day].revenue += Number(o.grand_total) || 0;
     });
 
     safeReturns.forEach((r) => {

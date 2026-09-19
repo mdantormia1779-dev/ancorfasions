@@ -38,6 +38,7 @@ export default function LoginPage() {
         Dont Have an account?{" "}
         <Link
           href="/auth/register"
+          prefetch={false}
           className="text-[#C9A86A] hover:underline font-semibold"
         >
           Create Account

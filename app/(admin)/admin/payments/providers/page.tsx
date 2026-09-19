@@ -42,7 +42,14 @@ export default async function PaymentProvidersPage() {
     ? {
         key: "payment_sslcommerz",
         enabled: sslData.value.enabled ?? false,
-        credentials: sslData.value,
+        credentials: {
+          ...sslData.value,
+          store_pass:
+            sslData.value.store_pass ||
+            sslData.value.store_password ||
+            sslData.value.store_passwd ||
+            "",
+        },
       }
     : DEFAULT_CONFIG("payment_sslcommerz");
 

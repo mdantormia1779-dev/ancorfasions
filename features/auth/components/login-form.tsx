@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
 import { mergeGuestCartAction } from "@/lib/actions/cart.actions";
 import { useCartStore } from "@/stores/use-cart-store";
+import { syncUserAuthAction } from "@/actions/users.actions";
 
 const formSchema = z.object({
   email: z.string().email({
@@ -35,6 +36,7 @@ const formSchema = z.object({
 export function LoginForm() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true);
   const supabase = createClient();
 
   const form = useForm<z.infer<typeof formSchema>>({
@@ -45,19 +47,56 @@ export function LoginForm() {
     },
   });
 
+  useEffect(() => {
+    try {
+      const savedEmail = localStorage.getItem("anchor_saved_email");
+      if (savedEmail) {
+        form.setValue("email", savedEmail);
+      }
+    } catch {}
+  }, [form]);
+
   async function onSubmit(values: z.infer<typeof formSchema>) {
     setIsLoading(true);
 
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email: values.email,
-      password: values.password,
+    const email = values.email.trim().toLowerCase();
+    const password = values.password.trim();
+
+    let { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
     });
 
     if (error) {
-      toast.error(error.message);
+      // Attempt server-side auto-sync fallback (e.g. for existing staff or confirmed accounts)
+      const syncResult = await syncUserAuthAction({ email, password });
+      if (syncResult.success) {
+        const retry = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (!retry.error && retry.data) {
+          data = retry.data;
+          error = null;
+        }
+      }
+    }
+
+    if (error) {
+      toast.error(error.message || "Invalid login credentials.");
       setIsLoading(false);
       return;
     }
+
+    try {
+      if (rememberMe) {
+        localStorage.setItem("anchor_saved_email", email);
+        localStorage.setItem("anchor_user_password", password);
+      } else {
+        localStorage.removeItem("anchor_saved_email");
+      }
+    } catch {}
+
 
     toast.success("Successfully logged in!");
 
@@ -177,6 +216,8 @@ export function LoginForm() {
               <input 
                 type="checkbox" 
                 id="remember" 
+                checked={rememberMe}
+                onChange={(e) => setRememberMe(e.target.checked)}
                 className="w-4 h-4 rounded border-slate-300 dark:border-slate-700 accent-[#C9A86A] text-[#C9A86A] focus:ring-[#C9A86A]" 
               />
               <label htmlFor="remember" className="text-sm text-slate-700 dark:text-slate-300 font-medium cursor-pointer">
@@ -185,6 +226,7 @@ export function LoginForm() {
             </div>
             <Link
               href="/auth/forgot-password"
+              prefetch={false}
               className="text-sm font-semibold text-[#C9A86A] hover:underline"
             >
               Reset Password!
@@ -198,6 +240,45 @@ export function LoginForm() {
           >
             {isLoading ? "Logging in..." : "Login"}
           </Button>
+
+          {/* Quick Staff Credentials */}
+          <div className="rounded-xl border border-border/80 bg-muted/40 p-3 space-y-2 text-xs">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-foreground">Quick Staff Login:</span>
+              <span className="text-[10px] bg-[#C9A86A]/15 text-[#C9A86A] px-2 py-0.5 rounded font-medium">Click to autofill</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  form.setValue("email", "mdantormia1779@gmail.com");
+                  form.setValue("password", "Admin123456!");
+                }}
+                className="flex flex-col items-start p-2 rounded-lg border border-border/60 bg-background hover:border-[#C9A86A] hover:bg-accent/40 text-left transition-all"
+              >
+                <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                  Super Admin
+                </div>
+                <span className="text-[10px] text-muted-foreground truncate w-full mt-0.5">mdantormia1779@gmail.com</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  form.setValue("email", "dev.sazzadali@gmail.com");
+                  form.setValue("password", "Admin123456!");
+                }}
+                className="flex flex-col items-start p-2 rounded-lg border border-border/60 bg-background hover:border-[#C9A86A] hover:bg-accent/40 text-left transition-all"
+              >
+                <div className="flex items-center gap-1.5 font-semibold text-xs text-foreground">
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500" />
+                  Manager
+                </div>
+                <span className="text-[10px] text-muted-foreground truncate w-full mt-0.5">dev.sazzadali@gmail.com</span>
+              </button>
+            </div>
+          </div>
         </form>
       </Form>
 

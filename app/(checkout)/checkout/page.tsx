@@ -28,7 +28,10 @@ export default async function CheckoutPage() {
 
   return (
     <div className="container mx-auto max-w-6xl px-4 py-8 lg:py-12">
-      <CheckoutStoreInitializer cartId={cartRes.cart.id} />
+      <CheckoutStoreInitializer
+        cartId={cartRes.cart.id}
+        initialSession={sessionRes.session}
+      />
 
       <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 lg:gap-16">
         <div className="lg:col-span-7">

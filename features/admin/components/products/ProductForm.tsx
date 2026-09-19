@@ -230,12 +230,17 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
       categoryId: rawValues.categoryId,
       barcode: rawValues.barcode && rawValues.barcode.trim() !== "" ? rawValues.barcode.trim() : null,
       sku: rawValues.sku && rawValues.sku.trim() !== "" ? rawValues.sku.trim() : null,
-      variants: rawValues.variants?.map((v) => ({
-        ...v,
-        stockQuantity: Number(v.stockQuantity ?? 0),
-        barcode: v.barcode && v.barcode.trim() !== "" ? v.barcode.trim() : null,
-        sku: v.sku?.trim() || "",
-      })),
+      variants: rawValues.variants?.map((v, idx) => {
+        const currentSlug = form.getValues("slug")?.trim() || form.getValues("name")?.trim() || "PROD";
+        const cleanPrefix = currentSlug.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+        const fallbackSku = `${cleanPrefix}-V${idx + 1}-${Date.now().toString().slice(-3)}`;
+        return {
+          ...v,
+          stockQuantity: Number(v.stockQuantity ?? 0),
+          barcode: v.barcode && v.barcode.trim() !== "" ? v.barcode.trim() : null,
+          sku: v.sku?.trim() || fallbackSku,
+        };
+      }),
     };
 
     if (status === "ACTIVE") setIsPublishing(true);
@@ -564,7 +569,16 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                   type="button"
                   variant="outline"
                   size="sm"
-                  onClick={() => appendVariant({ sku: "", isActive: true, attributes: {}, stockQuantity: 0 })}
+                  onClick={() => {
+                    const currentSlug = form.getValues("slug")?.trim() || form.getValues("name")?.trim() || "PROD";
+                    const cleanPrefix = currentSlug.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+                    appendVariant({
+                      sku: `${cleanPrefix}-V${variantFields.length + 1}`,
+                      isActive: true,
+                      attributes: {},
+                      stockQuantity: 0,
+                    });
+                  }}
                 >
                   <Plus className="mr-2 h-4 w-4" /> Add Variant
                 </Button>

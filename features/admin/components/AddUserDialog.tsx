@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { UserPlus, Loader2, Copy, CheckCircle2 } from "lucide-react";
 import { createUserAction } from "@/actions/users.actions";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 const userSchema = z.object({
   firstName: z.string().min(2, "First name is required"),
@@ -56,7 +56,6 @@ export function AddUserDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
-  const { toast } = useToast();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(userSchema),
@@ -64,7 +63,7 @@ export function AddUserDialog({
       firstName: "",
       lastName: "",
       email: "",
-      roleName: defaultRole || allowedRoles[0] || "",
+      roleName: defaultRole || allowedRoles[0] || "ADMIN",
     },
   });
 
@@ -75,19 +74,12 @@ export function AddUserDialog({
       if (res.success && res.data) {
         setCreatedPassword(res.data.password);
         form.reset();
+        toast.success("User created successfully");
       } else {
-        toast({
-          variant: "destructive",
-          title: "Error creating user",
-          description: res.error,
-        });
+        toast.error(res.error || "Error creating user");
       }
     } catch (err: any) {
-      toast({
-        variant: "destructive",
-        title: "Unexpected error",
-        description: err.message,
-      });
+      toast.error(err.message || "An unexpected error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -111,10 +103,12 @@ export function AddUserDialog({
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button onClick={() => setOpen(true)}>
-        <UserPlus className="mr-2 h-4 w-4" />
-        Add User
-      </Button>
+      <DialogTrigger asChild>
+        <Button onClick={() => setOpen(true)}>
+          <UserPlus className="mr-2 h-4 w-4" />
+          Add User
+        </Button>
+      </DialogTrigger>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Add New User</DialogTitle>

@@ -114,12 +114,17 @@ export function UsersTable({
   }, []);
 
   // Filtered users
-  const filteredUsers = users.filter(
-    (u) =>
-      u.name.toLowerCase().includes(search.toLowerCase()) ||
-      u.email.toLowerCase().includes(search.toLowerCase()) ||
-      u.role.toLowerCase().includes(search.toLowerCase())
-  );
+  const searchQuery = (search || "").toLowerCase();
+  const filteredUsers = (users || []).filter((u) => {
+    const name = (u?.name || "").toLowerCase();
+    const email = (u?.email || "").toLowerCase();
+    const role = (u?.role || "").toLowerCase();
+    return (
+      name.includes(searchQuery) ||
+      email.includes(searchQuery) ||
+      role.includes(searchQuery)
+    );
+  });
 
   // Toggle status
   const handleToggleStatus = async (user: UserData) => {
@@ -140,10 +145,10 @@ export function UsersTable({
   // Open Edit modal
   const openEditModal = (user: UserData) => {
     setEditUser(user);
-    const parts = user.name.split(" ");
+    const parts = (user?.name || "").split(" ");
     setEditFirstName(parts[0] || "");
     setEditLastName(parts.slice(1).join(" ") || "");
-    setEditPhone(user.phone || "");
+    setEditPhone(user?.phone || "");
   };
 
   // Save Edit
@@ -176,7 +181,7 @@ export function UsersTable({
   // Open Role modal
   const openRoleModal = (user: UserData) => {
     setRoleUser(user);
-    setSelectedRoleName(user.role);
+    setSelectedRoleName(user?.role || defaultRole || "ADMIN");
   };
 
   // Save Role
@@ -255,30 +260,30 @@ export function UsersTable({
                   filteredUsers.map((user) => (
                     <TableRow key={user.id} className="border-b border-border/50 hover:bg-muted/30">
                       <TableCell>
-                        <div className="font-medium text-slate-900 dark:text-slate-100">{user.name}</div>
+                        <div className="font-medium text-slate-900 dark:text-slate-100">{user?.name || "Unknown"}</div>
                         <div className="text-xs text-muted-foreground">
-                          {user.email}
+                          {user?.email || "No email"}
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="secondary" className="font-semibold text-xs">
-                          {user.role}
+                          {user?.role || "Unknown"}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge
-                          variant={user.status === "Active" ? "default" : "outline"}
+                          variant={user?.status === "Active" ? "default" : "outline"}
                           className={
-                            user.status === "Active"
+                            user?.status === "Active"
                               ? "bg-emerald-500/10 text-emerald-500 border-emerald-500/20"
                               : "text-muted-foreground border-border"
                           }
                         >
-                          {user.status}
+                          {user?.status || "Inactive"}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
-                        {user.lastActive}
+                        {user?.lastActive || "Never"}
                       </TableCell>
                       <TableCell className="text-right">
                         <DropdownMenu>
@@ -350,16 +355,16 @@ export function UsersTable({
               <div className="rounded-lg bg-muted/40 p-3 space-y-2">
                 <div>
                   <span className="text-xs text-muted-foreground">Full Name:</span>
-                  <div className="font-semibold text-base">{viewUser.name}</div>
+                  <div className="font-semibold text-base">{viewUser.name || "Unknown"}</div>
                 </div>
                 <div>
                   <span className="text-xs text-muted-foreground">Email:</span>
-                  <div className="font-mono text-xs">{viewUser.email}</div>
+                  <div className="font-mono text-xs">{viewUser.email || "No email"}</div>
                 </div>
                 <div>
                   <span className="text-xs text-muted-foreground">Assigned Role:</span>
                   <div>
-                    <Badge variant="secondary" className="mt-0.5">{viewUser.role}</Badge>
+                    <Badge variant="secondary" className="mt-0.5">{viewUser.role || "Unknown"}</Badge>
                   </div>
                 </div>
                 <div>
@@ -373,13 +378,13 @@ export function UsersTable({
                           : ""
                       }`}
                     >
-                      {viewUser.status}
+                      {viewUser.status || "Inactive"}
                     </Badge>
                   </div>
                 </div>
                 <div>
                   <span className="text-xs text-muted-foreground">Last Signed In:</span>
-                  <div className="text-xs">{viewUser.lastActive}</div>
+                  <div className="text-xs">{viewUser.lastActive || "Never"}</div>
                 </div>
                 <div>
                   <span className="text-xs text-muted-foreground">User ID:</span>

@@ -30,7 +30,7 @@ export class ProductRepository {
         *,
         category:categories(id, name),
         brand:brands(id, name),
-        variants:variants(*),
+        variants:variants(*, inventory_levels(quantity_available)),
         media:product_media(*),
         seo:product_seo(*),
         tags:product_tags(tag:tags(*))
@@ -59,18 +59,35 @@ export class ProductRepository {
 
     if (error) throw error;
 
-    const mappedProducts = data?.map((p: any) => ({
-      ...p,
-      basePrice: p.base_price,
-      costPrice: p.cost_price,
-      salePrice: p.sale_price,
-      shortDescription: p.short_description,
-      categoryId: p.category_id,
-      brandId: p.brand_id,
-      isFeatured: p.is_featured,
-      createdAt: p.created_at,
-      updatedAt: p.updated_at,
-    })) || [];
+    const mappedProducts = data?.map((p: any) => {
+      let totalStock = 0;
+      const variants = (p.variants || []).map((v: any) => {
+        const vStock = (v.inventory_levels || []).reduce(
+          (sum: number, lvl: any) => sum + (lvl.quantity_available || 0),
+          0
+        );
+        totalStock += vStock;
+        return {
+          ...v,
+          stockQuantity: vStock,
+        };
+      });
+
+      return {
+        ...p,
+        basePrice: p.base_price,
+        costPrice: p.cost_price,
+        salePrice: p.sale_price,
+        shortDescription: p.short_description,
+        categoryId: p.category_id,
+        brandId: p.brand_id,
+        isFeatured: p.is_featured,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
+        variants,
+        stockQuantity: totalStock,
+      };
+    }) || [];
 
     return {
       products: mappedProducts as unknown as Product[],
@@ -272,22 +289,57 @@ export class ProductRepository {
     }
 
     if (variants && variants.length > 0) {
-      const variantInserts = variants.map((v) => ({
-        product_id: productId,
-        sku: v.sku?.trim() || "",
-        barcode: v.barcode && v.barcode.trim() ? v.barcode.trim() : null,
-        price_override: v.priceOverride,
-        sale_price: v.salePrice,
-        weight: v.weight,
-        dimensions: v.dimensions,
-        is_active: v.isActive,
-        attributes: v.attributes,
-      }));
+      const productSlugPrefix = (productData.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+      const baseSkuPrefix = (productData.sku?.trim() || productSlugPrefix).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+
+      const candidateSkus = variants.map((v, idx) => {
+        let sku = v.sku?.trim();
+        if (!sku) {
+          const attrVal = v.attributes ? Object.values(v.attributes)[0] : null;
+          const attrClean = attrVal ? String(attrVal).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6) : `V${idx + 1}`;
+          sku = `${baseSkuPrefix}-${attrClean}`;
+        }
+        return sku;
+      });
+
+      // Check against existing SKUs in DB
+      const { data: existingDbVariants } = await supabase
+        .from("variants")
+        .select("sku")
+        .in("sku", candidateSkus);
+      const existingSet = new Set((existingDbVariants || []).map((r: any) => r.sku));
+
+      const usedInBatch = new Set<string>();
+      const finalVariants = variants.map((v, idx) => {
+        let sku = candidateSkus[idx];
+        let disambiguator = 1;
+        while (usedInBatch.has(sku) || existingSet.has(sku)) {
+          sku = `${candidateSkus[idx]}-${Date.now().toString().slice(-3)}${disambiguator++}`;
+        }
+        usedInBatch.add(sku);
+
+        return {
+          product_id: productId,
+          sku,
+          barcode: v.barcode && v.barcode.trim() ? v.barcode.trim() : null,
+          price_override: v.priceOverride,
+          sale_price: v.salePrice,
+          weight: v.weight,
+          dimensions: v.dimensions,
+          is_active: v.isActive,
+          attributes: v.attributes,
+        };
+      });
+
       const { data: createdVariants, error: variantsError } = await supabase
         .from("variants")
-        .insert(variantInserts)
+        .insert(finalVariants)
         .select("id, sku");
-      if (variantsError) throw new Error(`Failed to create product variants: ${variantsError.message}`);
+
+      if (variantsError) {
+        await supabase.from("products").update({ deleted_at: new Date().toISOString(), status: "ARCHIVED" }).eq("id", productId);
+        throw new Error(`Failed to create product variants: ${variantsError.message}`);
+      }
 
       if (createdVariants && createdVariants.length > 0 && defaultWarehouseId) {
         const inventoryInserts = createdVariants.map((cv, idx) => ({
@@ -301,9 +353,16 @@ export class ProductRepository {
       }
     } else {
       // Simple product without variants: create a default variant linked to inventory_levels
-      const defaultSku =
-        productData.sku?.trim() ||
-        `${(productData.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)}-DEFAULT`;
+      const productSlugPrefix = (productData.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+      let defaultSku = productData.sku?.trim()
+        ? `${productData.sku.trim().toUpperCase()}-DEF`
+        : `${productSlugPrefix}-DEF-${Date.now().toString().slice(-4)}`;
+
+      const { data: existingDef } = await supabase.from("variants").select("id").eq("sku", defaultSku).maybeSingle();
+      if (existingDef) {
+        defaultSku = `${defaultSku}-${Date.now().toString().slice(-3)}`;
+      }
+
       const { data: defaultVariant, error: defaultVariantErr } = await supabase
         .from("variants")
         .insert({
@@ -318,7 +377,12 @@ export class ProductRepository {
         .select("id")
         .single();
 
-      if (!defaultVariantErr && defaultVariant && defaultWarehouseId) {
+      if (defaultVariantErr) {
+        await supabase.from("products").update({ deleted_at: new Date().toISOString(), status: "ARCHIVED" }).eq("id", productId);
+        throw new Error(`Failed to initialize default variant: ${defaultVariantErr.message}`);
+      }
+
+      if (defaultVariant && defaultWarehouseId) {
         await supabase.from("inventory_levels").insert({
           variant_id: defaultVariant.id,
           warehouse_id: defaultWarehouseId,
@@ -491,20 +555,57 @@ export class ProductRepository {
       }
 
       if (variants && variants.length > 0) {
-        const variantInserts = variants.map((v) => ({
-          product_id: id,
-          sku: v.sku?.trim() || "",
-          barcode: v.barcode && v.barcode.trim() ? v.barcode.trim() : null,
-          price_override: v.priceOverride,
-          sale_price: v.salePrice,
-          weight: v.weight,
-          dimensions: v.dimensions,
-          is_active: v.isActive,
-          attributes: v.attributes,
-        }));
+        const { data: currentProduct } = await supabase
+          .from("products")
+          .select("sku, slug, base_price, sale_price, barcode")
+          .eq("id", id)
+          .single();
+
+        const productSlugPrefix = (productData.slug || currentProduct?.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+        const baseSkuPrefix = (productData.sku?.trim() || currentProduct?.sku || productSlugPrefix).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+
+        const candidateSkus = variants.map((v, idx) => {
+          let sku = v.sku?.trim();
+          if (!sku) {
+            const attrVal = v.attributes ? Object.values(v.attributes)[0] : null;
+            const attrClean = attrVal ? String(attrVal).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6) : `V${idx + 1}`;
+            sku = `${baseSkuPrefix}-${attrClean}`;
+          }
+          return sku;
+        });
+
+        // Check against existing SKUs in DB
+        const { data: existingDbVariants } = await supabase
+          .from("variants")
+          .select("sku")
+          .in("sku", candidateSkus);
+        const existingSet = new Set((existingDbVariants || []).map((r: any) => r.sku));
+
+        const usedInBatch = new Set<string>();
+        const finalVariants = variants.map((v, idx) => {
+          let sku = candidateSkus[idx];
+          let disambiguator = 1;
+          while (usedInBatch.has(sku) || existingSet.has(sku)) {
+            sku = `${candidateSkus[idx]}-${Date.now().toString().slice(-3)}${disambiguator++}`;
+          }
+          usedInBatch.add(sku);
+
+          return {
+            product_id: id,
+            sku,
+            barcode: v.barcode && v.barcode.trim() ? v.barcode.trim() : null,
+            price_override: v.priceOverride,
+            sale_price: v.salePrice,
+            weight: v.weight,
+            dimensions: v.dimensions,
+            is_active: v.isActive,
+            attributes: v.attributes,
+          };
+        });
+
         const { data: createdVariants, error: insertVariantsError } = await supabase
           .from("variants")
-          .insert(variantInserts)
+          .insert(finalVariants)
           .select("id, sku");
         if (insertVariantsError) throw new Error(`Failed to insert new product variants: ${insertVariantsError.message}`);
 
@@ -526,10 +627,17 @@ export class ProductRepository {
           .eq("id", id)
           .single();
 
-        const defaultSku =
-          productData.sku?.trim() ||
-          currentProduct?.sku ||
-          `${(currentProduct?.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10)}-DEFAULT`;
+        const productSlugPrefix = (productData.slug || currentProduct?.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+        let defaultSku = productData.sku?.trim()
+          ? `${productData.sku.trim().toUpperCase()}-DEF`
+          : currentProduct?.sku
+            ? `${currentProduct.sku.trim().toUpperCase()}-DEF`
+            : `${productSlugPrefix}-DEF-${Date.now().toString().slice(-4)}`;
+
+        const { data: existingDef } = await supabase.from("variants").select("id").eq("sku", defaultSku).maybeSingle();
+        if (existingDef) {
+          defaultSku = `${defaultSku}-${Date.now().toString().slice(-3)}`;
+        }
 
         const { data: defaultVariant, error: defaultVariantErr } = await supabase
           .from("variants")
@@ -545,7 +653,11 @@ export class ProductRepository {
           .select("id")
           .single();
 
-        if (!defaultVariantErr && defaultVariant && defaultWarehouseId) {
+        if (defaultVariantErr) {
+          throw new Error(`Failed to initialize default variant on update: ${defaultVariantErr.message}`);
+        }
+
+        if (defaultVariant && defaultWarehouseId) {
           await supabase.from("inventory_levels").insert({
             variant_id: defaultVariant.id,
             warehouse_id: defaultWarehouseId,

@@ -108,6 +108,7 @@ export function OrderSummary() {
                   src={image}
                   alt={item.product?.title || ""}
                   fill
+                  sizes="64px"
                   className="object-cover"
                 />
                 <div className="absolute -right-2 -top-2 z-10 flex h-5 w-5 items-center justify-center rounded-full bg-slate-500 text-xs text-white">

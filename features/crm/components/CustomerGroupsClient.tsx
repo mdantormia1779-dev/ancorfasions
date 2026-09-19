@@ -1,15 +1,19 @@
 "use client";
 
-import { useState, useMemo, useTransition } from "react";
+import { useState, useMemo, useTransition, useEffect } from "react";
 import {
   Search,
   Users,
   Trash2,
   Edit2,
   Loader2,
-  X,
   ExternalLink,
-  ShieldCheck,
+  Plus,
+  UserPlus,
+  UserMinus,
+  Sparkles,
+  Layers,
+  CheckCircle2,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -25,6 +29,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -39,6 +44,9 @@ import {
   deleteGroupAction,
   getGroupMembersAction,
   updateGroupAction,
+  addMemberToGroupAction,
+  removeMemberFromGroupAction,
+  searchAvailableCustomersAction,
 } from "@/app/actions/crm/groups.actions";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
@@ -64,6 +72,14 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
   const [editIsDynamic, setEditIsDynamic] = useState(false);
   const [isPending, startTransition] = useTransition();
 
+  // Add Member State
+  const [isAddingMember, setIsAddingMember] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState("");
+  const [searchingCustomers, setSearchingCustomers] = useState(false);
+  const [availableCustomers, setAvailableCustomers] = useState<any[]>([]);
+  const [addingCustomerId, setAddingCustomerId] = useState<string | null>(null);
+  const [removingCustomerId, setRemovingCustomerId] = useState<string | null>(null);
+
   const filtered = useMemo(() => {
     if (!search) return segments;
     const q = search.toLowerCase();
@@ -74,9 +90,20 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
     );
   }, [search, segments]);
 
+  // High-level Stats
+  const dynamicCount = useMemo(() => segments.filter((s) => s.is_dynamic).length, [segments]);
+  const staticCount = useMemo(() => segments.filter((s) => !s.is_dynamic).length, [segments]);
+  const totalAudience = useMemo(
+    () => segments.reduce((acc, s) => acc + (Number(s.member_count) || 0), 0),
+    [segments]
+  );
+
   const handleOpenView = async (group: any) => {
     setViewingGroup(group);
     setIsEditing(false);
+    setIsAddingMember(false);
+    setCustomerSearch("");
+    setAvailableCustomers([]);
     setEditName(group.name || "");
     setEditDescription(group.description || "");
     setEditIsDynamic(!!group.is_dynamic);
@@ -93,6 +120,58 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
       setMembers([]);
     } finally {
       setLoadingMembers(false);
+    }
+  };
+
+  // Search candidate customers to add to group
+  useEffect(() => {
+    if (!isAddingMember) return;
+    const timer = setTimeout(async () => {
+      setSearchingCustomers(true);
+      try {
+        const memberIds = members.map((m) => m.id);
+        const res = await searchAvailableCustomersAction(customerSearch, memberIds);
+        if (res.success) {
+          setAvailableCustomers(res.data || []);
+        }
+      } catch (err) {
+        console.error("Error searching customers:", err);
+      } finally {
+        setSearchingCustomers(false);
+      }
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [customerSearch, isAddingMember, members]);
+
+  const handleAddMember = async (customer: any) => {
+    if (!viewingGroup) return;
+    setAddingCustomerId(customer.id);
+    const res = await addMemberToGroupAction(viewingGroup.id, customer.id);
+    setAddingCustomerId(null);
+
+    if (res.success) {
+      toast.success(`${customer.first_name || "Customer"} added to group`);
+      setMembers((prev) => [customer, ...prev]);
+      setAvailableCustomers((prev) => prev.filter((c) => c.id !== customer.id));
+      router.refresh();
+    } else {
+      toast.error(res.error || "Failed to add customer");
+    }
+  };
+
+  const handleRemoveMember = async (customer: any) => {
+    if (!viewingGroup) return;
+    setRemovingCustomerId(customer.id);
+    const res = await removeMemberFromGroupAction(viewingGroup.id, customer.id);
+    setRemovingCustomerId(null);
+
+    if (res.success) {
+      toast.success(`${customer.first_name || "Customer"} removed from group`);
+      setMembers((prev) => prev.filter((m) => m.id !== customer.id));
+      router.refresh();
+    } else {
+      toast.error(res.error || "Failed to remove customer");
     }
   };
 
@@ -144,12 +223,13 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
   };
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
+    <div className="flex-1 space-y-6 p-4 sm:p-8 pt-6">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Customer Groups</h2>
+          <h2 className="text-3xl font-bold tracking-tight">Customer Groups & Segments</h2>
           <p className="text-muted-foreground text-sm mt-1">
-            Manage customer segments, targeted groups, and loyalty audiences.
+            Build targeted cohorts, automated lifecycle audiences, and loyalty campaign segments.
           </p>
         </div>
         <div className="flex items-center space-x-2">
@@ -157,12 +237,68 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
         </div>
       </div>
 
+      {/* Summary KPI Cards */}
+      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+        <Card className="shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Total Groups
+            </CardTitle>
+            <Layers className="h-4 w-4 text-primary" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{segments.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Configured segments</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Dynamic Segments
+            </CardTitle>
+            <Sparkles className="h-4 w-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-600">{dynamicCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Auto-updated by criteria</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Static Cohorts
+            </CardTitle>
+            <Users className="h-4 w-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{staticCount}</div>
+            <p className="text-xs text-muted-foreground mt-1">Manually curated lists</p>
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-xs">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Segment Audience
+            </CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-amber-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-amber-600">{totalAudience.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground mt-1">Members across groups</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Filter / Search Bar */}
       <div className="flex items-center gap-2">
         <div className="relative w-full max-w-sm">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             type="search"
-            placeholder="Search groups..."
+            placeholder="Search groups or descriptions..."
             className="w-full bg-card pl-8"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -170,55 +306,76 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
         </div>
       </div>
 
-      <div className="rounded-md border bg-card text-card-foreground">
+      {/* Groups Table */}
+      <div className="rounded-lg border bg-card shadow-xs overflow-hidden">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead>Group Name</TableHead>
-              <TableHead>Description</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+            <TableRow className="bg-muted/40 hover:bg-muted/40">
+              <TableHead className="w-[280px]">Group Name</TableHead>
+              <TableHead>Targeting Description</TableHead>
+              <TableHead className="w-[150px]">Type</TableHead>
+              <TableHead className="w-[140px] text-center">Audience Size</TableHead>
+              <TableHead className="w-[140px] text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={4} className="h-32 text-center text-muted-foreground">
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <Users className="h-6 w-6 text-muted-foreground/40 mb-1" />
+                <TableCell colSpan={5} className="h-40 text-center text-muted-foreground">
+                  <div className="flex flex-col items-center justify-center gap-2">
+                    <Users className="h-8 w-8 text-muted-foreground/30" />
                     <p className="font-medium text-foreground">
-                      {search ? "No groups match your search." : "No customer groups found."}
+                      {search ? "No groups match your search filter." : "No customer groups found."}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Create your first customer group to begin audience segmenting.
                     </p>
                   </div>
                 </TableCell>
               </TableRow>
             ) : (
               filtered.map((segment) => (
-                <TableRow key={segment.id}>
-                  <TableCell className="font-medium text-foreground">
-                    {segment.name}
+                <TableRow key={segment.id} className="hover:bg-muted/20 transition-colors">
+                  <TableCell>
+                    <div className="font-semibold text-foreground flex items-center gap-2">
+                      {segment.name}
+                    </div>
                   </TableCell>
-                  <TableCell className="max-w-[300px] truncate text-muted-foreground">
+                  <TableCell className="max-w-[340px] text-xs sm:text-sm text-muted-foreground truncate">
                     {segment.description || "—"}
                   </TableCell>
                   <TableCell>
-                    <Badge variant={segment.is_dynamic ? "default" : "secondary"} className="text-xs">
+                    <Badge
+                      variant={segment.is_dynamic ? "default" : "secondary"}
+                      className={`text-xs ${
+                        segment.is_dynamic
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                          : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      }`}
+                    >
                       {segment.is_dynamic ? "Dynamic Segment" : "Static Group"}
                     </Badge>
                   </TableCell>
+                  <TableCell className="text-center">
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-muted text-foreground">
+                      <Users className="h-3 w-3 text-muted-foreground" />
+                      {Number(segment.member_count ?? 0).toLocaleString()}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-2">
+                    <div className="flex items-center justify-end gap-1.5">
                       <Button
                         variant="outline"
                         size="sm"
+                        className="h-8 text-xs font-medium"
                         onClick={() => handleOpenView(segment)}
                       >
-                        View
+                        Manage
                       </Button>
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                         onClick={() => setDeletingGroup(segment)}
                       >
                         <Trash2 className="h-4 w-4" />
@@ -232,32 +389,36 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
         </Table>
       </div>
 
-      {/* View & Edit Group Modal */}
+      {/* View / Manage Members & Edit Modal */}
       <Dialog
         open={!!viewingGroup}
         onOpenChange={(open) => {
           if (!open) {
             setViewingGroup(null);
             setIsEditing(false);
+            setIsAddingMember(false);
           }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between pr-6">
               <DialogTitle className="flex items-center gap-2 text-xl">
                 <Users className="h-5 w-5 text-primary" />
-                {isEditing ? "Edit Group Details" : viewingGroup?.name}
+                {isEditing ? `Edit: ${viewingGroup?.name}` : viewingGroup?.name}
               </DialogTitle>
               {!isEditing && (
-                <Badge variant={viewingGroup?.is_dynamic ? "default" : "secondary"}>
-                  {viewingGroup?.is_dynamic ? "Dynamic" : "Static"}
+                <Badge
+                  variant={viewingGroup?.is_dynamic ? "default" : "secondary"}
+                  className="text-xs"
+                >
+                  {viewingGroup?.is_dynamic ? "Dynamic Sync" : "Static Cohort"}
                 </Badge>
               )}
             </div>
-            {!isEditing && viewingGroup?.description && (
-              <DialogDescription className="text-sm pt-1">
-                {viewingGroup.description}
+            {!isEditing && (
+              <DialogDescription className="text-xs sm:text-sm pt-1">
+                {viewingGroup?.description || "Audience cohort for CRM marketing & analysis."}
               </DialogDescription>
             )}
           </DialogHeader>
@@ -292,7 +453,7 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
                     Dynamic Membership
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Automatically includes customers who match lifecycle or order criteria
+                    Automatically syncs customers based on purchasing activity and lifecycle rules
                   </p>
                 </div>
                 <Switch
@@ -318,38 +479,112 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
               </DialogFooter>
             </div>
           ) : (
-            /* View Details & Member List */
+            /* View Details & Member Management */
             <div className="space-y-4 py-2">
-              <div className="flex items-center justify-between border-b pb-3">
+              {/* Action Bar inside modal */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-foreground">
                     Members ({members.length})
                   </span>
                   <Badge variant="outline" className="text-xs">
-                    {viewingGroup?.is_dynamic ? "Auto-synced" : "Manual assignment"}
+                    {viewingGroup?.is_dynamic ? "Auto-synced cohort" : "Manual assignment"}
                   </Badge>
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
+                    variant="default"
+                    size="sm"
+                    className="h-8 text-xs font-medium"
+                    onClick={() => setIsAddingMember(!isAddingMember)}
+                  >
+                    <UserPlus className="mr-1.5 h-3.5 w-3.5" />
+                    {isAddingMember ? "Close Search" : "Add Member"}
+                  </Button>
+                  <Button
                     variant="outline"
                     size="sm"
+                    className="h-8 text-xs"
                     onClick={() => setIsEditing(true)}
                   >
-                    <Edit2 className="mr-1.5 h-3.5 w-3.5" /> Edit Group
+                    <Edit2 className="mr-1.5 h-3.5 w-3.5" /> Edit
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => {
-                      setDeletingGroup(viewingGroup);
-                    }}
+                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => setDeletingGroup(viewingGroup)}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
                 </div>
               </div>
 
+              {/* Add Member Panel */}
+              {isAddingMember && (
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                      <UserPlus className="h-3.5 w-3.5 text-primary" />
+                      Search & Add Customer to Group
+                    </Label>
+                    <span className="text-[11px] text-muted-foreground">Type name or email</span>
+                  </div>
+
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input
+                      placeholder="Search customers..."
+                      className="h-9 pl-8 text-xs bg-background"
+                      value={customerSearch}
+                      onChange={(e) => setCustomerSearch(e.target.value)}
+                    />
+                  </div>
+
+                  {searchingCustomers ? (
+                    <div className="py-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                      Searching customers...
+                    </div>
+                  ) : availableCustomers.length === 0 ? (
+                    <p className="text-xs text-center text-muted-foreground py-2">
+                      {customerSearch ? "No matching customers found." : "Type a name or email to search."}
+                    </p>
+                  ) : (
+                    <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
+                      {availableCustomers.map((cust) => (
+                        <div
+                          key={cust.id}
+                          className="flex items-center justify-between p-2 rounded-md bg-background border text-xs hover:border-primary/50 transition-colors"
+                        >
+                          <div>
+                            <div className="font-medium text-foreground">
+                              {cust.first_name} {cust.last_name}
+                            </div>
+                            <div className="text-[11px] text-muted-foreground">{cust.email}</div>
+                          </div>
+                          <Button
+                            size="sm"
+                            className="h-7 text-xs"
+                            disabled={addingCustomerId === cust.id}
+                            onClick={() => handleAddMember(cust)}
+                          >
+                            {addingCustomerId === cust.id ? (
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                            ) : (
+                              <>
+                                <Plus className="h-3 w-3 mr-1" /> Add
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Members List */}
               {loadingMembers ? (
                 <div className="py-12 flex flex-col items-center justify-center text-muted-foreground gap-2">
                   <Loader2 className="h-6 w-6 animate-spin text-primary" />
@@ -360,18 +595,18 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
                   <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
                   <p className="font-medium text-foreground">No customer members found</p>
                   <p className="text-xs mt-1">
-                    Customers matching this segment will appear here automatically.
+                    Click &quot;Add Member&quot; above to manually include customers in this group.
                   </p>
                 </div>
               ) : (
                 <div className="rounded-md border overflow-hidden">
                   <Table>
                     <TableHeader>
-                      <TableRow>
+                      <TableRow className="bg-muted/30">
                         <TableHead>Customer</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Phone</TableHead>
-                        <TableHead className="text-right">Action</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -380,7 +615,7 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
                           [member.first_name, member.last_name].filter(Boolean).join(" ") ||
                           "Customer";
                         return (
-                          <TableRow key={member.id}>
+                          <TableRow key={member.id} className="hover:bg-muted/10">
                             <TableCell className="font-medium text-xs sm:text-sm">
                               {name}
                             </TableCell>
@@ -391,11 +626,27 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
                               {member.phone || "—"}
                             </TableCell>
                             <TableCell className="text-right">
-                              <Link href={`/admin/customers/${member.id}`}>
-                                <Button variant="ghost" size="sm" className="h-7 px-2">
-                                  <ExternalLink className="h-3 w-3" />
+                              <div className="flex items-center justify-end gap-1">
+                                <Link href={`/admin/customers/${member.id}`} target="_blank">
+                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="View Customer">
+                                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+                                  </Button>
+                                </Link>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  title="Remove from group"
+                                  disabled={removingCustomerId === member.id}
+                                  onClick={() => handleRemoveMember(member)}
+                                >
+                                  {removingCustomerId === member.id ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                  ) : (
+                                    <UserMinus className="h-3.5 w-3.5" />
+                                  )}
                                 </Button>
-                              </Link>
+                              </div>
                             </TableCell>
                           </TableRow>
                         );

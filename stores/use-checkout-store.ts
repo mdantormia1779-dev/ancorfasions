@@ -19,6 +19,7 @@ interface CheckoutState {
 
   formData: Partial<CheckoutFormValues>;
 
+  setSession: (session: CheckoutSession) => void;
   fetchSession: (cartId: string) => Promise<void>;
   updateStep: (step: CheckoutStep) => Promise<void>;
   setInformation: (data: CheckoutInformationFormValues) => void;
@@ -37,6 +38,29 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
 
   formData: {},
 
+  setSession: (session: CheckoutSession) => {
+    set({
+      session,
+      currentStep: session.current_step || "INFORMATION",
+      formData: {
+        information: {
+          email: session.guest_email || "",
+          shipping_address:
+            session.shipping_address_snapshot || undefined,
+          save_information: false,
+        } as any,
+        shipping: {
+          shipping_method: session.shipping_method || "home_delivery",
+        },
+        payment: {
+          payment_method: session.payment_method || "COD",
+          billing_address_same_as_shipping: true,
+          billing_address: session.billing_address_snapshot || undefined,
+        },
+      },
+    });
+  },
+
   fetchSession: async (cartId: string) => {
     set({ isLoading: true, error: null });
     const res = await fetchCheckoutSessionAction(cartId);
@@ -52,10 +76,10 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
             save_information: false,
           } as any,
           shipping: {
-            shipping_method: res.session.shipping_method || "",
+            shipping_method: res.session.shipping_method || "home_delivery",
           },
           payment: {
-            payment_method: res.session.payment_method || "",
+            payment_method: res.session.payment_method || "COD",
             billing_address_same_as_shipping: true,
             billing_address: res.session.billing_address_snapshot || undefined,
           },
@@ -68,10 +92,13 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
   },
 
   updateStep: async (step: CheckoutStep) => {
+    // 1. Always update local step immediately so user sees step transition!
+    set({ currentStep: step, isLoading: false, error: null });
+
     const { session } = get();
     if (!session) return;
 
-    set({ currentStep: step, isLoading: true, error: null });
+    try {
 
     // Sync with server
     const dataToSync: Partial<CheckoutSession> = {};
@@ -107,12 +134,13 @@ export const useCheckoutStore = create<CheckoutState>((set, get) => ({
       }
     }
 
-    const res = await updateCheckoutStepAction(session.id, step, dataToSync);
+      const res = await updateCheckoutStepAction(session.id, step, dataToSync);
 
-    if (res.success) {
-      set({ session: res.session, isLoading: false });
-    } else {
-      set({ error: res.error, isLoading: false });
+      if (res.success && res.session) {
+        set({ session: res.session });
+      }
+    } catch (syncErr) {
+      console.warn("[useCheckoutStore] Step sync warning:", syncErr);
     }
   },
 

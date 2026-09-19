@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import { BKashService } from "@/lib/services/payment/bkash.service";
 import { SSLCommerzService } from "@/lib/services/payment/sslcommerz.service";
 
@@ -27,13 +27,13 @@ export async function GET(req: Request) {
     );
   }
 
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   try {
     // 1. Fetch the order
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .select(
-        "id, order_number, total_amount, customer_email, customer_name, customer_phone, payment_method, status"
+        "id, order_number, grand_total, customer_id, payment_method, status"
       )
       .eq("id", orderId)
       .single();
@@ -49,6 +49,21 @@ export async function GET(req: Request) {
       );
     }
 
+    // Fetch address details for accurate customer phone, name, email
+    const { data: shippingAddr } = await supabase
+      .from("order_addresses")
+      .select("*")
+      .eq("order_id", order.id)
+      .eq("address_type", "SHIPPING")
+      .maybeSingle();
+
+    const customerName = shippingAddr
+      ? `${shippingAddr.first_name || ""} ${shippingAddr.last_name || ""}`.trim()
+      : "Customer";
+    const customerPhone = shippingAddr?.phone || "";
+    const customerEmail = shippingAddr?.email || "";
+    const totalAmount = Number(order.grand_total) || 0;
+
     // 2. Only process if the order is in PENDING_PAYMENT state
     if (order.status !== "PENDING" && order.status !== "PENDING_PAYMENT" && order.status !== "pending_payment") {
       // Already processed, redirect to success
@@ -57,7 +72,10 @@ export async function GET(req: Request) {
       );
     }
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+    const forwardedProto = req.headers.get("x-forwarded-proto") || "http";
+    const forwardedHost = req.headers.get("x-forwarded-host") || req.headers.get("host");
+    const requestOrigin = forwardedHost ? `${forwardedProto}://${forwardedHost}` : new URL(req.url).origin;
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || requestOrigin;
 
     // 3. Special handling for bKash Tokenized Checkout
     if (method.toUpperCase() === "BKASH") {
@@ -79,8 +97,8 @@ export async function GET(req: Request) {
         const paymentData = await BKashService.createPayment({
           orderId: order.id,
           orderNumber: order.order_number,
-          amount: Number(order.total_amount),
-          customerPhone: order.customer_phone,
+          amount: totalAmount,
+          customerPhone: customerPhone,
           callbackUrl: `${appUrl}/api/payment/bkash/callback`,
         });
 
@@ -96,7 +114,7 @@ export async function GET(req: Request) {
         await supabase.from("payment_sessions").insert({
           provider_id: provider?.id || null,
           order_id: order.id,
-          amount: order.total_amount,
+          amount: totalAmount,
           currency: "BDT",
           status: "pending",
           gateway_url: paymentData.bkashURL,
@@ -148,36 +166,22 @@ export async function GET(req: Request) {
       }
 
       try {
-        // Fetch shipping address for accurate customer and delivery details
-        const { data: shippingAddr } = await supabase
-          .from("order_addresses")
-          .select("*")
-          .eq("order_id", order.id)
-          .eq("address_type", "SHIPPING")
-          .maybeSingle();
-
         const tranId = `${order.order_number}-${Date.now().toString().slice(-6)}`;
 
         const paymentData = await SSLCommerzService.initiatePayment({
           orderId: order.id,
           orderNumber: order.order_number,
           tranId,
-          amount: Number(order.total_amount),
+          amount: totalAmount,
           currency: "BDT",
-          customerName:
-            order.customer_name ||
-            (shippingAddr
-              ? `${shippingAddr.first_name || ""} ${shippingAddr.last_name || ""}`.trim()
-              : null),
-          customerEmail: order.customer_email || shippingAddr?.email,
-          customerPhone: order.customer_phone || shippingAddr?.phone,
+          customerName: customerName,
+          customerEmail: customerEmail,
+          customerPhone: customerPhone,
           customerAddress: shippingAddr?.address_line_1,
           customerCity: shippingAddr?.city,
           customerPostcode: shippingAddr?.postal_code,
           customerCountry: shippingAddr?.country || "Bangladesh",
-          shippingName: shippingAddr
-            ? `${shippingAddr.first_name || ""} ${shippingAddr.last_name || ""}`.trim()
-            : null,
+          shippingName: customerName,
           shippingAddress: shippingAddr?.address_line_1,
           shippingCity: shippingAddr?.city,
           shippingPostcode: shippingAddr?.postal_code,
@@ -200,7 +204,7 @@ export async function GET(req: Request) {
         await supabase.from("payment_sessions").insert({
           provider_id: provider?.id || null,
           order_id: order.id,
-          amount: order.total_amount,
+          amount: totalAmount,
           currency: "BDT",
           status: "pending",
           gateway_url: paymentData.GatewayPageURL,
@@ -272,7 +276,7 @@ export async function GET(req: Request) {
             "line_items[0][price_data][currency]": "bdt",
             "line_items[0][price_data][product_data][name]": `Order ${order.order_number}`,
             "line_items[0][price_data][unit_amount]": Math.round(
-              order.total_amount * 100
+              totalAmount * 100
             ).toString(),
             "line_items[0][quantity]": "1",
             mode: "payment",
@@ -322,7 +326,7 @@ export async function GET(req: Request) {
             {
               amount: {
                 currency_code: "USD",
-                value: (order.total_amount / 110).toFixed(2),
+                value: (totalAmount / 110).toFixed(2),
               },
             },
           ],

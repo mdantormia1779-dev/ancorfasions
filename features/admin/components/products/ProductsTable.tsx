@@ -328,6 +328,7 @@ export function ProductsTable({
               </TableHead>
               <TableHead className="font-semibold text-foreground/70">Product</TableHead>
               <TableHead className="font-semibold text-foreground/70">Status</TableHead>
+              <TableHead className="font-semibold text-foreground/70">Stock</TableHead>
               <TableHead className="font-semibold text-foreground/70">Variants</TableHead>
               <TableHead className="font-semibold text-foreground/70">Price</TableHead>
               <TableHead className="font-semibold text-foreground/70">Category</TableHead>
@@ -338,7 +339,7 @@ export function ProductsTable({
           <TableBody>
             {products.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="h-24 text-center">
+                <TableCell colSpan={9} className="h-24 text-center">
                   No products found.
                 </TableCell>
               </TableRow>
@@ -414,6 +415,25 @@ export function ProductsTable({
                           <span className="mr-1.5 h-1.5 w-1.5 rounded-full bg-amber-500 inline-block" />
                           Archived
                         </Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {(product as any).stockQuantity !== undefined ? (
+                        (product as any).stockQuantity > 5 ? (
+                          <span className="inline-flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded">
+                            {(product as any).stockQuantity} in stock
+                          </span>
+                        ) : (product as any).stockQuantity > 0 ? (
+                          <span className="inline-flex items-center text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded">
+                            {(product as any).stockQuantity} low stock
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center text-xs font-semibold text-zinc-600 bg-zinc-100 border border-zinc-200 px-2 py-0.5 rounded">
+                            Out of stock
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-xs text-muted-foreground">-</span>
                       )}
                     </TableCell>
                     <TableCell>

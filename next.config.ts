@@ -78,6 +78,8 @@ const nextConfig: NextConfig = {
       { source: "/orders", destination: "/account/orders", permanent: true },
       { source: "/login", destination: "/auth/login", permanent: true },
       { source: "/register", destination: "/auth/register", permanent: true },
+      { source: "/forgot-password", destination: "/auth/forgot-password", permanent: true },
+      { source: "/reset-password", destination: "/auth/reset-password", permanent: true },
     ];
   },
 };

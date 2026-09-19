@@ -3,24 +3,22 @@ import { SEOService } from "@/services/seo.service";
 
 vi.mock("@/repositories/seo.repository", () => {
   return {
-    SEORepository: vi.fn().mockImplementation(() => {
-      return {
-        getMetadataByEntity: vi
-          .fn()
-          .mockResolvedValue({
-            id: "1",
-            title: "SEO Title",
-            entity_type: "page",
-          }),
-        upsertMetadata: vi
-          .fn()
-          .mockResolvedValue({
-            id: "1",
-            title: "New Title",
-            entity_type: "page",
-          }),
-      };
-    }),
+    SEORepository: class {
+      getMetadataByEntity = vi
+        .fn()
+        .mockResolvedValue({
+          id: "1",
+          title: "SEO Title",
+          entity_type: "page",
+        });
+      upsertMetadata = vi
+        .fn()
+        .mockResolvedValue({
+          id: "1",
+          title: "New Title",
+          entity_type: "page",
+        });
+    },
   };
 });
 

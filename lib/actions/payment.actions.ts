@@ -17,7 +17,10 @@ export type PaymentGatewayConfig = {
   enabled: boolean;
   store_id?: string;
   store_password?: string;
+  store_pass?: string;
+  store_passwd?: string;
   sandbox?: boolean;
+  is_sandbox?: boolean;
   account_number?: string;
   account_type?: "Personal" | "Merchant" | "Agent" | string;
   instructions?: string;
@@ -104,7 +107,33 @@ export async function getAllPaymentConfigs(): Promise<AllPaymentConfigs> {
       data.forEach((row: any) => {
         const gw = row.key.replace("payment_", "") as PaymentGatewayType;
         if (result[gw]) {
-          result[gw] = { ...result[gw], ...row.value };
+          const val = row.value || {};
+          if (gw === "sslcommerz") {
+            const pass = (
+              val.store_password ||
+              val.store_pass ||
+              val.store_passwd ||
+              ""
+            ).toString().trim();
+            const isSandbox =
+              val.sandbox !== undefined
+                ? val.sandbox === true || val.sandbox === "true"
+                : val.is_sandbox !== undefined
+                ? val.is_sandbox === true || val.is_sandbox === "true"
+                : true;
+            result[gw] = {
+              ...result[gw],
+              ...val,
+              store_id: (val.store_id || "").toString().trim(),
+              store_password: pass,
+              store_pass: pass,
+              store_passwd: pass,
+              sandbox: isSandbox,
+              is_sandbox: isSandbox,
+            };
+          } else {
+            result[gw] = { ...result[gw], ...val };
+          }
         }
       });
     }
@@ -123,10 +152,36 @@ export async function updatePaymentConfig(
     await verifySuperAdmin().catch(() => null); // Enforce role access if configured
     const supabase = createAdminClient();
 
+    let normalizedConfig: Record<string, any> = { ...config };
+    if (gateway === "sslcommerz") {
+      const pass = (
+        config.store_password ||
+        config.store_pass ||
+        config.store_passwd ||
+        ""
+      ).toString().trim();
+      const isSandbox =
+        config.sandbox !== undefined
+          ? Boolean(config.sandbox)
+          : config.is_sandbox !== undefined
+          ? Boolean(config.is_sandbox)
+          : true;
+
+      normalizedConfig = {
+        ...config,
+        store_id: (config.store_id || "").toString().trim(),
+        store_password: pass,
+        store_pass: pass,
+        store_passwd: pass,
+        sandbox: isSandbox,
+        is_sandbox: isSandbox,
+      };
+    }
+
     const { error } = await supabase.from("settings").upsert(
       {
         key: `payment_${gateway}`,
-        value: config as any,
+        value: normalizedConfig as any,
         description: `${gateway.toUpperCase()} Configuration`,
       },
       { onConflict: "key" }
@@ -135,6 +190,7 @@ export async function updatePaymentConfig(
     if (error) throw error;
 
     revalidatePath("/admin/settings/payment");
+    revalidatePath("/admin/payments/providers");
     revalidatePath("/checkout");
     return { success: true };
   } catch (error: any) {

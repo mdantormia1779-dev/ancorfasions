@@ -3,16 +3,14 @@ import { MarketingService } from "@/services/marketing.service";
 
 vi.mock("@/repositories/marketing.repository", () => {
   return {
-    MarketingRepository: vi.fn().mockImplementation(() => {
-      return {
-        getCampaigns: vi
-          .fn()
-          .mockResolvedValue([{ id: "1", name: "Summer Sale", type: "email" }]),
-        createCampaign: vi
-          .fn()
-          .mockResolvedValue({ id: "2", name: "Winter Promo", type: "sms" }),
-      };
-    }),
+    MarketingRepository: class {
+      getCampaigns = vi
+        .fn()
+        .mockResolvedValue([{ id: "1", name: "Summer Sale", type: "email" }]);
+      createCampaign = vi
+        .fn()
+        .mockResolvedValue({ id: "2", name: "Winter Promo", type: "sms" });
+    },
   };
 });
 
