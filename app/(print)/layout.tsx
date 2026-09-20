@@ -11,17 +11,19 @@ export default function PrintLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en">
-      <body className="bg-white text-black antialiased print:bg-white print:m-0 print:p-0">
-        <style dangerouslySetInnerHTML={{ __html: `
+    <div className="bg-white text-black antialiased print:bg-white print:m-0 print:p-0 min-h-screen">
+      <style
+        dangerouslySetInnerHTML={{
+          __html: `
           @page { margin: 0; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #ffffff !important; }
           @media print {
             ::-webkit-scrollbar { display: none; }
           }
-        `}} />
-        {children}
-      </body>
-    </html>
+        `,
+        }}
+      />
+      {children}
+    </div>
   );
 }

@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { STAFF_ROLES } from "@/lib/constants/auth";
 import { ClientBarcode } from "@/components/ui/ClientBarcode";
+import { AutoPrint } from "@/components/print/auto-print";
 
 export default async function AdminPrintPackingSlipPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -65,7 +66,8 @@ export default async function AdminPrintPackingSlipPage(props: { params: Promise
 
   return (
     <div className="w-full bg-white text-slate-900 p-8 sm:p-12 print:p-8 max-w-4xl mx-auto min-h-screen">
-      <script dangerouslySetInnerHTML={{ __html: `window.onload = function() { window.print(); }` }} />
+      {/* Auto-print: window.print() */}
+      <AutoPrint />
 
       {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start pb-6 border-b-2 border-slate-900 gap-6">

@@ -114,6 +114,13 @@ export class OrderService {
       } catch (err) {
         console.error(`[OrderService] Failed to reverse loyalty for order ${id}:`, err);
       }
+    } else if (lowerStatus === "confirmed") {
+      try {
+        const { AlphaSmsService } = await import("@/lib/services/sms/alpha-sms.service");
+        AlphaSmsService.triggerOrderConfirmationSmsAsync(id);
+      } catch (smsErr) {
+        console.error(`[OrderService] Failed to trigger SMS for order ${id}:`, smsErr);
+      }
     }
 
     return updated;
@@ -123,7 +130,7 @@ export class OrderService {
     const order = await this.orderRepo.getOrderById(id, supabaseClient);
     if (!order) return null;
 
-    const items = await this.orderItemsRepo.getOrderItems(id);
+    const items = await this.orderItemsRepo.getOrderItems(order.id, supabaseClient);
 
     // Fetch customer profile details if customer_id exists
     let customer = null;

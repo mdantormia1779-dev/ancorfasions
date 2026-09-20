@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { STAFF_ROLES } from "@/lib/constants/auth";
 import { ClientBarcode } from "@/components/ui/ClientBarcode";
 import { ClientQRCode } from "@/components/ui/ClientQRCode";
+import { AutoPrint } from "@/components/print/auto-print";
 
 export default async function AdminPrintShippingLabelPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
@@ -82,8 +83,9 @@ export default async function AdminPrintShippingLabelPage(props: { params: Promi
   const trackingUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://anchorfashion.com"}/track-order?ref=${trackingNumber}`;
 
   return (
-    <div className="w-full bg-white text-slate-900 p-4 sm:p-8 print:p-0 max-w-[400px] mx-auto min-h-screen flex items-center justify-center">
-      <script dangerouslySetInnerHTML={{ __html: `window.onload = function() { window.print(); }` }} />
+    <div className="w-full bg-white text-slate-900 p-4 sm:p-8 print:p-0 max-w-[400px] mx-auto min-h-screen flex flex-col items-center justify-center">
+      {/* Auto-print: window.print() */}
+      <AutoPrint />
       
       {/* 4x6 Thermal Label Standard size container */}
       <div className="w-[100mm] h-[150mm] border-2 border-black p-4 bg-white flex flex-col relative print:border-none print:w-full print:h-auto overflow-hidden">

@@ -65,13 +65,16 @@ export default function CustomerOrdersPage() {
                     <TableCell>
                       <Badge
                         variant={
-                          order.status === "completed" ||
-                          order.status === "delivered"
+                          order.status?.toLowerCase() === "completed" ||
+                          order.status?.toLowerCase() === "delivered"
                             ? "default"
+                            : order.status?.toLowerCase() === "cancelled"
+                            ? "destructive"
                             : "secondary"
                         }
+                        className="capitalize"
                       >
-                        {order.status.replace("_", " ")}
+                        {(order.status || "pending").replace(/_/g, " ")}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">

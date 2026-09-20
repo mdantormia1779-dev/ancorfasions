@@ -53,8 +53,6 @@ export function CheckoutForm({
     setPayment,
   } = useCheckoutStore();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [calculatedShippingFee, setCalculatedShippingFee] = useState<number | null>(null);
-  const [isCalculatingShipping, setIsCalculatingShipping] = useState(false);
 
   // COD Fraud Shield OTP Verification states
   const [showOtpDialog, setShowOtpDialog] = useState(false);
@@ -115,32 +113,6 @@ export function CheckoutForm({
   );
   const activeStep = currentStep === "COMPLETED" ? "REVIEW" : currentStep;
 
-  const calculateShippingForCity = useCallback(async (city: string, method: string) => {
-    if (!city) return;
-    setIsCalculatingShipping(true);
-    try {
-      const isCOD = form.getValues("payment.payment_method") === "COD";
-      const cartTotal = (cart?.items || []).reduce((total, item) => {
-        const price = item.variant?.sale_price || item.variant?.price || item.product?.sale_price || item.product?.price || 0;
-        return total + price * item.quantity;
-      }, 0);
-      const res = await fetch(
-        `/api/shipping/rates?district=${encodeURIComponent(city)}&city=${encodeURIComponent(city)}&weightKg=0.5&orderValue=${cartTotal}&isCOD=${isCOD}`
-      );
-      const json = await res.json();
-      if (json.success && json.data?.total != null) {
-        setCalculatedShippingFee(json.data.total);
-      } else {
-        // Fallback to local defaults when DB has no zone configured
-        setCalculatedShippingFee(method === "home_delivery" ? 100 : 150);
-      }
-    } catch {
-      setCalculatedShippingFee(method === "home_delivery" ? 100 : 150);
-    } finally {
-      setIsCalculatingShipping(false);
-    }
-  }, [cart?.items, form]);
-
   const handleNextStep = async (
     step: "INFORMATION" | "SHIPPING" | "PAYMENT" | "REVIEW"
   ) => {
@@ -164,7 +136,6 @@ export function CheckoutForm({
 
         setInformation(form.getValues("information"));
         setShipping({ shipping_method: methodToSet });
-        await calculateShippingForCity(city, methodToSet);
         updateStep("SHIPPING");
       } else if (step === "PAYMENT") {
         // Ensure shipping method is set
@@ -486,23 +457,19 @@ export function CheckoutForm({
                     }}
                     className="flex flex-col space-y-1"
                   >
-                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4">
+                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 transition-colors hover:border-black hover:bg-gray-50 data-[state=checked]:border-black data-[state=checked]:bg-gray-50">
                       <FormControl>
                         <RadioGroupItem value="home_delivery" />
                       </FormControl>
-                      <div className="flex flex-1 justify-between">
+                      <div className="flex flex-1 justify-between items-center">
                         <div className="flex flex-col">
                           <FormLabel className="cursor-pointer font-medium">
                             Home Delivery (Inside Dhaka)
                           </FormLabel>
                           <span className="text-xs text-gray-500 mt-1">Est. 1-2 business days</span>
                         </div>
-                        <span className="font-medium text-[#1A1A1A]">
-                          {isCalculatingShipping ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            `৳ ${calculatedShippingFee ?? 100}`
-                          )}
+                        <span className="font-semibold text-[#1A1A1A]">
+                          ৳ 100
                         </span>
                       </div>
                     </FormItem>
@@ -510,19 +477,15 @@ export function CheckoutForm({
                       <FormControl>
                         <RadioGroupItem value="home_delivery_outside" />
                       </FormControl>
-                      <div className="flex flex-1 justify-between">
+                      <div className="flex flex-1 justify-between items-center">
                         <div className="flex flex-col">
                           <FormLabel className="cursor-pointer font-medium">
                             Home Delivery (Outside Dhaka)
                           </FormLabel>
                           <span className="text-xs text-gray-500 mt-1">Est. 3-5 business days</span>
                         </div>
-                        <span className="font-medium text-[#1A1A1A]">
-                          {isCalculatingShipping ? (
-                            <Loader2 className="h-4 w-4 animate-spin" />
-                          ) : (
-                            `৳ ${calculatedShippingFee ?? 150}`
-                          )}
+                        <span className="font-semibold text-[#1A1A1A]">
+                          ৳ 150
                         </span>
                       </div>
                     </FormItem>

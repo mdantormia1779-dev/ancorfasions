@@ -60,15 +60,47 @@ export async function getOrderDetailsAction(id: string) {
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
     
-    let clientToUse = supabase;
+    let isStaffOrManager = false;
     if (user) {
-      const role = user.user_metadata?.role || user.app_metadata?.role || "CUSTOMER";
-      if (MANAGER_ROLES.includes(role)) {
-        clientToUse = await createAdminClient();
+      const role = String(user.user_metadata?.role || user.app_metadata?.role || "").toUpperCase();
+      if (
+        (ADMIN_ROLES as readonly string[]).includes(role) ||
+        (MANAGER_ROLES as readonly string[]).includes(role) ||
+        (STAFF_ROLES as readonly string[]).includes(role)
+      ) {
+        isStaffOrManager = true;
+      } else {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("roles(name)")
+          .eq("id", user.id)
+          .maybeSingle();
+        const pRole = String(
+          Array.isArray(profile?.roles)
+            ? profile?.roles[0]?.name
+            : (profile?.roles as any)?.name || ""
+        ).toUpperCase();
+        if (
+          (ADMIN_ROLES as readonly string[]).includes(pRole) ||
+          (MANAGER_ROLES as readonly string[]).includes(pRole) ||
+          (STAFF_ROLES as readonly string[]).includes(pRole)
+        ) {
+          isStaffOrManager = true;
+        }
       }
     }
 
-    const details = await orderService.getOrderDetails(id, clientToUse);
+    const adminClient = await createAdminClient();
+    const details = await orderService.getOrderDetails(id, adminClient);
+    if (!details) {
+      return { success: false, error: "Order not found" };
+    }
+
+    // Authorization: If not staff/manager and order has a customer_id, ensure caller owns it
+    if (!isStaffOrManager && details.customer_id && details.customer_id !== user?.id) {
+      return { success: false, error: "Unauthorized" };
+    }
+
     return { success: true, data: details };
   } catch (error: any) {
     return { success: false, error: error.message };
@@ -78,6 +110,8 @@ export async function getOrderDetailsAction(id: string) {
 export async function fetchOrdersAction(params: {
   customerId?: string;
   status?: any;
+  paymentMethod?: string;
+  paymentStatus?: string;
   search?: string;
   page?: number;
   limit?: number;
@@ -126,6 +160,33 @@ export async function fetchOrdersAction(params: {
   } catch (error: any) {
     console.error("[fetchOrdersAction Error]:", error);
     return { success: false, error: error.message || "Failed to fetch orders" };
+  }
+}
+
+export async function fetchOrderMetricsAction() {
+  try {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+
+    let clientToUse = supabase;
+    if (user) {
+      const role = String(user.user_metadata?.role || user.app_metadata?.role || "").toUpperCase();
+      if (
+        (ADMIN_ROLES as readonly string[]).includes(role) ||
+        (MANAGER_ROLES as readonly string[]).includes(role) ||
+        (STAFF_ROLES as readonly string[]).includes(role)
+      ) {
+        clientToUse = await createAdminClient();
+      }
+    } else {
+      clientToUse = await createAdminClient();
+    }
+
+    const metrics = await orderRepo.getOrderMetrics(clientToUse);
+    return { success: true, data: metrics };
+  } catch (error: any) {
+    console.error("[fetchOrderMetricsAction Error]:", error);
+    return { success: false, error: error.message || "Failed to fetch metrics" };
   }
 }
 

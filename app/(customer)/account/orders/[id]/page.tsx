@@ -1,7 +1,7 @@
 import { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { OrderRepository } from "@/lib/repositories/oms/order.repository";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createAdminClient } from "@/lib/supabase/server";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
@@ -39,8 +39,9 @@ export default async function OrderDetailsPage({
     redirect("/auth/login?redirect=/account/orders");
   }
 
+  const adminSupabase = await createAdminClient();
   const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-  let orderQuery = supabase
+  let orderQuery = adminSupabase
     .from("orders")
     .select(
       `
@@ -62,7 +63,7 @@ export default async function OrderDetailsPage({
     notFound();
   }
 
-  const { data: orderAddresses } = await supabase
+  const { data: orderAddresses } = await adminSupabase
     .from("order_addresses")
     .select("*")
     .eq("order_id", order.id);
@@ -70,14 +71,14 @@ export default async function OrderDetailsPage({
   order.order_addresses = orderAddresses || [];
 
   // Fetch any return requests for this order
-  const { data: orderReturns } = await supabase
+  const { data: orderReturns } = await adminSupabase
     .from("returns")
     .select("*")
     .eq("order_id", order.id)
     .order("created_at", { ascending: false });
 
   // Fetch shipments
-  const { data: shipments } = await supabase
+  const { data: shipments } = await adminSupabase
     .from("shipments")
     .select("*, courier_providers(name, logo_url)")
     .eq("order_id", order.id)
@@ -91,16 +92,8 @@ export default async function OrderDetailsPage({
 
   // Ensure customer can only view their own orders
   if (order.customer_id && order.customer_id !== user.id) {
-    // Check if user is staff/admin
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", user.id)
-      .single();
-
-    const isStaff = ["ADMIN", "MANAGER", "SUPER_ADMIN", "STAFF"].includes(
-      profile?.role?.toUpperCase() || ""
-    );
+    const role = String(user.user_metadata?.role || user.app_metadata?.role || "").toUpperCase();
+    const isStaff = ["SUPERADMIN", "ADMIN", "MANAGER", "STAFF", "SUPPORT"].includes(role);
     if (!isStaff) {
       notFound();
     }
@@ -110,9 +103,17 @@ export default async function OrderDetailsPage({
     (a: any) => a.address_type === "SHIPPING"
   );
 
+  const statusLower = (order.status || "").toLowerCase();
   const isDelivered =
-    order.status?.toUpperCase() === "COMPLETED" ||
-    order.status?.toUpperCase() === "DELIVERED";
+    statusLower === "completed" ||
+    statusLower === "delivered";
+  const isCancelled = statusLower === "cancelled";
+  const canCancel = [
+    "pending",
+    "processing",
+    "pending_payment",
+    "confirmed",
+  ].includes(statusLower);
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 p-6">
@@ -126,15 +127,15 @@ export default async function OrderDetailsPage({
           Order {order.order_number}
         </h1>
         <Badge
-          variant={isDelivered ? "default" : "secondary"}
-          className="text-sm"
+          variant={isDelivered ? "default" : isCancelled ? "destructive" : "secondary"}
+          className="text-sm capitalize"
         >
-          {order.status.replace(/_/g, " ")}
+          {(order.status || "pending").replace(/_/g, " ")}
         </Badge>
         <div className="flex-1"></div>
         <div className="flex items-center gap-2">
           <CustomerOrderInvoiceButton order={order} />
-          {(order.status === "PENDING" || order.status === "PROCESSING" || order.status === "PENDING_PAYMENT" || order.status === "CONFIRMED") && (
+          {canCancel && (
             <CancelOrderDialog orderId={order.id} orderNumber={order.order_number} />
           )}
           {activeReturn ? (
@@ -155,7 +156,7 @@ export default async function OrderDetailsPage({
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <div className="space-y-6 md:col-span-2">
-          {order.status === "CANCELLED" && (
+          {isCancelled && (
             <Card className="border-destructive/50 bg-destructive/5">
               <CardHeader>
                 <CardTitle className="text-destructive">Cancellation Details</CardTitle>
@@ -221,7 +222,7 @@ export default async function OrderDetailsPage({
                           </p>
                         </div>
                         <Badge variant="outline" className="uppercase">
-                          {shipment.status.replace(/_/g, " ")}
+                          {(shipment.status || "pending").replace(/_/g, " ")}
                         </Badge>
                       </div>
                       {shipment.tracking_number && (
@@ -260,22 +261,26 @@ export default async function OrderDetailsPage({
                       new Date(b.created_at).getTime() -
                       new Date(a.created_at).getTime()
                   )
-                  .map((history: any) => (
-                    <div key={history.id} className="flex items-start gap-4">
-                      <div className="mt-2 h-2 w-2 rounded-full bg-slate-400"></div>
-                      <div>
-                        <p className="font-medium">
-                          {history.status.replace(/_/g, " ")}
-                        </p>
-                        <p className="text-sm text-slate-500">
-                          {new Date(history.created_at).toLocaleString()}
-                        </p>
-                        {history.notes && (
-                          <p className="mt-1 text-sm">{history.notes}</p>
-                        )}
+                  .map((history: any) => {
+                    const statusText = history.new_status || history.status || "Status Updated";
+                    const noteText = history.reason || history.notes;
+                    return (
+                      <div key={history.id} className="flex items-start gap-4">
+                        <div className="mt-2 h-2 w-2 rounded-full bg-slate-400"></div>
+                        <div>
+                          <p className="font-medium capitalize">
+                            {String(statusText).replace(/_/g, " ")}
+                          </p>
+                          <p className="text-sm text-slate-500">
+                            {history.created_at ? new Date(history.created_at).toLocaleString() : ""}
+                          </p>
+                          {noteText && (
+                            <p className="mt-1 text-sm text-slate-600">{noteText}</p>
+                          )}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 {(!order.order_status_history ||
                   order.order_status_history.length === 0) && (
                   <p className="text-slate-500">

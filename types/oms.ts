@@ -61,6 +61,13 @@ export interface Order {
   order_source?: string;
   branch_id?: string;
   notes?: string | null;
+  confirmation_sms_sent?: boolean;
+  customer_name?: string | null;
+  customer_phone?: string | null;
+  customer_city?: string | null;
+  items_count?: number;
+  items_preview?: string;
+  shipping_address?: any | null;
 }
 
 export interface OrderItem {

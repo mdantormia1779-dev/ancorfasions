@@ -138,6 +138,7 @@ export interface Order {
   shipping_total?: number;
   discount_total?: number;
   currency?: string;
+  confirmation_sms_sent?: boolean;
 
   risk_level: RiskLevel;
   risk_score?: number;

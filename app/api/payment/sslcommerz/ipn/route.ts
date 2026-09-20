@@ -318,6 +318,14 @@ export async function POST(req: NextRequest) {
       console.error("[SSLCommerz IPN] Cart clear error:", cartErr);
     }
 
+    // Trigger Order Confirmation SMS asynchronously
+    try {
+      const { AlphaSmsService } = await import("@/lib/services/sms/alpha-sms.service");
+      AlphaSmsService.triggerOrderConfirmationSmsAsync(order.id);
+    } catch (smsErr) {
+      console.error("[SSLCommerz IPN] SMS trigger error:", smsErr);
+    }
+
     return NextResponse.json({
       status: "SUCCESS",
       message: "IPN verified and payment processed successfully",

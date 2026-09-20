@@ -409,6 +409,14 @@ async function handleSSLCommerzCallback(req: NextRequest) {
         console.error("[SSLCommerz Callback] Cart clear error:", cartErr);
       }
 
+      // Trigger Order Confirmation SMS asynchronously
+      try {
+        const { AlphaSmsService } = await import("@/lib/services/sms/alpha-sms.service");
+        AlphaSmsService.triggerOrderConfirmationSmsAsync(order.id);
+      } catch (smsErr) {
+        console.error("[SSLCommerz Callback] SMS trigger error:", smsErr);
+      }
+
       return NextResponse.redirect(
         new URL(`/checkout/success?order_id=${order.id}&trxID=${confirmedTrxId}`, appUrl),
         303

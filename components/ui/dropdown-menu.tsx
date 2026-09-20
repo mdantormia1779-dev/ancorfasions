@@ -106,22 +106,36 @@ function DropdownMenuItem({
   className,
   inset,
   variant = "default",
+  children,
+  render,
+  asChild,
   ...props
 }: MenuPrimitive.Item.Props & {
   inset?: boolean;
   variant?: "default" | "destructive";
+  asChild?: boolean;
 }) {
+  const effectiveRender =
+    render !== undefined
+      ? render
+      : asChild && React.isValidElement(children)
+        ? (children as React.ReactElement)
+        : undefined;
+
   return (
     <MenuPrimitive.Item
       data-slot="dropdown-menu-item"
       data-inset={inset}
       data-variant={variant}
+      render={effectiveRender}
       className={cn(
         "group/dropdown-menu-item outline-hidden not-data-[variant=destructive]:focus:**:text-accent-foreground data-inset:pl-7 data-disabled:pointer-events-none data-disabled:opacity-50 data-[variant=destructive]:*:[svg]:text-destructive relative flex cursor-default select-none items-center gap-1.5 rounded-md px-1.5 py-1 text-sm focus:bg-accent focus:text-accent-foreground data-[variant=destructive]:text-destructive data-[variant=destructive]:focus:bg-destructive/10 data-[variant=destructive]:focus:text-destructive dark:data-[variant=destructive]:focus:bg-destructive/20 [&_svg:not([class*='size-'])]:size-4 [&_svg]:pointer-events-none [&_svg]:shrink-0",
         className
       )}
       {...props}
-    />
+    >
+      {effectiveRender ? null : children}
+    </MenuPrimitive.Item>
   );
 }
 

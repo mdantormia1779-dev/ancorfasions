@@ -359,6 +359,14 @@ export async function approveManualPaymentAction(
       is_customer_visible: true,
     });
 
+    // 5. Trigger Order Confirmation SMS asynchronously
+    try {
+      const { AlphaSmsService } = await import("@/lib/services/sms/alpha-sms.service");
+      AlphaSmsService.triggerOrderConfirmationSmsAsync(orderId);
+    } catch (smsErr) {
+      console.error("[Manual Payment Approval] SMS trigger error:", smsErr);
+    }
+
     revalidatePath(`/admin/orders/${orderId}`);
     revalidatePath("/admin/orders");
     revalidatePath("/admin/finance/manual-payments");

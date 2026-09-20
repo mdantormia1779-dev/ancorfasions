@@ -22,6 +22,7 @@ import {
   approveManualPaymentAction,
   rejectManualPaymentAction,
 } from "@/lib/actions/payment.actions";
+import { OrderSmsCard } from "@/components/admin/orders/order-sms-card";
 import {
   Printer,
   FileText,
@@ -639,6 +640,13 @@ export default function AdminOrderDetailsPage() {
               </div>
             </CardContent>
           </Card>
+
+          {/* SMS Notification Card (Alpha SMS) */}
+          <OrderSmsCard
+            orderId={order.id}
+            orderStatus={order.status}
+            customerPhone={shipping?.phone || customer?.phone}
+          />
 
           {/* Real Customer Details Card */}
           <Card>

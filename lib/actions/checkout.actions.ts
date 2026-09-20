@@ -295,6 +295,15 @@ export async function processCheckoutAction(
       );
     }
 
+    // 7. If Cash on Delivery (COD), order is immediately confirmed -> Trigger confirmation SMS asynchronously
+    if (
+      order.payment_method === "COD" &&
+      ((order.status as string) === "confirmed" || (order.status as string) === "CONFIRMED")
+    ) {
+      const { AlphaSmsService } = await import("@/lib/services/sms/alpha-sms.service");
+      AlphaSmsService.triggerOrderConfirmationSmsAsync(order.id);
+    }
+
     return {
       success: true,
       orderId: order.id,
