@@ -2,6 +2,7 @@
 
 import * as React from "react";
 import { Menu as MenuPrimitive } from "@base-ui/react/menu";
+import { Slot } from "@radix-ui/react-slot";
 
 import { cn } from "@/lib/utils";
 import { ChevronRightIcon, CheckIcon } from "lucide-react";
@@ -85,12 +86,15 @@ function DropdownMenuGroup({ ...props }: MenuPrimitive.Group.Props) {
 function DropdownMenuLabel({
   className,
   inset,
+  asChild = false,
   ...props
-}: MenuPrimitive.GroupLabel.Props & {
+}: React.ComponentProps<"div"> & {
   inset?: boolean;
+  asChild?: boolean;
 }) {
+  const Comp = asChild ? Slot : "div";
   return (
-    <MenuPrimitive.GroupLabel
+    <Comp
       data-slot="dropdown-menu-label"
       data-inset={inset}
       className={cn(

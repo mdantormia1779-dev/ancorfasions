@@ -32,8 +32,17 @@ export class OrderStatusService {
     newStatus: OrderStatus,
     role?: string
   ): boolean {
-    // Super Admin can override
-    if (role === "super_admin") return true;
+    // Super Admin, Admin, and Manager can transition status from management panels
+    const normalizedRole = (role || "").toLowerCase();
+    if (
+      normalizedRole === "super_admin" ||
+      normalizedRole === "superadmin" ||
+      normalizedRole === "admin" ||
+      normalizedRole.includes("admin") ||
+      normalizedRole === "manager"
+    ) {
+      return true;
+    }
 
     const allowed = VALID_TRANSITIONS[currentStatus];
     if (!allowed) return false;

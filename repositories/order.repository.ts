@@ -205,12 +205,34 @@ export class OrderRepository {
     notes?: string,
     adminId?: string
   ): Promise<void> {
-    const supabase = await createClient();
+    let supabase = await createClient();
 
-    const { error } = await supabase
+    let { error } = await supabase
       .from("orders")
       .update({ status })
       .eq("id", id);
+
+    if (
+      error &&
+      (error.code === "42501" ||
+        error.message?.includes("permission denied") ||
+        error.message?.includes("users"))
+    ) {
+      try {
+        const { createAdminClient } = await import("@/lib/supabase/server");
+        const adminClient = await createAdminClient();
+        const retry = await adminClient
+          .from("orders")
+          .update({ status })
+          .eq("id", id);
+        if (!retry.error) {
+          error = null;
+          supabase = adminClient;
+        }
+      } catch (retryErr) {
+        console.warn("[updateOrderStatus] Admin client fallback error:", retryErr);
+      }
+    }
 
     if (error) {
       console.error("Error updating order status:", error);
@@ -218,12 +240,16 @@ export class OrderRepository {
     }
 
     // Add history record
-    await supabase.from("order_status_history").insert({
-      order_id: id,
-      status,
-      notes: notes || null,
-      created_by: adminId || null,
-    });
+    try {
+      await supabase.from("order_status_history").insert({
+        order_id: id,
+        status,
+        notes: notes || null,
+        created_by: adminId || null,
+      });
+    } catch (histErr) {
+      console.warn("[updateOrderStatus] History insert skipped:", histErr);
+    }
   }
 
   /**

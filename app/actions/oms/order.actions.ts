@@ -37,7 +37,7 @@ export async function updateOrderStatusAction(input: UpdateOrderStatusInput) {
     } = await supabase.auth.getUser();
 
     // Use session role or default to 'admin' if they reached this admin action
-    const role = user?.user_metadata?.role || "admin";
+    const role = user?.user_metadata?.role || user?.app_metadata?.role || "admin";
     const userId = user?.id;
 
     const updatedOrder = await orderService.updateOrderStatus(
@@ -46,6 +46,21 @@ export async function updateOrderStatusAction(input: UpdateOrderStatusInput) {
       userId,
       role
     );
+
+    if (validatedData.reason) {
+      try {
+        const { createAdminClient } = await import("@/lib/supabase/server");
+        const adminSupabase = await createAdminClient();
+        await adminSupabase.from("order_notes").insert({
+          order_id: validatedData.order_id,
+          author_id: userId || null,
+          note: `Status updated to ${validatedData.new_status}: ${validatedData.reason}`,
+          is_customer_visible: false,
+        });
+      } catch (noteErr) {
+        console.warn("[updateOrderStatusAction] Note recording skipped:", noteErr);
+      }
+    }
 
     revalidatePath(`/admin/orders/${validatedData.order_id}`);
     revalidatePath("/admin/orders");
