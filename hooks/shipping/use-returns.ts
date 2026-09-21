@@ -155,6 +155,33 @@ export function useProcessReturnRefund() {
   });
 }
 
+export function useResolveReturnRefund() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      returnId,
+      refundMethod,
+      note,
+    }: {
+      returnId: string;
+      refundMethod?: "WALLET" | "MANUAL_BANK" | "MANUAL_CASH" | "GATEWAY_CONFIRMED";
+      note?: string;
+    }) => {
+      const { resolveReturnRefundAction } = await import(
+        "@/actions/returns.actions"
+      );
+      const res = await resolveReturnRefundAction(returnId, { refundMethod, note });
+      if (!res.success) throw new Error(res.error);
+      return res.data;
+    },
+    onSuccess: (_, { returnId }) => {
+      qc.invalidateQueries({ queryKey: returnKeys.all });
+      qc.invalidateQueries({ queryKey: returnKeys.detail(returnId) });
+      qc.invalidateQueries({ queryKey: ["customer", "returns"] });
+    },
+  });
+}
+
 // ============================================================================
 // Customer Self-Service Hooks
 // ============================================================================

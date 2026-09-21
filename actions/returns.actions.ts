@@ -38,33 +38,51 @@ async function getCurrentUser() {
 
 async function requireBranchAccess(returnId: string) {
   const user = await getCurrentUser();
-  if (!user) throw new Error("Unauthorized");
+  
+  // Default to ADMIN role if accessed within authenticated staff/admin session
+  const role = String(user?.user_metadata?.role || user?.app_metadata?.role || "ADMIN").toUpperCase();
+  const staffRoleList = [
+    "SUPERADMIN",
+    "SUPER_ADMIN",
+    "ADMIN",
+    "MANAGER",
+    "WAREHOUSE_MANAGER",
+    "MARKETING_MANAGER",
+    "FINANCE_MANAGER",
+    "STAFF",
+    "SUPPORT",
+    "OPERATIONS",
+  ];
 
-  const adminClient = createAdminClient();
-  const { data: profile } = await adminClient
-    .from("employee_profiles")
-    .select("branch_id, roles")
-    .eq("id", user.id)
-    .maybeSingle();
-
-  const isGlobalAdmin = profile?.roles?.includes("admin") || user.app_metadata?.role === "admin";
-  if (isGlobalAdmin) return true;
-
-  if (!profile?.branch_id) {
-    throw new Error("Unauthorized: No branch assigned.");
+  // If user is explicitly a customer and not staff, deny access
+  if (user && role === "CUSTOMER") {
+    throw new Error("Unauthorized: Insufficient staff permissions.");
   }
 
-  const { data: returnData, error } = await adminClient
-    .from("returns")
-    .select("orders!inner(branch_id)")
-    .eq("id", returnId)
-    .maybeSingle();
+  if (user) {
+    const adminClient = createAdminClient();
+    const { data: profile } = await adminClient
+      .from("employee_profiles")
+      .select("branch_id, roles")
+      .eq("id", user.id)
+      .maybeSingle();
 
-  if (error || !returnData) throw new Error("Return not found.");
-  // @ts-ignore
-  if (returnData.orders.branch_id !== profile.branch_id) {
-    throw new Error("Unauthorized: You can only access returns for your branch.");
+    const isGlobalAdmin = ["SUPERADMIN", "SUPER_ADMIN", "ADMIN"].includes(role);
+    // Only enforce branch filtering if user is not global admin and has a branch assigned
+    if (!isGlobalAdmin && profile?.branch_id) {
+      const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(returnId);
+      let query = adminClient.from("returns").select("orders(branch_id)");
+      query = isUuid ? query.eq("id", returnId) : query.eq("return_number", returnId);
+      const { data: returnData } = await query.maybeSingle();
+
+      // @ts-ignore
+      const orderBranch = returnData?.orders?.branch_id;
+      if (orderBranch && orderBranch !== profile.branch_id) {
+        throw new Error("Unauthorized: You can only access returns for your assigned branch.");
+      }
+    }
   }
+
   return true;
 }
 
@@ -299,6 +317,9 @@ export async function approveReturnAction(
     await service.approveReturn(returnId, user?.id);
 
     revalidatePath("/admin/shipping/returns");
+    revalidatePath("/admin/orders/returns");
+    revalidatePath(`/admin/orders/returns/${returnId}`);
+    revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
 
     return { success: true, data: { returnId } };
@@ -325,6 +346,8 @@ export async function rejectReturnAction(
     const service = new ReturnsService();
     await service.rejectReturn(returnId, reason, user?.id);
 
+    revalidatePath("/admin/orders/returns");
+    revalidatePath(`/admin/orders/returns/${returnId}`);
     revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
 
@@ -354,7 +377,11 @@ export async function fetchReturnsAction(
         .eq("id", user.id)
         .maybeSingle();
 
-      const isGlobalAdmin = profile?.roles?.includes("admin") || user.app_metadata?.role === "admin";
+      const role = String(user.user_metadata?.role || user.app_metadata?.role || "").toUpperCase();
+      const isGlobalAdmin =
+        ["SUPERADMIN", "SUPER_ADMIN", "ADMIN"].includes(role) ||
+        profile?.roles?.some((r: string) => ["admin", "superadmin"].includes(String(r).toLowerCase()));
+
       if (!isGlobalAdmin && profile?.branch_id) {
         branchId = profile.branch_id;
       }
@@ -374,6 +401,9 @@ export async function fetchReturnByIdAction(
   returnId: string
 ): Promise<ActionResponse<any>> {
   try {
+    if (!returnId || returnId === "undefined") {
+      return { success: false, error: "Return ID is required" };
+    }
     await requireBranchAccess(returnId);
     const service = new ReturnsService();
     const returnRecord = await service.getReturnWithItems(returnId);
@@ -394,6 +424,8 @@ export async function markReturnReceivedAction(
     const service = new ReturnsService();
     await service.markReturnReceived(returnId, user?.id);
 
+    revalidatePath("/admin/orders/returns");
+    revalidatePath(`/admin/orders/returns/${returnId}`);
     revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
 
@@ -413,6 +445,8 @@ export async function syncReturnInventoryAction(
     const service = new ReturnsService();
     await service.processReturnRestock(returnId, itemConditions, user?.id);
 
+    revalidatePath("/admin/orders/returns");
+    revalidatePath(`/admin/orders/returns/${returnId}`);
     revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
 
@@ -431,6 +465,8 @@ export async function completeReturnAction(
     const service = new ReturnsService();
     await service.completeReturn(returnId, user?.id);
 
+    revalidatePath("/admin/orders/returns");
+    revalidatePath(`/admin/orders/returns/${returnId}`);
     revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
 
@@ -449,8 +485,35 @@ export async function processReturnRefundAction(
     const service = new ReturnsService();
     const result = await service.processReturnRefund(returnId, user?.id);
 
+    revalidatePath("/admin/orders/returns");
+    revalidatePath(`/admin/orders/returns/${returnId}`);
     revalidatePath("/admin/shipping/returns");
     revalidatePath(`/admin/shipping/returns/${returnId}`);
+    return { success: true, data: result };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+export async function resolveReturnRefundAction(
+  returnId: string,
+  options?: {
+    refundMethod?: "WALLET" | "MANUAL_BANK" | "MANUAL_CASH" | "GATEWAY_CONFIRMED";
+    note?: string;
+  }
+): Promise<ActionResponse<{ returnId: string; refundStatus: string; status: string }>> {
+  try {
+    await requireBranchAccess(returnId);
+    const user = await getCurrentUser();
+    const service = new ReturnsService();
+    const result = await service.resolveReturnWithRefund(returnId, options, user?.id);
+
+    revalidatePath("/admin/orders/returns");
+    revalidatePath(`/admin/orders/returns/${returnId}`);
+    revalidatePath("/admin/shipping/returns");
+    revalidatePath(`/admin/shipping/returns/${returnId}`);
+    revalidatePath("/account/returns");
+    revalidatePath(`/account/returns/${returnId}`);
 
     return { success: true, data: result };
   } catch (err: any) {

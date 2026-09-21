@@ -137,11 +137,20 @@ export default async function CRMDashboardPage({
         <CustomerSearch />
       </div>
 
-      <Tabs defaultValue="customers" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="customers">All Customers</TabsTrigger>
-          <TabsTrigger value="segments">Segments</TabsTrigger>
-          <TabsTrigger value="loyalty">Loyalty & Tiers</TabsTrigger>
+      <Tabs defaultValue="customers" className="w-full space-y-4">
+        <TabsList className="grid w-full max-w-md grid-cols-3 bg-slate-100 dark:bg-slate-800 p-1 rounded-lg">
+          <TabsTrigger value="customers" className="flex items-center gap-1.5 font-medium">
+            <Users className="h-4 w-4" />
+            <span>All Customers</span>
+          </TabsTrigger>
+          <TabsTrigger value="segments" className="flex items-center gap-1.5 font-medium">
+            <Filter className="h-4 w-4" />
+            <span>Segments</span>
+          </TabsTrigger>
+          <TabsTrigger value="loyalty" className="flex items-center gap-1.5 font-medium">
+            <Trophy className="h-4 w-4" />
+            <span>Loyalty & Tiers</span>
+          </TabsTrigger>
         </TabsList>
         <TabsContent value="customers" className="space-y-4">
           <Card>
@@ -158,11 +167,19 @@ export default async function CRMDashboardPage({
         </TabsContent>
         <TabsContent value="segments" className="space-y-4">
           <Card>
-            <CardHeader>
-              <CardTitle>Dynamic Segmentation</CardTitle>
-              <CardDescription>
-                Manage AI-driven and rule-based customer segments.
-              </CardDescription>
+            <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 pb-4">
+              <div>
+                <CardTitle className="text-lg font-bold flex items-center gap-2 text-slate-900 dark:text-slate-100">
+                  <Filter className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
+                  Dynamic Customer Segmentation
+                </CardTitle>
+                <CardDescription className="mt-1">
+                  AI-driven and rule-based customer lifecycle groups and retention tracking.
+                </CardDescription>
+              </div>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200/80 dark:bg-indigo-950/50 dark:text-indigo-300 dark:border-indigo-800 w-fit">
+                {(segmentsRes.data || []).length} Active Segments
+              </span>
             </CardHeader>
             <CardContent>
               <CustomerSegmentsTable segments={segmentsRes.data || []} />

@@ -52,13 +52,14 @@ export class ReturnRepository {
     data: Partial<ReturnRequest> & { [key: string]: any }
   ): Promise<ReturnRequest> {
     const supabase = this.getClient();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-    const { data: updated, error } = await supabase
-      .from("returns")
-      .update(data as any)
-      .eq("id", id)
+    let query = supabase.from("returns").update(data as any);
+    query = isUuid ? query.eq("id", id) : query.eq("return_number", id);
+
+    const { data: updated, error } = await query
       .select()
-      .single();
+      .maybeSingle();
 
     if (error) throw new Error(`Update return failed: ${error.message}`);
     return updated as ReturnRequest;
@@ -75,12 +76,21 @@ export class ReturnRepository {
     actorId?: string
   ): Promise<ReturnRequest> {
     const supabase = this.getClient();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     
-    const { data: updated, error } = await supabase
-      .from("returns")
-      .update(data as any)
-      .eq("id", id)
-      .in("status", allowedCurrentStatuses)
+    // Support both lowercase and UPPERCASE to prevent casing mismatches
+    const caseInsensitiveStatuses = Array.from(
+      new Set([
+        ...allowedCurrentStatuses.map((s) => s.toLowerCase()),
+        ...allowedCurrentStatuses.map((s) => s.toUpperCase()),
+      ])
+    );
+    
+    let query = supabase.from("returns").update(data as any);
+    query = isUuid ? query.eq("id", id) : query.eq("return_number", id);
+
+    const { data: updated, error } = await query
+      .in("status", caseInsensitiveStatuses)
       .select()
       .maybeSingle();
 
@@ -88,12 +98,18 @@ export class ReturnRepository {
     if (!updated) throw new Error(`Invalid state transition. Return ${id} is not in an allowed state: ${allowedCurrentStatuses.join(", ")}`);
     
     // Audit Log
-    await supabase.from("order_notes").insert({
-      order_id: updated.order_id,
-      author_id: actorId || null,
-      note: `[RETURN] Status changed to '${data.status}' for Return #${updated.return_number}`,
-      is_customer_visible: false,
-    });
+    if (updated.order_id) {
+      try {
+        await supabase.from("order_notes").insert({
+          order_id: updated.order_id,
+          author_id: actorId || null,
+          note: `[RETURN] Status changed to '${data.status}' for Return #${updated.return_number}`,
+          is_customer_visible: false,
+        });
+      } catch (noteErr) {
+        console.warn("[atomicUpdateStatus] Note logging skipped:", noteErr);
+      }
+    }
 
     return updated as ReturnRequest;
   }
@@ -109,20 +125,27 @@ export class ReturnRepository {
     actorId?: string
   ): Promise<ReturnRequest> {
     const supabase = this.getClient();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
     
     const conditionParts = [];
     const validStrings = allowedCurrentStatuses.filter(s => s !== null);
     if (validStrings.length > 0) {
-      conditionParts.push(`refund_status.in.(${validStrings.join(",")})`);
+      const caseInsensitiveStrings = Array.from(
+        new Set([
+          ...validStrings.map((s) => s.toLowerCase()),
+          ...validStrings.map((s) => s.toUpperCase()),
+        ])
+      );
+      conditionParts.push(`refund_status.in.(${caseInsensitiveStrings.join(",")})`);
     }
     if (allowedCurrentStatuses.includes(null)) {
       conditionParts.push(`refund_status.is.null`);
     }
     
-    const { data: updated, error } = await supabase
-      .from("returns")
-      .update(data as any)
-      .eq("id", id)
+    let query = supabase.from("returns").update(data as any);
+    query = isUuid ? query.eq("id", id) : query.eq("return_number", id);
+
+    const { data: updated, error } = await query
       .or(conditionParts.join(","))
       .select()
       .maybeSingle();
@@ -131,12 +154,18 @@ export class ReturnRepository {
     if (!updated) throw new Error(`Refund already processed or locked by another transaction.`);
     
     // Audit Log
-    await supabase.from("order_notes").insert({
-      order_id: updated.order_id,
-      author_id: actorId || null,
-      note: `[RETURN] Refund status changed to '${data.status || data.refund_status}' for Return #${updated.return_number}`,
-      is_customer_visible: false,
-    });
+    if (updated.order_id) {
+      try {
+        await supabase.from("order_notes").insert({
+          order_id: updated.order_id,
+          author_id: actorId || null,
+          note: `[RETURN] Refund status changed to '${data.status || data.refund_status}' for Return #${updated.return_number}`,
+          is_customer_visible: false,
+        });
+      } catch (noteErr) {
+        console.warn("[atomicUpdateRefundStatus] Note logging skipped:", noteErr);
+      }
+    }
 
     return updated as ReturnRequest;
   }
@@ -146,12 +175,13 @@ export class ReturnRepository {
    */
   async getReturnById(id: string): Promise<ReturnRequest | null> {
     const supabase = this.getClient();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-    const { data, error } = await supabase
-      .from("returns")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
+    const query = supabase.from("returns").select("*");
+    const { data, error } = await (isUuid
+      ? query.eq("id", id)
+      : query.eq("return_number", id)
+    ).maybeSingle();
 
     if (error) throw new Error(`Get return failed: ${error.message}`);
     return data as ReturnRequest | null;
@@ -162,17 +192,18 @@ export class ReturnRepository {
    */
   async getReturnWithItems(id: string): Promise<ReturnWithItems | null> {
     const supabase = this.getClient();
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
 
-    const { data, error } = await supabase
-      .from("returns")
-      .select(
-        `
-        *,
-        items:return_items(*)
+    const query = supabase.from("returns").select(
       `
-      )
-      .eq("id", id)
-      .maybeSingle();
+      *,
+      items:return_items(*)
+    `
+    );
+    const { data, error } = await (isUuid
+      ? query.eq("id", id)
+      : query.eq("return_number", id)
+    ).maybeSingle();
 
     if (error)
       throw new Error(`Get return with items failed: ${error.message}`);
@@ -207,9 +238,14 @@ export class ReturnRepository {
     const from = (page - 1) * limit;
     const to = from + limit - 1;
 
-    let query = supabase.from("returns").select("*, orders!inner(branch_id)", { count: "exact" });
+    // Only join orders table when filtering by branchId
+    let query = filters.branchId
+      ? supabase.from("returns").select("*, orders!inner(branch_id)", { count: "exact" })
+      : supabase.from("returns").select("*", { count: "exact" });
 
-    if (filters.status) query = query.eq("status", filters.status);
+    if (filters.status) {
+      query = query.or(`status.eq.${filters.status.toLowerCase()},status.eq.${filters.status.toUpperCase()}`);
+    }
     if (filters.dateFrom) query = query.gte("created_at", filters.dateFrom);
     if (filters.dateTo) query = query.lte("created_at", filters.dateTo);
     if (filters.search) {
@@ -226,7 +262,7 @@ export class ReturnRepository {
     if (error) throw new Error(`List returns failed: ${error.message}`);
 
     return {
-      data: (data ?? []) as ReturnRequest[],
+      data: ((data ?? []) as unknown) as ReturnRequest[],
       total: count ?? 0,
       page,
       limit,

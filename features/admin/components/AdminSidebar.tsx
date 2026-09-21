@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useOrderMetrics } from "@/hooks/oms/use-orders";
 import {
   LayoutDashboard,
   BarChart3,
@@ -212,6 +213,25 @@ export const AdminSidebar = ({
 }) => {
   const pathname = usePathname();
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const { data: orderMetrics } = useOrderMetrics();
+
+  const getOrderBadgeCount = (name: string): number | undefined => {
+    if (!orderMetrics) return undefined;
+    switch (name) {
+      case "All Orders":
+        return orderMetrics.totalOrders;
+      case "Pending":
+        return orderMetrics.pendingOrders;
+      case "Processing":
+        return orderMetrics.processingOrders;
+      case "Completed":
+        return orderMetrics.completedOrders;
+      case "Cancelled":
+        return orderMetrics.cancelledOrders;
+      default:
+        return undefined;
+    }
+  };
 
   return (
     <div
@@ -238,11 +258,11 @@ export const AdminSidebar = ({
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        <div className="space-y-6 py-6">
+        <div className="space-y-6 py-4">
           {navigation.map((category) => {
-            const filteredItems = category.items.filter((nav) => {
-              if (!nav.allowedRoles) return true;
-              return nav.allowedRoles.includes(role);
+            const filteredItems = category.items.filter((item) => {
+              if (!item.allowedRoles) return true;
+              return item.allowedRoles.includes(role);
             });
 
             if (filteredItems.length === 0) return null;
@@ -296,12 +316,13 @@ export const AdminSidebar = ({
                       );
 
                       if (isCollapsed) {
+                        const hasPendingOrders = group.name === "Orders" && (orderMetrics?.pendingOrders || 0) > 0;
                         return (
                           <div key={group.name} className="relative group/tooltip flex justify-center mb-1">
                             <button
                               title={group.name}
                               className={cn(
-                                "group flex w-full items-center justify-center rounded-xl py-2.5 text-sm font-medium transition-all hover:no-underline",
+                                "group flex w-full items-center justify-center rounded-xl py-2.5 text-sm font-medium transition-all hover:no-underline relative",
                                 hasActiveChild
                                   ? "text-[#00A1FF] bg-[#00A1FF]/10 relative after:absolute after:right-0 after:top-1/2 after:h-8 after:w-1 after:-translate-y-1/2 after:rounded-l-full after:bg-[#00A1FF]"
                                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -313,6 +334,12 @@ export const AdminSidebar = ({
                                     hasActiveChild ? "text-[#00A1FF]" : "text-muted-foreground/80 group-hover:text-muted-foreground"
                                   )}
                                 />
+                                {hasPendingOrders && (
+                                  <span className="absolute top-2 right-2 flex h-2 w-2">
+                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                                    <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-500"></span>
+                                  </span>
+                                )}
                             </button>
                           </div>
                         );
@@ -332,38 +359,60 @@ export const AdminSidebar = ({
                                 : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
                             )}
                           >
-                            <div className="flex flex-1 items-center gap-3">
-                              <Icon
-                                className={cn(
-                                  "h-[18px] w-[18px] flex-shrink-0",
-                                  hasActiveChild ? "text-[#00A1FF]" : "text-muted-foreground/80 group-hover:text-muted-foreground"
-                                )}
-                              />
-                              {group.name}
+                            <div className="flex flex-1 items-center justify-between gap-3 mr-2">
+                              <div className="flex items-center gap-3">
+                                <Icon
+                                  className={cn(
+                                    "h-[18px] w-[18px] flex-shrink-0",
+                                    hasActiveChild ? "text-[#00A1FF]" : "text-muted-foreground/80 group-hover:text-muted-foreground"
+                                  )}
+                                />
+                                {group.name}
+                              </div>
+                              {group.name === "Orders" && orderMetrics?.totalOrders !== undefined && (
+                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+                                  {orderMetrics.totalOrders}
+                                </span>
+                              )}
                             </div>
                           </AccordionTrigger>
                           <AccordionContent className="pb-1 pt-1">
                             <div className="ml-10 mt-1 flex flex-col space-y-1">
                               {group.items?.map((item) => {
                                 const isSubActive = pathname === item.href;
+                                const badgeCount = getOrderBadgeCount(item.name);
                                 return (
                                   <Link
                                     key={item.name}
                                     href={item.href}
                                     className={cn(
-                                      "relative flex items-center rounded-lg px-3 py-2 text-sm transition-colors",
+                                      "relative flex items-center justify-between rounded-lg px-3 py-2 text-sm transition-colors",
                                       isSubActive
-                                        ? "font-semibold text-[#00A1FF]"
-                                        : "text-muted-foreground hover:text-foreground"
+                                        ? "font-semibold text-[#00A1FF] bg-[#00A1FF]/5"
+                                        : "text-muted-foreground hover:text-foreground hover:bg-muted/30"
                                     )}
                                   >
-                                    <div
-                                      className={cn(
-                                        "mr-3 h-1.5 w-1.5 rounded-full transition-colors",
-                                        isSubActive ? "bg-[#00A1FF]" : "bg-slate-300 group-hover:bg-slate-400"
-                                      )}
-                                    />
-                                    {item.name}
+                                    <div className="flex items-center min-w-0 pr-2">
+                                      <div
+                                        className={cn(
+                                          "mr-3 h-1.5 w-1.5 flex-shrink-0 rounded-full transition-colors",
+                                          isSubActive ? "bg-[#00A1FF]" : "bg-slate-300 group-hover:bg-slate-400"
+                                        )}
+                                      />
+                                      <span className="truncate">{item.name}</span>
+                                    </div>
+                                    {badgeCount !== undefined && (
+                                      <span
+                                        className={cn(
+                                          "ml-auto text-[10px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0",
+                                          isSubActive
+                                            ? "bg-[#00A1FF] text-white"
+                                            : "bg-slate-200/80 dark:bg-slate-800 text-slate-700 dark:text-slate-300"
+                                        )}
+                                      >
+                                        {badgeCount}
+                                      </span>
+                                    )}
                                   </Link>
                                 );
                               })}

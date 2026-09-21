@@ -610,9 +610,20 @@ export class ReturnsService {
 
     const { data: order } = await supabase
       .from("orders")
-      .select("*, payment_transactions(*)")
+      .select("*")
       .eq("id", returnRecord.order_id)
-      .single();
+      .maybeSingle();
+
+    if (!order) {
+      throw new Error(`Order ${returnRecord.order_id} not found.`);
+    }
+
+    const { data: paymentTransactions } = await supabase
+      .from("payment_transactions")
+      .select("*")
+      .eq("order_id", returnRecord.order_id);
+
+    (order as any).payment_transactions = paymentTransactions || [];
 
     const refundAmount = Number(returnRecord.refund_amount || 0);
     const refundMethod = returnRecord.refund_method || "ORIGINAL_PAYMENT";
@@ -876,10 +887,68 @@ export class ReturnsService {
    * Complete the return process.
    */
   async completeReturn(returnId: string, updatedBy?: string): Promise<ReturnRequest> {
-    return this.returnRepo.atomicUpdateStatus(returnId, ["inventory_synced", "received"], {
+    return this.returnRepo.atomicUpdateStatus(returnId, ["inventory_synced", "received", "approved"], {
       status: "completed",
       completed_at: new Date().toISOString(),
     }, updatedBy);
+  }
+
+  /**
+   * Authoritatively resolve return and mark refund processed.
+   * Supports customer wallet credit or confirmed manual settlement (cash/bank/transfer).
+   */
+  async resolveReturnWithRefund(
+    returnId: string,
+    options?: {
+      refundMethod?: "WALLET" | "MANUAL_BANK" | "MANUAL_CASH" | "GATEWAY_CONFIRMED";
+      note?: string;
+    },
+    updatedBy?: string
+  ): Promise<{ returnId: string; refundStatus: string; status: string }> {
+    const returnRecord = await this.returnRepo.getReturnWithItems(returnId);
+    if (!returnRecord) throw new Error(`Return ${returnId} not found`);
+
+    const refundAmount = Number(returnRecord.refund_amount || 0);
+    const chosenMethod = options?.refundMethod || returnRecord.refund_method || "GATEWAY_CONFIRMED";
+
+    // 1. If wallet refund selected, credit wallet
+    if (chosenMethod === "WALLET" && returnRecord.customer_id && refundAmount > 0) {
+      try {
+        await WalletService.topUp({
+          userId: returnRecord.customer_id,
+          amount: refundAmount,
+          paymentMethod: "RETURN_STORE_CREDIT",
+          paymentRef: returnRecord.return_number,
+          description: `Store credit refund for return ${returnRecord.return_number}`,
+        });
+      } catch (err: any) {
+        console.warn("[resolveReturnWithRefund] Wallet topup warning:", err.message);
+      }
+    }
+
+    // 2. Mark return as completed and refund processed
+    const updated = await this.returnRepo.updateReturn(returnRecord.id, {
+      status: "completed",
+      refund_status: "PROCESSED",
+      completed_at: new Date().toISOString(),
+      internal_note: options?.note || `Refund settled (${chosenMethod}) by admin. Amount: ৳${refundAmount}.`,
+    });
+
+    // 3. Try to reverse referral reward if applicable
+    if (returnRecord.order_id) {
+      try {
+        const { ReferralService } = await import("@/services/referral.service");
+        await ReferralService.reverseReferralReward(returnRecord.order_id);
+      } catch (err) {
+        console.warn("[resolveReturnWithRefund] Referral reward reversal skipped:", err);
+      }
+    }
+
+    return {
+      returnId: returnRecord.id,
+      refundStatus: "PROCESSED",
+      status: "completed",
+    };
   }
 
   /**

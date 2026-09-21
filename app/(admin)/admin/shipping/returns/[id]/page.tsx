@@ -59,7 +59,14 @@ export default function ReturnDetailPage({
   if (isLoading)
     return <div className="p-8 text-muted-foreground">Loading return…</div>;
   if (error || !returnRecord)
-    return <div className="p-8 text-red-500">Return not found.</div>;
+    return (
+      <div className="p-8 space-y-3">
+        <div className="text-red-500 font-medium">Error loading return: {error?.message || "Return not found."}</div>
+        <Link href="/admin/shipping/returns" className="text-sm text-primary hover:underline block">
+          ← Back to Returns List
+        </Link>
+      </div>
+    );
 
   const statusColor =
     STATUS_COLORS[returnRecord.status as ReturnStatus] ??

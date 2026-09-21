@@ -15,9 +15,21 @@ export default function PrintLayout({
       <style
         dangerouslySetInnerHTML={{
           __html: `
-          @page { margin: 0; }
-          body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background-color: #ffffff !important; }
+          @page {
+            size: A4 portrait;
+            margin: 6mm;
+          }
+          body {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            background-color: #ffffff !important;
+          }
           @media print {
+            html, body {
+              background: #ffffff !important;
+              margin: 0 !important;
+              padding: 0 !important;
+            }
             ::-webkit-scrollbar { display: none; }
           }
         `,

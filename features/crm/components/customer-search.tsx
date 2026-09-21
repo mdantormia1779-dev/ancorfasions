@@ -2,30 +2,50 @@
 
 import { Input } from "@/components/ui/input";
 import { Search } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition, useState, useEffect } from "react";
+import { useRouter, useSearchParams, usePathname } from "next/navigation";
+import { useTransition, useState, useEffect, useRef } from "react";
 
 export function CustomerSearch() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
-  const [query, setQuery] = useState(searchParams.get("q") || "");
+
+  const currentQ = searchParams.get("q") || "";
+  const [query, setQuery] = useState(currentQ);
+  const isInitialMount = useRef(true);
+
+  // Sync input if the URL search parameter changes externally
+  useEffect(() => {
+    setQuery(currentQ);
+  }, [currentQ]);
 
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    if (query.trim() === currentQ.trim()) {
+      return;
+    }
+
     const handler = setTimeout(() => {
       startTransition(() => {
         const params = new URLSearchParams(searchParams.toString());
-        if (query) {
-          params.set("q", query);
+        const trimmed = query.trim();
+        if (trimmed) {
+          params.set("q", trimmed);
         } else {
           params.delete("q");
         }
-        router.push(`?${params.toString()}`);
+        const queryString = params.toString();
+        router.push(queryString ? `${pathname}?${queryString}` : pathname);
       });
     }, 300);
 
     return () => clearTimeout(handler);
-  }, [query, router, searchParams]);
+  }, [query, currentQ, pathname, router, searchParams]);
 
   return (
     <div className="relative w-full max-w-sm">

@@ -113,11 +113,29 @@ export class OrderRepository {
 
     let query = client.from("orders").select("*", { count: "exact" });
 
+    const applyStatusFilter = (q: any, statusVal: string) => {
+      const s = String(statusVal).toLowerCase().trim();
+      if (!s || s === "all") return q;
+      if (s === "pending") {
+        return q.in("status", ["pending_payment", "paid", "draft"]);
+      }
+      if (s === "processing") {
+        return q.in("status", ["confirmed", "preparing", "processing", "picking", "packing", "ready_for_shipment", "shipped"]);
+      }
+      if (s === "completed") {
+        return q.in("status", ["completed", "delivered"]);
+      }
+      if (s === "cancelled") {
+        return q.in("status", ["cancelled", "refunded", "returned", "failed"]);
+      }
+      return q.eq("status", statusVal);
+    };
+
     if (options?.customerId) {
       query = query.eq("customer_id", options.customerId);
     }
     if (options?.status && options.status !== "all") {
-      query = query.eq("status", options.status);
+      query = applyStatusFilter(query, options.status);
     }
     if (options?.paymentMethod && options.paymentMethod !== "all") {
       query = query.ilike("payment_method", options.paymentMethod);
@@ -161,7 +179,7 @@ export class OrderRepository {
       client = await createAdminClient();
       let adminQuery = client.from("orders").select("*", { count: "exact" });
       if (options?.customerId) adminQuery = adminQuery.eq("customer_id", options.customerId);
-      if (options?.status && options.status !== "all") adminQuery = adminQuery.eq("status", options.status);
+      if (options?.status && options.status !== "all") adminQuery = applyStatusFilter(adminQuery, options.status);
       if (options?.paymentMethod && options.paymentMethod !== "all") adminQuery = adminQuery.ilike("payment_method", options.paymentMethod);
       if (options?.paymentStatus && options.paymentStatus !== "all") adminQuery = adminQuery.ilike("payment_status", options.paymentStatus);
       if (options?.search) {

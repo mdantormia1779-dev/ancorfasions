@@ -14,6 +14,9 @@ import {
   Sparkles,
   Layers,
   CheckCircle2,
+  Phone,
+  Mail,
+  X,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import {
@@ -66,6 +69,7 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
   const [viewingGroup, setViewingGroup] = useState<any | null>(null);
   const [members, setMembers] = useState<any[]>([]);
   const [loadingMembers, setLoadingMembers] = useState(false);
+  const [memberSearch, setMemberSearch] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
@@ -103,6 +107,7 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
     setIsEditing(false);
     setIsAddingMember(false);
     setCustomerSearch("");
+    setMemberSearch("");
     setAvailableCustomers([]);
     setEditName(group.name || "");
     setEditDescription(group.description || "");
@@ -122,6 +127,17 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
       setLoadingMembers(false);
     }
   };
+
+  const filteredMembers = useMemo(() => {
+    if (!memberSearch.trim()) return members;
+    const q = memberSearch.toLowerCase();
+    return members.filter((m: any) => {
+      const fullName = `${m.first_name || ""} ${m.last_name || ""}`.toLowerCase();
+      const email = (m.email || "").toLowerCase();
+      const phone = (m.phone || "").toLowerCase();
+      return fullName.includes(q) || email.includes(q) || phone.includes(q);
+    });
+  }, [members, memberSearch]);
 
   // Search candidate customers to add to group
   useEffect(() => {
@@ -397,73 +413,134 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
             setViewingGroup(null);
             setIsEditing(false);
             setIsAddingMember(false);
+            setMemberSearch("");
           }
         }}
       >
-        <DialogContent className="max-w-2xl max-h-[88vh] overflow-y-auto">
-          <DialogHeader>
-            <div className="flex items-center justify-between pr-6">
-              <DialogTitle className="flex items-center gap-2 text-xl">
-                <Users className="h-5 w-5 text-primary" />
-                {isEditing ? `Edit: ${viewingGroup?.name}` : viewingGroup?.name}
-              </DialogTitle>
-              {!isEditing && (
-                <Badge
-                  variant={viewingGroup?.is_dynamic ? "default" : "secondary"}
-                  className="text-xs"
-                >
-                  {viewingGroup?.is_dynamic ? "Dynamic Sync" : "Static Cohort"}
-                </Badge>
-              )}
+        <DialogContent className="w-[95vw] sm:max-w-4xl lg:max-w-5xl xl:max-w-6xl h-[88vh] max-h-[88vh] p-0 flex flex-col gap-0 overflow-hidden shadow-2xl border bg-background rounded-xl">
+          {/* Modal Header */}
+          <div className="px-6 py-5 border-b bg-muted/20 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shrink-0">
+            <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+              <div className="h-11 w-11 rounded-xl bg-primary/10 text-primary flex items-center justify-center border border-primary/20 shrink-0">
+                <Users className="h-5 w-5" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <DialogTitle className="text-xl font-bold tracking-tight text-foreground truncate">
+                    {isEditing ? `Edit: ${viewingGroup?.name}` : viewingGroup?.name}
+                  </DialogTitle>
+                  {!isEditing && (
+                    <Badge
+                      variant={viewingGroup?.is_dynamic ? "default" : "secondary"}
+                      className={`text-xs ${
+                        viewingGroup?.is_dynamic
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-800"
+                          : "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                      }`}
+                    >
+                      {viewingGroup?.is_dynamic ? "Dynamic Sync" : "Static Cohort"}
+                    </Badge>
+                  )}
+                  <Badge variant="outline" className="text-xs font-medium">
+                    {members.length} {members.length === 1 ? "Member" : "Members"}
+                  </Badge>
+                </div>
+                {!isEditing && (
+                  <DialogDescription className="text-xs sm:text-sm text-muted-foreground pt-1 line-clamp-1">
+                    {viewingGroup?.description || "Audience cohort for CRM marketing, promotions, and customer segmentation."}
+                  </DialogDescription>
+                )}
+              </div>
             </div>
+
             {!isEditing && (
-              <DialogDescription className="text-xs sm:text-sm pt-1">
-                {viewingGroup?.description || "Audience cohort for CRM marketing & analysis."}
-              </DialogDescription>
+              <div className="flex items-center gap-2 shrink-0 pr-8 sm:pr-0">
+                <Button
+                  variant={isAddingMember ? "secondary" : "default"}
+                  size="sm"
+                  className="h-9 px-3.5 text-xs font-medium gap-1.5"
+                  onClick={() => setIsAddingMember(!isAddingMember)}
+                >
+                  {isAddingMember ? (
+                    <>
+                      <X className="h-3.5 w-3.5" /> Close Search
+                    </>
+                  ) : (
+                    <>
+                      <UserPlus className="h-3.5 w-3.5" /> Add Customers
+                    </>
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 px-3 text-xs gap-1.5"
+                  onClick={() => setIsEditing(true)}
+                >
+                  <Edit2 className="h-3.5 w-3.5" /> Edit Group
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-9 w-9 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  title="Delete Group"
+                  onClick={() => setDeletingGroup(viewingGroup)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             )}
-          </DialogHeader>
+          </div>
 
           {isEditing ? (
             /* Edit Form */
-            <div className="space-y-4 py-2">
-              <div className="space-y-1.5">
-                <Label htmlFor="group-name">Group Name</Label>
-                <Input
-                  id="group-name"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  placeholder="e.g., VIP Wholesale Buyers"
-                />
-              </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4 md:col-span-2">
+                  <div className="space-y-1.5">
+                    <Label htmlFor="group-name" className="text-sm font-semibold">Group Name</Label>
+                    <Input
+                      id="group-name"
+                      value={editName}
+                      onChange={(e) => setEditName(e.target.value)}
+                      placeholder="e.g., VIP Wholesale Buyers"
+                      className="h-10 text-sm"
+                    />
+                  </div>
 
-              <div className="space-y-1.5">
-                <Label htmlFor="group-desc">Description</Label>
-                <Textarea
-                  id="group-desc"
-                  value={editDescription}
-                  onChange={(e) => setEditDescription(e.target.value)}
-                  placeholder="Describe targeting or criteria for this customer group..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex items-center justify-between rounded-lg border p-3">
-                <div>
-                  <Label htmlFor="group-dynamic" className="cursor-pointer font-medium">
-                    Dynamic Membership
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    Automatically syncs customers based on purchasing activity and lifecycle rules
-                  </p>
+                  <div className="space-y-1.5">
+                    <Label htmlFor="group-desc" className="text-sm font-semibold">Description & Criteria</Label>
+                    <Textarea
+                      id="group-desc"
+                      value={editDescription}
+                      onChange={(e) => setEditDescription(e.target.value)}
+                      placeholder="Describe targeting or criteria for this customer group..."
+                      rows={4}
+                      className="text-sm"
+                    />
+                  </div>
                 </div>
-                <Switch
-                  id="group-dynamic"
-                  checked={editIsDynamic}
-                  onCheckedChange={setEditIsDynamic}
-                />
+
+                <div className="md:col-span-2">
+                  <div className="flex items-center justify-between rounded-xl border bg-muted/20 p-4">
+                    <div className="space-y-0.5">
+                      <Label htmlFor="group-dynamic" className="cursor-pointer text-sm font-semibold">
+                        Dynamic Membership
+                      </Label>
+                      <p className="text-xs text-muted-foreground">
+                        Automatically syncs customers based on purchasing activity, spend thresholds, and lifecycle rules.
+                      </p>
+                    </div>
+                    <Switch
+                      id="group-dynamic"
+                      checked={editIsDynamic}
+                      onCheckedChange={setEditIsDynamic}
+                    />
+                  </div>
+                </div>
               </div>
 
-              <DialogFooter className="pt-3">
+              <div className="flex items-center justify-end gap-3 pt-4 border-t">
                 <Button
                   type="button"
                   variant="outline"
@@ -476,172 +553,236 @@ export function CustomerGroupsClient({ segments }: CustomerGroupsClientProps) {
                   {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Save Changes
                 </Button>
-              </DialogFooter>
+              </div>
             </div>
           ) : (
             /* View Details & Member Management */
-            <div className="space-y-4 py-2">
-              {/* Action Bar inside modal */}
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b pb-3">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-semibold text-foreground">
-                    Members ({members.length})
-                  </span>
-                  <Badge variant="outline" className="text-xs">
-                    {viewingGroup?.is_dynamic ? "Auto-synced cohort" : "Manual assignment"}
-                  </Badge>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="default"
-                    size="sm"
-                    className="h-8 text-xs font-medium"
-                    onClick={() => setIsAddingMember(!isAddingMember)}
-                  >
-                    <UserPlus className="mr-1.5 h-3.5 w-3.5" />
-                    {isAddingMember ? "Close Search" : "Add Member"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 text-xs"
-                    onClick={() => setIsEditing(true)}
-                  >
-                    <Edit2 className="mr-1.5 h-3.5 w-3.5" /> Edit
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                    onClick={() => setDeletingGroup(viewingGroup)}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-
+            <div className="flex-1 overflow-y-auto p-6 space-y-5">
               {/* Add Member Panel */}
               {isAddingMember && (
-                <div className="rounded-lg border bg-muted/30 p-3 space-y-3">
+                <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-3.5 animate-in fade-in slide-in-from-top-2 duration-200">
                   <div className="flex items-center justify-between">
-                    <Label className="text-xs font-semibold text-foreground flex items-center gap-1.5">
-                      <UserPlus className="h-3.5 w-3.5 text-primary" />
-                      Search & Add Customer to Group
-                    </Label>
-                    <span className="text-[11px] text-muted-foreground">Type name or email</span>
+                    <div className="flex items-center gap-2">
+                      <div className="h-7 w-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center">
+                        <UserPlus className="h-4 w-4" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-semibold text-foreground">Find & Add Customers</h4>
+                        <p className="text-xs text-muted-foreground">Search by name, email, or phone to add them into this cohort</p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                      onClick={() => setIsAddingMember(false)}
+                    >
+                      <X className="h-3.5 w-3.5 mr-1" /> Close
+                    </Button>
                   </div>
 
                   <div className="relative">
-                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                    <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
                     <Input
-                      placeholder="Search customers..."
-                      className="h-9 pl-8 text-xs bg-background"
+                      placeholder="Type customer name, email address, or phone..."
+                      className="h-10 pl-9 text-sm bg-background"
                       value={customerSearch}
                       onChange={(e) => setCustomerSearch(e.target.value)}
+                      autoFocus
                     />
                   </div>
 
                   {searchingCustomers ? (
-                    <div className="py-4 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
-                      <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                      Searching customers...
+                    <div className="py-6 text-center text-xs text-muted-foreground flex items-center justify-center gap-2">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                      Searching available customers...
                     </div>
                   ) : availableCustomers.length === 0 ? (
-                    <p className="text-xs text-center text-muted-foreground py-2">
-                      {customerSearch ? "No matching customers found." : "Type a name or email to search."}
+                    <p className="text-xs text-center text-muted-foreground py-4">
+                      {customerSearch ? "No matching customers found." : "Type a name or email to search available customers."}
                     </p>
                   ) : (
-                    <div className="max-h-48 overflow-y-auto space-y-1.5 pr-1">
-                      {availableCustomers.map((cust) => (
-                        <div
-                          key={cust.id}
-                          className="flex items-center justify-between p-2 rounded-md bg-background border text-xs hover:border-primary/50 transition-colors"
-                        >
-                          <div>
-                            <div className="font-medium text-foreground">
-                              {cust.first_name} {cust.last_name}
-                            </div>
-                            <div className="text-[11px] text-muted-foreground">{cust.email}</div>
-                          </div>
-                          <Button
-                            size="sm"
-                            className="h-7 text-xs"
-                            disabled={addingCustomerId === cust.id}
-                            onClick={() => handleAddMember(cust)}
+                    <div className="max-h-60 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-2.5 pr-1">
+                      {availableCustomers.map((cust) => {
+                        const name = [cust.first_name, cust.last_name].filter(Boolean).join(" ") || "Customer";
+                        const initials = ((cust.first_name?.[0] || "") + (cust.last_name?.[0] || "")).toUpperCase() || "C";
+                        return (
+                          <div
+                            key={cust.id}
+                            className="flex items-center justify-between p-3 rounded-lg bg-background border text-xs hover:border-primary/50 transition-colors shadow-2xs"
                           >
-                            {addingCustomerId === cust.id ? (
-                              <Loader2 className="h-3 w-3 animate-spin" />
-                            ) : (
-                              <>
-                                <Plus className="h-3 w-3 mr-1" /> Add
-                              </>
-                            )}
-                          </Button>
-                        </div>
-                      ))}
+                            <div className="flex items-center gap-2.5 min-w-0 pr-2">
+                              <div className="h-8 w-8 rounded-full bg-primary/10 text-primary font-semibold flex items-center justify-center shrink-0 text-xs">
+                                {initials}
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-semibold text-foreground truncate">{name}</div>
+                                <div className="text-[11px] text-muted-foreground truncate">{cust.email}</div>
+                              </div>
+                            </div>
+                            <Button
+                              size="sm"
+                              className="h-7 px-2.5 text-xs shrink-0"
+                              disabled={addingCustomerId === cust.id}
+                              onClick={() => handleAddMember(cust)}
+                            >
+                              {addingCustomerId === cust.id ? (
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                              ) : (
+                                <>
+                                  <Plus className="h-3.5 w-3.5 mr-1" /> Add
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
               )}
 
-              {/* Members List */}
+              {/* Existing Members Search & Filter Bar */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-muted-foreground" />
+                  <Input
+                    placeholder="Filter group members..."
+                    className="h-8 pl-8 text-xs bg-card"
+                    value={memberSearch}
+                    onChange={(e) => setMemberSearch(e.target.value)}
+                  />
+                  {memberSearch && (
+                    <button
+                      onClick={() => setMemberSearch("")}
+                      className="absolute right-2.5 top-2 text-muted-foreground hover:text-foreground"
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </button>
+                  )}
+                </div>
+
+                <div className="text-xs text-muted-foreground flex items-center gap-1.5">
+                  <span>Showing</span>
+                  <strong className="text-foreground">{filteredMembers.length}</strong>
+                  <span>of</span>
+                  <strong className="text-foreground">{members.length}</strong>
+                  <span>members</span>
+                </div>
+              </div>
+
+              {/* Members List Table */}
               {loadingMembers ? (
-                <div className="py-12 flex flex-col items-center justify-center text-muted-foreground gap-2">
-                  <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                  <p className="text-xs">Loading customer members...</p>
+                <div className="py-16 flex flex-col items-center justify-center text-muted-foreground gap-3">
+                  <Loader2 className="h-7 w-7 animate-spin text-primary" />
+                  <p className="text-xs font-medium">Loading customer members...</p>
                 </div>
               ) : members.length === 0 ? (
-                <div className="py-12 text-center text-sm text-muted-foreground">
-                  <Users className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  <p className="font-medium text-foreground">No customer members found</p>
-                  <p className="text-xs mt-1">
-                    Click &quot;Add Member&quot; above to manually include customers in this group.
+                <div className="py-16 text-center text-sm text-muted-foreground rounded-xl border border-dashed p-8">
+                  <Users className="h-10 w-10 mx-auto mb-3 opacity-30 text-primary" />
+                  <p className="font-semibold text-foreground">No customer members in this group</p>
+                  <p className="text-xs mt-1 text-muted-foreground max-w-sm mx-auto">
+                    This cohort is currently empty. Click &quot;Add Customers&quot; to manually search and assign members.
                   </p>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="mt-4 text-xs font-medium"
+                    onClick={() => setIsAddingMember(true)}
+                  >
+                    <UserPlus className="mr-1.5 h-3.5 w-3.5" /> Add Customers
+                  </Button>
+                </div>
+              ) : filteredMembers.length === 0 ? (
+                <div className="py-12 text-center text-xs text-muted-foreground rounded-lg border p-6">
+                  <p>No members match your search &quot;{memberSearch}&quot;</p>
+                  <Button
+                    variant="link"
+                    size="sm"
+                    className="text-xs mt-1"
+                    onClick={() => setMemberSearch("")}
+                  >
+                    Clear Filter
+                  </Button>
                 </div>
               ) : (
-                <div className="rounded-md border overflow-hidden">
+                <div className="rounded-xl border overflow-hidden bg-card shadow-2xs">
                   <Table>
                     <TableHeader>
-                      <TableRow className="bg-muted/30">
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Phone</TableHead>
-                        <TableHead className="text-right">Actions</TableHead>
+                      <TableRow className="bg-muted/40 hover:bg-muted/40">
+                        <TableHead className="w-[320px]">Customer</TableHead>
+                        <TableHead>Email Address</TableHead>
+                        <TableHead className="w-[180px]">Phone Number</TableHead>
+                        <TableHead className="w-[120px] text-right">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {members.map((member: any) => {
+                      {filteredMembers.map((member: any) => {
                         const name =
                           [member.first_name, member.last_name].filter(Boolean).join(" ") ||
                           "Customer";
+                        const initials =
+                          ((member.first_name?.[0] || "") + (member.last_name?.[0] || "")).toUpperCase() ||
+                          "C";
                         return (
-                          <TableRow key={member.id} className="hover:bg-muted/10">
-                            <TableCell className="font-medium text-xs sm:text-sm">
-                              {name}
+                          <TableRow key={member.id} className="hover:bg-muted/20 transition-colors">
+                            <TableCell>
+                              <div className="flex items-center gap-3">
+                                <div className="h-9 w-9 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center text-xs shrink-0 border border-primary/20">
+                                  {initials}
+                                </div>
+                                <div className="min-w-0">
+                                  <div className="font-semibold text-foreground text-sm truncate">
+                                    {name}
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground font-mono">
+                                    ID: {member.id.slice(0, 8)}...
+                                  </div>
+                                </div>
+                              </div>
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">
-                              {member.email || "—"}
+                              {member.email ? (
+                                <div className="flex items-center gap-1.5 truncate">
+                                  <Mail className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                                  <span className="truncate">{member.email}</span>
+                                </div>
+                              ) : (
+                                "—"
+                              )}
                             </TableCell>
                             <TableCell className="text-xs text-muted-foreground">
-                              {member.phone || "—"}
+                              {member.phone ? (
+                                <div className="flex items-center gap-1.5">
+                                  <Phone className="h-3.5 w-3.5 text-muted-foreground/60 shrink-0" />
+                                  <span>{member.phone}</span>
+                                </div>
+                              ) : (
+                                "—"
+                              )}
                             </TableCell>
                             <TableCell className="text-right">
                               <div className="flex items-center justify-end gap-1">
-                                <Link href={`/admin/customers/${member.id}`} target="_blank">
-                                  <Button variant="ghost" size="sm" className="h-7 w-7 p-0" title="View Customer">
-                                    <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
-                                  </Button>
-                                </Link>
                                 <Button
                                   variant="ghost"
                                   size="sm"
-                                  className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                  className="h-8 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+                                  asChild
+                                >
+                                  <Link href={`/admin/customers/${member.id}`} target="_blank">
+                                    <ExternalLink className="h-3.5 w-3.5 mr-1" /> Profile
+                                  </Link>
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-8 w-8 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
                                   title="Remove from group"
                                   disabled={removingCustomerId === member.id}
                                   onClick={() => handleRemoveMember(member)}
                                 >
                                   {removingCustomerId === member.id ? (
-                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
                                   ) : (
                                     <UserMinus className="h-3.5 w-3.5" />
                                   )}

@@ -2,6 +2,7 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
 import { useOrders, useOrderMetrics } from "@/hooks/oms/use-orders";
 import { updateOrderStatusAction } from "@/app/actions/oms/order.actions";
@@ -67,11 +68,13 @@ import {
 
 type TabKey = "all" | "pending" | "processing" | "completed" | "cancelled";
 
-export default function AdminOrdersPage() {
+function AdminOrdersContent({ defaultTab = "all" }: { defaultTab?: TabKey }) {
   const queryClient = useQueryClient();
+  const searchParams = useSearchParams();
+  const tabFromUrl = (searchParams?.get("tab") as TabKey) || defaultTab || "all";
 
   // Filters & Pagination State
-  const [activeTab, setActiveTab] = useState<TabKey>("all");
+  const [activeTab, setActiveTab] = useState<TabKey>(tabFromUrl);
   const [searchInput, setSearchInput] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [paymentMethod, setPaymentMethod] = useState("all");
@@ -87,6 +90,13 @@ export default function AdminOrdersPage() {
   const [statusReason, setStatusReason] = useState("");
   const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
+  React.useEffect(() => {
+    if (tabFromUrl && tabFromUrl !== activeTab) {
+      setActiveTab(tabFromUrl);
+      setPage(1);
+    }
+  }, [tabFromUrl]);
+
   // Debounce search input
   React.useEffect(() => {
     const handler = setTimeout(() => {
@@ -100,9 +110,9 @@ export default function AdminOrdersPage() {
   const statusParam = useMemo(() => {
     switch (activeTab) {
       case "pending":
-        return "pending_payment";
+        return "pending";
       case "processing":
-        return "confirmed";
+        return "processing";
       case "completed":
         return "completed";
       case "cancelled":
@@ -871,6 +881,20 @@ export default function AdminOrdersPage() {
         </DialogContent>
       </Dialog>
     </div>
+  );
+}
+
+export default function AdminOrdersPage(props: { defaultTab?: TabKey }) {
+  return (
+    <React.Suspense
+      fallback={
+        <div className="flex h-96 items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      }
+    >
+      <AdminOrdersContent {...props} />
+    </React.Suspense>
   );
 }
 
