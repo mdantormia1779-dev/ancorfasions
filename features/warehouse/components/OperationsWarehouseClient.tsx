@@ -152,7 +152,9 @@ export function OperationsWarehouseClient({
                 <div className="flex items-center justify-between text-xs">
                   <div className="flex flex-col">
                     <span className="text-muted-foreground">Type</span>
-                    <span className="font-medium capitalize">{warehouse.type || "Standard"}</span>
+                    <span className="font-medium">
+                      {warehouse.type === "RETAIL_STORE" ? "Retail Store" : "Warehouse"}
+                    </span>
                   </div>
                   <div className="flex flex-col items-end">
                     <span className="text-muted-foreground">Coordinates</span>

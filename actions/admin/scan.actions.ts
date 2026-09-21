@@ -36,7 +36,7 @@ export async function lookupBarcodeAction(query: string) {
           quantity_reserved,
           reorder_point,
           warehouse_id,
-          warehouse:warehouses(id, name, code)
+          warehouse:warehouses(id, name, warehouse_code)
         )
       `)
       .or(`barcode.ilike.%${trimmed}%,sku.ilike.%${trimmed}%`)
@@ -68,7 +68,7 @@ export async function lookupBarcodeAction(query: string) {
               quantity_reserved,
               reorder_point,
               warehouse_id,
-              warehouse:warehouses(id, name, code)
+              warehouse:warehouses(id, name, warehouse_code)
             )
           `)
           .eq("product_id", product.id)
@@ -179,17 +179,18 @@ export async function adjustScannedStockAction({
 
     // 3. Record stock movement
     const actualDelta = newQty - prevQty;
-    await supabase.from("stock_movements").insert({
-      variant_id: variantId,
-      warehouse_id: warehouseId,
-      movement_type: movementType,
-      quantity: Math.abs(actualDelta),
-      previous_quantity: prevQty,
-      new_quantity: newQty,
-      reference_type: "MANUAL",
-      reference_id: "SCAN-STATION",
-      notes: note || `Scan station quick ${movementType.toLowerCase()} (${actualDelta > 0 ? "+" : ""}${actualDelta})`,
-    });
+    try {
+      await supabase.from("stock_movements").insert({
+        variant_id: variantId,
+        warehouse_id: warehouseId,
+        quantity_change: actualDelta,
+        reason: note || `Scan station quick ${movementType.toLowerCase()} (${actualDelta > 0 ? "+" : ""}${actualDelta})`,
+        reason_code: movementType,
+        reference_id: "SCAN-STATION",
+      });
+    } catch (e: any) {
+      console.warn("Could not insert stock_movements log:", e?.message);
+    }
 
     revalidatePath("/admin/operations/scan");
     revalidatePath("/admin/inventory/stock");

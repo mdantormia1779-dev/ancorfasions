@@ -65,7 +65,7 @@ export function AddWarehouseButton() {
 
   const form = useForm<WarehouseForm>({
     resolver: zodResolver(warehouseSchema),
-    defaultValues: { name: "", code: "", type: "STANDARD", is_active: true },
+    defaultValues: { name: "", code: "", type: "WAREHOUSE", is_active: true },
   });
 
   const onSubmit = async (values: WarehouseForm) => {
@@ -160,10 +160,8 @@ export function AddWarehouseButton() {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="STANDARD">Standard</SelectItem>
-                        <SelectItem value="FULFILLMENT_CENTER">Fulfillment Center</SelectItem>
-                        <SelectItem value="DROPSHIP">Dropship</SelectItem>
-                        <SelectItem value="VIRTUAL">Virtual</SelectItem>
+                        <SelectItem value="WAREHOUSE">Central / Regional Warehouse</SelectItem>
+                        <SelectItem value="RETAIL_STORE">Retail Store / Outlet</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -256,7 +254,11 @@ export function ManageWarehouseSettingsButton({
         variant="outline"
         size="icon"
         onClick={() => {
-          form.reset({ name: warehouseName, type: warehouseType, is_active: isActive });
+          form.reset({
+            name: warehouseName,
+            type: warehouseType === "RETAIL_STORE" ? "RETAIL_STORE" : "WAREHOUSE",
+            is_active: isActive,
+          });
           setOpen(true);
         }}
         title="Warehouse Settings"
@@ -302,10 +304,8 @@ export function ManageWarehouseSettingsButton({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="STANDARD">Standard</SelectItem>
-                        <SelectItem value="FULFILLMENT_CENTER">Fulfillment Center</SelectItem>
-                        <SelectItem value="DROPSHIP">Dropship</SelectItem>
-                        <SelectItem value="VIRTUAL">Virtual</SelectItem>
+                        <SelectItem value="WAREHOUSE">Central / Regional Warehouse</SelectItem>
+                        <SelectItem value="RETAIL_STORE">Retail Store / Outlet</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />

@@ -255,6 +255,14 @@ export class InventoryService {
     }
   }
 
+  async createAudit(auditData: any): Promise<any> {
+    return await this.repository.createAudit(auditData);
+  }
+
+  async updateAuditStatus(id: string, status: string): Promise<void> {
+    await this.repository.updateAuditStatus(id, status);
+  }
+
   // ── ORDER-LEVEL ATOMIC RESERVATION METHODS ──────────────────────────────
   // These call the PostgreSQL RPCs defined in migration
   // 20260911000000_atomic_order_inventory_reservation.sql

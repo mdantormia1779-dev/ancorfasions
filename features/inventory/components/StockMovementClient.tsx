@@ -1,10 +1,12 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Search, Filter } from "lucide-react";
+import { Search, Filter, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StockMovementActions } from "@/features/inventory/components/InventoryPageActions";
+import { exportToCsv } from "@/lib/utils/export";
+import { toast } from "sonner";
 import {
   Table,
   TableBody,
@@ -94,6 +96,26 @@ export function StockMovementClient({
     });
   }, [movements, search, typeFilter]);
 
+  const handleExport = () => {
+    if (filtered.length === 0) {
+      toast.error("No movement data to export.");
+      return;
+    }
+    const exportData = filtered.map((m) => ({
+      SKU: m.variants?.sku || m.variant?.sku || m.variant_id || "N/A",
+      Product: m.variants?.name || m.variant?.name || "N/A",
+      Warehouse: m.warehouses?.name || m.warehouse?.name || "N/A",
+      Type: m.movement_type,
+      "Quantity Change": m.quantity_change ?? m.quantity ?? 0,
+      Reason: m.reason || m.reason_code || "—",
+      Notes: m.notes || "—",
+      Date: new Date(m.created_at).toISOString().split("T")[0],
+    }));
+
+    exportToCsv(`stock_movements_${new Date().toISOString().split("T")[0]}.csv`, exportData);
+    toast.success("Stock movements exported successfully");
+  };
+
   return (
     <div className="flex flex-col gap-6 p-4 sm:p-8 pt-6 max-w-full overflow-hidden">
       <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
@@ -104,6 +126,9 @@ export function StockMovementClient({
           </p>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" /> Export CSV
+          </Button>
           <StockMovementActions allWarehouses={allWarehouses} allVariants={allVariants} />
         </div>
       </div>

@@ -5,6 +5,21 @@ import {
   WarehouseBin,
 } from "@/types/inventory.types";
 
+function normalizeWarehouseType(type?: string): "WAREHOUSE" | "RETAIL_STORE" {
+  if (!type) return "WAREHOUSE";
+  const upper = String(type).trim().toUpperCase();
+  if (
+    upper === "RETAIL_STORE" ||
+    upper === "RETAIL" ||
+    upper === "STORE" ||
+    upper === "OUTLET" ||
+    upper === "SHOWROOM"
+  ) {
+    return "RETAIL_STORE";
+  }
+  return "WAREHOUSE";
+}
+
 export class WarehouseRepository {
   private getAdminClient() {
     return createAdminClient();
@@ -17,7 +32,10 @@ export class WarehouseRepository {
       .select("*")
       .order("name");
     if (error) throw new Error(`Failed to get warehouses: ${error.message}`);
-    return data as Warehouse[];
+    return (data || []).map((w: any) => ({
+      ...w,
+      code: w.warehouse_code || w.code || "",
+    })) as Warehouse[];
   }
 
   async getWarehouseById(id: string): Promise<Warehouse | null> {
@@ -26,56 +44,82 @@ export class WarehouseRepository {
       .from("warehouses")
       .select("*")
       .eq("id", id)
-      .single();
-    if (error && error.code !== "PGRST116")
+      .maybeSingle();
+    if (error)
       throw new Error(`Failed to get warehouse: ${error.message}`);
-    return data as Warehouse | null;
+    if (!data) return null;
+    return {
+      ...data,
+      code: (data as any).warehouse_code || (data as any).code || "",
+    } as Warehouse;
   }
 
-  async createWarehouse(warehouseData: Partial<Warehouse> & { code?: string }): Promise<Warehouse> {
+  async createWarehouse(warehouseData: Partial<Warehouse> & { code?: string; warehouse_code?: string }): Promise<Warehouse> {
     const supabase = this.getAdminClient();
     const code = (
+      warehouseData.warehouse_code ||
       warehouseData.code ||
       warehouseData.name?.replace(/[^A-Za-z0-9]/g, "").slice(0, 4).toUpperCase() ||
       "WH"
     ).trim().toUpperCase();
 
-    // Check if code already exists
+    // Check if warehouse_code already exists
     const { data: existing } = await supabase
       .from("warehouses")
       .select("id")
-      .ilike("code", code)
+      .ilike("warehouse_code", code)
       .maybeSingle();
 
     if (existing) {
       throw new Error(`A warehouse with code "${code}" already exists. Please provide a unique code.`);
     }
 
+    const { code: _unusedCode, ...rest } = warehouseData as any;
+
+    const payload: any = {
+      ...rest,
+      warehouse_code: code,
+      name: warehouseData.name?.trim(),
+      type: normalizeWarehouseType(warehouseData.type),
+      is_active: warehouseData.is_active !== undefined ? warehouseData.is_active : true,
+    };
+
     const { data, error } = await supabase
       .from("warehouses")
-      .insert({
-        ...warehouseData,
-        code,
-      })
+      .insert(payload)
       .select()
       .single();
     if (error) throw new Error(`Failed to create warehouse: ${error.message}`);
-    return data as Warehouse;
+    return {
+      ...data,
+      code: data.warehouse_code || code,
+    } as Warehouse;
   }
 
   async updateWarehouse(
     id: string,
-    warehouseData: Partial<Warehouse>
+    warehouseData: Partial<Warehouse> & { code?: string; warehouse_code?: string }
   ): Promise<Warehouse> {
     const supabase = this.getAdminClient();
+    const payload: any = { ...warehouseData };
+    if (payload.code !== undefined) {
+      payload.warehouse_code = payload.code;
+      delete payload.code;
+    }
+    if (payload.type !== undefined) {
+      payload.type = normalizeWarehouseType(payload.type);
+    }
     const { data, error } = await supabase
       .from("warehouses")
-      .update(warehouseData)
+      .update(payload)
       .eq("id", id)
       .select()
       .single();
     if (error) throw new Error(`Failed to update warehouse: ${error.message}`);
-    return data as Warehouse;
+    return {
+      ...data,
+      code: data.warehouse_code,
+    } as Warehouse;
   }
 
   async getZonesByWarehouse(warehouseId: string): Promise<WarehouseZone[]> {
@@ -168,11 +212,15 @@ export class WarehouseRepository {
       .eq("is_active", true)
       .order("created_at", { ascending: true })
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    if (error && error.code !== "PGRST116") {
+    if (error) {
       throw new Error(`Failed to get default warehouse: ${error.message}`);
     }
-    return data as Warehouse | null;
+    if (!data) return null;
+    return {
+      ...data,
+      code: (data as any).warehouse_code || (data as any).code || "",
+    } as Warehouse;
   }
 }

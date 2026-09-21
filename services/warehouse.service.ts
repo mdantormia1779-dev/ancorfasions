@@ -35,8 +35,24 @@ export class WarehouseService {
     return await this.repository.getZonesByWarehouse(warehouseId);
   }
 
+  async createZone(data: Partial<WarehouseZone>): Promise<WarehouseZone> {
+    return await this.repository.createZone(data);
+  }
+
+  async deleteZone(id: string): Promise<void> {
+    return await this.repository.deleteZone(id);
+  }
+
   async getBins(zoneId: string): Promise<WarehouseBin[]> {
     return await this.repository.getBinsByZone(zoneId);
+  }
+
+  async createBin(data: Partial<WarehouseBin>): Promise<WarehouseBin> {
+    return await this.repository.createBin(data);
+  }
+
+  async deleteBin(id: string): Promise<void> {
+    return await this.repository.deleteBin(id);
   }
 
   async getDefaultWarehouse(): Promise<Warehouse | null> {

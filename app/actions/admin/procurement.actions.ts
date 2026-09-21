@@ -15,6 +15,82 @@ export async function getSupplierProfiles() {
   return { success: true, data };
 }
 
+export async function createSupplierProfileAction(data: {
+  company_name: string;
+  contact_person?: string;
+  email?: string;
+  phone?: string;
+  performance_score?: number;
+  status?: string;
+}) {
+  try {
+    const supabase = createAdminClient();
+    const { data: supplier, error } = await supabase
+      .from("supplier_profiles")
+      .insert({
+        company_name: data.company_name.trim(),
+        contact_person: data.contact_person?.trim() || null,
+        email: data.email?.trim() || null,
+        phone: data.phone?.trim() || null,
+        performance_score: Number(data.performance_score) || 5.0,
+        status: data.status || "ACTIVE",
+      })
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath("/admin/inventory/suppliers");
+    return { success: true, data: supplier };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to create supplier profile" };
+  }
+}
+
+export async function updateSupplierProfileAction(
+  id: string,
+  data: Partial<{
+    company_name: string;
+    contact_person: string;
+    email: string;
+    phone: string;
+    performance_score: number;
+    status: string;
+  }>
+) {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from("supplier_profiles")
+      .update(data)
+      .eq("id", id);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath("/admin/inventory/suppliers");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to update supplier profile" };
+  }
+}
+
+export async function deleteSupplierProfileAction(id: string) {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from("supplier_profiles")
+      .delete()
+      .eq("id", id);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath("/admin/inventory/suppliers");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to delete supplier profile" };
+  }
+}
+
 export async function getWarehouses() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
@@ -167,3 +243,150 @@ export async function createProcurementOrder(
     return { success: false, error: error.message || "Failed to create procurement order" };
   }
 }
+
+export async function getProcurementOrderDetails(poId: string) {
+  try {
+    const supabase = createAdminClient();
+    const { data: po, error: poErr } = await supabase
+      .from("procurement_orders")
+      .select("*, supplier_profiles(*), warehouses(*)")
+      .eq("id", poId)
+      .single();
+
+    if (poErr) return { success: false, error: poErr.message };
+
+    const { data: items, error: itemsErr } = await supabase
+      .from("procurement_items")
+      .select("*, variants(id, sku, name)")
+      .eq("po_id", poId);
+
+    return {
+      success: true,
+      data: {
+        ...po,
+        items: items || [],
+      },
+    };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to fetch PO details" };
+  }
+}
+
+export async function updateProcurementOrderStatus(
+  poId: string,
+  status: "DRAFT" | "PENDING_APPROVAL" | "APPROVED" | "SENT" | "PARTIAL_RECEIPT" | "DELIVERED" | "CANCELLED"
+) {
+  try {
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from("procurement_orders")
+      .update({ status, updated_at: new Date().toISOString() })
+      .eq("id", poId);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath("/admin/inventory/purchases");
+    revalidatePath("/admin/operations/procurement/purchase-orders");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to update PO status" };
+  }
+}
+
+export async function receiveProcurementOrderAction(poId: string, notes?: string) {
+  try {
+    const supabase = createAdminClient();
+
+    // 1. Fetch PO and items
+    const { data: po, error: poErr } = await supabase
+      .from("procurement_orders")
+      .select("*, procurement_items(*)")
+      .eq("id", poId)
+      .single();
+
+    if (poErr || !po) {
+      return { success: false, error: "Purchase order not found" };
+    }
+
+    if (po.status === "DELIVERED" || po.status === "FULFILLED") {
+      return { success: false, error: "This purchase order has already been received." };
+    }
+
+    const destinationWarehouseId = po.destination_warehouse_id;
+    if (!destinationWarehouseId) {
+      return { success: false, error: "No destination warehouse assigned to this PO." };
+    }
+
+    const items = po.procurement_items || [];
+    if (items.length === 0) {
+      return { success: false, error: "Purchase order has no items to receive." };
+    }
+
+    // 2. Increment stock in inventory_levels for each item
+    for (const item of items) {
+      const variantId = item.variant_id;
+      const qtyReceived = Number(item.quantity_ordered) || 0;
+      if (!variantId || qtyReceived <= 0) continue;
+
+      const { data: existingLevel } = await supabase
+        .from("inventory_levels")
+        .select("id, quantity_available")
+        .eq("variant_id", variantId)
+        .eq("warehouse_id", destinationWarehouseId)
+        .maybeSingle();
+
+      const previousQty = existingLevel?.quantity_available || 0;
+      const newQty = previousQty + qtyReceived;
+
+      if (existingLevel) {
+        await supabase
+          .from("inventory_levels")
+          .update({
+            quantity_available: newQty,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingLevel.id);
+      } else {
+        await supabase.from("inventory_levels").insert({
+          variant_id: variantId,
+          warehouse_id: destinationWarehouseId,
+          quantity_available: newQty,
+          quantity_reserved: 0,
+        });
+      }
+
+      // Record stock movement
+      try {
+        await supabase.from("stock_movements").insert({
+          variant_id: variantId,
+          warehouse_id: destinationWarehouseId,
+          quantity_change: qtyReceived,
+          reason: notes || `Goods received from PO: ${po.po_number || poId}`,
+          reason_code: "PURCHASE_RECEIPT",
+          reference_id: po.po_number || poId,
+        });
+      } catch (e: any) {
+        console.warn("Could not insert stock_movements log:", e?.message);
+      }
+    }
+
+    // 3. Mark PO as DELIVERED / FULFILLED
+    await supabase
+      .from("procurement_orders")
+      .update({
+        status: "DELIVERED",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", poId);
+
+    revalidatePath("/admin/inventory/purchases");
+    revalidatePath("/admin/operations/procurement/purchase-orders");
+    revalidatePath("/admin/inventory/stock");
+    revalidatePath("/admin/inventory/movement");
+
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to receive goods" };
+  }
+}
+

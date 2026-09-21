@@ -1,138 +1,50 @@
 import { Metadata } from "next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { createClient } from "@/lib/supabase/server";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Search } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { StockControlActions } from "@/features/inventory/components/InventoryPageActions";
+import { createAdminClient } from "@/lib/supabase/admin-client";
+import { StockControlClient } from "@/features/inventory/components/StockControlClient";
 
 export const metadata: Metadata = {
   title: "Stock Control | Anchor Fashion",
+  description: "Monitor and adjust real-time inventory levels across warehouses.",
 };
 
 export default async function StockControlPage() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
+
   const [
-    { data: inventory },
-    { data: allWarehouses },
-    { data: allVariants },
+    invRes,
+    whRes,
+    varRes,
+    supRes,
   ] = await Promise.all([
     supabase
       .from("inventory_levels")
-      .select("*, variants(sku, name), warehouses(name)")
+      .select("*, variants(id, sku, barcode, attributes, price_override, sale_price, product:products(id, name, sku, base_price, cost_price)), warehouses(id, name, is_active)")
       .order("quantity_available", { ascending: true }),
     supabase
       .from("warehouses")
-      .select("id, name, code, is_active")
+      .select("id, name, is_active")
       .order("name", { ascending: true }),
     supabase
       .from("variants")
-      .select("id, sku, name, product:products(name)")
+      .select("id, sku, barcode, price_override, sale_price, attributes, product:products(id, name, sku, base_price, cost_price)")
       .order("sku", { ascending: true }),
+    supabase
+      .from("supplier_profiles")
+      .select("id, company_name, contact_person, email, phone")
+      .order("company_name", { ascending: true }),
   ]);
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Stock Control</h2>
-          <p className="text-muted-foreground">
-            Monitor and adjust real-time inventory levels.
-          </p>
-        </div>
-        <StockControlActions
-          inventory={inventory || []}
-          allWarehouses={allWarehouses || []}
-          allVariants={allVariants || []}
-        />
-      </div>
+  const inventory = invRes.data || [];
+  const allWarehouses = whRes.data || [];
+  const allVariants = varRes.data || [];
+  const allSuppliers = supRes.data || [];
 
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
-          <CardTitle>Current Inventory</CardTitle>
-          <div className="relative w-64">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search SKU or name..." className="pl-8" />
-          </div>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>SKU</TableHead>
-                <TableHead>Product Name</TableHead>
-                <TableHead>Warehouse</TableHead>
-                <TableHead className="text-right">Available</TableHead>
-                <TableHead className="text-right">Reserved</TableHead>
-                <TableHead className="text-right">Damaged</TableHead>
-                <TableHead className="text-right">Returned</TableHead>
-                <TableHead className="text-right">Incoming</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {inventory?.map((item) => (
-                <TableRow key={item.id}>
-                  <TableCell className="font-medium">
-                    {item.variants?.sku || "N/A"}
-                    {item.quantity_available === 0 && (
-                      <span className="ml-2 inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-semibold text-red-800">
-                        Out of Stock
-                      </span>
-                    )}
-                    {item.quantity_available > 0 &&
-                      item.quantity_available <= (item.reorder_point || 0) && (
-                        <span className="ml-2 inline-flex items-center rounded-full bg-yellow-100 px-2.5 py-0.5 text-xs font-semibold text-yellow-800">
-                          Low Stock
-                        </span>
-                      )}
-                  </TableCell>
-                  <TableCell>{item.variants?.name || "N/A"}</TableCell>
-                  <TableCell>{item.warehouses?.name || "N/A"}</TableCell>
-                  <TableCell className="text-right font-semibold">
-                    {item.quantity_available}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {item.quantity_reserved}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {item.quantity_damaged}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {item.quantity_returned}
-                  </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
-                    {item.quantity_incoming}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="outline" size="sm">
-                      Adjust
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(!inventory || inventory.length === 0) && (
-                <TableRow>
-                  <TableCell
-                    colSpan={9}
-                    className="py-6 text-center text-muted-foreground"
-                  >
-                    No inventory records found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+  return (
+    <StockControlClient
+      inventory={inventory}
+      allWarehouses={allWarehouses}
+      allVariants={allVariants}
+      allSuppliers={allSuppliers}
+    />
   );
 }

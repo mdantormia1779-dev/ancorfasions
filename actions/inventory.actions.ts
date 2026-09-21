@@ -40,6 +40,8 @@ export async function adjustStock(
   try {
     const service = new InventoryService();
     await service.adjustStock(inventoryId, newAvailable, newReserved, reason);
+    revalidatePath("/admin/inventory/stock");
+    revalidatePath("/admin/inventory/movement");
     return { success: true };
   } catch (error: any) {
     return { error: error.message };
@@ -140,15 +142,18 @@ export async function receivePurchase(
             });
           if (insertError) throw insertError;
 
-          await supabase.from("stock_movements").insert({
-            variant_id: item.variantId,
-            warehouse_id: item.warehouseId,
-            movement_type: "RECEIPT",
-            quantity: item.quantity,
-            reference_type: "PO",
-            reference_id: poId,
-            notes: notes || "Received from PO",
-          });
+          try {
+            await supabase.from("stock_movements").insert({
+              variant_id: item.variantId,
+              warehouse_id: item.warehouseId,
+              quantity_change: item.quantity,
+              reason: notes || "Received from PO",
+              reason_code: "PURCHASE_RECEIPT",
+              reference_id: poId,
+            });
+          } catch (e: any) {
+            console.warn("Could not insert stock_movements log:", e?.message);
+          }
         }
       } else {
         // Get inventory_id and adjust
@@ -247,21 +252,12 @@ export async function addStockAction(data: {
       await supabase.from("stock_movements").insert({
         variant_id: data.variantId,
         warehouse_id: data.warehouseId,
-        movement_type: "RECEIVE",
-        quantity: data.quantity,
-        previous_quantity: previousQuantity,
-        new_quantity: newQuantity,
+        quantity_change: data.quantity,
+        reason: data.notes || `Stock added: ${data.reason}`,
         reason_code: data.reason,
-        notes: data.notes || `Stock added: ${data.reason}`,
       });
-    } catch {
-      await supabase.from("stock_movements").insert({
-        variant_id: data.variantId,
-        warehouse_id: data.warehouseId,
-        movement_type: "RECEIVE",
-        quantity: data.quantity,
-        notes: data.notes || `Stock added: ${data.reason}`,
-      });
+    } catch (e: any) {
+      console.warn("Could not insert stock_movements log:", e?.message);
     }
 
     revalidatePath("/admin/inventory/stock");
@@ -271,6 +267,228 @@ export async function addStockAction(data: {
     return { success: false, error: error.message || "Failed to add stock" };
   }
 }
+
+export interface StockInwardItemInput {
+  variantId: string;
+  sku?: string;
+  name?: string;
+  quantity: number;
+  unitCost?: number;
+  batchNumber?: string;
+  zoneId?: string;
+  binId?: string;
+  updateCostPrice?: boolean;
+}
+
+export interface CreateStockInwardInput {
+  inwardNumber?: string;
+  warehouseId: string;
+  inwardType: "PURCHASE_RECEIPT" | "FACTORY_PRODUCTION" | "TRANSFER_IN" | "CUSTOMER_RETURN" | "INITIAL_STOCK" | "CORRECTION";
+  supplierId?: string;
+  receivedDate?: string;
+  receivedBy?: string;
+  notes?: string;
+  items: StockInwardItemInput[];
+}
+
+export async function createStockInwardAction(
+  data: CreateStockInwardInput
+): Promise<{
+  success: boolean;
+  data?: {
+    inwardNumber: string;
+    warehouseId: string;
+    totalItems: number;
+    totalQuantity: number;
+    totalCost: number;
+    receivedAt: string;
+    items: Array<{
+      variantId: string;
+      sku?: string;
+      name?: string;
+      quantity: number;
+      unitCost: number;
+      lineTotal: number;
+      previousQuantity: number;
+      newQuantity: number;
+      batchNumber?: string;
+    }>;
+  };
+  error?: string;
+}> {
+  try {
+    if (!data.warehouseId) {
+      return { success: false, error: "Destination warehouse is required" };
+    }
+
+    const validItems = (data.items || []).filter(
+      (item) => item.variantId && Number(item.quantity) > 0
+    );
+
+    if (validItems.length === 0) {
+      return {
+        success: false,
+        error: "At least one product variant with quantity greater than zero is required",
+      };
+    }
+
+    const supabase = createAdminClient();
+
+    // Verify warehouse exists
+    const { data: warehouse, error: whErr } = await supabase
+      .from("warehouses")
+      .select("id, name, is_active")
+      .eq("id", data.warehouseId)
+      .maybeSingle();
+
+    if (whErr || !warehouse) {
+      console.warn("Warehouse lookup error:", whErr?.message, "for id:", data.warehouseId);
+      return { success: false, error: "Destination warehouse not found" };
+    }
+
+    const inwardNumber =
+      data.inwardNumber?.trim() ||
+      `GRN-${new Date().toISOString().slice(0, 10).replace(/-/g, "")}-${Math.floor(
+        1000 + Math.random() * 9000
+      )}`;
+
+    const processedItems: Array<{
+      variantId: string;
+      sku?: string;
+      name?: string;
+      quantity: number;
+      unitCost: number;
+      lineTotal: number;
+      previousQuantity: number;
+      newQuantity: number;
+      batchNumber?: string;
+    }> = [];
+
+    let totalQuantity = 0;
+    let totalCost = 0;
+
+    for (const item of validItems) {
+      const qty = Math.floor(Number(item.quantity));
+      const cost = Math.max(0, Number(item.unitCost) || 0);
+      const lineCost = Number((qty * cost).toFixed(2));
+
+      // Fetch existing inventory level
+      const { data: existing, error: fetchErr } = await supabase
+        .from("inventory_levels")
+        .select("id, quantity_available")
+        .eq("variant_id", item.variantId)
+        .eq("warehouse_id", data.warehouseId)
+        .maybeSingle();
+
+      if (fetchErr) throw fetchErr;
+
+      const previousQuantity = existing?.quantity_available || 0;
+      const newQuantity = previousQuantity + qty;
+
+      if (existing) {
+        const { error: updateErr } = await supabase
+          .from("inventory_levels")
+          .update({
+            quantity_available: newQuantity,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existing.id);
+        if (updateErr) throw updateErr;
+      } else {
+        const { error: insertErr } = await supabase
+          .from("inventory_levels")
+          .insert({
+            variant_id: item.variantId,
+            warehouse_id: data.warehouseId,
+            quantity_available: qty,
+            quantity_reserved: 0,
+          });
+        if (insertErr) throw insertErr;
+      }
+
+      // Optionally update product cost price
+      if (item.updateCostPrice && cost > 0) {
+        try {
+          const { data: vData } = await supabase
+            .from("variants")
+            .select("product_id")
+            .eq("id", item.variantId)
+            .maybeSingle();
+          if (vData?.product_id) {
+            await supabase
+              .from("products")
+              .update({
+                cost_price: cost,
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", vData.product_id);
+          }
+        } catch (e) {
+          console.warn(`Could not update cost_price for product of variant ${item.variantId}`, e);
+        }
+      }
+
+      // Record stock movement
+      const movementNotes = `[${inwardNumber}] ${data.inwardType}${
+        item.batchNumber ? ` | Lot: ${item.batchNumber}` : ""
+      }${data.receivedBy ? ` | By: ${data.receivedBy}` : ""}${
+        data.notes ? ` | Notes: ${data.notes}` : ""
+      }`;
+
+      try {
+        await supabase.from("stock_movements").insert({
+          variant_id: item.variantId,
+          warehouse_id: data.warehouseId,
+          quantity_change: qty,
+          reason: movementNotes,
+          reason_code: data.inwardType,
+          reference_id: inwardNumber,
+        });
+      } catch (e: any) {
+        console.warn("Could not insert stock_movements log for inward item:", e?.message);
+      }
+
+      totalQuantity += qty;
+      totalCost += lineCost;
+
+      processedItems.push({
+        variantId: item.variantId,
+        sku: item.sku,
+        name: item.name,
+        quantity: qty,
+        unitCost: cost,
+        lineTotal: lineCost,
+        previousQuantity,
+        newQuantity,
+        batchNumber: item.batchNumber,
+      });
+    }
+
+    revalidatePath("/admin/inventory/stock");
+    revalidatePath("/admin/inventory/movement");
+    revalidatePath("/admin/inventory");
+    revalidatePath("/admin/operations/procurement/purchase-orders");
+
+    return {
+      success: true,
+      data: {
+        inwardNumber,
+        warehouseId: data.warehouseId,
+        totalItems: processedItems.length,
+        totalQuantity,
+        totalCost: Number(totalCost.toFixed(2)),
+        receivedAt: data.receivedDate || new Date().toISOString(),
+        items: processedItems,
+      },
+    };
+  } catch (error: any) {
+    return {
+      success: false,
+      error: error.message || "Failed to process stock inward",
+    };
+  }
+}
+
 
 export async function recordManualMovementAction(data: {
   variantId: string;
@@ -367,21 +585,12 @@ export async function recordManualMovementAction(data: {
       await supabase.from("stock_movements").insert({
         variant_id: data.variantId,
         warehouse_id: data.warehouseId,
-        movement_type: standardType,
-        quantity: delta,
-        previous_quantity: previousQuantity,
-        new_quantity: newQuantity,
+        quantity_change: delta,
+        reason: data.notes || data.reason,
         reason_code: data.reason,
-        notes: data.notes || data.reason,
       });
-    } catch {
-      await supabase.from("stock_movements").insert({
-        variant_id: data.variantId,
-        warehouse_id: data.warehouseId,
-        movement_type: standardType,
-        quantity: delta,
-        notes: data.notes || data.reason,
-      });
+    } catch (e: any) {
+      console.warn("Could not insert stock_movements log:", e?.message);
     }
 
     revalidatePath("/admin/inventory/movement");
@@ -391,3 +600,36 @@ export async function recordManualMovementAction(data: {
     return { success: false, error: error.message || "Failed to record movement" };
   }
 }
+
+export async function createAuditAction(data: {
+  warehouse_id: string;
+  blind_count?: boolean;
+  scheduled_date?: string;
+  notes?: string;
+}) {
+  try {
+    const service = new InventoryService();
+    const audit = await service.createAudit({
+      warehouse_id: data.warehouse_id,
+      blind_count: !!data.blind_count,
+      scheduled_date: data.scheduled_date || new Date().toISOString(),
+      status: "PLANNED",
+    });
+    revalidatePath("/admin/inventory/audits");
+    return { success: true, data: audit };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to schedule audit" };
+  }
+}
+
+export async function updateAuditStatusAction(id: string, status: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED") {
+  try {
+    const service = new InventoryService();
+    await service.updateAuditStatus(id, status);
+    revalidatePath("/admin/inventory/audits");
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to update audit status" };
+  }
+}
+

@@ -560,15 +560,18 @@ export class ReturnsService {
                   .eq("id", currentInv.id);
 
                 // Log stock movement
-                await supabase.from("stock_movements").insert({
-                  variant_id: orderItem.variant_id,
-                  warehouse_id: warehouseId,
-                  movement_type: "RESTOCK",
-                  quantity: item.quantity,
-                  reference_type: "RETURN",
-                  reference_id: returnRecord.id,
-                  notes: `Restocked ${item.quantity} units from return ${returnRecord.return_number}`,
-                });
+                try {
+                  await supabase.from("stock_movements").insert({
+                    variant_id: orderItem.variant_id,
+                    warehouse_id: warehouseId,
+                    quantity_change: item.quantity,
+                    reason: `Restocked ${item.quantity} units from return ${returnRecord.return_number}`,
+                    reason_code: "RETURN",
+                    reference_id: returnRecord.id,
+                  });
+                } catch (e: any) {
+                  console.warn("Could not insert stock_movements log:", e?.message);
+                }
               }
             }
           }

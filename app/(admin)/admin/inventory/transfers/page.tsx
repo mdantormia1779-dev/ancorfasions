@@ -1,90 +1,41 @@
 import { Metadata } from "next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/server";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { format } from "date-fns";
-import { StockTransferActions } from "@/features/inventory/components/InventoryPageActions";
-import { getInventoryMovements } from "@/actions/inventory.actions";
+import { StockTransfersClient } from "@/features/inventory/components/StockTransfersClient";
 
 export const metadata: Metadata = {
   title: "Stock Transfers | Anchor Fashion",
+  description: "Manage internal inventory movements and transfers between warehouses.",
 };
 
 export default async function TransfersPage() {
-  const { data: transfers } = await getInventoryMovements(1, 100);
-  const internalTransfers = transfers?.filter(
-    (t) => t.movement_type === "TRANSFER"
-  );
+  const supabase = await createClient();
+
+  const [
+    { data: transfers },
+    { data: allWarehouses },
+    { data: allVariants },
+  ] = await Promise.all([
+    supabase
+      .from("stock_movements")
+      .select("*, variants(sku, name), warehouses(name)")
+      .eq("movement_type", "TRANSFER")
+      .order("created_at", { ascending: false })
+      .limit(100),
+    supabase
+      .from("warehouses")
+      .select("id, name, code, is_active")
+      .order("name", { ascending: true }),
+    supabase
+      .from("variants")
+      .select("id, sku, name, product:products(name)")
+      .order("sku", { ascending: true }),
+  ]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Stock Transfers</h2>
-          <p className="text-muted-foreground">
-            Manage internal inventory movements.
-          </p>
-        </div>
-        <StockTransferActions />
-      </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Transfer History</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Date</TableHead>
-                <TableHead>SKU</TableHead>
-                <TableHead>Product</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Reference</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {internalTransfers?.map((transfer) => (
-                <TableRow key={transfer.id}>
-                  <TableCell>
-                    {format(new Date(transfer.created_at), "PP")}
-                  </TableCell>
-                  <TableCell className="font-medium">
-                    {transfer.variant_id || "N/A"}
-                  </TableCell>
-                  <TableCell>{transfer.movement_type}</TableCell>
-                  <TableCell>{Math.abs(transfer.quantity)}</TableCell>
-                  <TableCell>{transfer.reason_code || "N/A"}</TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="outline" size="sm">
-                      Details
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {(!internalTransfers || internalTransfers.length === 0) && (
-                <TableRow>
-                  <TableCell
-                    colSpan={6}
-                    className="py-6 text-center text-muted-foreground"
-                  >
-                    No stock transfers found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
-    </div>
+    <StockTransfersClient
+      transfers={transfers || []}
+      allWarehouses={allWarehouses || []}
+      allVariants={allVariants || []}
+    />
   );
 }

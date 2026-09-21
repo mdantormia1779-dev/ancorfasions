@@ -39,6 +39,7 @@ import {
   transferStock,
   recordManualMovementAction,
 } from "@/actions/inventory.actions";
+import { StockInwardDialog } from "@/features/inventory/components/StockInwardDialog";
 import { Loader2 } from "lucide-react";
 
 // ─── Add Stock ────────────────────────────────────────────────────────────────
@@ -912,12 +913,14 @@ interface StockControlActionsProps {
   inventory?: any[];
   allWarehouses?: any[];
   allVariants?: any[];
+  allSuppliers?: any[];
 }
 
 export function StockControlActions({
   inventory = [],
   allWarehouses = [],
   allVariants = [],
+  allSuppliers = [],
 }: StockControlActionsProps) {
   const handleExport = () => {
     if (!inventory || inventory.length === 0) {
@@ -926,7 +929,7 @@ export function StockControlActions({
     }
     const exportData = inventory.map((item) => ({
       SKU: item.variants?.sku,
-      Name: item.variants?.name,
+      Name: item.variants?.name || item.variants?.product?.name,
       Warehouse: item.warehouses?.name,
       Available: item.quantity_available,
       Reserved: item.quantity_reserved,
@@ -944,14 +947,18 @@ export function StockControlActions({
       <Button variant="outline" onClick={handleExport}>
         <Download className="mr-2 h-4 w-4" /> Export
       </Button>
-      <AddStockDialog
+      <StockInwardDialog
         inventory={inventory}
         allWarehouses={allWarehouses}
         allVariants={allVariants}
+        allSuppliers={allSuppliers}
       />
     </div>
   );
 }
+
+export { StockInwardDialog };
+
 
 export function StockTransferActions({
   allWarehouses = [],

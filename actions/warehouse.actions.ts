@@ -84,3 +84,78 @@ export async function getZoneBins(
     return { error: error.message };
   }
 }
+
+export async function createWarehouseZoneAction(data: {
+  warehouse_id: string;
+  name: string;
+  type: string;
+}): Promise<{ data?: WarehouseZone; error?: string }> {
+  try {
+    const service = new WarehouseService();
+    const zone = await service.createZone({
+      warehouse_id: data.warehouse_id,
+      name: data.name,
+      type: data.type || "PICKING",
+      is_active: true,
+    });
+    revalidatePath(`/admin/inventory/warehouses/${data.warehouse_id}`);
+    return { data: zone };
+  } catch (error: any) {
+    return { error: error.message || "Failed to create storage zone" };
+  }
+}
+
+export async function deleteWarehouseZoneAction(
+  zoneId: string,
+  warehouseId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const service = new WarehouseService();
+    await service.deleteZone(zoneId);
+    revalidatePath(`/admin/inventory/warehouses/${warehouseId}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to delete storage zone" };
+  }
+}
+
+export async function createWarehouseBinAction(
+  data: {
+    zone_id: string;
+    code: string;
+    barcode?: string;
+    capacity_volume?: number;
+    capacity_weight?: number;
+  },
+  warehouseId: string
+): Promise<{ data?: WarehouseBin; error?: string }> {
+  try {
+    const service = new WarehouseService();
+    const bin = await service.createBin({
+      zone_id: data.zone_id,
+      code: data.code.trim().toUpperCase(),
+      barcode: data.barcode?.trim() || data.code.trim().toUpperCase(),
+      capacity_volume: Number(data.capacity_volume) || 0,
+      capacity_weight: Number(data.capacity_weight) || 0,
+    });
+    revalidatePath(`/admin/inventory/warehouses/${warehouseId}`);
+    return { data: bin };
+  } catch (error: any) {
+    return { error: error.message || "Failed to create storage bin" };
+  }
+}
+
+export async function deleteWarehouseBinAction(
+  binId: string,
+  warehouseId: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const service = new WarehouseService();
+    await service.deleteBin(binId);
+    revalidatePath(`/admin/inventory/warehouses/${warehouseId}`);
+    return { success: true };
+  } catch (error: any) {
+    return { success: false, error: error.message || "Failed to delete storage bin" };
+  }
+}
+

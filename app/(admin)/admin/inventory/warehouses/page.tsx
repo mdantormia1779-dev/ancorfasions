@@ -56,7 +56,11 @@ export default async function WarehousesPage() {
                 <TableRow key={wh.id}>
                   <TableCell className="font-mono text-xs font-semibold">{wh.code || "—"}</TableCell>
                   <TableCell className="font-medium">{wh.name}</TableCell>
-                  <TableCell>{wh.type || "N/A"}</TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center rounded-md bg-secondary/80 px-2 py-0.5 text-xs font-medium text-secondary-foreground">
+                      {wh.type === "RETAIL_STORE" ? "Retail Store" : "Warehouse"}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <span
                       className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ${
@@ -89,7 +93,7 @@ export default async function WarehousesPage() {
               {(!warehouses || warehouses.length === 0) && (
                 <TableRow>
                   <TableCell
-                    colSpan={4}
+                    colSpan={5}
                     className="py-6 text-center text-muted-foreground"
                   >
                     No warehouses found. Add one to get started.

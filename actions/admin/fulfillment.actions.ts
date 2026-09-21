@@ -10,7 +10,7 @@ export async function getPickListsAction() {
       .from("pick_lists")
       .select(`
         *,
-        warehouses(id, name, code),
+        warehouses(id, name, warehouse_code),
         assigned_picker:profiles!assigned_picker_id(id, first_name, last_name, email),
         items:pick_list_items(id, quantity_required, quantity_picked, status)
       `)
@@ -20,7 +20,7 @@ export async function getPickListsAction() {
       // Fallback query if profiles foreign key differs
       const { data: fallbackLists, error: fbErr } = await supabase
         .from("pick_lists")
-        .select("*, warehouses(id, name, code)")
+        .select("*, warehouses(id, name, warehouse_code)")
         .order("created_at", { ascending: false });
 
       if (fbErr) return { success: false, error: fbErr.message };

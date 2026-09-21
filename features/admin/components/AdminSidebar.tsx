@@ -143,10 +143,15 @@ const navigation: NavCategory[] = [
         icon: Archive,
         allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER", "WAREHOUSE_MANAGER"],
         items: [
-          { name: "Stock", href: "/admin/inventory/stock" },
+          { name: "Overview", href: "/admin/inventory" },
+          { name: "Stock Control", href: "/admin/inventory/stock" },
           { name: "Warehouses", href: "/admin/inventory/warehouses" },
           { name: "Stock Movement", href: "/admin/inventory/movement" },
-          { name: "Purchase Orders", href: "/admin/operations/procurement/purchase-orders" },
+          { name: "Stock Transfers", href: "/admin/inventory/transfers" },
+          { name: "Purchase Orders", href: "/admin/inventory/purchases" },
+          { name: "Suppliers", href: "/admin/inventory/suppliers" },
+          { name: "Fulfillment", href: "/admin/inventory/fulfillment" },
+          { name: "Audits", href: "/admin/inventory/audits" },
         ],
       },
       {

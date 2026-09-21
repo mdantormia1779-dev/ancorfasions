@@ -199,17 +199,18 @@ export async function updateOperationsReturnStatusAction(
             }
 
             // Record stock movement
-            await supabase.from("stock_movements").insert({
-              variant_id: item.variant_id,
-              warehouse_id: wh.id,
-              movement_type: "IN",
-              quantity: item.quantity || 1,
-              previous_quantity: prevQty,
-              new_quantity: newQty,
-              reference_type: "RETURN",
-              reference_id: updated.return_number,
-              notes: `Restocked from return #${updated.return_number}`,
-            });
+            try {
+              await supabase.from("stock_movements").insert({
+                variant_id: item.variant_id,
+                warehouse_id: wh.id,
+                quantity_change: item.quantity || 1,
+                reason: `Restocked from return #${updated.return_number}`,
+                reason_code: "RETURN",
+                reference_id: updated.return_number,
+              });
+            } catch (e: any) {
+              console.warn("Could not insert stock_movements log:", e?.message);
+            }
 
             // Mark item as restocked
             await supabase
