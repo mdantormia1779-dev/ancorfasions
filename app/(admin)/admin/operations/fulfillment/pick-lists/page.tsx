@@ -20,7 +20,7 @@ export default async function PickListsPage() {
     supabase
       .from("orders")
       .select("*", { count: "exact", head: true })
-      .in("status", ["pending", "processing", "PAID", "paid", "confirmed"]),
+      .in("status", ["confirmed", "paid", "preparing", "ready_for_shipment", "pending_payment"]),
     getPickListsAction(),
     getPickersAction(),
     supabase.from("warehouses").select("id, name, warehouse_code").eq("is_active", true).order("name"),

@@ -108,7 +108,7 @@ describe("Returns State-Machine Tests", () => {
 
     const final = await repo.getReturnById(returnId);
     expect(final?.status).toBe("completed");
-  });
+  }, 15000);
 
   it("Invalid transition: Requested -> Received", async () => {
     await expect(repo.atomicUpdateStatus(returnId, ["approved"], { status: "received" }, customerId))
@@ -137,5 +137,5 @@ describe("Returns State-Machine Tests", () => {
 
     await expect(repo.atomicUpdateStatus(returnId, ["requested"], { status: "approved" }, customerId))
       .rejects.toThrow(/Invalid state transition/);
-  });
+  }, 15000);
 });

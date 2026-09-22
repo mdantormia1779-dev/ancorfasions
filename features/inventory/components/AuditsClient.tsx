@@ -72,7 +72,10 @@ export function AuditsClient({ audits = [], allWarehouses = [] }: AuditsClientPr
     return audits.filter((a) => {
       const warehouseName = (a.warehouses?.name || "").toLowerCase();
       const matchesSearch = !search || warehouseName.includes(search.toLowerCase());
-      const matchesStatus = statusFilter === "ALL" || a.status === statusFilter;
+      const matchesStatus =
+        statusFilter === "ALL" ||
+        a.status === statusFilter ||
+        (statusFilter === "PLANNED" && a.status === "SCHEDULED");
       return matchesSearch && matchesStatus;
     });
   }, [audits, search, statusFilter]);
@@ -106,7 +109,7 @@ export function AuditsClient({ audits = [], allWarehouses = [] }: AuditsClientPr
 
   const handleStatusChange = async (
     auditId: string,
-    newStatus: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"
+    newStatus: "PLANNED" | "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"
   ) => {
     setStatusLoading(auditId);
     const res = await updateAuditStatusAction(auditId, newStatus);
@@ -123,7 +126,8 @@ export function AuditsClient({ audits = [], allWarehouses = [] }: AuditsClientPr
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "PLANNED":
-        return <Badge variant="outline">Planned</Badge>;
+      case "SCHEDULED":
+        return <Badge variant="outline">Scheduled</Badge>;
       case "IN_PROGRESS":
         return (
           <Badge variant="default" className="bg-blue-600 hover:bg-blue-700">
@@ -237,7 +241,7 @@ export function AuditsClient({ audits = [], allWarehouses = [] }: AuditsClientPr
                 <TableCell>{getStatusBadge(audit.status)}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-1.5">
-                    {audit.status === "PLANNED" && (
+                    {(audit.status === "PLANNED" || audit.status === "SCHEDULED") && (
                       <Button
                         size="sm"
                         variant="outline"

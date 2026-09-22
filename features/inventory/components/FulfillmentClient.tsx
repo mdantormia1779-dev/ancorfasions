@@ -137,7 +137,8 @@ export function FulfillmentClient({
       case "PENDING":
         return <Badge variant="outline">Pending</Badge>;
       case "ASSIGNED":
-        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">Assigned</Badge>;
+      case "IN_PROGRESS":
+        return <Badge variant="secondary" className="bg-blue-100 text-blue-800">In Progress</Badge>;
       case "PICKING":
         return <Badge variant="default" className="bg-amber-600 hover:bg-amber-700">Picking</Badge>;
       case "COMPLETED":

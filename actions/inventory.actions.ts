@@ -606,27 +606,36 @@ export async function createAuditAction(data: {
   blind_count?: boolean;
   scheduled_date?: string;
   notes?: string;
+  zone_id?: string;
 }) {
   try {
     const service = new InventoryService();
     const audit = await service.createAudit({
       warehouse_id: data.warehouse_id,
+      zone_id: data.zone_id,
       blind_count: !!data.blind_count,
-      scheduled_date: data.scheduled_date || new Date().toISOString(),
-      status: "PLANNED",
+      status: "SCHEDULED",
     });
-    revalidatePath("/admin/inventory/audits");
+    try {
+      revalidatePath("/admin/inventory/audits");
+    } catch {}
     return { success: true, data: audit };
   } catch (error: any) {
     return { success: false, error: error.message || "Failed to schedule audit" };
   }
 }
 
-export async function updateAuditStatusAction(id: string, status: "PLANNED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED") {
+export async function updateAuditStatusAction(
+  id: string,
+  status: "PLANNED" | "SCHEDULED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"
+) {
   try {
     const service = new InventoryService();
-    await service.updateAuditStatus(id, status);
-    revalidatePath("/admin/inventory/audits");
+    const dbStatus = status === "PLANNED" ? "SCHEDULED" : status;
+    await service.updateAuditStatus(id, dbStatus);
+    try {
+      revalidatePath("/admin/inventory/audits");
+    } catch {}
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Failed to update audit status" };

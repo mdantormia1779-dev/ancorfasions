@@ -11,32 +11,46 @@ export async function getPickListsAction() {
       .select(`
         *,
         warehouses(id, name, warehouse_code),
-        assigned_picker:profiles!assigned_picker_id(id, first_name, last_name, email),
-        items:pick_list_items(id, quantity_required, quantity_picked, status)
+        items:pick_list_items(id, quantity, is_picked, picked_at)
       `)
       .order("created_at", { ascending: false });
 
     if (error) {
-      // Fallback query if profiles foreign key differs
-      const { data: fallbackLists, error: fbErr } = await supabase
-        .from("pick_lists")
-        .select("*, warehouses(id, name, warehouse_code)")
-        .order("created_at", { ascending: false });
+      console.error("[getPickListsAction error]", error);
+      return { success: false, error: error.message };
+    }
 
-      if (fbErr) return { success: false, error: fbErr.message };
-      return { success: true, data: fallbackLists || [] };
+    // Resolve assigned_to profile names reliably without foreign key schema cache dependency
+    const userIds = [...new Set((lists || []).map((l: any) => l.assigned_to).filter(Boolean))];
+    const profileMap: Record<string, string> = {};
+    if (userIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name, email")
+        .in("id", userIds);
+      if (profiles) {
+        profiles.forEach((p: any) => {
+          profileMap[p.id] = `${p.first_name || ""} ${p.last_name || ""}`.trim() || p.email;
+        });
+      }
     }
 
     const processed = (lists || []).map((list: any) => {
       const items = list.items || [];
-      const totalRequired = items.reduce((sum: number, i: any) => sum + (i.quantity_required || 1), 0);
-      const totalPicked = items.reduce((sum: number, i: any) => sum + (i.quantity_picked || 0), 0);
+      const totalRequired =
+        list.total_items ??
+        items.reduce((sum: number, i: any) => sum + (Number(i.quantity) || 1), 0);
+      const totalPicked =
+        list.picked_items ??
+        items.filter((i: any) => i.is_picked).reduce((sum: number, i: any) => sum + (Number(i.quantity) || 1), 0);
+
       return {
         ...list,
+        pick_list_number: list.list_number,
         itemsTotal: totalRequired || 1,
         itemsPicked: totalPicked,
-        assignedToName: list.assigned_picker
-          ? `${list.assigned_picker.first_name || ""} ${list.assigned_picker.last_name || ""}`.trim() || list.assigned_picker.email
+        assignedToName: list.assigned_to && profileMap[list.assigned_to]
+          ? profileMap[list.assigned_to]
           : "Unassigned",
       };
     });
@@ -74,17 +88,17 @@ export async function generatePickListFromOrdersAction(warehouseId?: string) {
   try {
     const supabase = createAdminClient();
 
-    // 1. Find eligible pending/paid orders
-    let query = supabase
+    // 1. Find eligible orders using authoritative Postgres order_status enum values
+    const query = supabase
       .from("orders")
       .select("id, order_number, status, order_items(id, variant_id, quantity)")
-      .in("status", ["pending", "processing", "PAID", "paid", "confirmed"])
+      .in("status", ["confirmed", "paid", "preparing", "ready_for_shipment", "pending_payment"])
       .limit(10);
 
     const { data: orders, error: ordersErr } = await query;
     if (ordersErr) throw ordersErr;
 
-    // Determine warehouse
+    // Determine target warehouse
     let targetWarehouseId = warehouseId;
     if (!targetWarehouseId) {
       const { data: defaultWh } = await supabase
@@ -92,7 +106,7 @@ export async function generatePickListFromOrdersAction(warehouseId?: string) {
         .select("id")
         .eq("is_active", true)
         .limit(1)
-        .single();
+        .maybeSingle();
       targetWarehouseId = defaultWh?.id;
     }
 
@@ -100,64 +114,81 @@ export async function generatePickListFromOrdersAction(warehouseId?: string) {
       return { success: false, error: "No active warehouse found to generate pick list." };
     }
 
-    const pickListNumber = `PL-${Date.now().toString().slice(-6)}`;
+    // 2. Aggregate order items
+    let itemsToInsert: {
+      order_item_id?: string | null;
+      variant_id?: string | null;
+      quantity: number;
+      is_picked: boolean;
+    }[] = [];
 
-    // 2. Create pick list record
-    const { data: newPickList, error: plErr } = await supabase
-      .from("pick_lists")
-      .insert({
-        pick_list_number: pickListNumber,
-        warehouse_id: targetWarehouseId,
-        order_id: orders && orders.length > 0 ? orders[0].id : null,
-        status: "PENDING",
-        notes: `Generated wave batch for ${orders?.length || 0} order(s).`,
-      })
-      .select()
-      .single();
-
-    if (plErr) throw plErr;
-
-    // 3. Create pick list items from order items or active variants
-    let itemsToInsert: any[] = [];
     if (orders && orders.length > 0) {
       for (const order of orders) {
         if (order.order_items && order.order_items.length > 0) {
           for (const item of order.order_items) {
             itemsToInsert.push({
-              pick_list_id: newPickList.id,
+              order_item_id: item.id,
               variant_id: item.variant_id,
-              quantity_required: item.quantity || 1,
-              quantity_picked: 0,
-              status: "PENDING",
+              quantity: item.quantity || 1,
+              is_picked: false,
             });
           }
         }
       }
     }
 
-    // Fallback: If no order items exist yet, link top variants
+    // Fallback: If no orders or order items exist, pick sample catalog variants
     if (itemsToInsert.length === 0) {
       const { data: sampleVariants } = await supabase.from("variants").select("id").limit(3);
       if (sampleVariants && sampleVariants.length > 0) {
         itemsToInsert = sampleVariants.map((v) => ({
-          pick_list_id: newPickList.id,
           variant_id: v.id,
-          quantity_required: 2,
-          quantity_picked: 0,
-          status: "PENDING",
+          quantity: 2,
+          is_picked: false,
         }));
       }
     }
 
+    const totalQty = itemsToInsert.reduce((sum, i) => sum + (i.quantity || 1), 0);
+    const pickListNumber = `PL-${Date.now().toString().slice(-6)}`;
+
+    // 3. Create pick list record respecting schema constraint (pick_type: 'WAVE'|'BATCH', status: 'PENDING')
+    const { data: newPickList, error: plErr } = await supabase
+      .from("pick_lists")
+      .insert({
+        list_number: pickListNumber,
+        warehouse_id: targetWarehouseId,
+        pick_type: "WAVE",
+        status: "PENDING",
+        total_items: totalQty || 1,
+        picked_items: 0,
+      })
+      .select()
+      .single();
+
+    if (plErr) throw plErr;
+
+    // 4. Create pick list items matching schema
     if (itemsToInsert.length > 0) {
-      const { error: itemErr } = await supabase.from("pick_list_items").insert(itemsToInsert);
+      const formattedItems = itemsToInsert.map((item) => ({
+        pick_list_id: newPickList.id,
+        order_item_id: item.order_item_id || null,
+        variant_id: item.variant_id || null,
+        quantity: item.quantity || 1,
+        is_picked: false,
+      }));
+
+      const { error: itemErr } = await supabase.from("pick_list_items").insert(formattedItems);
       if (itemErr) {
         console.warn("Error inserting pick list items:", itemErr);
       }
     }
 
-    revalidatePath("/admin/operations/fulfillment/pick-lists");
-    revalidatePath("/admin/inventory/fulfillment");
+    try {
+      revalidatePath("/admin/operations/fulfillment/pick-lists");
+      revalidatePath("/admin/inventory/fulfillment");
+    } catch {}
+
     return { success: true, data: newPickList };
   } catch (error: any) {
     return { success: false, error: error.message || "Failed to generate pick list" };
@@ -170,14 +201,16 @@ export async function assignPickerAction(pickListId: string, pickerId: string) {
     const { error } = await supabase
       .from("pick_lists")
       .update({
-        assigned_picker_id: pickerId || null,
-        status: "ASSIGNED",
-        updated_at: new Date().toISOString(),
+        assigned_to: pickerId || null,
+        status: "IN_PROGRESS",
       })
       .eq("id", pickListId);
 
     if (error) throw error;
-    revalidatePath("/admin/operations/fulfillment/pick-lists");
+    try {
+      revalidatePath("/admin/operations/fulfillment/pick-lists");
+      revalidatePath("/admin/inventory/fulfillment");
+    } catch {}
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Failed to assign picker" };
@@ -186,23 +219,35 @@ export async function assignPickerAction(pickListId: string, pickerId: string) {
 
 export async function updatePickListStatusAction(
   pickListId: string,
-  status: "PENDING" | "ASSIGNED" | "PICKING" | "PARTIALLY_PICKED" | "COMPLETED" | "CANCELLED"
+  status: "PENDING" | "ASSIGNED" | "PICKING" | "PARTIALLY_PICKED" | "COMPLETED" | "CANCELLED" | "IN_PROGRESS"
 ) {
   try {
     const supabase = createAdminClient();
+
+    // Map UI status variants to DB check constraint ('PENDING', 'IN_PROGRESS', 'COMPLETED', 'CANCELLED')
+    let dbStatus: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" = "PENDING";
+    if (status === "COMPLETED") {
+      dbStatus = "COMPLETED";
+    } else if (status === "CANCELLED") {
+      dbStatus = "CANCELLED";
+    } else if (
+      status === "IN_PROGRESS" ||
+      status === "PICKING" ||
+      status === "ASSIGNED" ||
+      status === "PARTIALLY_PICKED"
+    ) {
+      dbStatus = "IN_PROGRESS";
+    }
+
     const updates: any = {
-      status,
-      updated_at: new Date().toISOString(),
+      status: dbStatus,
     };
 
-    if (status === "PICKING") {
-      updates.started_at = new Date().toISOString();
-    } else if (status === "COMPLETED") {
+    if (dbStatus === "COMPLETED") {
       updates.completed_at = new Date().toISOString();
-      // If completed, mark all items as picked
       await supabase
         .from("pick_list_items")
-        .update({ status: "PICKED" })
+        .update({ is_picked: true, picked_at: new Date().toISOString() })
         .eq("pick_list_id", pickListId);
     }
 
@@ -212,7 +257,10 @@ export async function updatePickListStatusAction(
       .eq("id", pickListId);
 
     if (error) throw error;
-    revalidatePath("/admin/operations/fulfillment/pick-lists");
+    try {
+      revalidatePath("/admin/operations/fulfillment/pick-lists");
+      revalidatePath("/admin/inventory/fulfillment");
+    } catch {}
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Failed to update pick list status" };

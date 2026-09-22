@@ -120,7 +120,7 @@ export class OrderRepository {
         return q.in("status", ["pending_payment", "paid", "draft"]);
       }
       if (s === "processing") {
-        return q.in("status", ["confirmed", "preparing", "processing", "picking", "packing", "ready_for_shipment", "shipped"]);
+        return q.in("status", ["confirmed", "preparing", "picking", "packing", "ready_for_shipment", "shipped"]);
       }
       if (s === "completed") {
         return q.in("status", ["completed", "delivered"]);

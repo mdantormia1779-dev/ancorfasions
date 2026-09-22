@@ -175,7 +175,8 @@ export function PickListsClient({
       case "PENDING":
         return <Badge variant="outline">Pending</Badge>;
       case "ASSIGNED":
-        return <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white">Assigned</Badge>;
+      case "IN_PROGRESS":
+        return <Badge className="bg-indigo-600 hover:bg-indigo-700 text-white">In Progress</Badge>;
       case "PICKING":
         return <Badge className="bg-blue-600 hover:bg-blue-700 text-white">Picking</Badge>;
       case "PARTIALLY_PICKED":

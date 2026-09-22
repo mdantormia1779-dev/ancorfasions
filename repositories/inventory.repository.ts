@@ -448,9 +448,24 @@ export class InventoryRepository {
 
   async createAudit(auditData: any): Promise<any> {
     const supabase = this.getAdminClient();
+    const payload: any = {
+      warehouse_id: auditData.warehouse_id,
+      status: auditData.status === "PLANNED" ? "SCHEDULED" : (auditData.status || "SCHEDULED"),
+      blind_count: auditData.blind_count ?? true,
+    };
+    if (auditData.zone_id && auditData.zone_id !== "all") {
+      payload.zone_id = auditData.zone_id;
+    }
+    if (auditData.assigned_to) {
+      payload.assigned_to = auditData.assigned_to;
+    }
+    if (auditData.created_by) {
+      payload.created_by = auditData.created_by;
+    }
+
     const { data, error } = await supabase
       .from("inventory_audits")
-      .insert([auditData])
+      .insert([payload])
       .select()
       .single();
 
@@ -460,10 +475,11 @@ export class InventoryRepository {
 
   async updateAuditStatus(id: string, status: string): Promise<void> {
     const supabase = this.getAdminClient();
-    const updates: any = { status };
-    if (status === "COMPLETED" || status === "CANCELLED") {
-      updates.completed_date = new Date().toISOString();
-    }
+    const dbStatus = status === "PLANNED" ? "SCHEDULED" : status;
+    const updates: any = {
+      status: dbStatus,
+      updated_at: new Date().toISOString(),
+    };
 
     const { error } = await supabase
       .from("inventory_audits")
