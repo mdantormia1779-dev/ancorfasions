@@ -74,7 +74,7 @@ export function CustomerGroupActions() {
       </Button>
 
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[440px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create Customer Group</DialogTitle>
             <DialogDescription>

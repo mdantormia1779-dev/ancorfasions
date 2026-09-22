@@ -469,7 +469,7 @@ export function ManualPaymentsClient({
 
       {/* Reject Payment Dialog */}
       <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Reject Manual Payment</DialogTitle>
             <DialogDescription>

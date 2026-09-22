@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Plus, Download, ArrowLeftRight, Package } from "lucide-react";
 import { toast } from "sonner";
 import { exportToCsv } from "@/lib/utils/export";
+import { getWarehouses, getVariants } from "@/app/actions/admin/procurement.actions";
 import {
   Dialog,
   DialogContent,
@@ -68,6 +69,29 @@ function AddStockDialog({ inventory, allWarehouses = [], allVariants = [] }: Add
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const [warehousesList, setWarehousesList] = useState<any[]>(allWarehouses);
+  const [variantsList, setVariantsList] = useState<any[]>(allVariants);
+
+  useEffect(() => {
+    if (allWarehouses.length > 0) setWarehousesList(allWarehouses);
+    if (allVariants.length > 0) setVariantsList(allVariants);
+  }, [allWarehouses, allVariants]);
+
+  useEffect(() => {
+    if (open) {
+      if (warehousesList.length === 0) {
+        getWarehouses().then((res) => {
+          if (res.success && res.data) setWarehousesList(res.data);
+        });
+      }
+      if (variantsList.length === 0) {
+        getVariants().then((res) => {
+          if (res.success && res.data) setVariantsList(res.data);
+        });
+      }
+    }
+  }, [open]);
+
   const form = useForm<AddStockForm>({
     resolver: zodResolver(addStockSchema),
     defaultValues: {
@@ -93,11 +117,11 @@ function AddStockDialog({ inventory, allWarehouses = [], allVariants = [] }: Add
     }
   };
 
-  // Build warehouse list from props or fallback to inventory records
-  const warehouses = allWarehouses.length > 0
-    ? allWarehouses.map((w) => ({
+  // Build warehouse list from state or fallback to inventory records
+  const warehouses = warehousesList.length > 0
+    ? warehousesList.map((w) => ({
         id: w.id,
-        name: w.name + (w.code ? ` (${w.code})` : ""),
+        name: w.name + (w.code || w.warehouse_code ? ` (${w.code || w.warehouse_code})` : ""),
       }))
     : Array.from(
         new Map(
@@ -107,11 +131,11 @@ function AddStockDialog({ inventory, allWarehouses = [], allVariants = [] }: Add
         ).values()
       );
 
-  // Build variants list from props or fallback to inventory records
-  const variants = allVariants.length > 0
-    ? allVariants.map((v) => ({
+  // Build variants list from state or fallback to inventory records
+  const variants = variantsList.length > 0
+    ? variantsList.map((v) => ({
         id: v.id,
-        name: `${v.sku} — ${v.name || v.product?.name || "Standard"}`,
+        name: v.name || `${v.sku} — ${v.product?.name || v.product_name || "Standard"}`,
       }))
     : Array.from(
         new Map(
@@ -127,7 +151,7 @@ function AddStockDialog({ inventory, allWarehouses = [], allVariants = [] }: Add
         <Plus className="mr-2 h-4 w-4" /> Add Stock
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add Stock</DialogTitle>
             <DialogDescription>
@@ -136,87 +160,55 @@ function AddStockDialog({ inventory, allWarehouses = [], allVariants = [] }: Add
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {variants.length > 0 ? (
-                <FormField
-                  control={form.control}
-                  name="variantId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Product Variant</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select variant" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {variants.map((v) => (
-                            <SelectItem key={v.id} value={v.id}>
-                              {v.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : (
-                <FormField
-                  control={form.control}
-                  name="variantId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Variant ID</FormLabel>
+              <FormField
+                control={form.control}
+                name="variantId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product Variant</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={variants.length === 0}>
                       <FormControl>
-                        <Input placeholder="uuid-of-variant" {...field} />
+                        <SelectTrigger>
+                          <SelectValue placeholder={variants.length === 0 ? "Loading variants..." : "Select variant"} />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+                      <SelectContent>
+                        {variants.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
-              {warehouses.length > 0 ? (
-                <FormField
-                  control={form.control}
-                  name="warehouseId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Warehouse</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select warehouse" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {warehouses.map((w) => (
-                            <SelectItem key={w.id} value={w.id}>
-                              {w.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : (
-                <FormField
-                  control={form.control}
-                  name="warehouseId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Warehouse ID</FormLabel>
+              <FormField
+                control={form.control}
+                name="warehouseId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Warehouse</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={warehouses.length === 0}>
                       <FormControl>
-                        <Input placeholder="uuid-of-warehouse" {...field} />
+                        <SelectTrigger>
+                          <SelectValue placeholder={warehouses.length === 0 ? "Loading warehouses..." : "Select warehouse"} />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+                      <SelectContent>
+                        {warehouses.map((w) => (
+                          <SelectItem key={w.id} value={w.id}>
+                            {w.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <FormField
                 control={form.control}
@@ -318,6 +310,29 @@ function TransferStockDialog({ allWarehouses = [], allVariants = [] }: TransferS
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const [warehousesList, setWarehousesList] = useState<any[]>(allWarehouses);
+  const [variantsList, setVariantsList] = useState<any[]>(allVariants);
+
+  useEffect(() => {
+    if (allWarehouses.length > 0) setWarehousesList(allWarehouses);
+    if (allVariants.length > 0) setVariantsList(allVariants);
+  }, [allWarehouses, allVariants]);
+
+  useEffect(() => {
+    if (open) {
+      if (warehousesList.length === 0) {
+        getWarehouses().then((res) => {
+          if (res.success && res.data) setWarehousesList(res.data);
+        });
+      }
+      if (variantsList.length === 0) {
+        getVariants().then((res) => {
+          if (res.success && res.data) setVariantsList(res.data);
+        });
+      }
+    }
+  }, [open]);
+
   const form = useForm<TransferForm>({
     resolver: zodResolver(transferSchema),
     defaultValues: {
@@ -351,14 +366,14 @@ function TransferStockDialog({ allWarehouses = [], allVariants = [] }: TransferS
     }
   };
 
-  const variants = allVariants.map((v) => ({
+  const variants = variantsList.map((v) => ({
     id: v.id,
-    name: `${v.sku} — ${v.name || v.product?.name || "Standard"}`,
+    name: v.name || `${v.sku} — ${v.product?.name || v.product_name || "Standard"}`,
   }));
 
-  const warehouses = allWarehouses.map((w) => ({
+  const warehouses = warehousesList.map((w) => ({
     id: w.id,
-    name: w.name + (w.code ? ` (${w.code})` : ""),
+    name: w.name + (w.code || w.warehouse_code ? ` (${w.code || w.warehouse_code})` : ""),
   }));
 
   return (
@@ -367,7 +382,7 @@ function TransferStockDialog({ allWarehouses = [], allVariants = [] }: TransferS
         <ArrowLeftRight className="mr-2 h-4 w-4" /> Transfer
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Transfer Stock</DialogTitle>
             <DialogDescription>
@@ -376,23 +391,48 @@ function TransferStockDialog({ allWarehouses = [], allVariants = [] }: TransferS
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {variants.length > 0 ? (
+              <FormField
+                control={form.control}
+                name="variantId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product Variant</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={variants.length === 0}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={variants.length === 0 ? "Loading variants..." : "Select variant"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {variants.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <div className="grid grid-cols-2 gap-4">
                 <FormField
                   control={form.control}
-                  name="variantId"
+                  name="fromWarehouseId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Product Variant</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <FormLabel>From Warehouse</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={warehouses.length === 0}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select variant" />
+                            <SelectValue placeholder={warehouses.length === 0 ? "Loading..." : "Source"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
-                          {variants.map((v) => (
-                            <SelectItem key={v.id} value={v.id}>
-                              {v.name}
+                          {warehouses.map((w) => (
+                            <SelectItem key={w.id} value={w.id}>
+                              {w.name}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -401,104 +441,31 @@ function TransferStockDialog({ allWarehouses = [], allVariants = [] }: TransferS
                     </FormItem>
                   )}
                 />
-              ) : (
+
                 <FormField
                   control={form.control}
-                  name="variantId"
+                  name="toWarehouseId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Variant ID</FormLabel>
-                      <FormControl>
-                        <Input placeholder="uuid-of-variant" {...field} />
-                      </FormControl>
+                      <FormLabel>To Warehouse</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={warehouses.length === 0}>
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder={warehouses.length === 0 ? "Loading..." : "Destination"} />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {warehouses.map((w) => (
+                            <SelectItem key={w.id} value={w.id}>
+                              {w.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-              )}
-
-              <div className="grid grid-cols-2 gap-4">
-                {warehouses.length > 0 ? (
-                  <FormField
-                    control={form.control}
-                    name="fromWarehouseId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>From Warehouse</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Source" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {warehouses.map((w) => (
-                              <SelectItem key={w.id} value={w.id}>
-                                {w.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ) : (
-                  <FormField
-                    control={form.control}
-                    name="fromWarehouseId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>From Warehouse ID</FormLabel>
-                        <FormControl>
-                          <Input placeholder="source uuid" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
-
-                {warehouses.length > 0 ? (
-                  <FormField
-                    control={form.control}
-                    name="toWarehouseId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>To Warehouse</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Destination" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {warehouses.map((w) => (
-                              <SelectItem key={w.id} value={w.id}>
-                                {w.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ) : (
-                  <FormField
-                    control={form.control}
-                    name="toWarehouseId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>To Warehouse ID</FormLabel>
-                        <FormControl>
-                          <Input placeholder="destination uuid" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )}
               </div>
 
               <FormField
@@ -599,6 +566,29 @@ function RecordMovementDialog({ allWarehouses = [], allVariants = [] }: RecordMo
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const [warehousesList, setWarehousesList] = useState<any[]>(allWarehouses);
+  const [variantsList, setVariantsList] = useState<any[]>(allVariants);
+
+  useEffect(() => {
+    if (allWarehouses.length > 0) setWarehousesList(allWarehouses);
+    if (allVariants.length > 0) setVariantsList(allVariants);
+  }, [allWarehouses, allVariants]);
+
+  useEffect(() => {
+    if (open) {
+      if (warehousesList.length === 0) {
+        getWarehouses().then((res) => {
+          if (res.success && res.data) setWarehousesList(res.data);
+        });
+      }
+      if (variantsList.length === 0) {
+        getVariants().then((res) => {
+          if (res.success && res.data) setVariantsList(res.data);
+        });
+      }
+    }
+  }, [open]);
+
   const form = useForm<MovementForm>({
     resolver: zodResolver(movementSchema),
     defaultValues: {
@@ -628,14 +618,14 @@ function RecordMovementDialog({ allWarehouses = [], allVariants = [] }: RecordMo
     }
   };
 
-  const variants = allVariants.map((v) => ({
+  const variants = variantsList.map((v) => ({
     id: v.id,
-    name: `${v.sku} — ${v.name || v.product?.name || "Standard"}`,
+    name: v.name || `${v.sku} — ${v.product?.name || v.product_name || "Standard"}`,
   }));
 
-  const warehouses = allWarehouses.map((w) => ({
+  const warehouses = warehousesList.map((w) => ({
     id: w.id,
-    name: w.name + (w.code ? ` (${w.code})` : ""),
+    name: w.name + (w.code || w.warehouse_code ? ` (${w.code || w.warehouse_code})` : ""),
   }));
 
   return (
@@ -644,7 +634,7 @@ function RecordMovementDialog({ allWarehouses = [], allVariants = [] }: RecordMo
         <Package className="mr-2 h-4 w-4" /> Record Movement
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Record Stock Movement</DialogTitle>
             <DialogDescription>
@@ -653,46 +643,30 @@ function RecordMovementDialog({ allWarehouses = [], allVariants = [] }: RecordMo
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              {variants.length > 0 ? (
-                <FormField
-                  control={form.control}
-                  name="variantId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Product Variant</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select variant" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {variants.map((v) => (
-                            <SelectItem key={v.id} value={v.id}>
-                              {v.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              ) : (
-                <FormField
-                  control={form.control}
-                  name="variantId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Variant ID</FormLabel>
+              <FormField
+                control={form.control}
+                name="variantId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product Variant</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={variants.length === 0}>
                       <FormControl>
-                        <Input placeholder="uuid-of-variant" {...field} />
+                        <SelectTrigger>
+                          <SelectValue placeholder={variants.length === 0 ? "Loading variants..." : "Select variant"} />
+                        </SelectTrigger>
                       </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
+                      <SelectContent>
+                        {variants.map((v) => (
+                          <SelectItem key={v.id} value={v.id}>
+                            {v.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
 
               <div className="grid grid-cols-2 gap-4">
                 <FormField
@@ -743,17 +717,42 @@ function RecordMovementDialog({ allWarehouses = [], allVariants = [] }: RecordMo
                 />
               </div>
 
-              {warehouses.length > 0 ? (
+              <FormField
+                control={form.control}
+                name="warehouseId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{selectedType === "TRANSFER" ? "From Warehouse" : "Warehouse"}</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value} disabled={warehouses.length === 0}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={warehouses.length === 0 ? "Loading..." : "Select warehouse"} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {warehouses.map((w) => (
+                          <SelectItem key={w.id} value={w.id}>
+                            {w.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {selectedType === "TRANSFER" && (
                 <FormField
                   control={form.control}
-                  name="warehouseId"
+                  name="toWarehouseId"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>{selectedType === "TRANSFER" ? "From Warehouse" : "Warehouse"}</FormLabel>
-                      <Select onValueChange={field.onChange} value={field.value}>
+                      <FormLabel>To Warehouse</FormLabel>
+                      <Select onValueChange={field.onChange} value={field.value} disabled={warehouses.length === 0}>
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select warehouse" />
+                            <SelectValue placeholder={warehouses.length === 0 ? "Loading..." : "Select destination warehouse"} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -768,63 +767,6 @@ function RecordMovementDialog({ allWarehouses = [], allVariants = [] }: RecordMo
                     </FormItem>
                   )}
                 />
-              ) : (
-                <FormField
-                  control={form.control}
-                  name="warehouseId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{selectedType === "TRANSFER" ? "From Warehouse ID" : "Warehouse ID"}</FormLabel>
-                      <FormControl>
-                        <Input placeholder="uuid-of-warehouse" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              )}
-
-              {selectedType === "TRANSFER" && (
-                warehouses.length > 0 ? (
-                  <FormField
-                    control={form.control}
-                    name="toWarehouseId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>To Warehouse</FormLabel>
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select destination warehouse" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            {warehouses.map((w) => (
-                              <SelectItem key={w.id} value={w.id}>
-                                {w.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                ) : (
-                  <FormField
-                    control={form.control}
-                    name="toWarehouseId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>To Warehouse ID</FormLabel>
-                        <FormControl>
-                          <Input placeholder="uuid-of-destination-warehouse" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                )
               )}
 
               <FormField

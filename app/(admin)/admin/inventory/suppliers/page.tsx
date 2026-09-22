@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import { SuppliersClient } from "@/features/inventory/components/SuppliersClient";
 
 export const metadata: Metadata = {
@@ -7,8 +7,10 @@ export const metadata: Metadata = {
   description: "Manage supplier profiles, contact information, and performance ratings.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function SuppliersPage() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: suppliers } = await supabase
     .from("supplier_profiles")
     .select("*")

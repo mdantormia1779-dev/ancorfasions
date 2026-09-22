@@ -92,16 +92,23 @@ export async function lookupBarcodeAction(query: string) {
     }
 
     // Fetch all active warehouses for quick adjustment dropdown
-    const { data: warehouses } = await supabase
+    const { data: rawWarehouses } = await supabase
       .from("warehouses")
-      .select("id, name, code")
+      .select("id, name, warehouse_code")
       .eq("is_active", true);
+
+    const warehouses = (rawWarehouses || []).map((w: any) => ({
+      id: w.id,
+      name: w.name,
+      code: w.warehouse_code || "",
+      warehouse_code: w.warehouse_code || "",
+    }));
 
     return {
       success: true,
       data: {
         variant,
-        warehouses: warehouses || [],
+        warehouses,
       },
     };
   } catch (err: any) {

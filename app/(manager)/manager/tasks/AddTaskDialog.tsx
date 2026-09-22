@@ -126,7 +126,7 @@ export function AddTaskDialog({ onTaskCreated, trigger }: AddTaskDialogProps) {
           )
         }
       />
-      <DialogContent className="sm:max-w-[520px]">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Add New Task</DialogTitle>
           <DialogDescription className="text-xs text-muted-foreground">

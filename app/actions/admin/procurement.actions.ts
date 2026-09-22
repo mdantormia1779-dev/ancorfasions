@@ -7,12 +7,22 @@ export async function getSupplierProfiles() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("supplier_profiles")
-    .select("id, company_name")
-    .eq("status", "ACTIVE")
+    .select("id, company_name, contact_person, email, phone, status")
     .order("company_name", { ascending: true });
     
   if (error) return { success: false, error: error.message };
-  return { success: true, data };
+  return {
+    success: true,
+    data: (data || []).map((s: any) => ({
+      id: s.id,
+      name: s.company_name,
+      company_name: s.company_name,
+      contact_person: s.contact_person || "",
+      email: s.email || "",
+      phone: s.phone || "",
+      status: s.status || "ACTIVE",
+    })),
+  };
 }
 
 export async function createSupplierProfileAction(data: {
@@ -25,22 +35,44 @@ export async function createSupplierProfileAction(data: {
 }) {
   try {
     const supabase = createAdminClient();
+    const cleanCompany = data.company_name.trim();
+    const cleanStatus = (data.status || "ACTIVE").toUpperCase();
+
     const { data: supplier, error } = await supabase
       .from("supplier_profiles")
       .insert({
-        company_name: data.company_name.trim(),
+        company_name: cleanCompany,
         contact_person: data.contact_person?.trim() || null,
         email: data.email?.trim() || null,
         phone: data.phone?.trim() || null,
         performance_score: Number(data.performance_score) || 5.0,
-        status: data.status || "ACTIVE",
+        status: cleanStatus,
       })
       .select()
       .single();
 
     if (error) return { success: false, error: error.message };
 
-    revalidatePath("/admin/inventory/suppliers");
+    // Also sync into `suppliers` table for compatibility
+    try {
+      await supabase.from("suppliers").upsert({
+        id: supplier.id,
+        name: cleanCompany,
+        contact_email: data.email?.trim() || null,
+        contact_phone: data.phone?.trim() || null,
+        lead_time_days: 7,
+        rating: Number(data.performance_score) || 5.0,
+      });
+    } catch {
+      // ignore
+    }
+
+    try {
+      revalidatePath("/admin/inventory/suppliers");
+      revalidatePath("/admin/inventory/stock");
+      revalidatePath("/admin/inventory/purchases");
+    } catch {}
+
     return { success: true, data: supplier };
   } catch (error: any) {
     return { success: false, error: error.message || "Failed to create supplier profile" };
@@ -60,15 +92,30 @@ export async function updateSupplierProfileAction(
 ) {
   try {
     const supabase = createAdminClient();
-    const { error } = await supabase
+    const { data: updated, error } = await supabase
       .from("supplier_profiles")
       .update(data)
-      .eq("id", id);
+      .eq("id", id)
+      .select()
+      .single();
 
     if (error) return { success: false, error: error.message };
 
-    revalidatePath("/admin/inventory/suppliers");
-    return { success: true };
+    // Sync to suppliers table as well
+    try {
+      await supabase.from("suppliers").update({
+        name: data.company_name,
+        contact_email: data.email,
+        contact_phone: data.phone,
+        rating: data.performance_score,
+      }).eq("id", id);
+    } catch {}
+
+    try {
+      revalidatePath("/admin/inventory/suppliers");
+    } catch {}
+
+    return { success: true, data: updated };
   } catch (error: any) {
     return { success: false, error: error.message || "Failed to update supplier profile" };
   }
@@ -84,7 +131,14 @@ export async function deleteSupplierProfileAction(id: string) {
 
     if (error) return { success: false, error: error.message };
 
-    revalidatePath("/admin/inventory/suppliers");
+    try {
+      await supabase.from("suppliers").delete().eq("id", id);
+    } catch {}
+
+    try {
+      revalidatePath("/admin/inventory/suppliers");
+    } catch {}
+
     return { success: true };
   } catch (error: any) {
     return { success: false, error: error.message || "Failed to delete supplier profile" };
@@ -95,46 +149,51 @@ export async function getWarehouses() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("warehouses")
-    .select("id, name, code, is_active")
+    .select("id, name, warehouse_code, is_active")
     .order("name", { ascending: true });
     
   if (error) return { success: false, error: error.message };
-  return { success: true, data: (data || []).filter((w) => w.is_active !== false) };
+  return {
+    success: true,
+    data: (data || [])
+      .filter((w) => w.is_active !== false)
+      .map((w: any) => ({
+        id: w.id,
+        name: w.name,
+        code: w.warehouse_code || "",
+        warehouse_code: w.warehouse_code || "",
+        is_active: w.is_active,
+      })),
+  };
 }
 
 export async function getVariants() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("variants")
-    .select("id, sku, name, price_override, cost_price, product:products(name, base_price)")
-    .limit(200);
+    .select("id, sku, price_override, sale_price, attributes, product:products(id, name, base_price, cost_price)")
+    .limit(300);
     
-  if (error) {
-    const { data: fallback, error: fbErr } = await supabase
-      .from("variants")
-      .select("id, sku, name, price_override, cost_price")
-      .limit(200);
-    if (fbErr) return { success: false, error: fbErr.message };
-    return {
-      success: true,
-      data: (fallback || []).map((v: any) => ({
-        id: v.id,
-        sku: v.sku,
-        name: `${v.sku} — ${v.name || "Item"}`,
-        price: v.price_override || v.cost_price || 0,
-        cost_price: v.cost_price || 0,
-      })),
-    };
-  }
+  if (error) return { success: false, error: error.message };
+
   return {
     success: true,
-    data: (data || []).map((v: any) => ({
-      id: v.id,
-      sku: v.sku,
-      name: `${v.sku} — ${v.name || v.product?.name || "Standard"}`,
-      price: v.price_override || v.cost_price || v.product?.base_price || 0,
-      cost_price: v.cost_price || (v.price_override ? v.price_override * 0.6 : 0),
-    })),
+    data: (data || []).map((v: any) => {
+      const pName = v.product?.name || "Product";
+      const attrStr = v.attributes ? Object.values(v.attributes).filter(Boolean).join(" / ") : "";
+      const label = attrStr ? `${pName} (${v.sku} - ${attrStr})` : `${pName} (${v.sku})`;
+      const price = Number(v.sale_price || v.price_override || v.product?.base_price || 0);
+      const costPrice = Number(v.product?.cost_price || (price ? price * 0.6 : 0));
+      return {
+        id: v.id,
+        sku: v.sku,
+        name: label,
+        title: label,
+        product_name: pName,
+        price,
+        cost_price: costPrice,
+      };
+    }),
   };
 }
 

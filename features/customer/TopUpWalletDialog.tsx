@@ -112,7 +112,7 @@ export function TopUpWalletDialog() {
           if (!val) reset();
         }}
       >
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <form onSubmit={handleSubmit(onSubmit)}>
             <DialogHeader>
               <div className="flex items-center gap-2">

@@ -132,7 +132,7 @@ export function ReviewDetailDialog({
   return (
     <>
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-[620px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader className="border-b pb-4">
             <div className="flex items-center justify-between gap-2 pr-6">
               <DialogTitle className="text-xl font-bold">Review Details</DialogTitle>

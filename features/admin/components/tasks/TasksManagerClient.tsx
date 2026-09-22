@@ -406,7 +406,7 @@ export function TasksManagerClient({ initialTasks }: TasksManagerClientProps) {
 
       {/* View Task Dialog */}
       <Dialog open={!!viewingTask} onOpenChange={(open) => !open && setViewingTask(null)}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <div className="flex items-center justify-between pr-4">
               <DialogTitle className="text-xl font-bold">{viewingTask?.title}</DialogTitle>
@@ -472,7 +472,7 @@ export function TasksManagerClient({ initialTasks }: TasksManagerClientProps) {
 
       {/* Edit Task Dialog */}
       <Dialog open={!!editingTask} onOpenChange={(open) => !open && setEditingTask(null)}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Task</DialogTitle>
           </DialogHeader>

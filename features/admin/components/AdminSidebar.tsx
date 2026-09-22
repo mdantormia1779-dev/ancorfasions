@@ -147,6 +147,7 @@ const navigation: NavCategory[] = [
           { name: "Stock Control", href: "/admin/inventory/stock" },
           { name: "Warehouses", href: "/admin/inventory/warehouses" },
           { name: "Stock Movement", href: "/admin/inventory/movement" },
+          { name: "Movement Audit Log", href: "/admin/inventory/stock-movements" },
           { name: "Stock Transfers", href: "/admin/inventory/transfers" },
           { name: "Purchase Orders", href: "/admin/inventory/purchases" },
           { name: "Suppliers", href: "/admin/inventory/suppliers" },

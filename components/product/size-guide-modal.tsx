@@ -72,7 +72,7 @@ export function SizeGuideModal({
           )
         }
       />
-      <DialogContent className="sm:max-w-xl">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{chart.name}</DialogTitle>
         </DialogHeader>

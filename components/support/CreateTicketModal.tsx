@@ -91,7 +91,7 @@ export function CreateTicketModal() {
       }}
     >
       <DialogTrigger render={<Button />}>Create Ticket</DialogTrigger>
-      <DialogContent className="max-w-md">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Create New Support Ticket</DialogTitle>
         </DialogHeader>

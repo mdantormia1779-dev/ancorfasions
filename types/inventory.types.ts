@@ -1,32 +1,196 @@
+export type OperationalWarehouseType =
+  | "MAIN_WAREHOUSE"
+  | "DISTRIBUTION_CENTER"
+  | "STORE"
+  | "FACTORY"
+  | "TRANSIT_WAREHOUSE"
+  | "OTHER";
+
+export interface WarehouseLocation {
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
+  latitude?: number;
+  longitude?: number;
+}
+
+export interface WarehouseContact {
+  manager_name?: string;
+  contact_person?: string;
+  phone?: string;
+  email?: string;
+}
+
+export interface WarehouseSettings {
+  is_default?: boolean;
+  allow_negative_stock?: boolean;
+  enable_stock_tracking?: boolean;
+  enable_batch_tracking?: boolean;
+  enable_serial_tracking?: boolean;
+}
+
 export interface Warehouse {
   id: string;
   name: string;
   code?: string;
+  warehouse_code?: string;
   type: string;
+  operational_type?: OperationalWarehouseType | string;
   is_active: boolean;
+  address?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
+  latitude?: number;
+  longitude?: number;
+  manager_name?: string;
+  contact_person?: string;
+  phone?: string;
+  email?: string;
+  is_default?: boolean;
+  allow_negative_stock?: boolean;
+  enable_stock_tracking?: boolean;
+  enable_batch_tracking?: boolean;
+  enable_serial_tracking?: boolean;
+  notes?: string;
+  description?: string;
+  capacity_sqft?: number;
+  status?: string;
+  // Computed stats
+  total_products?: number;
+  total_stock?: number;
+  available_stock?: number;
+  reserved_stock?: number;
+  damaged_stock?: number;
+  low_stock_items?: number;
+  out_of_stock_items?: number;
+  total_stock_value?: number;
+  zones_count?: number;
+  bins_count?: number;
   created_at: string;
   updated_at: string;
 }
+
+export type ZoneType =
+  | "STORAGE"
+  | "RECEIVING"
+  | "PICKING"
+  | "PACKING"
+  | "SHIPPING"
+  | "RETURNS"
+  | "DAMAGED"
+  | "COLD_STORAGE"
+  | "OTHER"
+  | "QUARANTINE";
 
 export interface WarehouseZone {
   id: string;
   warehouse_id: string;
   name: string;
-  type: string;
-  is_active: boolean;
+  code?: string;
+  type: ZoneType | string;
+  status?: "ACTIVE" | "INACTIVE" | string;
+  is_active?: boolean;
+  description?: string;
+  racks_count?: number;
+  bins_count?: number;
   created_at: string;
   updated_at: string;
+}
+
+export interface WarehouseRack {
+  id: string;
+  zone_id: string;
+  name: string;
+  code: string;
+  shelves_count: number;
+  capacity?: number;
+  status: "ACTIVE" | "INACTIVE" | string;
+  description?: string;
+  created_at?: string;
+  updated_at?: string;
 }
 
 export interface WarehouseBin {
   id: string;
   zone_id: string;
+  rack_id?: string;
+  rack_code?: string;
+  shelf_code?: string;
+  name?: string;
   code: string;
-  barcode: string;
-  capacity_volume: number;
-  capacity_weight: number;
+  barcode?: string;
+  capacity_volume?: number;
+  capacity_weight?: number;
+  maximum_capacity?: number;
+  current_quantity?: number;
+  status?: "ACTIVE" | "INACTIVE" | string;
   created_at: string;
   updated_at: string;
+}
+
+export interface StockInPayload {
+  variant_id: string;
+  warehouse_id: string;
+  zone_id?: string;
+  rack_id?: string;
+  bin_id?: string;
+  quantity: number;
+  unit_cost?: number;
+  supplier_id?: string;
+  purchase_order_id?: string;
+  batch_number?: string;
+  serial_number?: string;
+  manufacturing_date?: string;
+  expiry_date?: string;
+  notes?: string;
+}
+
+export interface StockOutPayload {
+  variant_id: string;
+  warehouse_id: string;
+  zone_id?: string;
+  rack_id?: string;
+  bin_id?: string;
+  quantity: number;
+  reason:
+    | "CUSTOMER_ORDER"
+    | "SALES"
+    | "DAMAGED"
+    | "LOST"
+    | "INTERNAL_USAGE"
+    | "MANUAL_ADJUSTMENT"
+    | "OTHER"
+    | string;
+  notes?: string;
+  reference_id?: string;
+}
+
+export interface StockTransferPayload {
+  variant_id: string;
+  from_warehouse_id: string;
+  from_zone_id?: string;
+  from_rack_id?: string;
+  from_bin_id?: string;
+  to_warehouse_id: string;
+  to_zone_id?: string;
+  to_rack_id?: string;
+  to_bin_id?: string;
+  quantity: number;
+  reason?: string;
+  notes?: string;
+}
+
+export interface StockAdjustmentPayload {
+  variant_id: string;
+  warehouse_id: string;
+  bin_id?: string;
+  physical_count: number;
+  reason: string;
+  notes?: string;
 }
 
 export interface InventoryLevel {

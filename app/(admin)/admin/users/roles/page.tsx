@@ -304,7 +304,7 @@ export default function PermissionsPage() {
 
       {/* Create Role Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-[440px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Create New Role</DialogTitle>
             <DialogDescription>
@@ -359,7 +359,7 @@ export default function PermissionsPage() {
 
       {/* Edit Role Dialog */}
       <Dialog open={!!editRole} onOpenChange={(o) => !o && setEditRole(null)}>
-        <DialogContent className="sm:max-w-[440px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Role</DialogTitle>
             <DialogDescription>Update the role name and description.</DialogDescription>

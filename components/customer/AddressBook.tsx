@@ -127,7 +127,7 @@ export function AddressBook({ addresses }: AddressBookProps) {
           }}
         >
           <DialogTrigger render={<Button />}>Add New Address</DialogTrigger>
-          <DialogContent className="max-w-md">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add Address</DialogTitle>
             </DialogHeader>

@@ -410,7 +410,7 @@ export function PickListsClient({
 
       {/* Generate Wave Dialog */}
       <Dialog open={generateOpen} onOpenChange={setGenerateOpen}>
-        <DialogContent className="sm:max-w-[440px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Generate Wave Pick List</DialogTitle>
             <DialogDescription>
@@ -461,7 +461,7 @@ export function PickListsClient({
 
       {/* Assign Picker Dialog */}
       <Dialog open={assignOpen} onOpenChange={setAssignOpen}>
-        <DialogContent className="sm:max-w-[440px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Assign Staff Picker</DialogTitle>
             <DialogDescription>

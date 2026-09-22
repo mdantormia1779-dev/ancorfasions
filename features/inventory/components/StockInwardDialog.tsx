@@ -56,6 +56,11 @@ import {
   addStockAction,
 } from "@/actions/inventory.actions";
 import {
+  getWarehouses,
+  getVariants,
+  getSupplierProfiles,
+} from "@/app/actions/admin/procurement.actions";
+import {
   printGRNChallan,
   numberToWordsBDT,
 } from "@/features/inventory/utils/printGRNChallan";
@@ -106,15 +111,54 @@ function generateGRNNumber() {
 
 export function StockInwardDialog({
   inventory = [],
-  allWarehouses = [],
-  allVariants = [],
-  allSuppliers = [],
+  allWarehouses: initialWarehouses = [],
+  allVariants: initialVariants = [],
+  allSuppliers: initialSuppliers = [],
   triggerButton,
 }: StockInwardDialogProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("advanced");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [warehousesList, setWarehousesList] = useState<any[]>(initialWarehouses);
+  const [variantsList, setVariantsList] = useState<any[]>(initialVariants);
+  const [suppliersList, setSuppliersList] = useState<any[]>(initialSuppliers);
+
+  useEffect(() => {
+    if (initialWarehouses.length > 0) setWarehousesList(initialWarehouses);
+  }, [initialWarehouses]);
+
+  useEffect(() => {
+    if (initialVariants.length > 0) setVariantsList(initialVariants);
+  }, [initialVariants]);
+
+  useEffect(() => {
+    if (initialSuppliers.length > 0) setSuppliersList(initialSuppliers);
+  }, [initialSuppliers]);
+
+  // Load if any are empty
+  useEffect(() => {
+    if (warehousesList.length === 0) {
+      getWarehouses().then((res) => {
+        if (res.success && res.data) setWarehousesList(res.data);
+      });
+    }
+    if (variantsList.length === 0) {
+      getVariants().then((res) => {
+        if (res.success && res.data) setVariantsList(res.data);
+      });
+    }
+    if (suppliersList.length === 0) {
+      getSupplierProfiles().then((res) => {
+        if (res.success && res.data) setSuppliersList(res.data);
+      });
+    }
+  }, []);
+
+  const allWarehouses = warehousesList;
+  const allVariants = variantsList;
+  const allSuppliers = suppliersList;
 
   // GRN Header state
   const [inwardNumber, setInwardNumber] = useState(generateGRNNumber());
@@ -664,7 +708,7 @@ export function StockInwardDialog({
                   </Label>
                   <Select
                     value={warehouseId}
-                    onValueChange={(val) => setWarehouseId(val)}
+                    onValueChange={(val) => setWarehouseId(val || "")}
                   >
                     <SelectTrigger className="w-full h-9 mt-1 text-xs font-medium">
                       <SelectValue placeholder="Select Warehouse" />
@@ -684,7 +728,7 @@ export function StockInwardDialog({
                   <Label className="text-[11px] font-semibold text-muted-foreground">
                     Supplier / Vendor
                   </Label>
-                  <Select value={supplierId} onValueChange={setSupplierId}>
+                  <Select value={supplierId} onValueChange={(val) => setSupplierId(val || "")}>
                     <SelectTrigger className="w-full h-9 mt-1 text-xs">
                       <SelectValue placeholder="Select Supplier" />
                     </SelectTrigger>
@@ -975,7 +1019,7 @@ export function StockInwardDialog({
                   <Label className="text-xs font-semibold">Product Variant *</Label>
                   <Select
                     value={quickVariantId}
-                    onValueChange={setQuickVariantId}
+                    onValueChange={(val) => setQuickVariantId(val || "")}
                   >
                     <SelectTrigger className="w-full mt-1 text-xs h-9">
                       <SelectValue placeholder="Select variant" />
@@ -997,7 +1041,7 @@ export function StockInwardDialog({
                   <Label className="text-xs font-semibold">Destination Warehouse *</Label>
                   <Select
                     value={quickWarehouseId}
-                    onValueChange={setQuickWarehouseId}
+                    onValueChange={(val) => setQuickWarehouseId(val || "")}
                   >
                     <SelectTrigger className="w-full mt-1 text-xs h-9">
                       <SelectValue placeholder="Select warehouse" />
@@ -1030,7 +1074,7 @@ export function StockInwardDialog({
                     <Label className="text-xs font-semibold">Reason</Label>
                     <Select
                       value={quickReason}
-                      onValueChange={setQuickReason}
+                      onValueChange={(val) => setQuickReason(val || "PURCHASE_RECEIPT")}
                     >
                       <SelectTrigger className="w-full mt-1 text-xs h-9">
                         <SelectValue placeholder="Select reason" />

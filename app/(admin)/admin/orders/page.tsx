@@ -830,7 +830,7 @@ function AdminOrdersContent({ defaultTab = "all" }: { defaultTab?: TabKey }) {
 
       {/* 6. Quick Status Update Confirmation Dialog */}
       <Dialog open={statusDialogOpen} onOpenChange={setStatusDialogOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Update Order Status</DialogTitle>
             <DialogDescription>

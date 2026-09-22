@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Search,
@@ -45,6 +45,7 @@ import {
   createSupplierProfileAction,
   updateSupplierProfileAction,
   deleteSupplierProfileAction,
+  getSupplierProfiles,
 } from "@/app/actions/admin/procurement.actions";
 import { toast } from "sonner";
 
@@ -61,6 +62,20 @@ interface SupplierProfile {
 
 export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile[] }) {
   const router = useRouter();
+  const [supplierList, setSupplierList] = useState<SupplierProfile[]>(suppliers);
+
+  useEffect(() => {
+    if (suppliers && suppliers.length > 0) {
+      setSupplierList(suppliers);
+    }
+    // Also fetch fresh from server action using admin client
+    getSupplierProfiles().then((res) => {
+      if (res.success && res.data) {
+        setSupplierList(res.data);
+      }
+    });
+  }, [suppliers]);
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("ALL");
 
@@ -92,7 +107,7 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
   const [deleteLoading, setDeleteLoading] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
-    return suppliers.filter((s) => {
+    return supplierList.filter((s) => {
       const q = search.toLowerCase();
       const matchesSearch =
         !search ||
@@ -104,7 +119,7 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
       const matchesStatus = statusFilter === "ALL" || s.status === statusFilter;
       return matchesSearch && matchesStatus;
     });
-  }, [suppliers, search, statusFilter]);
+  }, [supplierList, search, statusFilter]);
 
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -126,6 +141,9 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
 
     if (res.success) {
       toast.success(`Supplier "${addForm.company_name}" added successfully`);
+      if (res.data) {
+        setSupplierList((prev) => [res.data as SupplierProfile, ...prev.filter((s) => s.id !== res.data?.id)]);
+      }
       setIsAddOpen(false);
       setAddForm({
         company_name: "",
@@ -170,6 +188,22 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
 
     if (res.success) {
       toast.success("Supplier updated successfully");
+      setSupplierList((prev) =>
+        prev.map((s) =>
+          s.id === editItem.id
+            ? {
+                ...s,
+                ...(res.data || {}),
+                company_name: editForm.company_name,
+                contact_person: editForm.contact_person,
+                email: editForm.email,
+                phone: editForm.phone,
+                performance_score: parseFloat(editForm.performance_score),
+                status: editForm.status,
+              }
+            : s
+        )
+      );
       setEditItem(null);
       router.refresh();
     } else {
@@ -186,6 +220,7 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
 
     if (res.success) {
       toast.success("Supplier deleted successfully");
+      setSupplierList((prev) => prev.filter((s) => s.id !== supplier.id));
       router.refresh();
     } else {
       toast.error(res.error || "Failed to delete supplier");
@@ -352,7 +387,7 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
 
       {/* Add Supplier Dialog */}
       <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Add New Supplier</DialogTitle>
             <DialogDescription>
@@ -449,7 +484,7 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
 
       {/* Edit Supplier Dialog */}
       <Dialog open={!!editItem} onOpenChange={(open) => !open && setEditItem(null)}>
-        <DialogContent className="sm:max-w-[480px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit Supplier Profile</DialogTitle>
             <DialogDescription>

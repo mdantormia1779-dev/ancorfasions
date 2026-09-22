@@ -68,12 +68,35 @@ export async function POST(req: Request) {
           ? value.is_sandbox === true || value.is_sandbox === "true"
           : true;
 
+      let resolvedPass = pass;
+      if (pass === "••••••••" || pass === "********" || pass === "") {
+        const { data: existing } = await supabase
+          .from("settings")
+          .select("value")
+          .eq("key", "payment_sslcommerz")
+          .maybeSingle();
+        const existingVal = existing?.value as Record<string, any> | null;
+        resolvedPass = (
+          existingVal?.store_password ||
+          existingVal?.store_pass ||
+          existingVal?.store_passwd ||
+          ""
+        ).toString().trim();
+      } else if (pass) {
+        try {
+          const { encrypt } = await import("@/utils/encryption.util");
+          resolvedPass = encrypt(pass);
+        } catch (encErr) {
+          console.warn("[Admin Payment Settings] Encryption failed, storing as-is:", encErr);
+        }
+      }
+
       finalValue = {
         ...value,
         store_id: (value.store_id || "").toString().trim(),
-        store_password: pass,
-        store_pass: pass,
-        store_passwd: pass,
+        store_password: resolvedPass,
+        store_pass: resolvedPass,
+        store_passwd: resolvedPass,
         sandbox: isSandbox ? "true" : "false",
         is_sandbox: isSandbox,
       };

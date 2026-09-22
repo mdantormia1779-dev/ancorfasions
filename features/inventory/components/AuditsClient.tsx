@@ -294,7 +294,7 @@ export function AuditsClient({ audits = [], allWarehouses = [] }: AuditsClientPr
 
       {/* Schedule Audit Modal */}
       <Dialog open={isScheduleOpen} onOpenChange={setIsScheduleOpen}>
-        <DialogContent className="sm:max-w-[440px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <ClipboardCheck className="h-5 w-5 text-primary" />

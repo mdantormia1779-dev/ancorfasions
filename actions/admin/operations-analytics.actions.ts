@@ -145,7 +145,7 @@ export async function getOperationsAnalyticsAction(timeRange: "7d" | "30d" | "90
     // 6. Warehouses breakdown
     const { data: warehouses = [] } = await supabase
       .from("warehouses")
-      .select("id, name, code, is_active");
+      .select("id, name, warehouse_code, is_active");
 
     const warehouseBreakdown = (warehouses || []).map((wh) => {
       const whUnits = safeLevels
@@ -167,7 +167,7 @@ export async function getOperationsAnalyticsAction(timeRange: "7d" | "30d" | "90
       return {
         id: wh.id,
         name: wh.name,
-        code: wh.code,
+        code: (wh as any).warehouse_code || "",
         units: whUnits,
         activePOs: whActivePOs,
         activePickLists: whActivePickLists,

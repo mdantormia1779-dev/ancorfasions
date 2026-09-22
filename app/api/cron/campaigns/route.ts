@@ -4,12 +4,9 @@ import { marketingService } from "@/services/marketing.service";
 export const dynamic = "force-dynamic";
 
 export async function GET(req: Request) {
-  // Check authorization if CRON_SECRET is configured
+  // Check authorization - require valid CRON_SECRET
   const authHeader = req.headers.get("authorization");
-  if (
-    process.env.CRON_SECRET &&
-    authHeader !== `Bearer ${process.env.CRON_SECRET}`
-  ) {
+  if (!process.env.CRON_SECRET || authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

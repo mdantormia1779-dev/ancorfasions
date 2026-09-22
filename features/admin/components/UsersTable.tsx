@@ -345,7 +345,7 @@ export function UsersTable({
       {/* View User Dialog */}
       {viewUser && (
         <Dialog open={!!viewUser} onOpenChange={(o) => !o && setViewUser(null)}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Eye className="h-4 w-4 text-[#C9A86A]" /> User Details
@@ -404,7 +404,7 @@ export function UsersTable({
       {/* Edit User Profile Dialog */}
       {editUser && (
         <Dialog open={!!editUser} onOpenChange={(o) => !o && setEditUser(null)}>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Edit className="h-4 w-4 text-[#C9A86A]" /> Edit Profile
@@ -466,7 +466,7 @@ export function UsersTable({
       {/* Change Role Dialog */}
       {roleUser && (
         <Dialog open={!!roleUser} onOpenChange={(o) => !o && setRoleUser(null)}>
-          <DialogContent className="sm:max-w-[400px]">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Shield className="h-4 w-4 text-[#C9A86A]" /> Assign Role

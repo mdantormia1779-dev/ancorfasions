@@ -330,7 +330,7 @@ export function StockControlClient({
 
       {/* Adjust Stock Dialog */}
       <Dialog open={!!adjustItem} onOpenChange={(open) => !open && setAdjustItem(null)}>
-        <DialogContent className="sm:max-w-[460px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Adjust Stock Level</DialogTitle>
             <DialogDescription>

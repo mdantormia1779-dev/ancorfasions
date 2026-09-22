@@ -1,5 +1,5 @@
 import { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import { PurchaseOrdersClient } from "@/features/inventory/components/PurchaseOrdersClient";
 
 export const metadata: Metadata = {
@@ -7,8 +7,10 @@ export const metadata: Metadata = {
   description: "Manage procurement, supplier orders, and warehouse goods receiving.",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function PurchasesPage() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   const { data: pos } = await supabase
     .from("procurement_orders")
     .select("*, supplier_profiles(company_name), warehouses(name)")

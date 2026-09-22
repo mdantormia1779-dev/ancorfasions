@@ -23,13 +23,20 @@ export default async function PickListsPage() {
       .in("status", ["pending", "processing", "PAID", "paid", "confirmed"]),
     getPickListsAction(),
     getPickersAction(),
-    supabase.from("warehouses").select("id, name, code").eq("is_active", true).order("name"),
+    supabase.from("warehouses").select("id, name, warehouse_code").eq("is_active", true).order("name"),
   ]);
+
+  const formattedWarehouses = (warehouses || []).map((w: any) => ({
+    id: w.id,
+    name: w.name,
+    code: w.warehouse_code || "",
+    warehouse_code: w.warehouse_code || "",
+  }));
 
   return (
     <PickListsClient
       pickLists={pickListsRes.data || []}
-      warehouses={warehouses || []}
+      warehouses={formattedWarehouses}
       pickers={pickersRes.data || []}
       pendingCount={pendingCount || 0}
     />

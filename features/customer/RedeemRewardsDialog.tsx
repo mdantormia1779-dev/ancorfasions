@@ -115,7 +115,7 @@ export function RedeemRewardsDialog({
           if (!isOpen) setVoucherResult(null);
         }}
       >
-        <DialogContent className="sm:max-w-[540px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         {voucherResult ? (
           <div className="py-6 space-y-5 text-center">
             <div className="mx-auto w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950/40 text-emerald-600 flex items-center justify-center">

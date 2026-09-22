@@ -168,7 +168,7 @@ export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
 
   return (
     <Dialog open={!!courier} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Configure {courier.display_name}</DialogTitle>
           <DialogDescription>

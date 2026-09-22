@@ -200,10 +200,8 @@ export function OperationsWarehouseClient({
                     </Link>
                   </Button>
                   <ManageWarehouseSettingsButton
-                    warehouseId={warehouse.id}
-                    warehouseName={warehouse.name}
-                    warehouseType={warehouse.type || "STANDARD"}
-                    isActive={warehouse.is_active}
+                    warehouse={warehouse as any}
+                    size="sm"
                   />
                 </div>
               </CardContent>
@@ -214,7 +212,7 @@ export function OperationsWarehouseClient({
 
       {/* Interactive Map Coordinates Modal */}
       <Dialog open={mapOpen} onOpenChange={setMapOpen}>
-        <DialogContent className="sm:max-w-[720px] p-6">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-6">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <MapIcon className="h-5 w-5 text-primary" />

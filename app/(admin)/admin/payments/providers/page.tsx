@@ -43,12 +43,19 @@ export default async function PaymentProvidersPage() {
         key: "payment_sslcommerz",
         enabled: sslData.value.enabled ?? false,
         credentials: {
-          ...sslData.value,
+          store_id: sslData.value.store_id || "",
+          sandbox:
+            sslData.value.sandbox !== undefined
+              ? String(sslData.value.sandbox)
+              : sslData.value.is_sandbox !== undefined
+              ? String(sslData.value.is_sandbox)
+              : "true",
           store_pass:
             sslData.value.store_pass ||
             sslData.value.store_password ||
-            sslData.value.store_passwd ||
-            "",
+            sslData.value.store_passwd
+              ? "••••••••"
+              : "",
         },
       }
     : DEFAULT_CONFIG("payment_sslcommerz");

@@ -1,26 +1,30 @@
 import { Metadata } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import { AuditsClient } from "@/features/inventory/components/AuditsClient";
+import { getWarehouses } from "@/app/actions/admin/procurement.actions";
 
 export const metadata: Metadata = {
   title: "Inventory Audits | Anchor Fashion",
   description: "Manage cycle counts, blind verifications, and physical inventory reconciliation.",
 };
 
-export default async function AuditsPage() {
-  const supabase = await createClient();
+export const dynamic = "force-dynamic";
 
-  const [{ data: audits }, { data: allWarehouses }] = await Promise.all([
+export default async function AuditsPage() {
+  const supabase = createAdminClient();
+
+  const [{ data: audits }, whRes] = await Promise.all([
     supabase
       .from("inventory_audits")
-      .select("*, warehouses(id, name, code)")
+      .select("*, warehouses(id, name, warehouse_code)")
       .order("created_at", { ascending: false }),
-    supabase
-      .from("warehouses")
-      .select("id, name, code, is_active")
-      .eq("is_active", true)
-      .order("name", { ascending: true }),
+    getWarehouses(),
   ]);
 
-  return <AuditsClient audits={audits || []} allWarehouses={allWarehouses || []} />;
+  return (
+    <AuditsClient
+      audits={audits || []}
+      allWarehouses={whRes.success && whRes.data ? whRes.data : []}
+    />
+  );
 }

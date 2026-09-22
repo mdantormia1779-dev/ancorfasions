@@ -93,7 +93,7 @@ export function CodOtpDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md p-6">
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto p-6">
         <DialogHeader className="text-center sm:text-left space-y-2">
           <div className="mx-auto sm:mx-0 flex h-12 w-12 items-center justify-center rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400">
             <ShieldCheck className="h-6 w-6" />

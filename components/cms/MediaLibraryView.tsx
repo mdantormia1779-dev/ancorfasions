@@ -776,7 +776,7 @@ export function MediaLibraryView({ initialMedia }: MediaLibraryViewProps) {
       {/* Delete Confirmation Dialog */}
       {itemToDelete && (
         <Dialog open={!!itemToDelete} onOpenChange={(open) => !open && setItemToDelete(null)}>
-          <DialogContent className="max-w-md">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="text-destructive flex items-center gap-2">
                 <Trash2 className="h-5 w-5" /> Confirm Deletion

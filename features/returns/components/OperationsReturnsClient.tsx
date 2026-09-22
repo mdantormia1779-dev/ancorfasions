@@ -521,7 +521,7 @@ export function OperationsReturnsClient() {
 
       {/* Create Return Dialog */}
       <Dialog open={createOpen} onOpenChange={setCreateOpen}>
-        <DialogContent className="sm:max-w-[650px] max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <RotateCcw className="h-5 w-5 text-[#C9A86A]" />
@@ -739,7 +739,7 @@ export function OperationsReturnsClient() {
       {/* Return Workflow Details Dialog */}
       {selectedReturn && (
         <Dialog open={!!selectedReturn} onOpenChange={(o) => !o && setSelectedReturn(null)}>
-          <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+          <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <div className="flex items-center justify-between pr-4">
                 <DialogTitle className="flex items-center gap-2">

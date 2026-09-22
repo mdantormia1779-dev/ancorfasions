@@ -7,8 +7,9 @@ const warehouseRepo = new WarehouseRepository();
 
 export async function getWarehousesAction() {
   try {
-    const data = await warehouseRepo.getAllWarehouses();
-    return { success: true, data };
+    const result = await warehouseRepo.getAllWarehouses();
+    const list = Array.isArray(result) ? result : result.data;
+    return { success: true, data: list };
   } catch (error: any) {
     return { success: false, error: error.message };
   }

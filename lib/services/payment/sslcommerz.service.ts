@@ -142,11 +142,20 @@ export class SSLCommerzService {
 
       const settingVal = settingRow?.value as Record<string, any> | null;
       const dbStoreId = settingVal?.store_id?.toString().trim();
-      const dbStorePass = (
+      let dbStorePass = (
         settingVal?.store_password ||
         settingVal?.store_passwd ||
         settingVal?.store_pass
       )?.toString().trim();
+
+      if (dbStorePass && dbStorePass.includes(":") && dbStorePass.split(":").length === 3) {
+        try {
+          const { decrypt } = await import("@/utils/encryption.util");
+          dbStorePass = decrypt(dbStorePass);
+        } catch {
+          // If decryption fails or not encrypted with current key, keep as-is
+        }
+      }
 
       if (isValidCredential(dbStoreId) && isValidCredential(dbStorePass)) {
         let isSandbox = isSandboxEnv;

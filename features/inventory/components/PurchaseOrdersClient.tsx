@@ -541,7 +541,7 @@ export function PurchaseOrdersClient({ pos = [] }: PurchaseOrdersClientProps) {
 
       {/* Goods Receipt (GRN) Dialog */}
       <Dialog open={!!receivePo} onOpenChange={(open) => !open && setReceivePo(null)}>
-        <DialogContent className="sm:max-w-[460px]">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <PackageCheck className="h-5 w-5 text-emerald-600" />

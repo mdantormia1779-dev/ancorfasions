@@ -106,6 +106,14 @@ export class InventoryRepository {
     movement: any
   ): Promise<void> {
     const supabase = this.getAdminClient();
+    const rawReason =
+      movement.reason ||
+      movement.notes ||
+      movement.reason_code ||
+      movement.movement_type ||
+      "Stock Adjustment";
+    const rawReasonCode = movement.reason_code || movement.movement_type || null;
+
     const payload = {
       variant_id: movement.variant_id,
       warehouse_id: movement.warehouse_id,
@@ -115,16 +123,13 @@ export class InventoryRepository {
           : movement.quantity !== undefined
           ? movement.quantity
           : 0,
-      reason:
-        movement.reason ||
-        movement.notes ||
-        movement.movement_type ||
-        "Stock Adjustment",
-      reason_code: movement.reason_code || movement.movement_type || null,
+      reason: String(rawReason).slice(0, 50),
+      reason_code: rawReasonCode ? String(rawReasonCode).slice(0, 50) : null,
       reference_id: movement.reference_id || null,
       to_warehouse_id: movement.to_warehouse_id || null,
       from_bin_id: movement.from_bin_id || null,
       to_bin_id: movement.to_bin_id || null,
+      user_id: movement.user_id || null,
     };
 
     try {
@@ -320,35 +325,95 @@ export class InventoryRepository {
       throw new Error(`Source and destination warehouse must be different`);
     }
 
-    const { error } = await supabase.rpc("atomic_transfer_stock", {
-      p_variant_id: variantId,
-      p_from_warehouse_id: fromWarehouseId,
-      p_to_warehouse_id: toWarehouseId,
-      p_quantity: quantity,
-    });
+    // 1. Check source warehouse inventory
+    const { data: sourceLevels, error: srcErr } = await supabase
+      .from("inventory_levels")
+      .select("*")
+      .eq("variant_id", variantId)
+      .eq("warehouse_id", fromWarehouseId)
+      .limit(1);
 
-    if (error) {
-      throw new Error(`Failed to transfer stock: ${error.message}`);
+    if (srcErr) throw new Error(`Failed to check source inventory: ${srcErr.message}`);
+    const sourceInv = sourceLevels && sourceLevels.length > 0 ? sourceLevels[0] : null;
+    const sourceAvail = sourceInv ? Number(sourceInv.quantity_available) || 0 : 0;
+
+    if (!sourceInv || sourceAvail < quantity) {
+      throw new Error(
+        `Insufficient stock in source warehouse. Available: ${sourceAvail}, Requested: ${quantity}`
+      );
     }
 
-    // Record movement out
+    // 2. Decrement source inventory
+    const { error: decErr } = await supabase
+      .from("inventory_levels")
+      .update({
+        quantity_available: sourceAvail - quantity,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", sourceInv.id);
+
+    if (decErr) throw new Error(`Failed to deduct stock from source warehouse: ${decErr.message}`);
+
+    // 3. Increment or insert destination inventory
+    const { data: destLevels, error: dstErr } = await supabase
+      .from("inventory_levels")
+      .select("*")
+      .eq("variant_id", variantId)
+      .eq("warehouse_id", toWarehouseId)
+      .limit(1);
+
+    if (dstErr) throw new Error(`Failed to check destination inventory: ${dstErr.message}`);
+
+    if (destLevels && destLevels.length > 0) {
+      const destInv = destLevels[0];
+      const destAvail = Number(destInv.quantity_available) || 0;
+      const { error: incErr } = await supabase
+        .from("inventory_levels")
+        .update({
+          quantity_available: destAvail + quantity,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", destInv.id);
+
+      if (incErr) throw new Error(`Failed to add stock to destination warehouse: ${incErr.message}`);
+    } else {
+      const { error: insErr } = await supabase
+        .from("inventory_levels")
+        .insert({
+          variant_id: variantId,
+          warehouse_id: toWarehouseId,
+          quantity_available: quantity,
+          quantity_reserved: 0,
+          quantity_incoming: 0,
+          quantity_damaged: 0,
+          quantity_returned: 0,
+          reorder_point: 5,
+          safety_stock: 2,
+        });
+
+      if (insErr) throw new Error(`Failed to initialize inventory in destination warehouse: ${insErr.message}`);
+    }
+
+    // 4. Record movement out
     await this.recordMovement({
       variant_id: variantId,
       warehouse_id: fromWarehouseId,
       movement_type: "TRANSFER",
-      quantity: -quantity,
+      quantity_change: -quantity,
       to_warehouse_id: toWarehouseId,
-      reason_code: reason,
+      reason: reason ? String(reason).slice(0, 50) : "Inter-Warehouse Transfer",
+      reason_code: "TRANSFER_OUT",
       notes: notes || `Transferred to warehouse ${toWarehouseId}`,
     });
 
-    // Record movement in
+    // 5. Record movement in
     await this.recordMovement({
       variant_id: variantId,
       warehouse_id: toWarehouseId,
       movement_type: "TRANSFER",
-      quantity: quantity,
-      reason_code: reason,
+      quantity_change: quantity,
+      reason: reason ? String(reason).slice(0, 50) : "Inter-Warehouse Transfer",
+      reason_code: "TRANSFER_IN",
       notes: notes || `Received from warehouse ${fromWarehouseId}`,
     });
   }
@@ -456,4 +521,417 @@ export class InventoryRepository {
 
     if (error) throw new Error(`Failed to update audit item count: ${error.message}`);
   }
+
+  // ─────────────────────────────────────────────────────────────────────────────
+  // ENTERPRISE STOCK WORKFLOWS (STOCK IN, STOCK OUT, ADJUSTMENT, DETAILED AUDIT)
+  // ─────────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Enterprise Stock In workflow
+   */
+  async stockIn(payload: {
+    variant_id: string;
+    warehouse_id: string;
+    bin_id?: string;
+    quantity: number;
+    unit_cost?: number;
+    supplier_id?: string;
+    purchase_order_id?: string;
+    batch_number?: string;
+    serial_number?: string;
+    manufacturing_date?: string;
+    expiry_date?: string;
+    notes?: string;
+    userId?: string;
+  }): Promise<InventoryLevel> {
+    const supabase = this.getAdminClient();
+    const qty = Number(payload.quantity);
+    if (!qty || qty <= 0) {
+      throw new Error("Received quantity must be greater than zero.");
+    }
+
+    // Check if warehouse is active
+    const { data: wh, error: whErr } = await supabase
+      .from("warehouses")
+      .select("id, is_active, name")
+      .eq("id", payload.warehouse_id)
+      .single();
+    if (whErr || !wh) throw new Error("Destination warehouse not found.");
+    if (!wh.is_active) throw new Error(`Warehouse "${wh.name}" is inactive and cannot receive stock.`);
+
+    // Check existing inventory level
+    let query = supabase
+      .from("inventory_levels")
+      .select("*")
+      .eq("variant_id", payload.variant_id)
+      .eq("warehouse_id", payload.warehouse_id);
+
+    if (payload.bin_id) {
+      query = query.eq("bin_id", payload.bin_id);
+    } else {
+      query = query.is("bin_id", null);
+    }
+
+    const { data: existingLevels, error: fetchErr } = await query.limit(1);
+    if (fetchErr) throw new Error(`Database error looking up inventory: ${fetchErr.message}`);
+
+    let updatedLevel: InventoryLevel;
+
+    if (existingLevels && existingLevels.length > 0) {
+      const current = existingLevels[0];
+      const newAvail = (current.quantity_available || 0) + qty;
+      const { data: updated, error: updateErr } = await supabase
+        .from("inventory_levels")
+        .update({
+          quantity_available: newAvail,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", current.id)
+        .select()
+        .single();
+      if (updateErr) throw new Error(`Failed to increment inventory: ${updateErr.message}`);
+      updatedLevel = updated as InventoryLevel;
+    } else {
+      const { data: created, error: insertErr } = await supabase
+        .from("inventory_levels")
+        .insert({
+          variant_id: payload.variant_id,
+          warehouse_id: payload.warehouse_id,
+          bin_id: payload.bin_id || null,
+          quantity_available: qty,
+          quantity_reserved: 0,
+          quantity_incoming: 0,
+          quantity_damaged: 0,
+          quantity_returned: 0,
+          reorder_point: 5,
+          safety_stock: 2,
+        })
+        .select()
+        .single();
+      if (insertErr) throw new Error(`Failed to create inventory record: ${insertErr.message}`);
+      updatedLevel = created as InventoryLevel;
+    }
+
+    // Record immutable movement
+    const movementNotes = [
+      payload.notes,
+      payload.batch_number ? `Batch: ${payload.batch_number}` : null,
+      payload.serial_number ? `Serial: ${payload.serial_number}` : null,
+      payload.purchase_order_id ? `PO: ${payload.purchase_order_id}` : null,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+
+    await this.recordMovement({
+      variant_id: payload.variant_id,
+      warehouse_id: payload.warehouse_id,
+      movement_type: "RECEIVE",
+      quantity: qty,
+      to_bin_id: payload.bin_id || null,
+      reference_id: payload.purchase_order_id || null,
+      reason_code: "PURCHASE_RECEIPT",
+      notes: movementNotes || `Stock In of ${qty} units`,
+      user_id: payload.userId || null,
+    });
+
+    return updatedLevel;
+  }
+
+  /**
+   * Enterprise Stock Out workflow
+   */
+  async stockOut(payload: {
+    variant_id: string;
+    warehouse_id: string;
+    bin_id?: string;
+    quantity: number;
+    reason: string;
+    notes?: string;
+    reference_id?: string;
+    userId?: string;
+  }): Promise<InventoryLevel> {
+    const supabase = this.getAdminClient();
+    const qty = Number(payload.quantity);
+    if (!qty || qty <= 0) {
+      throw new Error("Stock Out quantity must be greater than zero.");
+    }
+
+    // Check warehouse and its negative stock policy
+    const { data: wh, error: whErr } = await supabase
+      .from("warehouses")
+      .select("id, is_active, name, address")
+      .eq("id", payload.warehouse_id)
+      .single();
+    if (whErr || !wh) throw new Error("Warehouse not found.");
+    if (!wh.is_active) throw new Error(`Warehouse "${wh.name}" is deactivated.`);
+
+    let allowNegative = false;
+    try {
+      if (wh.address && typeof wh.address === "string" && wh.address.startsWith("{")) {
+        const parsed = JSON.parse(wh.address);
+        allowNegative = !!parsed.allow_negative_stock;
+      }
+    } catch {
+      allowNegative = false;
+    }
+
+    // Find inventory level
+    let query = supabase
+      .from("inventory_levels")
+      .select("*")
+      .eq("variant_id", payload.variant_id)
+      .eq("warehouse_id", payload.warehouse_id);
+
+    if (payload.bin_id) {
+      query = query.eq("bin_id", payload.bin_id);
+    } else {
+      query = query.is("bin_id", null);
+    }
+
+    const { data: levels, error: fetchErr } = await query.limit(1);
+    if (fetchErr) throw new Error(`Inventory lookup error: ${fetchErr.message}`);
+
+    const current = levels && levels.length > 0 ? levels[0] : null;
+    const currentAvail = current ? Number(current.quantity_available) || 0 : 0;
+
+    if (!allowNegative && currentAvail < qty) {
+      throw new Error(
+        `Insufficient stock in warehouse "${wh.name}". Available: ${currentAvail}, Requested: ${qty}. Negative stock is not enabled for this warehouse.`
+      );
+    }
+
+    let updatedLevel: InventoryLevel;
+    const newAvail = currentAvail - qty;
+
+    if (current) {
+      const { data: updated, error: updateErr } = await supabase
+        .from("inventory_levels")
+        .update({
+          quantity_available: newAvail,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", current.id)
+        .select()
+        .single();
+      if (updateErr) throw new Error(`Failed to decrement inventory: ${updateErr.message}`);
+      updatedLevel = updated as InventoryLevel;
+    } else {
+      const { data: created, error: insertErr } = await supabase
+        .from("inventory_levels")
+        .insert({
+          variant_id: payload.variant_id,
+          warehouse_id: payload.warehouse_id,
+          bin_id: payload.bin_id || null,
+          quantity_available: newAvail,
+          quantity_reserved: 0,
+          quantity_incoming: 0,
+          quantity_damaged: payload.reason === "DAMAGED" ? qty : 0,
+          quantity_returned: 0,
+        })
+        .select()
+        .single();
+      if (insertErr) throw new Error(`Failed to create inventory level: ${insertErr.message}`);
+      updatedLevel = created as InventoryLevel;
+    }
+
+    // Record immutable movement
+    await this.recordMovement({
+      variant_id: payload.variant_id,
+      warehouse_id: payload.warehouse_id,
+      movement_type: "SHIP",
+      quantity: -qty,
+      from_bin_id: payload.bin_id || null,
+      reference_id: payload.reference_id || null,
+      reason_code: payload.reason || "STOCK_OUT",
+      notes: payload.notes || `Stock Out: ${payload.reason || "Removal"}`,
+      user_id: payload.userId || null,
+    });
+
+    return updatedLevel;
+  }
+
+  /**
+   * Enterprise Stock Adjustment with mandatory reason and variance calculation
+   */
+  async stockAdjustment(payload: {
+    variant_id: string;
+    warehouse_id: string;
+    bin_id?: string;
+    physical_count: number;
+    reason: string;
+    notes?: string;
+    userId?: string;
+  }): Promise<{ updated: InventoryLevel; variance: number }> {
+    const supabase = this.getAdminClient();
+    if (!payload.reason?.trim()) {
+      throw new Error("Reason is required for all manual stock adjustments.");
+    }
+    const physical = Math.max(0, Number(payload.physical_count));
+
+    let query = supabase
+      .from("inventory_levels")
+      .select("*")
+      .eq("variant_id", payload.variant_id)
+      .eq("warehouse_id", payload.warehouse_id);
+
+    if (payload.bin_id) {
+      query = query.eq("bin_id", payload.bin_id);
+    } else {
+      query = query.is("bin_id", null);
+    }
+
+    const { data: levels, error: fetchErr } = await query.limit(1);
+    if (fetchErr) throw new Error(`Database error: ${fetchErr.message}`);
+
+    const current = levels && levels.length > 0 ? levels[0] : null;
+    const systemQty = current ? Number(current.quantity_available) || 0 : 0;
+    const variance = physical - systemQty;
+
+    let updatedLevel: InventoryLevel;
+
+    if (current) {
+      const { data: updated, error: updateErr } = await supabase
+        .from("inventory_levels")
+        .update({
+          quantity_available: physical,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", current.id)
+        .select()
+        .single();
+      if (updateErr) throw new Error(`Failed to update adjusted inventory: ${updateErr.message}`);
+      updatedLevel = updated as InventoryLevel;
+    } else {
+      const { data: created, error: insertErr } = await supabase
+        .from("inventory_levels")
+        .insert({
+          variant_id: payload.variant_id,
+          warehouse_id: payload.warehouse_id,
+          bin_id: payload.bin_id || null,
+          quantity_available: physical,
+          quantity_reserved: 0,
+          quantity_incoming: 0,
+          quantity_damaged: 0,
+          quantity_returned: 0,
+        })
+        .select()
+        .single();
+      if (insertErr) throw new Error(`Failed to create inventory record: ${insertErr.message}`);
+      updatedLevel = created as InventoryLevel;
+    }
+
+    // Record movement audit
+    await this.recordMovement({
+      variant_id: payload.variant_id,
+      warehouse_id: payload.warehouse_id,
+      movement_type: "ADJUST",
+      quantity: variance,
+      from_bin_id: payload.bin_id || null,
+      reason_code: payload.reason,
+      notes: `Physical Count Adjustment: System was ${systemQty}, counted ${physical} (Variance: ${variance > 0 ? "+" : ""}${variance}). Notes: ${payload.notes || ""}`,
+      user_id: payload.userId || null,
+    });
+
+    return { updated: updatedLevel, variance };
+  }
+
+  /**
+   * Get rich stock movement history with joined details
+   */
+  async getDetailedMovements(options?: {
+    page?: number;
+    limit?: number;
+    warehouseId?: string;
+    variantId?: string;
+    type?: string;
+    search?: string;
+  }): Promise<{
+    data: any[];
+    total: number;
+    page: number;
+    totalPages: number;
+  }> {
+    const supabase = this.getAdminClient();
+    const page = Math.max(1, options?.page || 1);
+    const limit = Math.max(1, options?.limit || 50);
+    const start = (page - 1) * limit;
+
+    let query = supabase
+      .from("stock_movements")
+      .select(
+        `*,
+        variant:variants(
+          id,
+          sku,
+          product:products(id, name)
+        ),
+        warehouse:warehouses!warehouse_id(id, name, warehouse_code),
+        to_warehouse:warehouses!to_warehouse_id(id, name, warehouse_code),
+        from_bin:warehouse_bins!from_bin_id(id, code, zone:warehouse_zones(name)),
+        to_bin:warehouse_bins!to_bin_id(id, code, zone:warehouse_zones(name))`,
+        { count: "exact" }
+      )
+      .order("created_at", { ascending: false })
+      .range(start, start + limit - 1);
+
+    if (options?.warehouseId) {
+      query = query.or(`warehouse_id.eq.${options.warehouseId},to_warehouse_id.eq.${options.warehouseId}`);
+    }
+    if (options?.variantId) {
+      query = query.eq("variant_id", options.variantId);
+    }
+    if (options?.type && options.type !== "all") {
+      query = query.ilike("reason", `%${options.type}%`);
+    }
+
+    const { data, count, error } = await query;
+    if (error) throw new Error(`Failed to fetch stock movements: ${error.message}`);
+
+    const movements = (data || []).map((m: any) => {
+      let friendlyType = "Movement";
+      const r = (m.reason || m.reason_code || "").toUpperCase();
+      const change = Number(m.quantity_change) || 0;
+
+      if (r.includes("RECEIVE") || r.includes("PURCHASE") || change > 0 && !r.includes("TRANSFER")) {
+        friendlyType = "Stock In";
+      } else if (r.includes("SHIP") || r.includes("SALES") || r.includes("ORDER")) {
+        friendlyType = "Stock Out";
+      } else if (r.includes("TRANSFER")) {
+        friendlyType = "Transfer";
+      } else if (r.includes("ADJUST") || r.includes("PHYSICAL")) {
+        friendlyType = "Adjustment";
+      } else if (r.includes("DAMAGE")) {
+        friendlyType = "Damage";
+      } else if (r.includes("RETURN")) {
+        friendlyType = "Return";
+      }
+
+      return {
+        id: m.id,
+        created_at: m.created_at,
+        product_name: m.variant?.product?.name || "Product",
+        sku: m.variant?.sku || "—",
+        warehouse_name: m.warehouse?.name || "Warehouse",
+        warehouse_code: m.warehouse?.warehouse_code || "",
+        to_warehouse_name: m.to_warehouse?.name,
+        zone_name: m.to_bin?.zone?.name || m.from_bin?.zone?.name || "—",
+        bin_code: m.to_bin?.code || m.from_bin?.code || "—",
+        movement_type: friendlyType,
+        raw_type: m.reason || m.reason_code || "ADJUST",
+        quantity: change,
+        reference_id: m.reference_id || "—",
+        user_id: m.user_id || "System",
+        notes: m.notes || m.reason || "",
+      };
+    });
+
+    const total = count || movements.length;
+    return {
+      data: movements,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit) || 1,
+    };
+  }
 }
+
