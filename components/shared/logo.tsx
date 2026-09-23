@@ -54,6 +54,15 @@ export const AnchorFashionLogo = ({
           animation: af-draw-line-loop 6s cubic-bezier(0.64, 0.04, 0.35, 1) infinite;
         }
 
+        .dark .af-draw-blue {
+          fill: #F8FAFC;
+          stroke: #F8FAFC;
+        }
+
+        .dark .af-draw-line {
+          stroke: #F8FAFC;
+        }
+
         @keyframes af-draw-loop {
           0% { stroke-dashoffset: 1500; fill-opacity: 0; }
           25% { stroke-dashoffset: 0; fill-opacity: 0; }

@@ -38,8 +38,14 @@ export function SalesOverviewChart({ data = [] }: { data?: any[] }) {
                 tickFormatter={(value) => `${value}`}
               />
               <Tooltip 
-                cursor={{ fill: 'transparent' }} 
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
+                cursor={{ fill: 'hsl(var(--muted)/0.2)' }} 
+                contentStyle={{ 
+                  borderRadius: '8px', 
+                  border: '1px solid hsl(var(--border))', 
+                  backgroundColor: 'hsl(var(--card))', 
+                  color: 'hsl(var(--card-foreground))',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' 
+                }} 
               />
               <Bar dataKey="revenue" fill="#00A1FF" radius={[4, 4, 4, 4]} barSize={10} name="Revenue (৳)" />
               <Bar dataKey="orders" fill="#00A1FF" opacity={0.3} radius={[4, 4, 4, 4]} barSize={10} name="Orders" />

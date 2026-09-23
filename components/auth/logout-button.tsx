@@ -39,7 +39,7 @@ export function LogoutButton({ className, hideText }: LogoutButtonProps) {
       onClick={handleLogout}
       title={hideText ? "Log out" : undefined}
       className={cn(
-        "flex w-full items-center rounded-lg px-4 py-3 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 hover:text-red-700",
+        "flex w-full items-center rounded-lg px-4 py-3 text-sm font-medium text-red-600 dark:text-red-400 transition-colors hover:bg-red-50 dark:hover:bg-red-950/40 hover:text-red-700 dark:hover:text-red-300",
         !hideText && "space-x-3",
         className
       )}

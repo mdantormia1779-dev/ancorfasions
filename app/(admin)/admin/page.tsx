@@ -76,8 +76,8 @@ export default async function AdminDashboardPage() {
           value={formatCurrency(kpis.revenue.value)}
           description="Compared to yesterday"
           iconType="revenue"
-          iconBgColor="bg-[#E8F8F5]"
-          iconTextColor="text-[#0D9488]"
+          iconBgColor="bg-teal-50 dark:bg-teal-950/60"
+          iconTextColor="text-teal-600 dark:text-teal-400"
           sparklineColor="#0D9488"
           sparklineData={salesData.map((d: any) => d.revenue).slice(-10)} // last 10 days
         />
@@ -86,8 +86,8 @@ export default async function AdminDashboardPage() {
           value={kpis.orders.value.toLocaleString()}
           description="Compared to yesterday"
           iconType="orders"
-          iconBgColor="bg-[#F3E8FF]"
-          iconTextColor="text-[#9333EA]"
+          iconBgColor="bg-purple-50 dark:bg-purple-950/60"
+          iconTextColor="text-purple-600 dark:text-purple-400"
           sparklineColor="#9333EA"
           sparklineData={salesData.map((d: any) => d.orders).slice(-10)}
         />
@@ -96,8 +96,8 @@ export default async function AdminDashboardPage() {
           value={formatCurrency(kpis.aov.value)}
           description="Compared to yesterday"
           iconType="aov"
-          iconBgColor="bg-[#FFF3E0]"
-          iconTextColor="text-[#E65100]"
+          iconBgColor="bg-amber-50 dark:bg-amber-950/60"
+          iconTextColor="text-amber-600 dark:text-amber-400"
           sparklineColor="#E65100"
           sparklineData={aovSparkline}
         />
@@ -106,8 +106,8 @@ export default async function AdminDashboardPage() {
           value={kpis.newCustomers.value.toLocaleString()}
           description="Compared to yesterday"
           iconType="customers"
-          iconBgColor="bg-[#FDF2F8]"
-          iconTextColor="text-[#DB2777]"
+          iconBgColor="bg-pink-50 dark:bg-pink-950/60"
+          iconTextColor="text-pink-600 dark:text-pink-400"
           sparklineColor="#DB2777"
           sparklineData={newCustomersSparkline}
         />

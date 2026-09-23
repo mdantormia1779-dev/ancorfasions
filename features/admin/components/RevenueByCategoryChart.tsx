@@ -42,7 +42,13 @@ export function RevenueByCategoryChart({ data = [] }: { data?: any[] }) {
                 ))}
               </Pie>
               <Tooltip 
-                contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} 
+                contentStyle={{ 
+                  borderRadius: '8px', 
+                  border: '1px solid hsl(var(--border))', 
+                  backgroundColor: 'hsl(var(--card))', 
+                  color: 'hsl(var(--card-foreground))',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' 
+                }} 
                 formatter={(value) => `৳${value}`}
               />
             </PieChart>

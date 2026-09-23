@@ -445,11 +445,11 @@ export const AdminSidebar = ({
       <div className="p-4 border-t border-border flex justify-center">
         {isCollapsed ? (
           <LogoutButton 
-            className="w-10 h-10 p-0 justify-center bg-muted/50 hover:bg-slate-100 text-foreground/90 border-none rounded-xl"
+            className="w-10 h-10 p-0 justify-center bg-muted/50 hover:bg-muted dark:hover:bg-slate-800 text-foreground/90 border-none rounded-xl"
             hideText={true}
           />
         ) : (
-          <LogoutButton className="w-full bg-muted/50 hover:bg-slate-100 text-foreground/90 border-none" />
+          <LogoutButton className="w-full bg-muted/50 hover:bg-muted dark:hover:bg-slate-800 text-foreground/90 border-none" />
         )}
       </div>
     </div>

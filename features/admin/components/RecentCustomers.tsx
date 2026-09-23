@@ -22,7 +22,7 @@ export function RecentCustomers({ data = [] }: { data?: any[] }) {
             <div key={customer.user_id} className="flex items-center gap-4">
               <Avatar className="h-10 w-10 border-2 border-border">
                 <AvatarImage src={customer.avatar_url || `https://api.dicebear.com/7.x/avataaars/svg?seed=${customer.user_id}`} />
-                <AvatarFallback className="bg-slate-100"><User className="h-4 w-4 text-muted-foreground/80"/></AvatarFallback>
+                <AvatarFallback className="bg-muted text-muted-foreground"><User className="h-4 w-4"/></AvatarFallback>
               </Avatar>
               <div className="flex flex-col">
                 <span className="text-sm font-semibold text-foreground/90 leading-none mb-1.5">{customer.full_name || 'Guest'}</span>
