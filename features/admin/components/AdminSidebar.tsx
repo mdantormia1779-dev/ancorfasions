@@ -22,6 +22,7 @@ import {
   ChevronRight,
   CheckSquare,
   UserCheck,
+  Bell,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -193,6 +194,12 @@ const navigation: NavCategory[] = [
         ],
       },
       {
+        name: "Notifications",
+        href: "/admin/notifications",
+        icon: Bell,
+        allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER"],
+      },
+      {
         name: "Settings",
         icon: Settings,
         allowedRoles: ["SUPERADMIN", "ADMIN"],
@@ -242,7 +249,7 @@ export const AdminSidebar = ({
   return (
     <div
       className={cn(
-        "flex h-full flex-shrink-0 flex-col bg-card text-card-foreground shadow-[0_0_20px_rgba(89,102,122,0.05)] transition-all duration-300 relative z-20",
+        "flex h-full flex-shrink-0 flex-col bg-card text-card-foreground shadow-[0_0_20px_rgba(89,102,122,0.05)] transition-all duration-300 relative z-20 border-r border-border",
         isCollapsed ? "w-[80px]" : "w-[280px]",
         className
       )}
@@ -250,10 +257,10 @@ export const AdminSidebar = ({
       <div className={cn("flex items-center py-6 border-b border-border relative", isCollapsed ? "px-0 justify-center" : "px-6 gap-3")}>
         {!isCollapsed && (
           <>
-            <AnchorFashionLogo noLink={true} className="text-slate-900" />
+            <AnchorFashionLogo noLink={true} className="text-slate-900 dark:text-slate-100" />
           </>
         )}
-        {isCollapsed && <AnchorFashionLogo noLink={true} className="text-slate-900 w-8 h-8" />}
+        {isCollapsed && <AnchorFashionLogo noLink={true} className="text-slate-900 dark:text-slate-100 w-8 h-8" />}
         
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}

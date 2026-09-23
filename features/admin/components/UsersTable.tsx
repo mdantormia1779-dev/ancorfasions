@@ -45,6 +45,8 @@ import {
   Shield,
   Edit,
   Eye,
+  EyeOff,
+  KeyRound,
   Loader2,
 } from "lucide-react";
 import { AddUserDialog } from "./AddUserDialog";
@@ -53,6 +55,7 @@ import {
   assignUserRoleAction,
   updateUserProfileAction,
   getAllAvailableRolesAction,
+  updateUserPasswordAction,
 } from "@/actions/users.actions";
 import { toast } from "sonner";
 
@@ -96,6 +99,13 @@ export function UsersTable({
   const [roleUser, setRoleUser] = useState<UserData | null>(null);
   const [selectedRoleName, setSelectedRoleName] = useState("");
   const [savingRole, setSavingRole] = useState(false);
+
+  // Password update modal state
+  const [passwordUser, setPasswordUser] = useState<UserData | null>(null);
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
   const [actionLoading, setActionLoading] = useState<string | null>(null);
 
@@ -204,6 +214,35 @@ export function UsersTable({
     }
   };
 
+  // Save Password
+  const handleSavePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordUser) return;
+
+    if (!newPassword || newPassword.trim().length < 6) {
+      toast.error("Password must be at least 6 characters long");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast.error("Passwords do not match");
+      return;
+    }
+
+    setSavingPassword(true);
+    const res = await updateUserPasswordAction(passwordUser.id, newPassword);
+    setSavingPassword(false);
+
+    if (res.success) {
+      toast.success(`Password updated successfully for ${passwordUser.name}`);
+      setPasswordUser(null);
+      setNewPassword("");
+      setConfirmPassword("");
+    } else {
+      toast.error(res.error || "Failed to update password");
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
@@ -309,6 +348,17 @@ export function UsersTable({
                               className="cursor-pointer text-xs"
                             >
                               <Shield className="mr-2 h-3.5 w-3.5 text-[#C9A86A]" /> Change Role
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setPasswordUser(user);
+                                setNewPassword("");
+                                setConfirmPassword("");
+                                setShowPassword(false);
+                              }}
+                              className="cursor-pointer text-xs"
+                            >
+                              <KeyRound className="mr-2 h-3.5 w-3.5 text-[#C9A86A]" /> Update Password
                             </DropdownMenuItem>
                             <DropdownMenuSeparator />
                             <DropdownMenuItem
@@ -516,6 +566,86 @@ export function UsersTable({
                 >
                   {savingRole && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                   Update Role
+                </Button>
+              </DialogFooter>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Update Password Dialog */}
+      {passwordUser && (
+        <Dialog open={!!passwordUser} onOpenChange={(o) => !o && setPasswordUser(null)}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <KeyRound className="h-4 w-4 text-[#C9A86A]" /> Update User Password
+              </DialogTitle>
+              <DialogDescription>
+                Set a new password for <span className="font-semibold text-foreground">{passwordUser.name}</span> ({passwordUser.email}).
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSavePassword} className="space-y-4 pt-2">
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">New Password</Label>
+                <div className="relative">
+                  <Input
+                    id="newPassword"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Minimum 6 characters"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    required
+                    minLength={6}
+                    className="pr-10"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Confirm Password</Label>
+                <Input
+                  id="confirmPassword"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="Re-enter new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  required
+                  minLength={6}
+                />
+              </div>
+
+              <div className="rounded-md bg-amber-500/10 p-2.5 text-xs text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                The user can immediately log in with this new password.
+              </div>
+
+              <DialogFooter className="pt-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setPasswordUser(null)}
+                  disabled={savingPassword}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={savingPassword}
+                  className="bg-[#C9A86A] text-white hover:bg-[#b09156]"
+                >
+                  {savingPassword && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  Save Password
                 </Button>
               </DialogFooter>
             </form>

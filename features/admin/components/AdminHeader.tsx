@@ -274,17 +274,17 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
   // Render
   // ────────────────────────────────────────────────────────────────────────────
   return (
-    <header className="sticky top-0 z-30 flex h-[80px] w-full items-center justify-between border-b border-slate-100 bg-white dark:bg-background dark:border-border px-4 shadow-sm lg:px-8">
+    <header className="sticky top-0 z-30 flex h-[80px] w-full items-center justify-between border-b border-slate-200 dark:border-border bg-white dark:bg-background px-4 shadow-sm lg:px-8">
       {/* ── Left: mobile menu + breadcrumb ── */}
       <div className="flex items-center gap-4">
         <Sheet>
           <SheetTrigger asChild>
-            <Button variant="ghost" size="icon" className="md:hidden">
+            <Button variant="ghost" size="icon" className="md:hidden text-slate-700 dark:text-slate-200">
               <Menu className="h-5 w-5" />
               <span className="sr-only">Toggle Sidebar</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[280px] border-r-0 p-0 bg-white dark:bg-background">
+          <SheetContent side="left" className="w-[280px] border-r border-border p-0 bg-white dark:bg-background">
             <SheetTitle className="sr-only">Menu</SheetTitle>
             <AdminSidebar className="w-full border-r-0 shadow-none" role={role} />
           </SheetContent>
@@ -299,7 +299,7 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
             {paths.map((path, index) => (
               <span key={`${path}-${index}`} className="flex items-center gap-2">
                 <span>/</span>
-                <span className={index === paths.length - 1 ? "text-[#00A1FF] capitalize" : "capitalize"}>
+                <span className={index === paths.length - 1 ? "text-[#00A1FF] capitalize font-semibold" : "capitalize"}>
                   {path.replace(/-/g, " ")}
                 </span>
               </span>
@@ -313,7 +313,7 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
 
         {/* Global Search with autocomplete */}
         <div className="relative hidden w-full max-w-[280px] sm:flex lg:max-w-[320px]">
-          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 pointer-events-none" />
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
           <Input
             type="search"
             placeholder="Search pages, products..."
@@ -322,12 +322,12 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
             onKeyDown={handleSearchKeyDown}
             onFocus={() => setSearchFocused(true)}
             onBlur={() => setTimeout(() => setSearchFocused(false), 200)}
-            className="w-full h-10 appearance-none rounded-full border-none bg-slate-50/80 dark:bg-slate-800 pl-11 pr-4 shadow-none transition-colors hover:bg-slate-100 dark:hover:bg-slate-700 focus-visible:ring-1 focus-visible:ring-slate-300 dark:focus-visible:ring-slate-600 placeholder:text-slate-400"
+            className="w-full h-10 appearance-none rounded-full border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/60 pl-11 pr-4 shadow-none transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 focus-visible:ring-1 focus-visible:ring-[#00A1FF] text-slate-900 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-500 text-xs"
           />
           {searchQuery && (
             <button
               onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
             >
               <X className="h-3.5 w-3.5" />
             </button>
@@ -366,7 +366,7 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
               variant="ghost"
               size="icon"
               onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="h-10 w-10 rounded-full bg-slate-50/80 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
+              className="h-10 w-10 rounded-full border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-700 dark:hover:text-slate-100 transition-colors"
               title="Toggle theme"
             >
               {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
@@ -375,30 +375,28 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
 
           {/* ── Notifications Dropdown ── */}
           <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 rounded-full bg-slate-50/80 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 relative"
-                  title="Notifications"
-                />
-              }
-            >
-              <Bell className="h-[18px] w-[18px]" />
-              {notifUnread > 0 && (
-                <span className="absolute right-1.5 top-1.5 h-4 w-4 rounded-full bg-[#00A1FF] text-white text-[9px] font-bold flex items-center justify-center leading-none">
-                  {notifUnread > 9 ? "9+" : notifUnread}
-                </span>
-              )}
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-700 dark:hover:text-slate-100 relative transition-colors"
+                title="Notifications"
+              >
+                <Bell className="h-[18px] w-[18px]" />
+                {notifUnread > 0 && (
+                  <span className="absolute right-1 top-1 h-4 w-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                    {notifUnread > 9 ? "9+" : notifUnread}
+                  </span>
+                )}
+              </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[340px] mt-2 rounded-xl p-0">
+            <DropdownMenuContent align="end" className="w-[340px] mt-2 rounded-xl p-0 border border-border bg-popover shadow-xl">
               <DropdownMenuLabel className="px-4 py-3 flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <Bell className="h-4 w-4 text-[#00A1FF]" />
-                  <span className="font-bold text-sm">Notifications</span>
+                  <span className="font-bold text-sm text-foreground">Notifications</span>
                   {notifUnread > 0 && (
-                    <span className="text-[10px] bg-[#00A1FF] text-white rounded-full px-1.5 py-0.5 font-bold">
+                    <span className="text-[10px] bg-rose-500 text-white rounded-full px-1.5 py-0.5 font-bold">
                       {notifUnread}
                     </span>
                   )}
@@ -432,7 +430,7 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
                       onClick={() => !n.read_at && handleMarkNotifRead(n.id)}
                       className={cn(
                         "w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 border-b border-border/50 last:border-0",
-                        !n.read_at && "bg-[#00A1FF]/5"
+                        !n.read_at && "bg-blue-500/5 dark:bg-blue-500/10"
                       )}
                     >
                       <div className="mt-0.5 h-8 w-8 rounded-full bg-muted flex items-center justify-center shrink-0">
@@ -444,7 +442,7 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
                             {n.title}
                           </span>
                           {!n.read_at && (
-                            <span className="h-2 w-2 rounded-full bg-[#00A1FF] shrink-0 mt-1" />
+                            <span className="h-2 w-2 rounded-full bg-rose-500 shrink-0 mt-1" />
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.message}</p>
@@ -470,30 +468,28 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
 
           {/* ── Messages Dropdown ── */}
           <DropdownMenu>
-            <DropdownMenuTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-10 w-10 rounded-full bg-slate-50/80 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 relative"
-                  title="Messages"
-                />
-              }
-            >
-              <MessageSquare className="h-[18px] w-[18px]" />
-              {msgUnread > 0 && (
-                <span className="absolute right-1.5 top-1.5 h-4 w-4 rounded-full bg-[#00A1FF] text-white text-[9px] font-bold flex items-center justify-center leading-none">
-                  {msgUnread > 9 ? "9+" : msgUnread}
-                </span>
-              )}
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-10 w-10 rounded-full border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-700 dark:hover:text-slate-100 relative transition-colors"
+                title="Messages"
+              >
+                <MessageSquare className="h-[18px] w-[18px]" />
+                {msgUnread > 0 && (
+                  <span className="absolute right-1 top-1 h-4 w-4 rounded-full bg-blue-500 text-white text-[9px] font-bold flex items-center justify-center leading-none">
+                    {msgUnread > 9 ? "9+" : msgUnread}
+                  </span>
+                )}
+              </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[340px] mt-2 rounded-xl p-0">
+            <DropdownMenuContent align="end" className="w-[340px] mt-2 rounded-xl p-0 border border-border bg-popover shadow-xl">
               <DropdownMenuLabel className="px-4 py-3 flex justify-between items-center">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="h-4 w-4 text-[#00A1FF]" />
-                  <span className="font-bold text-sm">Messages</span>
+                  <span className="font-bold text-sm text-foreground">Messages</span>
                   {msgUnread > 0 && (
-                    <span className="text-[10px] bg-[#00A1FF] text-white rounded-full px-1.5 py-0.5 font-bold">
+                    <span className="text-[10px] bg-blue-500 text-white rounded-full px-1.5 py-0.5 font-bold">
                       {msgUnread}
                     </span>
                   )}

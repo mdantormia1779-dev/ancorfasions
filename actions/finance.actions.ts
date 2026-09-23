@@ -45,9 +45,8 @@ export async function createExpenseAction(
 ): Promise<{ success: boolean; data?: Expense; error?: string }> {
   try {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const userRes = await supabase.auth.getUser().catch(() => ({ data: { user: null } }));
+    const user = userRes?.data?.user;
 
     // Validate payload with Zod
     const validated = ExpenseFormSchema.parse(formData);

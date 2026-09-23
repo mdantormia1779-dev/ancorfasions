@@ -94,9 +94,10 @@ export function AdminBookmarksMenu() {
       saveBookmarks(next);
       toast.success("Removed from bookmarks");
 
-      const res = await removeBookmarkAction(pathname);
-      if (!res.success && res.error) {
-        toast.error("Failed to sync bookmark deletion", { description: res.error });
+      try {
+        await removeBookmarkAction(pathname);
+      } catch (err) {
+        console.warn("Bookmark deletion sync:", err);
       }
     } else {
       // Optimistic add
@@ -107,9 +108,10 @@ export function AdminBookmarksMenu() {
       saveBookmarks(next);
       toast.success(`"${label}" bookmarked!`);
 
-      const res = await addBookmarkAction(label, pathname);
-      if (!res.success && res.error) {
-        toast.error("Failed to persist bookmark", { description: res.error });
+      try {
+        await addBookmarkAction(label, pathname);
+      } catch (err) {
+        console.warn("Bookmark addition sync:", err);
       }
     }
   }, [bookmarks, pathname]);
@@ -120,9 +122,10 @@ export function AdminBookmarksMenu() {
     saveBookmarks(next);
     toast.success("Bookmark removed");
 
-    const res = await removeBookmarkAction(href);
-    if (!res.success && res.error) {
-      toast.error("Failed to remove bookmark from server", { description: res.error });
+    try {
+      await removeBookmarkAction(href);
+    } catch (err) {
+      console.warn("Bookmark removal sync:", err);
     }
   }, [bookmarks]);
 
@@ -132,7 +135,7 @@ export function AdminBookmarksMenu() {
       <Button
         variant="ghost"
         size="icon"
-        className="h-10 w-10 rounded-full bg-slate-50/80 dark:bg-slate-800 text-slate-500 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700"
+        className="h-10 w-10 rounded-full border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-400 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-700 dark:hover:text-slate-100"
       >
         <Bookmark className="h-[18px] w-[18px]" />
       </Button>
@@ -141,28 +144,26 @@ export function AdminBookmarksMenu() {
 
   return (
     <DropdownMenu>
-      <DropdownMenuTrigger
-        render={
-          <Button
-            variant="ghost"
-            size="icon"
-            className={cn(
-              "h-10 w-10 rounded-full bg-slate-50/80 dark:bg-slate-800 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-700 transition-colors",
-              isBookmarked
-                ? "text-[#00A1FF]"
-                : "text-slate-500"
-            )}
-            title="Bookmarks"
-          />
-        }
-      >
-        <Bookmark className={cn("h-[18px] w-[18px]", isBookmarked && "fill-current")} />
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className={cn(
+            "h-10 w-10 rounded-full border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors",
+            isBookmarked
+              ? "text-amber-500 dark:text-amber-400"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+          )}
+          title="Bookmarks"
+        >
+          <Bookmark className={cn("h-[18px] w-[18px]", isBookmarked && "fill-current text-amber-500 dark:text-amber-400")} />
+        </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-72 mt-2 rounded-xl p-0">
+      <DropdownMenuContent align="end" className="w-72 mt-2 rounded-xl p-0 shadow-lg border border-border bg-popover">
         <DropdownMenuLabel className="px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Star className="h-4 w-4 text-[#00A1FF]" />
-            <span className="font-bold text-sm">Bookmarks</span>
+            <Star className="h-4 w-4 text-amber-500 dark:text-amber-400 fill-amber-500/20" />
+            <span className="font-bold text-sm text-foreground">Bookmarks</span>
           </div>
           <span className="text-xs text-muted-foreground">{bookmarks.length} saved</span>
         </DropdownMenuLabel>

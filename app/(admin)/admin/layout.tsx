@@ -47,12 +47,14 @@ export default async function AdminLayout({
     redirect("/account/profile");
   }
 
+  // Ensure plain JSON object across RSC boundary to prevent serialization issues
+  const sanitizedUser = JSON.parse(JSON.stringify(user));
 
   return (
     <div className="flex h-screen w-full overflow-hidden bg-slate-50 dark:bg-background text-slate-900 dark:text-foreground">
       <AdminSidebar role={role} className="hidden md:flex" />
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <AdminHeader user={user} role={role} />
+        <AdminHeader user={sanitizedUser} role={role} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-slate-50/50 dark:bg-background">
           {children}
         </main>

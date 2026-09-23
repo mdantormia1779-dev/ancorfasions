@@ -2,7 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { CourierProviderRecord } from "@/types/shipping.types";
-import { updateCourierProviderAction } from "@/actions/logistics.actions";
+import {
+  updateCourierProviderAction,
+  testCourierConnectionAction,
+} from "@/actions/logistics.actions";
 import {
   Dialog,
   DialogContent,
@@ -15,7 +18,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import { Activity, CheckCircle, AlertCircle, RefreshCcw } from "lucide-react";
+import { HealthCheckResult } from "@/lib/couriers/types";
 
 interface Props {
   courier: CourierProviderRecord | null;
@@ -25,6 +31,8 @@ interface Props {
 
 export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
   const [loading, setLoading] = useState(false);
+  const [testing, setTesting] = useState(false);
+  const [testResult, setTestResult] = useState<HealthCheckResult | null>(null);
   const [credentials, setCredentials] = useState<Record<string, string>>({});
   const [isSandbox, setIsSandbox] = useState(false);
 
@@ -32,10 +40,34 @@ export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
     if (courier) {
       setCredentials(courier.credentials || {});
       setIsSandbox(courier.is_sandbox);
+      setTestResult(null);
     }
   }, [courier]);
 
   if (!courier) return null;
+
+  const handleTestConnection = async () => {
+    setTesting(true);
+    try {
+      const res = await testCourierConnectionAction(courier.id);
+      if (res.success && res.data) {
+        setTestResult(res.data);
+        if (res.data.status === "healthy") {
+          toast.success(`Connected ✓ Response time: ${res.data.responseTime}ms`);
+        } else if (res.data.status === "not_configured") {
+          toast.info("Courier is not configured. Please save credentials first.");
+        } else {
+          toast.error(`Connection failed: ${res.data.message}`);
+        }
+      } else {
+        toast.error("Failed to run health check");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to test connection");
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const handleSave = async () => {
     setLoading(true);
@@ -61,7 +93,6 @@ export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
   };
 
   const renderFields = () => {
-    // Render dynamic fields based on courier code
     switch (courier.code) {
       case "steadfast":
         return (
@@ -96,6 +127,7 @@ export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
                 id="clientId"
                 value={credentials.clientId || ""}
                 onChange={(e) => handleChange("clientId", e.target.value)}
+                placeholder="Pathao OAuth Client ID"
               />
             </div>
             <div className="grid gap-2">
@@ -105,14 +137,16 @@ export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
                 type="password"
                 value={credentials.clientSecret || ""}
                 onChange={(e) => handleChange("clientSecret", e.target.value)}
+                placeholder="Pathao Client Secret"
               />
             </div>
             <div className="grid gap-2">
-              <Label htmlFor="username">Pathao Email</Label>
+              <Label htmlFor="username">Pathao Email / Username</Label>
               <Input
                 id="username"
                 value={credentials.username || ""}
                 onChange={(e) => handleChange("username", e.target.value)}
+                placeholder="Merchant login email"
               />
             </div>
             <div className="grid gap-2">
@@ -122,28 +156,7 @@ export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
                 type="password"
                 value={credentials.password || ""}
                 onChange={(e) => handleChange("password", e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="storeId">Store ID</Label>
-              <Input
-                id="storeId"
-                value={credentials.storeId || ""}
-                onChange={(e) => handleChange("storeId", e.target.value)}
-              />
-            </div>
-          </>
-        );
-      case "redx":
-        return (
-          <>
-            <div className="grid gap-2">
-              <Label htmlFor="accessToken">Access Token</Label>
-              <Input
-                id="accessToken"
-                type="password"
-                value={credentials.accessToken || ""}
-                onChange={(e) => handleChange("accessToken", e.target.value)}
+                placeholder="Merchant password"
               />
             </div>
             <div className="grid gap-2">
@@ -152,15 +165,45 @@ export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
                 id="storeId"
                 value={credentials.storeId || ""}
                 onChange={(e) => handleChange("storeId", e.target.value)}
+                placeholder="e.g. 1"
               />
             </div>
           </>
         );
+      case "sandbox":
+        return (
+          <div className="rounded-lg border border-dashed border-primary/40 bg-primary/5 p-4 space-y-3">
+            <div className="flex items-center gap-2 font-medium text-sm text-primary">
+              <CheckCircle className="h-4 w-4 text-emerald-500" />
+              <span>Sandbox / Mock Logistics Provider</span>
+            </div>
+            <p className="text-muted-foreground text-xs leading-relaxed">
+              This provider provides local simulated consignment booking, live tracking lifecycle simulation, and automated webhook delivery without calling third-party APIs or incurring shipping costs.
+            </p>
+            <div className="grid gap-2 pt-2">
+              <Label htmlFor="mockNote" className="text-xs">
+                Sandbox Notes / Profile Name (Optional)
+              </Label>
+              <Input
+                id="mockNote"
+                value={credentials.mockNote || ""}
+                onChange={(e) => handleChange("mockNote", e.target.value)}
+                placeholder="e.g. Local development & staging simulator"
+              />
+            </div>
+          </div>
+        );
       default:
         return (
-          <div className="text-sm text-muted-foreground">
-            No specific credential fields configured for this provider in the UI yet.
-            Please use JSON configuration in the database directly.
+          <div className="grid gap-2">
+            <Label htmlFor="apiKey">API Key / Token</Label>
+            <Input
+              id="apiKey"
+              type="password"
+              value={credentials.apiKey || credentials.token || ""}
+              onChange={(e) => handleChange("apiKey", e.target.value)}
+              placeholder="Enter provider API key"
+            />
           </div>
         );
     }
@@ -170,29 +213,69 @@ export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
     <Dialog open={!!courier} onOpenChange={(open) => !open && onClose()}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Configure {courier.display_name}</DialogTitle>
+          <div className="flex items-center justify-between">
+            <DialogTitle>Configure {courier.display_name}</DialogTitle>
+            {testResult && (
+              <div>
+                {testResult.status === "healthy" ? (
+                  <Badge variant="secondary" className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1 text-xs">
+                    <CheckCircle className="h-3.5 w-3.5" /> Connected ✓ ({testResult.responseTime}ms)
+                  </Badge>
+                ) : testResult.status === "not_configured" ? (
+                  <Badge variant="outline" className="text-muted-foreground text-xs">
+                    Not Configured
+                  </Badge>
+                ) : (
+                  <Badge variant="destructive" className="gap-1 text-xs">
+                    <AlertCircle className="h-3.5 w-3.5" /> Failed ✗
+                  </Badge>
+                )}
+              </div>
+            )}
+          </div>
           <DialogDescription>
-            Update API credentials and settings for this provider.
+            Update API credentials and environment settings. Passwords and keys are encrypted at rest with AES-256-GCM.
           </DialogDescription>
         </DialogHeader>
+
         <div className="grid gap-4 py-4">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center justify-between rounded-lg border p-3 bg-muted/30">
+            <div className="space-y-0.5">
+              <Label htmlFor="sandbox-mode" className="text-sm font-medium">Sandbox Mode (Test Environment)</Label>
+              <p className="text-xs text-muted-foreground">
+                Toggle between official sandbox and live production endpoints.
+              </p>
+            </div>
             <Switch
               id="sandbox-mode"
               checked={isSandbox}
               onCheckedChange={setIsSandbox}
             />
-            <Label htmlFor="sandbox-mode">Enable Sandbox (Test Mode)</Label>
           </div>
+
           {renderFields()}
         </div>
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={loading}>
-            Cancel
+
+        <DialogFooter className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-t pt-4">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleTestConnection}
+            disabled={testing || loading}
+            className="sm:mr-auto"
+          >
+            <Activity className={`mr-2 h-4 w-4 ${testing ? "animate-spin" : ""}`} />
+            {testing ? "Testing Connection..." : "Test Connection"}
           </Button>
-          <Button onClick={handleSave} disabled={loading}>
-            {loading ? "Saving..." : "Save Configuration"}
-          </Button>
+
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" onClick={onClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={loading}>
+              {loading ? "Saving..." : "Save Configuration"}
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>

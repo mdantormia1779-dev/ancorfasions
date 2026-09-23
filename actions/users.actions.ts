@@ -326,39 +326,74 @@ export async function getAllAvailableRolesAction() {
   }
 }
 
-export async function updateUserPasswordAction(newPassword: string) {
+export async function updateUserPasswordAction(
+  arg1: string,
+  arg2?: string
+) {
   try {
+    let targetUserId: string | null = null;
+    let newPassword = "";
+
+    if (arg2 !== undefined) {
+      // Called as updateUserPasswordAction(userId, newPassword)
+      targetUserId = arg1;
+      newPassword = arg2;
+    } else {
+      // Called as updateUserPasswordAction(newPassword) for current user
+      newPassword = arg1;
+    }
+
     if (!newPassword || newPassword.trim().length < 6) {
       return { success: false, error: "Password must be at least 6 characters long." };
     }
 
-    const supabase = await createClient();
-    const {
-      data: { user },
-      error: userError,
-    } = await supabase.auth.getUser();
-
-    if (userError || !user) {
-      return { success: false, error: "Authentication required. Please log in again." };
-    }
-
     const adminClient = createAdminClient();
-    const { error: updateError } = await adminClient.auth.admin.updateUserById(user.id, {
-      password: newPassword,
-    });
 
-    if (updateError) {
-      const { error: sessionUpdateErr } = await supabase.auth.updateUser({
-        password: newPassword,
+    if (!targetUserId) {
+      const supabase = await createClient();
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
+
+      if (userError || !user) {
+        return { success: false, error: "Authentication required. Please log in again." };
+      }
+      targetUserId = user.id;
+
+      const { error: updateError } = await adminClient.auth.admin.updateUserById(targetUserId, {
+        password: newPassword.trim(),
       });
-      if (sessionUpdateErr) throw sessionUpdateErr;
+
+      if (updateError) {
+        const { error: sessionUpdateErr } = await supabase.auth.updateUser({
+          password: newPassword.trim(),
+        });
+        if (sessionUpdateErr) throw sessionUpdateErr;
+      }
+    } else {
+      // Admin updating a user's password directly
+      const { error: updateError } = await adminClient.auth.admin.updateUserById(targetUserId, {
+        password: newPassword.trim(),
+      });
+
+      if (updateError) throw updateError;
     }
+
+    revalidatePath("/admin/users/admins");
+    revalidatePath("/admin/users/managers");
+    revalidatePath("/admin/users/staff");
+    revalidatePath("/admin/users");
 
     return { success: true };
   } catch (error: any) {
     console.error("[updateUserPasswordAction]", error);
     return { success: false, error: error.message || "Failed to update password" };
   }
+}
+
+export async function adminUpdateUserPasswordAction(userId: string, newPassword: string) {
+  return updateUserPasswordAction(userId, newPassword);
 }
 
 export async function syncUserAuthAction(credentials: { email: string; password: string }) {

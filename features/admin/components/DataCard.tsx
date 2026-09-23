@@ -3,14 +3,15 @@
 import { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Card, CardContent } from "@/components/ui/card";
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, DollarSign, ShoppingBag, CreditCard, UserPlus } from "lucide-react";
 import { Line, LineChart, ResponsiveContainer } from "recharts";
 
 interface DataCardProps {
   title: string;
   value: string | number;
   description?: string;
-  icon: ReactNode;
+  icon?: ReactNode;
+  iconType?: "revenue" | "orders" | "aov" | "customers";
   iconBgColor?: string;
   iconTextColor?: string;
   sparklineData?: number[];
@@ -23,12 +24,24 @@ export function DataCard({
   value,
   description,
   icon,
+  iconType,
   iconBgColor = "bg-teal-50",
   iconTextColor = "text-teal-600",
   sparklineData = [10, 20, 15, 30, 25, 40, 35, 50, 40, 60],
   sparklineColor = "#0d9488",
   className,
 }: DataCardProps) {
+  // Determine rendered icon safely on the client
+  let renderedIcon = icon;
+  if (iconType === "revenue") {
+    renderedIcon = <DollarSign className="h-6 w-6" />;
+  } else if (iconType === "orders") {
+    renderedIcon = <ShoppingBag className="h-6 w-6" />;
+  } else if (iconType === "aov") {
+    renderedIcon = <CreditCard className="h-6 w-6" />;
+  } else if (iconType === "customers") {
+    renderedIcon = <UserPlus className="h-6 w-6" />;
+  }
   // Convert array of numbers to object array for recharts
   const chartData = sparklineData.map((val, i) => ({ value: val, index: i }));
 
@@ -49,7 +62,7 @@ export function DataCard({
 
         <div className="flex items-center gap-4 mb-6">
           <div className={cn("flex h-12 w-12 items-center justify-center rounded-full", iconBgColor, iconTextColor)}>
-            {icon}
+            {renderedIcon}
           </div>
           <div className="flex flex-col">
             <div className="text-[28px] font-bold tracking-tight text-foreground leading-none mb-1">

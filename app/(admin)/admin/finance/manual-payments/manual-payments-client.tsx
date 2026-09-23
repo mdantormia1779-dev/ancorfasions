@@ -156,8 +156,15 @@ export function ManualPaymentsClient({
   };
 
   // Metrics
-  const totalPending = transactions.filter((t) => t.status === "pending").length;
-  const totalApproved = transactions.filter((t) => t.status === "success").length;
+  const totalPending = transactions.filter(
+    (t) => t.status === "pending" && t.order?.payment_status !== "paid"
+  ).length;
+  const totalApproved = transactions.filter(
+    (t) =>
+      t.status === "completed" ||
+      t.status === "success" ||
+      t.order?.payment_status === "paid"
+  ).length;
   const totalRejected = transactions.filter((t) => t.status === "failed").length;
 
   // Filtered rows
@@ -169,40 +176,46 @@ export function ManualPaymentsClient({
     const matchesSearch =
       !q || orderNum.includes(q) || sender.includes(q) || trx.includes(q);
 
-    const provider = (t.provider_id || "").toLowerCase();
+    const provider = (
+      t.provider_id ||
+      t.gateway_response?.payment_method ||
+      t.order?.payment_method ||
+      ""
+    ).toLowerCase();
     const matchesGateway =
       gatewayFilter === "ALL" ||
-      (gatewayFilter === "BKASH" && provider === "bkash") ||
-      (gatewayFilter === "NAGAD" && provider === "nagad") ||
-      (gatewayFilter === "ROCKET" && provider === "rocket") ||
-      (gatewayFilter === "BANK" && (provider === "bank" || provider === "bank_transfer"));
+      (gatewayFilter === "BKASH" && provider.includes("bkash")) ||
+      (gatewayFilter === "NAGAD" && provider.includes("nagad")) ||
+      (gatewayFilter === "ROCKET" && provider.includes("rocket")) ||
+      (gatewayFilter === "BANK" && (provider.includes("bank") || provider === "wire"));
 
     const matchesStatus =
       statusFilter === "ALL" ||
-      (statusFilter === "PENDING" && t.status === "pending") ||
-      (statusFilter === "PAID" && t.status === "success") ||
+      (statusFilter === "PENDING" && t.status === "pending" && t.order?.payment_status !== "paid") ||
+      (statusFilter === "PAID" &&
+        (t.status === "completed" || t.status === "success" || t.order?.payment_status === "paid")) ||
       (statusFilter === "REJECTED" && t.status === "failed");
 
     return matchesSearch && matchesGateway && matchesStatus;
   });
 
-  const renderProviderBadge = (providerId: string) => {
+  const renderProviderBadge = (providerId?: string) => {
     const p = (providerId || "").toLowerCase();
-    if (p === "bkash") {
+    if (p.includes("bkash")) {
       return (
         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold bg-pink-100 text-[#E2136E]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#E2136E]" /> bKash
         </span>
       );
     }
-    if (p === "nagad") {
+    if (p.includes("nagad")) {
       return (
         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold bg-orange-100 text-[#F7941D]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#F7941D]" /> Nagad
         </span>
       );
     }
-    if (p === "rocket") {
+    if (p.includes("rocket")) {
       return (
         <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-bold bg-purple-100 text-[#8C3494]">
           <span className="h-1.5 w-1.5 rounded-full bg-[#8C3494]" /> Rocket
@@ -341,7 +354,13 @@ export function ManualPaymentsClient({
                   tx.gateway_transaction_id ||
                   tx.gateway_response?.transaction_id ||
                   "—";
-                const isPending = tx.status === "pending";
+                const isApproved =
+                  tx.status === "completed" ||
+                  tx.status === "success" ||
+                  tx.order?.payment_status === "paid";
+                const isFailed = tx.status === "failed";
+                const isPending = !isApproved && !isFailed;
+                const hasNoItems = tx.item_count === 0;
 
                 return (
                   <TableRow key={tx.id} className="text-xs hover:bg-muted/30 transition-colors">
@@ -354,6 +373,11 @@ export function ManualPaymentsClient({
                         #{orderNum}
                         <ExternalLink className="h-3 w-3 opacity-60" />
                       </Link>
+                      {hasNoItems && (
+                        <span className="inline-block px-1.5 py-0.5 rounded text-[10px] font-semibold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300 mt-0.5">
+                          0 Items
+                        </span>
+                      )}
                     </TableCell>
 
                     {/* Gateway */}
@@ -401,16 +425,16 @@ export function ManualPaymentsClient({
                     <TableCell>
                       <Badge
                         className={
-                          tx.status === "success"
+                          isApproved
                             ? "bg-emerald-500 text-white font-semibold text-[10px]"
-                            : tx.status === "failed"
+                            : isFailed
                             ? "bg-rose-500 text-white font-semibold text-[10px]"
                             : "bg-amber-500 text-white font-semibold text-[10px] animate-pulse"
                         }
                       >
-                        {tx.status === "success"
+                        {isApproved
                           ? "Approved"
-                          : tx.status === "failed"
+                          : isFailed
                           ? "Rejected"
                           : "Pending"}
                       </Badge>
@@ -425,7 +449,8 @@ export function ManualPaymentsClient({
                               size="sm"
                               className="h-7 px-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[11px] font-semibold gap-1"
                               onClick={() => handleApprove(tx)}
-                              disabled={isApprovingId === tx.id || isRejectingId === tx.id}
+                              disabled={isApprovingId === tx.id || isRejectingId === tx.id || hasNoItems}
+                              title={hasNoItems ? "Cannot approve order with 0 items" : undefined}
                             >
                               {isApprovingId === tx.id ? (
                                 <Loader2 className="h-3 w-3 animate-spin" />

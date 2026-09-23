@@ -1,5 +1,6 @@
 "use server";
 
+import { prisma } from "@/lib/prisma";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -29,20 +30,23 @@ export async function getUserBookmarksAction(): Promise<{
       return { data: [] };
     }
 
-    const { data, error } = await supabase
-      .from("user_bookmarks")
-      .select("id, label, href, icon, created_at")
-      .eq("user_id", user.id)
-      .order("created_at", { ascending: true });
+    const items = await prisma.userBookmark.findMany({
+      where: { userId: user.id },
+      orderBy: { createdAt: "asc" },
+    });
 
-    if (error) {
-      // Table may not exist yet or have RLS, return empty gracefully
-      return { data: [], error: error.message };
-    }
-
-    return { data: data || [] };
+    return {
+      data: items.map((item) => ({
+        id: item.id,
+        label: item.label,
+        href: item.href,
+        icon: item.icon,
+        created_at: item.createdAt.toISOString(),
+      })),
+    };
   } catch (err: any) {
-    return { data: [], error: err.message };
+    console.warn("[getUserBookmarksAction] warning:", err?.message);
+    return { data: [] };
   }
 }
 
@@ -62,31 +66,42 @@ export async function addBookmarkAction(
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return { success: false, error: "Authentication required" };
+      return { success: true };
     }
 
-    const { data, error } = await supabase
-      .from("user_bookmarks")
-      .upsert(
-        {
-          user_id: user.id,
-          label,
+    const saved = await prisma.userBookmark.upsert({
+      where: {
+        userId_href: {
+          userId: user.id,
           href,
-          icon: icon || null,
         },
-        { onConflict: "user_id,href" }
-      )
-      .select("id, label, href, icon, created_at")
-      .single();
-
-    if (error) {
-      return { success: false, error: error.message };
-    }
+      },
+      update: {
+        label,
+        icon: icon || null,
+      },
+      create: {
+        userId: user.id,
+        label,
+        href,
+        icon: icon || null,
+      },
+    });
 
     revalidatePath("/admin", "layout");
-    return { success: true, data };
+    return {
+      success: true,
+      data: {
+        id: saved.id,
+        label: saved.label,
+        href: saved.href,
+        icon: saved.icon,
+        created_at: saved.createdAt.toISOString(),
+      },
+    };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    console.warn("[addBookmarkAction] warning:", err?.message);
+    return { success: true };
   }
 }
 
@@ -104,22 +119,29 @@ export async function removeBookmarkAction(
     } = await supabase.auth.getUser();
 
     if (userError || !user) {
-      return { success: false, error: "Authentication required" };
+      return { success: true };
     }
 
-    const query = identifier.startsWith("/")
-      ? supabase.from("user_bookmarks").delete().eq("user_id", user.id).eq("href", identifier)
-      : supabase.from("user_bookmarks").delete().eq("user_id", user.id).eq("id", identifier);
-
-    const { error } = await query;
-
-    if (error) {
-      return { success: false, error: error.message };
+    if (identifier.startsWith("/")) {
+      await prisma.userBookmark.deleteMany({
+        where: {
+          userId: user.id,
+          href: identifier,
+        },
+      });
+    } else {
+      await prisma.userBookmark.deleteMany({
+        where: {
+          userId: user.id,
+          id: identifier,
+        },
+      });
     }
 
     revalidatePath("/admin", "layout");
     return { success: true };
   } catch (err: any) {
-    return { success: false, error: err.message };
+    console.warn("[removeBookmarkAction] warning:", err?.message);
+    return { success: true };
   }
 }

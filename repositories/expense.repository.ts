@@ -158,7 +158,22 @@ export class ExpenseRepository {
       .single();
 
     if (error) {
-      if (error.code === "PGRST205" || error.message.includes("Could not find the table")) {
+      if (error.message?.includes("expenses_created_by_fkey")) {
+        insertPayload.created_by = null;
+        const retry = await supabase
+          .from("expenses")
+          .insert(insertPayload)
+          .select(`
+            *,
+            warehouse:warehouses(name),
+            branch:branches(name)
+          `)
+          .single();
+        if (!retry.error && retry.data) {
+          return this.mapRowToExpense(retry.data);
+        }
+      }
+      if (error.code === "PGRST205" || error.message?.includes("Could not find the table")) {
         throw new Error(
           "Table 'expenses' not found in database. Please run the migration: supabase/migrations/20260910100000_enterprise_finance_expenses.sql"
         );

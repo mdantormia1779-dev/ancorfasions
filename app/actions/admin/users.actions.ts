@@ -126,3 +126,22 @@ export async function createAdminUserAction(data: {
     return { success: false, error: error.message };
   }
 }
+
+export async function updateUserPasswordAction(userId: string, newPassword: string) {
+  try {
+    await verifySuperAdmin();
+    if (!newPassword || newPassword.trim().length < 6) {
+      throw new Error("Password must be at least 6 characters long.");
+    }
+    const supabase = createAdminClient();
+    const { error } = await supabase.auth.admin.updateUserById(userId, {
+      password: newPassword.trim(),
+    });
+    if (error) throw error;
+    revalidatePath("/admin/users");
+    return { success: true };
+  } catch (error: any) {
+    console.error("[updateUserPasswordAction]", error);
+    return { success: false, error: error.message || "Failed to update password" };
+  }
+}

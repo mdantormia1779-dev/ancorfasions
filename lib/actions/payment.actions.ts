@@ -220,7 +220,14 @@ export async function recordManualPaymentTransaction(
 ) {
   const supabase = createAdminClient();
   try {
-    const providerId = submission.payment_method.toLowerCase();
+    const rawMethod = (submission.payment_method || "").toLowerCase();
+    const { data: prov } = await supabase
+      .from("payment_providers")
+      .select("id")
+      .eq("code", rawMethod)
+      .maybeSingle();
+
+    const providerId = prov?.id || null;
     const referenceNumber =
       submission.sender_number ||
       submission.account_holder_name ||
@@ -309,25 +316,88 @@ export async function approveManualPaymentAction(
 ) {
   const supabase = createAdminClient();
   try {
-    // 1. Update payment_transactions
-    if (transactionId) {
+    // 0. Verify order has items before approving payment
+    const { data: items, error: itemsErr } = await supabase
+      .from("order_items")
+      .select("id")
+      .eq("order_id", orderId);
+
+    if (itemsErr) {
+      console.warn("Could not verify order items:", itemsErr);
+    } else if (!items || items.length === 0) {
+      return {
+        success: false,
+        error: "Cannot approve payment: Order has 0 items. Please ensure order items are recorded before approving payment.",
+      };
+    }
+
+    // 1. Update or create payment_transactions
+    if (transactionId && !transactionId.startsWith("order-manual-")) {
       await supabase
         .from("payment_transactions")
         .update({
-          status: "success",
+          status: "completed",
           error_message: null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", transactionId);
     } else {
-      await supabase
+      const { data: existingTx } = await supabase
         .from("payment_transactions")
-        .update({
-          status: "success",
-          error_message: null,
+        .select("id")
+        .eq("order_id", orderId)
+        .maybeSingle();
+
+      if (existingTx) {
+        await supabase
+          .from("payment_transactions")
+          .update({
+            status: "completed",
+            error_message: null,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingTx.id);
+      } else {
+        const { data: orderData } = await supabase
+          .from("orders")
+          .select("payment_method, grand_total, customer_id, order_number")
+          .eq("id", orderId)
+          .maybeSingle();
+
+        const rawMethod = (orderData?.payment_method || "").toLowerCase();
+        const { data: prov } = await supabase
+          .from("payment_providers")
+          .select("id")
+          .eq("code", rawMethod)
+          .maybeSingle();
+
+        const { data: shippingAddr } = await supabase
+          .from("order_addresses")
+          .select("phone")
+          .eq("order_id", orderId)
+          .eq("address_type", "SHIPPING")
+          .maybeSingle();
+
+        const customerPhone = shippingAddr?.phone || orderData?.order_number || "";
+
+        await supabase.from("payment_transactions").insert({
+          order_id: orderId,
+          user_id: orderData?.customer_id || null,
+          provider_id: prov?.id || null,
+          amount: orderData?.grand_total || 0,
+          currency: "BDT",
+          status: "completed",
+          reference_number: customerPhone,
+          gateway_transaction_id: "MANUAL-ADMIN-APPROVAL",
+          gateway_response: {
+            sender_number: customerPhone,
+            transaction_id: "MANUAL-ADMIN-APPROVAL",
+            payment_method: orderData?.payment_method,
+            approved_manually_at: new Date().toISOString(),
+          },
           updated_at: new Date().toISOString(),
-        })
-        .eq("order_id", orderId);
+        });
+      }
     }
 
     // 2. Update orders table
@@ -367,9 +437,13 @@ export async function approveManualPaymentAction(
       console.error("[Manual Payment Approval] SMS trigger error:", smsErr);
     }
 
-    revalidatePath(`/admin/orders/${orderId}`);
-    revalidatePath("/admin/orders");
-    revalidatePath("/admin/finance/manual-payments");
+    try {
+      revalidatePath(`/admin/orders/${orderId}`);
+      revalidatePath("/admin/orders");
+      revalidatePath("/admin/finance/manual-payments");
+    } catch {
+      // Ignore if called outside Next.js request context (e.g. tests, scripts)
+    }
 
     return { success: true };
   } catch (err: any) {
@@ -388,8 +462,8 @@ export async function rejectManualPaymentAction(
 ) {
   const supabase = createAdminClient();
   try {
-    // 1. Update payment_transactions
-    if (transactionId) {
+    // 1. Update or create payment_transactions
+    if (transactionId && !transactionId.startsWith("order-manual-")) {
       await supabase
         .from("payment_transactions")
         .update({
@@ -399,14 +473,52 @@ export async function rejectManualPaymentAction(
         })
         .eq("id", transactionId);
     } else {
-      await supabase
+      const { data: existingTx } = await supabase
         .from("payment_transactions")
-        .update({
+        .select("id")
+        .eq("order_id", orderId)
+        .maybeSingle();
+
+      if (existingTx) {
+        await supabase
+          .from("payment_transactions")
+          .update({
+            status: "failed",
+            error_message: reason,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", existingTx.id);
+      } else {
+        const { data: orderData } = await supabase
+          .from("orders")
+          .select("payment_method, grand_total, customer_id, order_number")
+          .eq("id", orderId)
+          .maybeSingle();
+
+        const rawMethod = (orderData?.payment_method || "").toLowerCase();
+        const { data: prov } = await supabase
+          .from("payment_providers")
+          .select("id")
+          .eq("code", rawMethod)
+          .maybeSingle();
+
+        await supabase.from("payment_transactions").insert({
+          order_id: orderId,
+          user_id: orderData?.customer_id || null,
+          provider_id: prov?.id || null,
+          amount: orderData?.grand_total || 0,
+          currency: "BDT",
           status: "failed",
           error_message: reason,
+          reference_number: orderData?.order_number || "",
+          gateway_response: {
+            payment_method: orderData?.payment_method,
+            rejected_manually_at: new Date().toISOString(),
+            reason,
+          },
           updated_at: new Date().toISOString(),
-        })
-        .eq("order_id", orderId);
+        });
+      }
     }
 
     // 2. Update orders table
@@ -432,9 +544,13 @@ export async function rejectManualPaymentAction(
       notes: `Manual payment verification failed: ${reason}`,
     });
 
-    revalidatePath(`/admin/orders/${orderId}`);
-    revalidatePath("/admin/orders");
-    revalidatePath("/admin/finance/manual-payments");
+    try {
+      revalidatePath(`/admin/orders/${orderId}`);
+      revalidatePath("/admin/orders");
+      revalidatePath("/admin/finance/manual-payments");
+    } catch {
+      // Ignore if called outside Next.js request context (e.g. tests, scripts)
+    }
 
     return { success: true };
   } catch (err: any) {
@@ -447,27 +563,145 @@ export async function rejectManualPaymentAction(
  * Fetch all pending manual payments for Admin Finance verification queue
  */
 export async function getPendingManualPaymentsAction() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
   try {
+    // 1. Fetch manual payment providers (bKash, Nagad, Rocket)
+    const { data: providers } = await supabase
+      .from("payment_providers")
+      .select("id, code, name")
+      .in("code", ["bkash", "nagad", "rocket"]);
+
+    const providerMap = new Map<string, { id: string; code: string; name: string }>();
+    const providerIds = (providers || []).map((p) => {
+      providerMap.set(p.id, p);
+      return p.id;
+    });
+
+    // 2. Query payment_transactions for manual providers or null provider_id (custom/bank)
+    const orClause =
+      providerIds.length > 0
+        ? `provider_id.in.(${providerIds.join(",")}),provider_id.is.null`
+        : `provider_id.is.null`;
+
     const { data: txs, error } = await supabase
       .from("payment_transactions")
-      .select(
-        `
-        *,
-        order:orders(id, order_number, grand_total, status, payment_status, created_at, customer_id)
-      `
-      )
-      .in("provider_id", ["bkash", "nagad", "rocket", "bank", "bank_transfer"])
+      .select("*")
+      .or(orClause)
       .order("created_at", { ascending: false });
 
     if (error) {
-      console.error("Error fetching manual payments:", error);
+      console.error("Error fetching manual payments:", error.message || error);
       return [];
     }
 
-    return txs || [];
-  } catch (err) {
-    console.error("Error in getPendingManualPaymentsAction:", err);
+    // 3. Collect related order IDs from transactions
+    const orderIds = Array.from(
+      new Set((txs || []).map((t) => t.order_id).filter(Boolean))
+    );
+
+    // Also look up orders placed with manual payment methods
+    const { data: manualOrders } = await supabase
+      .from("orders")
+      .select("id, order_number, grand_total, status, payment_status, payment_method, created_at, customer_id")
+      .in("payment_method", [
+        "BKASH",
+        "NAGAD",
+        "ROCKET",
+        "BANK",
+        "BANK_TRANSFER",
+        "bkash",
+        "nagad",
+        "rocket",
+        "bank",
+        "bank_transfer",
+      ]);
+
+    const orderMap = new Map<string, any>();
+    (manualOrders || []).forEach((o) => orderMap.set(o.id, o));
+
+    // Fetch any missing orders referenced by existing transactions
+    const missingOrderIds = orderIds.filter((id) => !orderMap.has(id));
+    if (missingOrderIds.length > 0) {
+      const { data: moreOrders } = await supabase
+        .from("orders")
+        .select("id, order_number, grand_total, status, payment_status, payment_method, created_at, customer_id")
+        .in("id", missingOrderIds);
+
+      (moreOrders || []).forEach((o) => orderMap.set(o.id, o));
+    }
+
+    const existingTxOrderIds = new Set((txs || []).map((t) => t.order_id));
+
+    // Query order_items count for all relevant orders
+    const allOrderIds = Array.from(
+      new Set([...orderIds, ...(manualOrders || []).map((o) => o.id)])
+    );
+    const { data: itemRows } = await supabase
+      .from("order_items")
+      .select("order_id")
+      .in("order_id", allOrderIds);
+
+    const itemsCountMap = new Map<string, number>();
+    (itemRows || []).forEach((row) => {
+      itemsCountMap.set(row.order_id, (itemsCountMap.get(row.order_id) || 0) + 1);
+    });
+
+    // 4. Enrich transactions with order details and canonical provider_id
+    const enrichedList: any[] = (txs || [])
+      .filter((t) => t.order_id && orderMap.has(t.order_id))
+      .map((t) => {
+        const order = orderMap.get(t.order_id) || null;
+        const matchedProvider = t.provider_id ? providerMap.get(t.provider_id) : null;
+        const method = (
+          matchedProvider?.code ||
+          t.gateway_response?.payment_method ||
+          order?.payment_method ||
+          "bank"
+        ).toLowerCase();
+
+        return {
+          ...t,
+          provider_id: method,
+          provider_name: matchedProvider?.name || method.toUpperCase(),
+          order,
+          item_count: itemsCountMap.get(t.order_id) || 0,
+        };
+      });
+
+    // 5. Synthesize queue items for any manual orders that don't have a transaction record yet
+    for (const o of manualOrders || []) {
+      if (!existingTxOrderIds.has(o.id)) {
+        // Skip cancelled orders or orders with 0 items from being queued for manual payment approval
+        if (o.status === "cancelled") continue;
+        const itemCount = itemsCountMap.get(o.id) || 0;
+        if (itemCount === 0) continue;
+
+        enrichedList.push({
+          id: `order-manual-${o.id}`,
+          order_id: o.id,
+          user_id: o.customer_id,
+          provider_id: (o.payment_method || "bkash").toLowerCase(),
+          provider_name: (o.payment_method || "MANUAL").toUpperCase(),
+          amount: o.grand_total || 0,
+          currency: "BDT",
+          status: o.payment_status?.toLowerCase() === "paid" ? "completed" : "pending",
+          reference_number: o.order_number,
+          gateway_transaction_id: "Pending Submission",
+          gateway_response: {
+            payment_method: o.payment_method,
+            submitted_at: o.created_at,
+          },
+          created_at: o.created_at,
+          updated_at: o.created_at,
+          order: o,
+          item_count: itemCount,
+        });
+      }
+    }
+
+    return enrichedList;
+  } catch (err: any) {
+    console.error("Error in getPendingManualPaymentsAction:", err?.message || err);
     return [];
   }
 }

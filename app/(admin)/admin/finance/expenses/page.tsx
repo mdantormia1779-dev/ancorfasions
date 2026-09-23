@@ -18,14 +18,14 @@ export default async function ExpensesManagementPage() {
   const supabase = createAdminClient();
 
   // Fetch real data safely in parallel
-  const [expenses, warehouses, branchesResult] = await Promise.all([
+  const [expenses, warehousesResult, branchesResult] = await Promise.all([
     expenseRepo.getExpenses().catch((err: any) => {
       console.error("[ExpensesManagementPage] Error fetching expenses:", err);
       return [];
     }),
     warehouseRepo.getAllWarehouses().catch((err: any) => {
       console.error("[ExpensesManagementPage] Error fetching warehouses:", err);
-      return [];
+      return { data: [] };
     }),
     Promise.resolve(
       supabase
@@ -39,12 +39,18 @@ export default async function ExpensesManagementPage() {
     }),
   ]);
 
-  const activeBranches = (branchesResult as any[]) || [];
+  const warehouseList = Array.isArray(warehousesResult)
+    ? warehousesResult
+    : Array.isArray((warehousesResult as any)?.data)
+    ? (warehousesResult as any).data
+    : [];
+
+  const activeBranches = Array.isArray(branchesResult) ? branchesResult : [];
 
   return (
     <ExpensesClient
-      initialExpenses={expenses}
-      warehouses={(warehouses as any[]).map((w: any) => ({ id: String(w.id), name: String(w.name) }))}
+      initialExpenses={Array.isArray(expenses) ? expenses : []}
+      warehouses={warehouseList.map((w: any) => ({ id: String(w.id), name: String(w.name) }))}
       branches={activeBranches.map((b: any) => ({ id: String(b.id), name: String(b.name) }))}
     />
   );

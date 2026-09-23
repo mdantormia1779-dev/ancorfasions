@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import { revalidatePath } from "next/cache";
 
 export interface AdminMessage {
@@ -15,7 +16,6 @@ export interface AdminMessage {
   sender_id: string | null;
   metadata: Record<string, any>;
   created_at: string;
-  // Joined profile info
   profile?: {
     first_name: string | null;
     last_name: string | null;
@@ -46,7 +46,6 @@ export async function getAdminHeaderMessagesAction(): Promise<{
       .limit(10);
 
     if (error) {
-      // Graceful fallback if customer_profiles join fails
       const { data: simpleLogs, error: e2 } = await supabase
         .from("communication_logs")
         .select("*")
@@ -89,6 +88,8 @@ export async function markMessageAsReadAction(id: string): Promise<{ error?: str
 
     if (error) return { error: error.message };
     revalidatePath("/admin", "layout");
+    revalidatePath("/admin/crm/messages");
+    revalidatePath("/admin/messages");
     return {};
   } catch (err: any) {
     return { error: err.message };
@@ -125,7 +126,67 @@ export async function createMessageAction(payload: {
 
     if (error) return { success: false, error: error.message };
     revalidatePath("/admin", "layout");
+    revalidatePath("/admin/crm/messages");
+    revalidatePath("/admin/messages");
     return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Updates an existing communication message/log.
+ */
+export async function updateMessageAction(
+  id: string,
+  payload: {
+    subject?: string;
+    content: string;
+    type?: string;
+    direction?: string;
+    status?: string;
+  }
+): Promise<{ success: boolean; data?: any; error?: string }> {
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin
+      .from("communication_logs")
+      .update({
+        subject: payload.subject?.trim() || null,
+        content: payload.content.trim(),
+        ...(payload.type ? { type: payload.type } : {}),
+        ...(payload.direction ? { direction: payload.direction } : {}),
+        ...(payload.status ? { status: payload.status } : {}),
+      })
+      .eq("id", id)
+      .select()
+      .single();
+
+    if (error) return { success: false, error: error.message };
+    revalidatePath("/admin", "layout");
+    revalidatePath("/admin/crm/messages");
+    revalidatePath("/admin/messages");
+    return { success: true, data };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
+ * Deletes a communication message/log by ID.
+ */
+export async function deleteMessageAction(
+  id: string
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    const admin = createAdminClient();
+    const { error } = await admin.from("communication_logs").delete().eq("id", id);
+
+    if (error) return { success: false, error: error.message };
+    revalidatePath("/admin", "layout");
+    revalidatePath("/admin/crm/messages");
+    revalidatePath("/admin/messages");
+    return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
@@ -145,6 +206,8 @@ export async function markAllMessagesAsReadAction(): Promise<{ error?: string }>
 
     if (error) return { error: error.message };
     revalidatePath("/admin", "layout");
+    revalidatePath("/admin/crm/messages");
+    revalidatePath("/admin/messages");
     return {};
   } catch (err: any) {
     return { error: err.message };
@@ -196,6 +259,6 @@ export async function seedInitialMessagesIfEmptyAction(): Promise<void> {
 
     await supabase.from("communication_logs").insert(seedData);
   } catch {
-    // Silently fail — seeding is non-critical
+    // Silently fail
   }
 }

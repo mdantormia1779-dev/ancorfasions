@@ -30,7 +30,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserPlus, Loader2, Copy, CheckCircle2 } from "lucide-react";
+import { UserPlus, Loader2, Copy, CheckCircle2, Eye, EyeOff } from "lucide-react";
 import { createUserAction } from "@/actions/users.actions";
 import { toast } from "sonner";
 
@@ -39,6 +39,11 @@ const userSchema = z.object({
   lastName: z.string().min(2, "Last name is required"),
   email: z.string().email("Invalid email address"),
   roleName: z.string().min(1, "Role is required"),
+  password: z
+    .string()
+    .min(6, "Password must be at least 6 characters")
+    .optional()
+    .or(z.literal("")),
 });
 
 type FormValues = z.infer<typeof userSchema>;
@@ -56,6 +61,7 @@ export function AddUserDialog({
   const [isLoading, setIsLoading] = useState(false);
   const [createdPassword, setCreatedPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(userSchema),
@@ -64,13 +70,21 @@ export function AddUserDialog({
       lastName: "",
       email: "",
       roleName: defaultRole || allowedRoles[0] || "ADMIN",
+      password: "",
     },
   });
 
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     try {
-      const res = await createUserAction(data);
+      const payload = {
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        roleName: data.roleName,
+        ...(data.password ? { password: data.password } : {}),
+      };
+      const res = await createUserAction(payload);
       if (res.success && res.data) {
         setCreatedPassword(res.data.password);
         form.reset();
@@ -97,6 +111,7 @@ export function AddUserDialog({
     setOpen(false);
     setTimeout(() => {
       setCreatedPassword(null);
+      setShowPassword(false);
       form.reset();
     }, 200);
   };
@@ -221,6 +236,41 @@ export function AddUserDialog({
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Password (Optional)</FormLabel>
+                    <div className="relative">
+                      <FormControl>
+                        <Input
+                          type={showPassword ? "text" : "password"}
+                          placeholder="Leave blank to auto-generate"
+                          className="pr-10"
+                          {...field}
+                        />
+                      </FormControl>
+                      <button
+                        type="button"
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                      >
+                        {showPassword ? (
+                          <EyeOff className="h-4 w-4" />
+                        ) : (
+                          <Eye className="h-4 w-4" />
+                        )}
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Enter at least 6 characters, or leave blank to automatically generate a secure password.
+                    </p>
                     <FormMessage />
                   </FormItem>
                 )}

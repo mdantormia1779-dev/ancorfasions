@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/server";
 
 export type DateRange = {
   from: Date;
@@ -10,7 +10,7 @@ export class AnalyticsRepository {
    * Executive Dashboard Data
    */
   static async getExecutiveSummary(dateRange?: DateRange) {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     let periodDays = 30;
     let currentFrom = new Date();
@@ -41,7 +41,7 @@ export class AnalyticsRepository {
     // Customers
     const { data: allCustomers } = await supabase
       .from("customer_profiles")
-      .select("id, created_at, status")
+      .select("id, created_at, is_active")
       .gte("created_at", previousFrom.toISOString())
       .lte("created_at", currentTo.toISOString());
 
@@ -106,17 +106,19 @@ export class AnalyticsRepository {
     if (!allRollups || allRollups.length === 0) {
       const { data: orders } = await supabase
         .from("orders")
-        .select("total_amount, status, created_at");
+        .select("grand_total, status, created_at");
       if (orders) {
         orders.forEach((o) => {
-          if (o.status !== "CANCELLED" && o.status !== "RETURNED") {
+          const s = (o.status || "").toLowerCase();
+          if (s !== "cancelled" && s !== "returned") {
             const isCurrent = new Date(o.created_at) >= currentFrom;
+            const amount = Number(o.grand_total) || 0;
             if (isCurrent) {
-              totalRevenue += o.total_amount || 0;
+              totalRevenue += amount;
               totalOrders++;
-              totalProfit += (o.total_amount || 0) * 0.35; // Estimated profit margin
+              totalProfit += amount * 0.35; // Estimated profit margin
             } else {
-              prevTotalRevenue += o.total_amount || 0;
+              prevTotalRevenue += amount;
               prevTotalOrders++;
             }
           }
@@ -184,76 +186,203 @@ export class AnalyticsRepository {
    * Sales Analytics
    */
   static async getSalesAnalytics(dateRange?: DateRange) {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
-    // Fetch daily revenue rollups
-    let rollupsQuery = supabase
-      .from("bi_daily_revenue_rollup")
-      .select("*")
-      .order("date", { ascending: true });
+    let fromDate: Date | null = null;
+    let toDate: Date | null = null;
+
     if (dateRange) {
-      rollupsQuery = rollupsQuery
-        .gte("date", dateRange.from.toISOString().split("T")[0])
-        .lte("date", dateRange.to.toISOString().split("T")[0]);
+      fromDate = new Date(dateRange.from);
+      fromDate.setHours(0, 0, 0, 0);
+      toDate = new Date(dateRange.to);
+      toDate.setHours(23, 59, 59, 999);
     }
-    const { data: rollups } = await rollupsQuery;
 
-    // Fallback to orders if no rollups
+    // Query real orders
     let ordersQuery = supabase
       .from("orders")
       .select(
-        "total_amount, created_at, status, payment_method, shipping_method"
-      );
-    if (dateRange) {
+        "id, order_number, grand_total, subtotal, shipping_total, discount_total, tax_total, payment_method, payment_status, status, created_at, customer_id"
+      )
+      .order("created_at", { ascending: true });
+
+    if (fromDate && toDate) {
       ordersQuery = ordersQuery
-        .gte("created_at", dateRange.from.toISOString())
-        .lte("created_at", dateRange.to.toISOString());
-    }
-    const { data: orders } = await ordersQuery;
-
-    let dailySales =
-      rollups?.map((r) => ({ date: r.date, revenue: r.total_revenue })) || [];
-
-    if (dailySales.length === 0 && orders) {
-      const salesByDate: Record<string, number> = {};
-      orders.forEach((order) => {
-        if (order.status === "CANCELLED" || order.status === "RETURNED") return;
-        const date = new Date(order.created_at).toISOString().split("T")[0];
-        salesByDate[date] =
-          (salesByDate[date] || 0) + (order.total_amount || 0);
-      });
-      dailySales = Object.keys(salesByDate)
-        .map((date) => ({ date, revenue: salesByDate[date] }))
-        .sort((a, b) => a.date.localeCompare(b.date));
+        .gte("created_at", fromDate.toISOString())
+        .lte("created_at", toDate.toISOString());
     }
 
-    const paymentMethods: Record<string, number> = {};
-    const shippingMethods: Record<string, number> = {};
+    const { data: rawOrders, error: ordersError } = await ordersQuery;
+    if (ordersError) {
+      console.error("Error fetching orders for sales analytics:", ordersError);
+    }
 
-    orders?.forEach((order) => {
-      if (order.payment_method) {
-        paymentMethods[order.payment_method] =
-          (paymentMethods[order.payment_method] || 0) +
-          (order.total_amount || 0);
+    const orders = rawOrders || [];
+
+    // Filter valid non-cancelled orders for sales calculation
+    const validOrders = orders.filter((o) => {
+      const s = (o.status || "").toLowerCase();
+      return s !== "cancelled" && s !== "returned";
+    });
+
+    const validOrderIds = new Set(validOrders.map((o) => o.id));
+
+    // Daily sales trend
+    const salesByDate: Record<string, { revenue: number; ordersCount: number }> = {};
+    validOrders.forEach((order) => {
+      const date = new Date(order.created_at).toISOString().split("T")[0];
+      if (!salesByDate[date]) {
+        salesByDate[date] = { revenue: 0, ordersCount: 0 };
       }
-      if (order.shipping_method) {
-        shippingMethods[order.shipping_method] =
-          (shippingMethods[order.shipping_method] || 0) +
-          (order.total_amount || 0);
+      salesByDate[date].revenue += Number(order.grand_total) || 0;
+      salesByDate[date].ordersCount += 1;
+    });
+
+    const dailySales = Object.keys(salesByDate)
+      .sort()
+      .map((date) => ({
+        date,
+        revenue: Math.round(salesByDate[date].revenue * 100) / 100,
+        orders: salesByDate[date].ordersCount,
+      }));
+
+    // Payment methods breakdown
+    const paymentMethods: Record<string, number> = {};
+    validOrders.forEach((order) => {
+      let pm = (order.payment_method || "Other").toUpperCase();
+      if (pm === "COD") pm = "Cash on Delivery";
+      else if (pm === "BKASH") pm = "bKash";
+      else if (pm === "SSLCOMMERZ") pm = "SSLCOMMERZ";
+      else if (pm === "NAGAD") pm = "Nagad";
+
+      paymentMethods[pm] =
+        (paymentMethods[pm] || 0) + (Number(order.grand_total) || 0);
+    });
+
+    // Shipping methods breakdown
+    const shippingMethods: Record<string, number> = {};
+    validOrders.forEach((order) => {
+      const st = Number(order.shipping_total) || 0;
+      let sm = "Standard Delivery";
+      if (st === 0) sm = "Free Shipping";
+      else if (st === 60) sm = "Inside Dhaka";
+      else if (st === 120) sm = "Express Dhaka";
+      else if (st === 150) sm = "Outside Dhaka";
+      else sm = `Standard (৳${st})`;
+
+      shippingMethods[sm] =
+        (shippingMethods[sm] || 0) + (Number(order.grand_total) || 0);
+    });
+
+    // Also fetch items, products & addresses to get Category breakdown, Top selling products & customer names
+    const [itemsRes, productsRes, addressesRes] = await Promise.all([
+      supabase
+        .from("order_items")
+        .select("id, order_id, product_id, product_name, quantity, line_total"),
+      supabase
+        .from("products")
+        .select("id, name, category_id, categories(name)"),
+      supabase
+        .from("order_addresses")
+        .select("order_id, first_name, last_name, city, address_type"),
+    ]);
+
+    const productMap = new Map((productsRes.data || []).map((p: any) => [p.id, p]));
+    const categoryTotals: Record<string, number> = {};
+    const productSalesMap: Record<string, { name: string; quantity: number; revenue: number }> = {};
+
+    (itemsRes.data || []).forEach((item: any) => {
+      if (item.order_id && validOrderIds.has(item.order_id)) {
+        const prod = productMap.get(item.product_id);
+        const catName = prod?.categories?.name || "Apparel";
+        const lineTotal = Number(item.line_total) || 0;
+        const qty = Number(item.quantity) || 1;
+
+        categoryTotals[catName] = (categoryTotals[catName] || 0) + lineTotal;
+
+        const prodName = item.product_name || prod?.name || "Product";
+        if (!productSalesMap[prodName]) {
+          productSalesMap[prodName] = { name: prodName, quantity: 0, revenue: 0 };
+        }
+        productSalesMap[prodName].quantity += qty;
+        productSalesMap[prodName].revenue += lineTotal;
       }
     });
 
+    const categorySales = Object.entries(categoryTotals)
+      .map(([name, value]) => ({
+        name,
+        value: Math.round(value * 100) / 100,
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    const topSellingProducts = Object.values(productSalesMap)
+      .sort((a, b) => b.revenue - a.revenue)
+      .slice(0, 5)
+      .map((p) => ({
+        name: p.name,
+        quantity: p.quantity,
+        revenue: Math.round(p.revenue * 100) / 100,
+      }));
+
+    // Customer mapping for recent orders
+    const addressMap = new Map<string, string>();
+    (addressesRes.data || []).forEach((addr: any) => {
+      if (addr.order_id && (addr.first_name || addr.last_name)) {
+        addressMap.set(
+          addr.order_id,
+          `${addr.first_name || ""} ${addr.last_name || ""}`.trim()
+        );
+      }
+    });
+
+    const recentOrders = validOrders.slice(-8).reverse().map((order) => {
+      const customerName =
+        addressMap.get(order.id) || "Valued Customer";
+
+      return {
+        id: order.id,
+        orderNumber: order.order_number,
+        customerName,
+        amount: Number(order.grand_total) || 0,
+        status: order.status,
+        paymentMethod: order.payment_method || "COD",
+        paymentStatus: order.payment_status || "PENDING",
+        createdAt: order.created_at,
+      };
+    });
+
+    const totalSales =
+      Math.round(
+        validOrders.reduce(
+          (sum, o) => sum + (Number(o.grand_total) || 0),
+          0
+        ) * 100
+      ) / 100;
+    const totalOrdersCount = validOrders.length;
+    const averageOrderValue =
+      totalOrdersCount > 0
+        ? Math.round((totalSales / totalOrdersCount) * 100) / 100
+        : 0;
+    const cancelledOrdersCount = orders.length - validOrders.length;
+
     return {
       dailySales,
-      paymentMethodSales: Object.keys(paymentMethods).map((k) => ({
-        name: k,
-        value: paymentMethods[k],
+      paymentMethodSales: Object.entries(paymentMethods).map(([name, value]) => ({
+        name,
+        value: Math.round(value * 100) / 100,
       })),
-      shippingMethodSales: Object.keys(shippingMethods).map((k) => ({
-        name: k,
-        value: shippingMethods[k],
+      shippingMethodSales: Object.entries(shippingMethods).map(([name, value]) => ({
+        name,
+        value: Math.round(value * 100) / 100,
       })),
-      totalSales: dailySales.reduce((sum, day) => sum + day.revenue, 0),
+      categorySales,
+      topSellingProducts,
+      recentOrders,
+      totalSales,
+      totalOrders: totalOrdersCount,
+      averageOrderValue,
+      cancelledOrdersCount,
     };
   }
 
@@ -261,10 +390,10 @@ export class AnalyticsRepository {
    * Order Analytics
    */
   static async getOrderAnalytics(dateRange?: DateRange) {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
     let ordersQuery = supabase
       .from("orders")
-      .select("id, status, created_at, total_amount");
+      .select("id, status, created_at, grand_total");
 
     if (dateRange) {
       ordersQuery = ordersQuery
@@ -296,7 +425,7 @@ export class AnalyticsRepository {
       }
 
       if (normalizedStatus === "returned" || normalizedStatus === "cancelled") {
-        totalRefunds += order.total_amount || 0;
+        totalRefunds += Number(order.grand_total) || 0;
         refundedOrdersCount++;
       }
     });
@@ -322,7 +451,7 @@ export class AnalyticsRepository {
    * Customer Analytics
    */
   static async getCustomerAnalytics(dateRange?: DateRange) {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     let customersQuery = supabase
       .from("customer_profiles")
@@ -336,7 +465,7 @@ export class AnalyticsRepository {
     const { data: customers } = await customersQuery;
     const { data: orders } = await supabase
       .from("orders")
-      .select("customer_id, total_amount");
+      .select("customer_id, grand_total");
 
     const customerGrowthByDate: Record<string, number> = {};
     customers?.forEach((c) => {
@@ -358,7 +487,7 @@ export class AnalyticsRepository {
     orders?.forEach((o) => {
       if (o.customer_id) {
         customerSpend[o.customer_id] =
-          (customerSpend[o.customer_id] || 0) + (o.total_amount || 0);
+          (customerSpend[o.customer_id] || 0) + (Number(o.grand_total) || 0);
         orderCount[o.customer_id] = (orderCount[o.customer_id] || 0) + 1;
       }
     });
@@ -394,7 +523,7 @@ export class AnalyticsRepository {
    * Product & Inventory Analytics
    */
   static async getProductAnalytics() {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     // Inventory
     const { data: inventory } = await supabase
@@ -464,7 +593,7 @@ export class AnalyticsRepository {
    * Marketing Analytics
    */
   static async getMarketingAnalytics(dateRange?: DateRange) {
-    const supabase = await createClient();
+    const supabase = await createAdminClient();
 
     let couponsQuery = supabase
       .from("coupon_usages")

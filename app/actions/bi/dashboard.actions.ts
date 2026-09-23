@@ -1,6 +1,6 @@
 "use server";
 
-import { ADMIN_ROLES } from "@/lib/constants/auth";
+import { ADMIN_ROLES, STAFF_ROLES } from "@/lib/constants/auth";
 import { DashboardRepository } from "@/lib/repositories/bi/dashboard.repository";
 import { createClient } from "@/lib/supabase/server";
 
@@ -13,9 +13,23 @@ async function verifyAdmin() {
     throw new Error("Unauthorized");
   }
   
-  const role = user.user_metadata?.role || user.app_metadata?.role || "CUSTOMER";
-  if (!ADMIN_ROLES.includes(role)) {
-    throw new Error("Unauthorized: Admin access required");
+  let role = user.user_metadata?.role || user.app_metadata?.role;
+  if (!role) {
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("roles(name)")
+        .eq("id", user.id)
+        .single();
+      role = (profile?.roles as any)?.name;
+    } catch {
+      role = "CUSTOMER";
+    }
+  }
+  if (!role) role = "CUSTOMER";
+
+  if (!ADMIN_ROLES.includes(role) && !STAFF_ROLES.includes(role)) {
+    throw new Error("Unauthorized: Staff or Admin access required");
   }
 }
 

@@ -331,7 +331,7 @@ export function MessagesClient({
             placeholder="Search message notes or subject..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-8 bg-card"
+            className="pl-8 border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50 text-xs"
           />
         </div>
 
@@ -347,7 +347,7 @@ export function MessagesClient({
               variant={channelFilter === tab.id ? "default" : "outline"}
               size="sm"
               onClick={() => setChannelFilter(tab.id)}
-              className="text-xs h-8"
+              className="text-xs h-8 border-slate-200 dark:border-slate-800"
             >
               {tab.label}
             </Button>
@@ -355,24 +355,24 @@ export function MessagesClient({
         </div>
       </div>
 
-      <Card>
+      <Card className="border border-slate-200 dark:border-slate-800 bg-white dark:bg-card shadow-sm">
         <CardHeader>
-          <CardTitle>Communication Register</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-slate-900 dark:text-slate-100 text-base font-bold">Communication Register</CardTitle>
+          <CardDescription className="text-slate-500 dark:text-slate-400 text-xs">
             Showing {filteredLogs.length} of {logs.length} logged touchpoints.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="rounded-md border">
+          <div className="rounded-md border border-slate-200 dark:border-slate-800 overflow-x-auto">
             <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[120px]">Channel</TableHead>
-                  <TableHead className="w-[110px]">Direction</TableHead>
-                  <TableHead>Summary / Discussion Notes</TableHead>
-                  <TableHead className="w-[180px]">Contact / Client</TableHead>
-                  <TableHead className="w-[130px]">Recorded Date</TableHead>
-                  <TableHead className="w-[90px] text-right">Actions</TableHead>
+              <TableHeader className="bg-slate-50/80 dark:bg-slate-900/80">
+                <TableRow className="border-b border-slate-200 dark:border-slate-800">
+                  <TableHead className="w-[120px] text-slate-700 dark:text-slate-300 font-semibold text-xs">Channel</TableHead>
+                  <TableHead className="w-[110px] text-slate-700 dark:text-slate-300 font-semibold text-xs">Direction</TableHead>
+                  <TableHead className="text-slate-700 dark:text-slate-300 font-semibold text-xs">Summary / Discussion Notes</TableHead>
+                  <TableHead className="w-[180px] text-slate-700 dark:text-slate-300 font-semibold text-xs">Contact / Client</TableHead>
+                  <TableHead className="w-[130px] text-slate-700 dark:text-slate-300 font-semibold text-xs">Recorded Date</TableHead>
+                  <TableHead className="w-[90px] text-right text-slate-700 dark:text-slate-300 font-semibold text-xs">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -534,7 +534,7 @@ export function MessagesClient({
 
       {/* Log Communication Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto border border-slate-200 dark:border-slate-800 bg-white dark:bg-card">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {editingLog ? (

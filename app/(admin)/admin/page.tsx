@@ -1,11 +1,4 @@
 import { Metadata } from "next";
-import {
-  DollarSign,
-  ShoppingBag,
-  Activity,
-  CreditCard,
-  UserPlus,
-} from "lucide-react";
 import { DataCard } from "@/features/admin/components/DataCard";
 import { RecentOrders } from "@/features/admin/components/RecentOrders";
 import { SalesOverviewChart } from "@/features/admin/components/SalesOverviewChart";
@@ -56,12 +49,20 @@ export default async function AdminDashboardPage() {
     newCustomers: { value: 0, trend: { value: 0, isPositive: true } },
   };
 
-  const salesData = revenueRes.data || [];
-  const topSellers = topSellersRes.data || [];
-  const revenueByCategory = revenueByCatRes.data || [];
-  const recentCustomers = recentCustomersRes.data || [];
-  const userLocations = userLocationsRes.data || [];
-  const recentOrders = recentOrdersRes.data || [];
+  const rawSalesData = revenueRes.data || [];
+  const rawTopSellers = topSellersRes.data || [];
+  const rawRevenueByCategory = revenueByCatRes.data || [];
+  const rawRecentCustomers = recentCustomersRes.data || [];
+  const rawUserLocations = userLocationsRes.data || [];
+  const rawRecentOrders = recentOrdersRes.data || [];
+
+  // Plain JSON serialization to avoid RSC boundary issues with non-plain objects
+  const salesData = JSON.parse(JSON.stringify(rawSalesData));
+  const topSellers = JSON.parse(JSON.stringify(rawTopSellers));
+  const revenueByCategory = JSON.parse(JSON.stringify(rawRevenueByCategory));
+  const recentCustomers = JSON.parse(JSON.stringify(rawRecentCustomers));
+  const userLocations = JSON.parse(JSON.stringify(rawUserLocations));
+  const recentOrders = JSON.parse(JSON.stringify(rawRecentOrders));
 
   const aovSparkline = salesData.length > 0 ? salesData.map((d: any) => d.aov || 0) : [0];
   const newCustomersSparkline = salesData.length > 0 ? salesData.map((d: any) => d.newCustomers || 0) : [0];
@@ -74,27 +75,27 @@ export default async function AdminDashboardPage() {
           title="Total Revenue"
           value={formatCurrency(kpis.revenue.value)}
           description="Compared to yesterday"
-          icon={<DollarSign className="h-6 w-6" />}
+          iconType="revenue"
           iconBgColor="bg-[#E8F8F5]"
           iconTextColor="text-[#0D9488]"
           sparklineColor="#0D9488"
-          sparklineData={salesData.map(d => d.revenue).slice(-10)} // last 10 days
+          sparklineData={salesData.map((d: any) => d.revenue).slice(-10)} // last 10 days
         />
         <DataCard
           title="Total Orders"
           value={kpis.orders.value.toLocaleString()}
           description="Compared to yesterday"
-          icon={<ShoppingBag className="h-6 w-6" />}
+          iconType="orders"
           iconBgColor="bg-[#F3E8FF]"
           iconTextColor="text-[#9333EA]"
           sparklineColor="#9333EA"
-          sparklineData={salesData.map(d => d.orders).slice(-10)}
+          sparklineData={salesData.map((d: any) => d.orders).slice(-10)}
         />
         <DataCard
           title="Average Order Value"
           value={formatCurrency(kpis.aov.value)}
           description="Compared to yesterday"
-          icon={<CreditCard className="h-6 w-6" />}
+          iconType="aov"
           iconBgColor="bg-[#FFF3E0]"
           iconTextColor="text-[#E65100]"
           sparklineColor="#E65100"
@@ -104,7 +105,7 @@ export default async function AdminDashboardPage() {
           title="New Customers"
           value={kpis.newCustomers.value.toLocaleString()}
           description="Compared to yesterday"
-          icon={<UserPlus className="h-6 w-6" />}
+          iconType="customers"
           iconBgColor="bg-[#FDF2F8]"
           iconTextColor="text-[#DB2777]"
           sparklineColor="#DB2777"

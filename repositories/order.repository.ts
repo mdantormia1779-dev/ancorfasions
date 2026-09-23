@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server-client";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import {
   Order,
   OrderAddress,
@@ -77,7 +78,7 @@ export class OrderRepository {
     shippingAddress?: Partial<OrderAddress>,
     billingAddress?: Partial<OrderAddress>
   ): Promise<Order> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
     const customerId = orderData.user_id ?? (orderData as any).customer_id ?? null;
     const customerNote = orderData.notes;
@@ -160,29 +161,34 @@ export class OrderRepository {
 
     if (itemsError) {
       console.error("Error creating order items:", itemsError);
-      // Ideally we would rollback or use an RPC here.
-      // For now, we log the error.
+      throw new Error(`Failed to create order items: ${itemsError.message}`);
     }
 
     // 3. Create Addresses
     if (shippingAddress) {
-      await supabase
+      const { error: shipErr } = await supabase
         .from("order_addresses")
         .insert({
           ...shippingAddress,
           order_id: order.id,
           address_type: "SHIPPING",
         });
+      if (shipErr) {
+        console.error("Error creating shipping address:", shipErr);
+      }
     }
 
     if (billingAddress) {
-      await supabase
+      const { error: billErr } = await supabase
         .from("order_addresses")
         .insert({
           ...billingAddress,
           order_id: order.id,
           address_type: "BILLING",
         });
+      if (billErr) {
+        console.error("Error creating billing address:", billErr);
+      }
     }
 
     // 4. Create Initial Status History

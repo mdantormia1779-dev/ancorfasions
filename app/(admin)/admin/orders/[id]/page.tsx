@@ -43,6 +43,7 @@ import {
   Check,
   Loader2,
   CreditCard,
+  AlertTriangle,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -198,30 +199,42 @@ export default function AdminOrderDetailsPage() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {order.items?.map((item: any) => (
-                  <div
-                    key={item.id}
-                    className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
-                  >
-                    <div>
-                      <p className="font-semibold text-foreground">{item.product_name}</p>
-                      <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-                        SKU: {item.sku || "N/A"}{" "}
-                        {item.variant_name ? `| ${item.variant_name}` : ""}
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-xs text-muted-foreground">
-                        ${Number(item.unit_price).toFixed(2)} x {item.quantity}
-                      </p>
-                      <p className="font-bold text-foreground font-mono">
-                        ${Number(item.line_total).toFixed(2)}
-                      </p>
-                    </div>
+              {(!order.items || order.items.length === 0) ? (
+                <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 p-4 text-amber-600 dark:text-amber-400 flex items-start gap-3 text-sm">
+                  <AlertTriangle className="h-5 w-5 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">No items recorded for this order</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      This order currently has 0 line items attached. Payment verification and order fulfillment require valid items.
+                    </p>
                   </div>
-                ))}
-              </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {order.items?.map((item: any) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between border-b pb-4 last:border-0 last:pb-0"
+                    >
+                      <div>
+                        <p className="font-semibold text-foreground">{item.product_name}</p>
+                        <p className="text-xs text-muted-foreground mt-0.5 font-mono">
+                          SKU: {item.sku || "N/A"}{" "}
+                          {item.variant_name ? `| ${item.variant_name}` : ""}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">
+                          ${Number(item.unit_price).toFixed(2)} x {item.quantity}
+                        </p>
+                        <p className="font-bold text-foreground font-mono">
+                          ${Number(item.line_total).toFixed(2)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               {/* Financial Totals */}
               <div className="mt-6 flex justify-end border-t pt-4">
@@ -336,14 +349,18 @@ export default function AdminOrderDetailsPage() {
 
                   <Badge
                     className={
-                      order.payment_status === "paid" || manualPayment?.status === "success"
+                      order.payment_status === "paid" ||
+                      manualPayment?.status === "completed" ||
+                      manualPayment?.status === "success"
                         ? "bg-emerald-500 text-white font-semibold"
                         : manualPayment?.status === "failed" || order.payment_status === "failed"
                         ? "bg-rose-500 text-white font-semibold"
                         : "bg-amber-500 text-white font-semibold animate-pulse"
                     }
                   >
-                    {order.payment_status === "paid" || manualPayment?.status === "success"
+                    {order.payment_status === "paid" ||
+                    manualPayment?.status === "completed" ||
+                    manualPayment?.status === "success"
                       ? "PAID / APPROVED"
                       : manualPayment?.status === "failed"
                       ? "REJECTED"
@@ -370,6 +387,8 @@ export default function AdminOrderDetailsPage() {
                     {manualPayment?.gateway_response?.sender_number ||
                       manualPayment?.reference_number ||
                       manualPayment?.gateway_response?.account_holder_name ||
+                      shipping?.phone ||
+                      customer?.phone ||
                       "—"}
                   </span>
                 </div>
@@ -381,7 +400,7 @@ export default function AdminOrderDetailsPage() {
                     <span className="font-mono font-bold text-xs bg-muted px-2 py-0.5 rounded text-foreground">
                       {manualPayment?.gateway_transaction_id ||
                         manualPayment?.gateway_response?.transaction_id ||
-                        "—"}
+                        (order.payment_status === "paid" ? "VERIFIED-MANUAL" : "—")}
                     </span>
                     {(manualPayment?.gateway_transaction_id || manualPayment?.gateway_response?.transaction_id) && (
                       <Button
@@ -454,7 +473,8 @@ export default function AdminOrderDetailsPage() {
                       size="sm"
                       className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold gap-1.5 h-9"
                       onClick={handleApprovePayment}
-                      disabled={isApproving || isRejecting}
+                      disabled={isApproving || isRejecting || !order.items || order.items.length === 0}
+                      title={!order.items || order.items.length === 0 ? "Cannot approve order with 0 items" : undefined}
                     >
                       {isApproving ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />

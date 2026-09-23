@@ -15,6 +15,7 @@ import { FedExProvider } from "./providers/fedex.provider";
 import { UPSProvider } from "./providers/ups.provider";
 import { SandboxProvider } from "./providers/sandbox.provider";
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { decryptCredentialsObject } from "@/utils/encryption.util";
 
 type ProviderFactory = (
   config: Record<string, any>,
@@ -89,8 +90,9 @@ export class CourierRegistry {
         const factory = PROVIDER_FACTORIES[code];
         if (!factory) continue;
 
+        const decryptedCreds = decryptCredentialsObject(row.credentials ?? {});
         const provider = factory(
-          row.credentials ?? {},
+          decryptedCreds,
           row.is_sandbox ?? false
         );
         this.providers.set(code, provider);
