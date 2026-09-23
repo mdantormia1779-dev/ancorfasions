@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function AddProductPage() {
   return (
-    <div className="mx-auto max-w-5xl py-6">
+    <div className="w-full">
       <ProductForm returnPath="/manager/products" />
     </div>
   );

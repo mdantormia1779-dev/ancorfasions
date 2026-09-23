@@ -92,7 +92,7 @@ export default function ScheduleAuditPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-2xl mx-auto w-full">
+    <div className="flex flex-col gap-6 w-full">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/manager/inventory/audits">

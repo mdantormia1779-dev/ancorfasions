@@ -12,41 +12,32 @@ export default async function NewOrderPage() {
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect("/auth/manager/login");
+    redirect("/auth/login?next=/manager/orders/new");
   }
 
   // Determine branch_id
   let branchId = "";
   const role = user.user_metadata?.role || user.app_metadata?.role;
 
-  if (role !== "admin") {
-    const { data: employee } = await supabase
-      .from("employee_profiles")
-      .select("branch_id")
-      .eq("id", user.id)
-      .single();
-    
-    if (employee && employee.branch_id) {
-      branchId = employee.branch_id;
-    } else {
-      return (
-        <div className="p-8 text-center text-red-600 border border-red-200 bg-red-50 rounded">
-          You are not assigned to a branch. Cannot create orders.
-        </div>
-      );
-    }
-  } else {
-    // Admins need a branch_id to create orders. In a real app, they'd have a dropdown to select one.
-    // For this implementation, we fetch the first branch as a default, or they must have one.
-    const { data: defaultBranch } = await supabase.from("branches").select("id").limit(1).single();
+  if (role !== "admin" && role !== "SUPERADMIN") {
+    try {
+      const { data: employee } = await supabase
+        .from("employee_profiles")
+        .select("branch_id")
+        .eq("id", user.id)
+        .maybeSingle();
+      
+      if (employee && employee.branch_id) {
+        branchId = employee.branch_id;
+      }
+    } catch {}
+  }
+
+  if (!branchId) {
+    // Fallback to primary / first branch
+    const { data: defaultBranch } = await supabase.from("branches").select("id").limit(1).maybeSingle();
     if (defaultBranch) {
       branchId = defaultBranch.id;
-    } else {
-       return (
-        <div className="p-8 text-center text-red-600 border border-red-200 bg-red-50 rounded">
-          No branches configured in the system.
-        </div>
-      );
     }
   }
 

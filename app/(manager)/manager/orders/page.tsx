@@ -17,6 +17,7 @@ import Link from "next/link";
 import { useOrders } from "@/hooks/oms/use-orders";
 import { OrderStatus } from "@/types/oms";
 import { formatCurrency } from "@/lib/utils";
+import { ExportOrdersButton } from "./ExportOrdersButton";
 
 export default function ManagerOrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -25,7 +26,7 @@ export default function ManagerOrdersPage() {
   const { data, isLoading } = useOrders({ page, limit: 10, status, search: searchQuery });
 
   return (
-    <div className="flex flex-col gap-6 max-w-7xl mx-auto">
+    <div className="flex flex-col gap-6 w-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Orders</h1>
@@ -34,10 +35,7 @@ export default function ManagerOrdersPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
-          </Button>
+          <ExportOrdersButton orders={data?.data || []} />
         </div>
       </div>
 
@@ -98,7 +96,7 @@ export default function ManagerOrdersPage() {
                       {order.order_number}
                     </Link>
                   </TableCell>
-                  <TableCell>{order.customer_id || "Guest"}</TableCell>
+                  <TableCell>{order.customer_name || order.customer_id || "Guest"}</TableCell>
                   <TableCell>{new Date(order.created_at).toLocaleDateString()}</TableCell>
                   <TableCell>
                     <Badge

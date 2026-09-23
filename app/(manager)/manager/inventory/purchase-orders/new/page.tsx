@@ -109,7 +109,7 @@ export default function NewPurchaseOrderPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6 max-w-4xl mx-auto w-full pb-20">
+    <div className="flex flex-col gap-6 w-full pb-20">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/manager/inventory/purchase-orders">

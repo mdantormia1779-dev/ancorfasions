@@ -32,7 +32,7 @@ export default async function FulfillOrderPage({
   const couriers = couriersRes.data || [];
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto w-full p-6">
+    <div className="space-y-6 w-full">
       <div className="flex items-center gap-4">
         <Button variant="ghost" size="icon" asChild>
           <Link href="/manager/orders/fulfillment">

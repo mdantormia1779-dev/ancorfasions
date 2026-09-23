@@ -5,6 +5,9 @@ import { fetchCustomersAction } from "@/app/actions/crm/customer.actions";
 import { CustomersList } from "@/features/crm/components/CustomersList";
 import { CustomerSearch } from "@/features/crm/components/customer-search";
 
+import { ExportCustomersButton } from "./ExportCustomersButton";
+import Link from "next/link";
+
 export const metadata: Metadata = {
   title: "Customers | Manager Dashboard",
 };
@@ -18,7 +21,7 @@ export default async function CustomersPage({
   const { data: customers } = await fetchCustomersAction(20, q);
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 w-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
@@ -27,13 +30,12 @@ export default async function CustomersPage({
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export CSV
-          </Button>
-          <Button>
-            <UserPlus className="mr-2 h-4 w-4" />
-            Add Customer
+          <ExportCustomersButton customers={customers || []} />
+          <Button asChild>
+            <Link href="/admin/customers">
+              <UserPlus className="mr-2 h-4 w-4" />
+              Add Customer
+            </Link>
           </Button>
         </div>
       </div>

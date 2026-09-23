@@ -27,7 +27,7 @@ export default async function FulfillmentBoardPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 w-full">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Fulfillment Board</h1>
         <p className="mt-1 text-muted-foreground">
@@ -65,8 +65,8 @@ export default async function FulfillmentBoardPage() {
                       </div>
                       <div className="pt-2 border-t flex items-center justify-between text-xs text-muted-foreground">
                         <span>{order.created_at ? format(new Date(order.created_at), "MMM d, HH:mm") : "-"}</span>
-                        <Link href={`/manager/orders/${order.id}/fulfill`} className="text-primary font-medium hover:underline flex items-center gap-1">
-                          Process <ArrowRight className="h-3 w-3" />
+                        <Link href={`/manager/orders/${order.id}`} className="text-primary font-medium hover:underline flex items-center gap-1">
+                          Manage <ArrowRight className="h-3 w-3" />
                         </Link>
                       </div>
                     </CardContent>

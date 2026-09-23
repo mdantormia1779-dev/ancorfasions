@@ -37,7 +37,9 @@ export default async function ManagerLayout({ children }: { children: ReactNode 
       <div className="flex w-full min-w-0 flex-1 flex-col">
         <ManagerHeader user={user} />
         <main className="flex w-full flex-1 flex-col p-4 lg:p-6">
-          {children}
+          <div className="mx-auto w-full max-w-[1600px] flex-1 flex flex-col gap-6">
+            {children}
+          </div>
         </main>
       </div>
     </div>

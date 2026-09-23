@@ -1,14 +1,15 @@
 import { Metadata } from "next";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CheckCircle2, Clock, AlertCircle } from "lucide-react";
+import { CheckCircle2, Clock, AlertCircle } from "lucide-react";
 import { AddTaskDialog } from "./AddTaskDialog";
+import { TaskCardActions } from "./TaskCardActions";
 import { fetchTasksAction } from "@/app/actions/manager/task.actions";
 import { ManagerTask } from "@/lib/repositories/manager/task.repository";
 
 export const metadata: Metadata = {
   title: "Tasks | Manager Dashboard",
+  description: "Manage daily operational tasks and assignments.",
 };
 
 export const dynamic = "force-dynamic";
@@ -69,97 +70,125 @@ export default async function TasksPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+        {/* Pending Column */}
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <AlertCircle className="h-5 w-5 text-orange-500" />
+          <div className="flex items-center justify-between pb-1 border-b">
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <AlertCircle className="h-4 w-4 text-orange-500" />
               To Do
             </h2>
             <Badge variant="secondary">{pendingTasks.length}</Badge>
           </div>
 
-          {pendingTasks.map((task: ManagerTask) => (
-            <Card key={task.id}>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">{task.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  {task.description}
-                </p>
-                <div className="flex items-center justify-between text-xs">
-                  <span className={getPriorityColor(task.priority)}>
-                    {formatDate(task.due_date)}
-                  </span>
-                  <span className="text-muted-foreground truncate max-w-[120px]">
-                    {task.assignee_name || task.assigned_to || task.related_entity_type || "General"}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {pendingTasks.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+              No tasks to do
+            </div>
+          ) : (
+            pendingTasks.map((task: ManagerTask) => (
+              <Card key={task.id} className="transition-all hover:shadow-sm">
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 gap-2">
+                  <CardTitle className="text-base font-semibold leading-snug line-clamp-2">
+                    {task.title}
+                  </CardTitle>
+                  <TaskCardActions task={task} />
+                </CardHeader>
+                <CardContent>
+                  <p className="mb-4 text-sm text-muted-foreground line-clamp-3">
+                    {task.description}
+                  </p>
+                  <div className="flex items-center justify-between text-xs pt-1 border-t">
+                    <span className={getPriorityColor(task.priority)}>
+                      {formatDate(task.due_date)}
+                    </span>
+                    <span className="text-muted-foreground truncate max-w-[120px]" title={task.assignee_name || task.assigned_to || "General"}>
+                      {task.assignee_name || task.assigned_to || task.related_entity_type || "General"}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
 
+        {/* In Progress Column */}
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <Clock className="h-5 w-5 text-blue-500" />
+          <div className="flex items-center justify-between pb-1 border-b">
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <Clock className="h-4 w-4 text-blue-500" />
               In Progress
             </h2>
             <Badge variant="secondary">{inProgressTasks.length}</Badge>
           </div>
 
-          {inProgressTasks.map((task: ManagerTask) => (
-            <Card key={task.id} className="border-blue-200">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base">{task.title}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  {task.description}
-                </p>
-                <div className="flex items-center justify-between text-xs">
-                  <span className={getPriorityColor(task.priority)}>
-                    {formatDate(task.due_date)}
-                  </span>
-                  <span className="text-muted-foreground truncate max-w-[120px]">
-                    {task.assignee_name || task.assigned_to || task.related_entity_type || "General"}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {inProgressTasks.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+              No tasks currently in progress
+            </div>
+          ) : (
+            inProgressTasks.map((task: ManagerTask) => (
+              <Card key={task.id} className="border-blue-200 dark:border-blue-900/50 transition-all hover:shadow-sm">
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 gap-2">
+                  <CardTitle className="text-base font-semibold leading-snug line-clamp-2">
+                    {task.title}
+                  </CardTitle>
+                  <TaskCardActions task={task} />
+                </CardHeader>
+                <CardContent>
+                  <p className="mb-4 text-sm text-muted-foreground line-clamp-3">
+                    {task.description}
+                  </p>
+                  <div className="flex items-center justify-between text-xs pt-1 border-t">
+                    <span className={getPriorityColor(task.priority)}>
+                      {formatDate(task.due_date)}
+                    </span>
+                    <span className="text-muted-foreground truncate max-w-[120px]" title={task.assignee_name || task.assigned_to || "General"}>
+                      {task.assignee_name || task.assigned_to || task.related_entity_type || "General"}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
 
+        {/* Completed Column */}
         <div className="flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <h2 className="flex items-center gap-2 text-lg font-semibold">
-              <CheckCircle2 className="h-5 w-5 text-green-500" />
+          <div className="flex items-center justify-between pb-1 border-b">
+            <h2 className="flex items-center gap-2 text-base font-semibold">
+              <CheckCircle2 className="h-4 w-4 text-green-500" />
               Completed
             </h2>
             <Badge variant="secondary">{completedTasks.length}</Badge>
           </div>
 
-          {completedTasks.map((task: ManagerTask) => (
-            <Card key={task.id} className="bg-muted/50 opacity-60">
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base line-through">
-                  {task.title}
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4 text-sm text-muted-foreground">
-                  {task.description}
-                </p>
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-medium text-green-600">Done</span>
-                  <span className="text-muted-foreground truncate max-w-[120px]">
-                    {task.assignee_name || task.assigned_to || task.related_entity_type || "General"}
-                  </span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          {completedTasks.length === 0 ? (
+            <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
+              No completed tasks
+            </div>
+          ) : (
+            completedTasks.map((task: ManagerTask) => (
+              <Card key={task.id} className="bg-muted/40 opacity-75 transition-all hover:opacity-100">
+                <CardHeader className="flex flex-row items-start justify-between space-y-0 pb-2 gap-2">
+                  <CardTitle className="text-base font-medium line-through text-muted-foreground line-clamp-2">
+                    {task.title}
+                  </CardTitle>
+                  <TaskCardActions task={task} />
+                </CardHeader>
+                <CardContent>
+                  <p className="mb-4 text-sm text-muted-foreground line-clamp-3">
+                    {task.description}
+                  </p>
+                  <div className="flex items-center justify-between text-xs pt-1 border-t">
+                    <span className="font-medium text-green-600 dark:text-green-400">Done</span>
+                    <span className="text-muted-foreground truncate max-w-[120px]" title={task.assignee_name || task.assigned_to || "General"}>
+                      {task.assignee_name || task.assigned_to || task.related_entity_type || "General"}
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </div>
     </div>

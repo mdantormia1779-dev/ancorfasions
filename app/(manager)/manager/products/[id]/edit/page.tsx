@@ -20,7 +20,7 @@ export default async function ManagerEditProductPage({
   }
 
   return (
-    <div className="mx-auto max-w-5xl py-6">
+    <div className="w-full">
       <ProductForm initialData={res.data} returnPath="/manager/products" />
     </div>
   );

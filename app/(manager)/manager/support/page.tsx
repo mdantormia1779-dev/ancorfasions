@@ -1,6 +1,5 @@
 import { Metadata } from "next";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -10,191 +9,197 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Download, Filter, Search, MessageCircle } from "lucide-react";
+import { MessageCircle, HelpCircle, CheckCircle2, Clock } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { getTicketsAction } from "@/app/actions/support/ticket.actions";
+import { SupportSearch } from "./SupportSearch";
+import { ExportTicketsButton } from "./ExportTicketsButton";
+import { SupportTicketReplyDialog } from "./SupportTicketReplyDialog";
 
 export const metadata: Metadata = {
   title: "Support Center | Manager Dashboard",
 };
 
-const tickets = [
-  {
-    id: "TCK-901",
-    subject: "Order hasn't arrived yet",
-    customer: "Liam Johnson",
-    type: "Delivery",
-    priority: "High",
-    status: "Open",
-  },
-  {
-    id: "TCK-902",
-    subject: "Wrong size received",
-    customer: "Olivia Smith",
-    type: "Return/Exchange",
-    priority: "Medium",
-    status: "In Progress",
-  },
-  {
-    id: "TCK-903",
-    subject: "Refund request for ORD-5316",
-    customer: "William Garcia",
-    type: "Refund",
-    priority: "High",
-    status: "Open",
-  },
-  {
-    id: "TCK-904",
-    subject: "Question about fabric material",
-    customer: "Emma Brown",
-    type: "Product Inquiry",
-    priority: "Low",
-    status: "Closed",
-  },
-  {
-    id: "TCK-905",
-    subject: "Promo code not working",
-    customer: "Noah Williams",
-    type: "Billing",
-    priority: "Medium",
-    status: "In Progress",
-  },
-];
+export const dynamic = "force-dynamic";
 
-export default function SupportPage() {
+export default async function SupportPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; search?: string }>;
+}) {
+  const query = (await searchParams).q || (await searchParams).search || "";
+  const res = await getTicketsAction();
+  const allTickets = (res.data || []) as any[];
+
+  // Filter if query is provided
+  const tickets = query
+    ? allTickets.filter(
+        (t) =>
+          (t.subject || "").toLowerCase().includes(query.toLowerCase()) ||
+          (t.customer_name || t.customer || "").toLowerCase().includes(query.toLowerCase()) ||
+          (t.ticket_number || t.id || "").toLowerCase().includes(query.toLowerCase())
+      )
+    : allTickets;
+
+  const openCount = allTickets.filter(
+    (t) => (t.status || "").toUpperCase() === "OPEN"
+  ).length;
+  const inProgressCount = allTickets.filter(
+    (t) => (t.status || "").toUpperCase() === "IN_PROGRESS" || (t.status || "").toUpperCase() === "ASSIGNED"
+  ).length;
+  const resolvedCount = allTickets.filter(
+    (t) => (t.status || "").toUpperCase() === "RESOLVED" || (t.status || "").toUpperCase() === "CLOSED"
+  ).length;
+
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 w-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Support Center</h1>
           <p className="mt-1 text-muted-foreground">
-            Manage customer inquiries, returns, and refunds.
+            Manage customer inquiries, support tickets, and communications.
           </p>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export Data
-          </Button>
-          <Button>
-            <MessageCircle className="mr-2 h-4 w-4" />
-            Live Chat (3 Active)
-          </Button>
+          <ExportTicketsButton tickets={tickets} />
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 md:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Tickets</CardTitle>
+            <HelpCircle className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{allTickets.length}</div>
+            <p className="text-xs text-muted-foreground">All logged tickets</p>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Open Tickets</CardTitle>
+            <MessageCircle className="h-4 w-4 text-orange-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">12</div>
+            <div className="text-2xl font-bold text-orange-500">{openCount}</div>
+            <p className="text-xs text-muted-foreground">Awaiting response</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Avg Response Time
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">In Progress</CardTitle>
+            <Clock className="h-4 w-4 text-blue-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">1h 15m</div>
+            <div className="text-2xl font-bold text-blue-500">{inProgressCount}</div>
+            <p className="text-xs text-muted-foreground">Currently being handled</p>
           </CardContent>
         </Card>
+
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Pending Returns
-            </CardTitle>
+            <CardTitle className="text-sm font-medium">Resolved</CardTitle>
+            <CheckCircle2 className="h-4 w-4 text-emerald-500" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-500">4</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">CSAT Score</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-500">4.8/5</div>
+            <div className="text-2xl font-bold text-emerald-500">{resolvedCount}</div>
+            <p className="text-xs text-muted-foreground">Completed tickets</p>
           </CardContent>
         </Card>
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search tickets..."
-            className="w-full bg-background pl-8"
-          />
-        </div>
-        <Button variant="outline" size="icon">
-          <Filter className="h-4 w-4" />
-        </Button>
+        <SupportSearch />
       </div>
 
-      <div className="rounded-md border">
+      <div className="rounded-md border bg-card">
         <Table>
           <TableHeader>
             <TableRow>
               <TableHead>Ticket ID</TableHead>
               <TableHead>Subject</TableHead>
               <TableHead>Customer</TableHead>
-              <TableHead>Type</TableHead>
               <TableHead>Priority</TableHead>
               <TableHead>Status</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {tickets.map((ticket) => (
-              <TableRow key={ticket.id}>
-                <TableCell className="font-medium text-muted-foreground">
-                  {ticket.id}
-                </TableCell>
-                <TableCell className="font-medium">{ticket.subject}</TableCell>
-                <TableCell>{ticket.customer}</TableCell>
-                <TableCell>{ticket.type}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      ticket.priority === "High"
-                        ? "destructive"
-                        : ticket.priority === "Medium"
-                          ? "secondary"
-                          : "outline"
-                    }
-                    className={
-                      ticket.priority === "Medium"
-                        ? "bg-orange-500 text-white hover:bg-orange-600"
-                        : ""
-                    }
-                  >
-                    {ticket.priority}
-                  </Badge>
-                </TableCell>
-                <TableCell>
-                  <Badge
-                    variant={
-                      ticket.status === "Open"
-                        ? "default"
-                        : ticket.status === "In Progress"
-                          ? "secondary"
-                          : "outline"
-                    }
-                  >
-                    {ticket.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button variant="ghost" size="sm">
-                    Reply
-                  </Button>
+            {tickets.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  No support tickets found.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              tickets.map((ticket: any) => {
+                const priorityStr = (ticket.priority || "medium").toLowerCase();
+                const statusStr = (ticket.status || "OPEN").toUpperCase();
+
+                return (
+                  <TableRow key={ticket.id}>
+                    <TableCell className="font-mono text-xs text-muted-foreground">
+                      {ticket.ticket_number || ticket.id.slice(0, 8)}
+                    </TableCell>
+                    <TableCell className="font-medium">
+                      <div>{ticket.subject}</div>
+                      {ticket.description && (
+                        <div className="text-xs text-muted-foreground line-clamp-1">
+                          {ticket.description}
+                        </div>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm text-foreground">
+                      {ticket.customer_name || ticket.customer || "Guest"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          priorityStr === "high" || priorityStr === "urgent" || priorityStr === "critical"
+                            ? "destructive"
+                            : priorityStr === "medium"
+                              ? "secondary"
+                              : "outline"
+                        }
+                        className={
+                          priorityStr === "medium"
+                            ? "bg-amber-500/10 text-amber-600 border-amber-200 dark:border-amber-900"
+                            : ""
+                        }
+                      >
+                        {ticket.priority || "Medium"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          statusStr === "OPEN"
+                            ? "default"
+                            : statusStr === "IN_PROGRESS" || statusStr === "ASSIGNED"
+                              ? "secondary"
+                              : "outline"
+                        }
+                        className={
+                          statusStr === "OPEN"
+                            ? "bg-orange-500 hover:bg-orange-600"
+                            : statusStr === "RESOLVED" || statusStr === "CLOSED"
+                              ? "bg-emerald-500/10 text-emerald-600 border-emerald-200 dark:border-emerald-900"
+                              : ""
+                        }
+                      >
+                        {statusStr.replace("_", " ")}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <SupportTicketReplyDialog ticket={ticket} />
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
           </TableBody>
         </Table>
       </div>

@@ -76,13 +76,17 @@ export default async function OrderDetailsPage({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Button variant="outline">
-            <Printer className="mr-2 h-4 w-4" />
-            Print Invoice
+          <Button variant="outline" asChild>
+            <Link href={`/admin/orders/${order.id}/invoice`} target="_blank">
+              <Printer className="mr-2 h-4 w-4" />
+              Print Invoice
+            </Link>
           </Button>
-          <Button>
-            <Truck className="mr-2 h-4 w-4" />
-            Fulfill Order
+          <Button asChild>
+            <Link href="/manager/orders/fulfillment">
+              <Truck className="mr-2 h-4 w-4" />
+              Fulfill Order
+            </Link>
           </Button>
         </div>
       </div>

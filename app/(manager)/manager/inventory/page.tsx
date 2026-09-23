@@ -21,6 +21,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { fetchInventoryAction } from "@/app/actions/manager/inventory.actions";
 import { InventorySearch } from "@/features/inventory/components/inventory-search";
+import { ExportInventoryButton } from "./ExportInventoryButton";
+import { AdjustStockDialog } from "./AdjustStockDialog";
 
 export const metadata: Metadata = {
   title: "Inventory Management | Manager Dashboard",
@@ -38,7 +40,7 @@ export default async function InventoryPage({
   const stats = data?.stats || { totalItems: 0, lowStock: 0, outOfStock: 0 };
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 w-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Inventory</h1>
@@ -59,13 +61,12 @@ export default async function InventoryPage({
               Purchase Orders
             </Link>
           </Button>
-          <Button variant="outline">
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-          <Button>
-            <ArrowRightLeft className="mr-2 h-4 w-4" />
-            Transfer
+          <ExportInventoryButton items={inventory} />
+          <Button asChild>
+            <Link href="/manager/inventory/movements">
+              <ArrowRightLeft className="mr-2 h-4 w-4" />
+              Movements
+            </Link>
           </Button>
         </div>
       </div>
@@ -175,9 +176,13 @@ export default async function InventoryPage({
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button variant="ghost" size="sm">
-                      Adjust
-                    </Button>
+                    <AdjustStockDialog
+                      inventoryId={item.id}
+                      sku={item.sku}
+                      productName={item.name}
+                      currentAvailable={item.available || 0}
+                      currentReserved={item.reserved || 0}
+                    />
                   </TableCell>
                 </TableRow>
               ))

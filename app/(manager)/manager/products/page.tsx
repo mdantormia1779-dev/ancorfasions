@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Download, Filter, Plus, Search, Edit, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { ExportProductsButton } from "./ExportProductsButton";
+import { ManagerProductSearch } from "./ManagerProductSearch";
+import { DeleteProductDialog } from "./DeleteProductDialog";
 import { getAdminProductsAction } from "@/lib/actions/admin/products.actions";
 import { formatCurrency } from "@/lib/utils";
 
@@ -30,9 +32,11 @@ export default async function ProductsPage({
 
   const res = await getAdminProductsAction({ search, page, limit: 20 });
   const products = res.data?.products || [];
+  const total = res.data?.total || 0;
+  const hasMore = page * 20 < total;
 
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 w-full">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Products</h1>
@@ -42,7 +46,7 @@ export default async function ProductsPage({
         </div>
         <div className="flex items-center gap-2">
           <ExportProductsButton products={products} />
-          <Button>
+          <Button asChild>
             <Link href="/manager/products/new" className="flex items-center">
               <Plus className="mr-2 h-4 w-4" />
               Add Product
@@ -52,14 +56,7 @@ export default async function ProductsPage({
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="relative w-full max-w-sm">
-          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-          <Input
-            type="search"
-            placeholder="Search products..."
-            className="w-full bg-background pl-8"
-          />
-        </div>
+        <ManagerProductSearch />
         <Button variant="outline" size="icon">
           <Filter className="h-4 w-4" />
         </Button>
@@ -140,9 +137,7 @@ export default async function ProductsPage({
                           <Edit className="h-4 w-4 text-muted-foreground" />
                         </Link>
                       </Button>
-                      <Button variant="ghost" size="icon">
-                        <Trash2 className="h-4 w-4 text-destructive" />
-                      </Button>
+                      <DeleteProductDialog productId={product.id} productName={product.name} />
                     </div>
                   </TableCell>
                 </TableRow>
@@ -150,6 +145,45 @@ export default async function ProductsPage({
             )}
           </TableBody>
         </Table>
+        
+        {total > 0 && (
+          <div className="flex items-center justify-between p-4 border-t">
+            <span className="text-sm text-muted-foreground">
+              Showing {products.length} of {total} products
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                asChild={page > 1}
+              >
+                {page > 1 ? (
+                  <Link href={`/manager/products?page=${page - 1}${search ? `&search=${encodeURIComponent(search)}` : ""}`}>
+                    Previous
+                  </Link>
+                ) : (
+                  "Previous"
+                )}
+              </Button>
+              <span className="text-sm text-muted-foreground px-2">Page {page}</span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={!hasMore}
+                asChild={hasMore}
+              >
+                {hasMore ? (
+                  <Link href={`/manager/products?page=${page + 1}${search ? `&search=${encodeURIComponent(search)}` : ""}`}>
+                    Next
+                  </Link>
+                ) : (
+                  "Next"
+                )}
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
