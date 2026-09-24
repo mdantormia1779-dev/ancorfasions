@@ -43,7 +43,11 @@ export const createCRMLeadSchema = z.object({
   company_name: z.string().trim().optional(),
   status: leadStatusEnum.default("new"),
   source: z.string().trim().optional().default("Direct"),
-  assigned_agent_id: z.string().uuid().optional(),
+  assigned_agent_id: z
+    .preprocess(
+      (val) => (!val || val === "" ? undefined : val),
+      z.string().uuid().optional().nullable()
+    ),
   score: z.coerce.number().int().default(0),
   notes: z.string().trim().optional(),
   custom_fields: z.record(z.any()).default({}),

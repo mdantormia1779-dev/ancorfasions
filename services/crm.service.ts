@@ -59,11 +59,23 @@ export class CRMService {
       source: rest.source || "Direct",
       status: rest.status || "new",
       score: rest.score ?? 0,
-      assigned_to: assigned_agent_id || null,
-      notes: notes?.trim() || null,
+      assigned_agent_id: assigned_agent_id || null,
+      custom_fields: custom_fields || {},
     };
 
     const lead = await crmRepository.createLead(leadFields);
+
+    if (notes && notes.trim() && lead?.id) {
+      try {
+        await crmRepository.createNote({
+          lead_id: lead.id,
+          content: notes.trim(),
+        });
+      } catch (noteErr) {
+        console.warn("Failed to create initial lead note:", noteErr);
+      }
+    }
+
     return lead;
   }
 
@@ -79,10 +91,23 @@ export class CRMService {
     if (rest.source !== undefined) updateFields.source = rest.source;
     if (rest.status !== undefined) updateFields.status = rest.status;
     if (rest.score !== undefined) updateFields.score = rest.score;
-    if (assigned_agent_id !== undefined) updateFields.assigned_to = assigned_agent_id || null;
-    if (notes !== undefined) updateFields.notes = notes || null;
+    if (custom_fields !== undefined) updateFields.custom_fields = custom_fields;
+    if (assigned_agent_id !== undefined) updateFields.assigned_agent_id = assigned_agent_id || null;
 
-    return await crmRepository.updateLead(id, updateFields);
+    const lead = await crmRepository.updateLead(id, updateFields);
+
+    if (notes && notes.trim() && id) {
+      try {
+        await crmRepository.createNote({
+          lead_id: id,
+          content: notes.trim(),
+        });
+      } catch (noteErr) {
+        console.warn("Failed to create update lead note:", noteErr);
+      }
+    }
+
+    return lead;
   }
 
   async convertLead(id: string, profileId?: string): Promise<CRMLead> {
