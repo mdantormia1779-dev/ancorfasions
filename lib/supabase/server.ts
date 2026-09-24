@@ -29,7 +29,9 @@ import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 export async function createAdminClient() {
   return createSupabaseClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co",
-    process.env.SUPABASE_SERVICE_ROLE_KEY || "dummy_key",
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+      "dummy_key",
     {
       auth: {
         autoRefreshToken: false,

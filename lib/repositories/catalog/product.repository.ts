@@ -693,7 +693,7 @@ export class ProductRepository {
     ids: string[],
     status: "DRAFT" | "ACTIVE" | "ARCHIVED"
   ): Promise<number> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { error, count } = await supabase
       .from("products")
       .update({ status })
@@ -706,7 +706,7 @@ export class ProductRepository {
    * Bulk soft-delete multiple products in a single DB query.
    */
   static async bulkDelete(ids: string[]): Promise<number> {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { error, count } = await supabase
       .from("products")
       .update({ deleted_at: new Date().toISOString(), status: "ARCHIVED" })
