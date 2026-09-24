@@ -31,8 +31,48 @@ export async function updateSession(request: NextRequest) {
 
   let user = null;
   try {
-    const { data } = await supabase.auth.getUser();
-    user = data.user;
+    const { data, error } = await supabase.auth.getUser();
+    if (error) {
+      const isInvalidRefreshToken =
+        error.name === "AuthSessionMissingError" ||
+        error.code === "refresh_token_not_found" ||
+        (error as any).status === 400 ||
+        error.message?.toLowerCase().includes("refresh token");
+
+      if (isInvalidRefreshToken) {
+        // Clear all Supabase auth cookies
+        const allCookies = request.cookies.getAll();
+        allCookies.forEach((c) => {
+          if (c.name.startsWith("sb-") || c.name.includes("auth-token")) {
+            request.cookies.delete(c.name);
+            supabaseResponse.cookies.set(c.name, "", {
+              maxAge: 0,
+              path: "/",
+            });
+          }
+        });
+
+        // Re-serialize the remaining cookies into request.headers so downstream Server Components don't receive dead cookies
+        const remainingCookieHeader = request.cookies
+          .getAll()
+          .map((c) => `${c.name}=${c.value}`)
+          .join("; ");
+        request.headers.set("cookie", remainingCookieHeader);
+
+        // Update supabaseResponse to forward updated request headers
+        const existingCookies = supabaseResponse.cookies.getAll();
+        supabaseResponse = NextResponse.next({
+          request: {
+            headers: request.headers,
+          },
+        });
+        existingCookies.forEach((c) => {
+          supabaseResponse.cookies.set(c);
+        });
+      }
+    } else {
+      user = data?.user ?? null;
+    }
   } catch (error) {
     console.warn(
       "Supabase auth error in middleware (is Supabase running?):",

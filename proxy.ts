@@ -2,6 +2,13 @@ import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 import { ADMIN_ROLES, MANAGER_ROLES, MARKETING_ROLES, STAFF_ROLES } from "@/lib/constants/auth";
 
+function applyCookies(res: NextResponse, sourceResponse: NextResponse): NextResponse {
+  sourceResponse.cookies.getAll().forEach((c) => {
+    res.cookies.set(c);
+  });
+  return res;
+}
+
 export async function proxy(request: NextRequest) {
   const url = request.nextUrl;
   const pathname = url.pathname;
@@ -65,7 +72,7 @@ export async function proxy(request: NextRequest) {
   if (user && isAuthRoute) {
     const next = request.nextUrl.searchParams.get("next");
     if (next && next.startsWith("/") && !next.startsWith("/auth/")) {
-      return NextResponse.redirect(new URL(next, request.url));
+      return applyCookies(NextResponse.redirect(new URL(next, request.url)), supabaseResponse);
     }
 
     let currentRole = user?.user_metadata?.role || user?.app_metadata?.role || "";
@@ -85,15 +92,15 @@ export async function proxy(request: NextRequest) {
     }
     
     if (ADMIN_ROLES.includes(currentRole)) {
-      return NextResponse.redirect(new URL("/admin", request.url));
+      return applyCookies(NextResponse.redirect(new URL("/admin", request.url)), supabaseResponse);
     } else if (MANAGER_ROLES.includes(currentRole)) {
-      return NextResponse.redirect(new URL("/manager", request.url));
+      return applyCookies(NextResponse.redirect(new URL("/manager", request.url)), supabaseResponse);
     } else if (MARKETING_ROLES.includes(currentRole)) {
-      return NextResponse.redirect(new URL("/admin/marketing", request.url));
+      return applyCookies(NextResponse.redirect(new URL("/admin/marketing", request.url)), supabaseResponse);
     } else if (STAFF_ROLES.includes(currentRole)) {
-      return NextResponse.redirect(new URL("/admin", request.url));
+      return applyCookies(NextResponse.redirect(new URL("/admin", request.url)), supabaseResponse);
     } else {
-      return NextResponse.redirect(new URL("/account/profile", request.url));
+      return applyCookies(NextResponse.redirect(new URL("/account/profile", request.url)), supabaseResponse);
     }
   }
 
@@ -127,11 +134,11 @@ export async function proxy(request: NextRequest) {
   
   if (!user && (isProtectedRoute || isInternalApiRoute)) {
     if (isInternalApiRoute) {
-       return NextResponse.json({ error: "Unauthorized: Authentication required" }, { status: 401 });
+       return applyCookies(NextResponse.json({ error: "Unauthorized: Authentication required" }, { status: 401 }), supabaseResponse);
     }
     const redirectUrl = new URL("/auth/login", request.url);
     redirectUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(redirectUrl);
+    return applyCookies(NextResponse.redirect(redirectUrl), supabaseResponse);
   }
 
   // Role resolution
@@ -169,20 +176,20 @@ export async function proxy(request: NextRequest) {
     // Check if path is strictly restricted to SUPERADMIN / ADMIN
     if (isAdminRestrictedPath && !ADMIN_ROLES.includes(role)) {
       if (pathname.startsWith("/api/")) {
-        return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 });
+        return applyCookies(NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 }), supabaseResponse);
       }
       if (MARKETING_ROLES.includes(role)) {
-        return NextResponse.redirect(new URL("/admin/marketing", request.url));
+        return applyCookies(NextResponse.redirect(new URL("/admin/marketing", request.url)), supabaseResponse);
       }
-      return NextResponse.redirect(new URL("/account/profile", request.url));
+      return applyCookies(NextResponse.redirect(new URL("/account/profile", request.url)), supabaseResponse);
     }
 
     // For all other /admin routes, user must have a staff role
     if (!STAFF_ROLES.includes(role)) {
       if (pathname.startsWith("/api/")) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        return applyCookies(NextResponse.json({ error: "Forbidden" }, { status: 403 }), supabaseResponse);
       }
-      return NextResponse.redirect(new URL("/account/profile", request.url));
+      return applyCookies(NextResponse.redirect(new URL("/account/profile", request.url)), supabaseResponse);
     }
   }
 
@@ -198,9 +205,9 @@ export async function proxy(request: NextRequest) {
   if (user && isManagerPath) {
     if (!MANAGER_ROLES.includes(role) && !STAFF_ROLES.includes(role)) {
       if (pathname.startsWith("/api/")) {
-        return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        return applyCookies(NextResponse.json({ error: "Forbidden" }, { status: 403 }), supabaseResponse);
       }
-      return NextResponse.redirect(new URL("/account/profile", request.url));
+      return applyCookies(NextResponse.redirect(new URL("/account/profile", request.url)), supabaseResponse);
     }
   }
 

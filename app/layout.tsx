@@ -7,7 +7,7 @@ import { AnalyticsProviders } from "@/components/analytics/AnalyticsProviders";
 
 const jost = Jost({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+  weight: ["200", "300", "400", "500", "600", "700"],
 });
 
 export const viewport: Viewport = {

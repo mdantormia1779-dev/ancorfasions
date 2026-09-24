@@ -1,5 +1,6 @@
 import type { NextConfig } from "next";
 import withSerwistInit from "@serwist/next";
+import path from "path";
 
 process.env.SERWIST_SUPPRESS_TURBOPACK_WARNING = "1";
 
@@ -33,7 +34,9 @@ const nextConfig: NextConfig = {
       "recharts",
     ],
   },
-  turbopack: {},
+  turbopack: {
+    root: path.resolve(__dirname),
+  },
   async headers() {
     return [
       {

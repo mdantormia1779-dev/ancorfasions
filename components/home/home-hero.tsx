@@ -3,12 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
-import { Jost } from "next/font/google";
 import type { HeroSlide } from "@/actions/cms.actions";
 
 export type { HeroSlide };
-
-const jost = Jost({ subsets: ["latin"], weight: ["200", "300", "400", "500"] });
 
 const DEFAULT_SLIDES: HeroSlide[] = [
   {
@@ -120,7 +117,7 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
                 )}
                 {headline && (
                   <h1
-                    className={`${jost.className} mb-6 max-w-4xl text-3xl font-light leading-[1.15] tracking-tight opacity-0 drop-shadow-sm delay-500 duration-1000 animate-in fade-in slide-in-from-bottom-8 fill-mode-forwards sm:text-4xl md:mb-10 md:text-7xl md:font-extralight lg:text-8xl`}
+                    className="mb-6 max-w-4xl text-3xl font-light leading-[1.15] tracking-tight opacity-0 drop-shadow-sm delay-500 duration-1000 animate-in fade-in slide-in-from-bottom-8 fill-mode-forwards sm:text-4xl md:mb-10 md:text-7xl md:font-extralight lg:text-8xl"
                   >
                     {headline}
                   </h1>
