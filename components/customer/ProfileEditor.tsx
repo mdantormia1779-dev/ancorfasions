@@ -51,7 +51,10 @@ export function ProfileEditor({ profile }: ProfileEditorProps) {
       first_name: profile?.first_name || "",
       last_name: profile?.last_name || "",
       phone: profile?.phone || "",
-      date_of_birth: profile?.date_of_birth ? profile.date_of_birth.split("T")[0] : "",
+      date_of_birth:
+        typeof profile?.date_of_birth === "string"
+          ? profile.date_of_birth.split("T")[0]
+          : "",
     },
   });
 

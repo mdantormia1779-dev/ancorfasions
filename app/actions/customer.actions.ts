@@ -21,16 +21,25 @@ async function getUserId() {
 }
 
 export async function updateProfileAction(formData: FormData) {
-  const userId = await getUserId();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) {
+    throw new Error("Unauthorized");
+  }
+
   const firstName = formData.get("first_name") as string;
   const lastName = formData.get("last_name") as string;
   const phone = formData.get("phone") as string;
   const dob = formData.get("date_of_birth") as string;
 
-  await customerService.updateProfile(userId, {
+  await customerService.updateProfile(user.id, {
     first_name: firstName,
     last_name: lastName,
     phone: phone,
+    email: user.email,
     date_of_birth: dob || null,
   });
 
@@ -70,28 +79,8 @@ export async function markNotificationAsReadAction(id: string) {
 export async function fetchWalletAction() {
   try {
     const userId = await getUserId();
-    const supabase = await createClient();
-
-    const { data: wallet, error: walletError } = await supabase
-      .from("customer_wallets")
-      .select("*")
-      .eq("customer_id", userId)
-      .single();
-
-    if (walletError) {
-      if (walletError.code === "PGRST116")
-        return {
-          success: true,
-          data: { balance: 0, currency: "BDT", transactions: [] },
-        };
-      throw walletError;
-    }
-
-    const { data: transactions } = await supabase
-      .from("wallet_transactions")
-      .select("*")
-      .eq("wallet_id", wallet.id)
-      .order("created_at", { ascending: false });
+    const wallet = await WalletService.getWallet(userId);
+    const transactions = await WalletService.getTransactions(wallet.id);
 
     return {
       success: true,

@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Gift, Sparkles, Loader2, CheckCircle2, Wallet, Copy } from "lucide-react";
+import { Gift, Sparkles, Loader2, CheckCircle2, Ticket, Copy } from "lucide-react";
 import { toast } from "sonner";
 import { redeemLoyaltyPointsAction, fetchRewardCatalogAction } from "@/app/actions/customer.actions";
 import Link from "next/link";
@@ -166,8 +166,8 @@ export function RedeemRewardsDialog({
                 Done
               </Button>
               <Button asChild>
-                <Link href="/account/wallet">
-                  <Wallet className="mr-2 h-4 w-4" /> View Wallet
+                <Link href="/account/coupons">
+                  <Ticket className="mr-2 h-4 w-4" /> View Coupons
                 </Link>
               </Button>
             </div>

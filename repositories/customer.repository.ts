@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   CustomerProfile,
   CustomerAddress,
@@ -8,37 +9,81 @@ import {
 
 export class CustomerRepository {
   static async getProfile(userId: string): Promise<CustomerProfile | null> {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("customer_profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("customer_profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
 
-    if (error) {
-      console.error("Error fetching profile:", error);
+      if (data) return data;
+
+      const admin = createAdminClient();
+      const { data: adminData } = await admin
+        .from("customer_profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+
+      return adminData;
+    } catch (e) {
+      console.error("Error fetching profile:", e);
       return null;
     }
-    return data;
   }
 
   static async updateProfile(
     userId: string,
     updates: Partial<CustomerProfile>
   ): Promise<CustomerProfile | null> {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("customer_profiles")
-      .update(updates)
-      .eq("id", userId)
-      .select()
-      .single();
+    try {
+      const admin = createAdminClient();
 
-    if (error) {
-      console.error("Error updating profile:", error);
-      throw new Error(error.message);
+      // First try to update existing record
+      const { data: updated, error: updateErr } = await admin
+        .from("customer_profiles")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId)
+        .select()
+        .maybeSingle();
+
+      if (updated) {
+        return updated;
+      }
+
+      // If no row existed, obtain user email to satisfy the NOT NULL constraint on insert
+      let email = updates.email;
+      if (!email) {
+        const { data: authData } = await admin.auth.admin.getUserById(userId);
+        email = authData?.user?.email || "";
+      }
+
+      const { data: inserted, error: insertErr } = await admin
+        .from("customer_profiles")
+        .upsert({
+          id: userId,
+          email,
+          ...updates,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (insertErr) {
+        console.error("Error updating profile:", insertErr);
+        throw new Error(insertErr.message);
+      }
+      return inserted;
+    } catch (e) {
+      console.error("Error in updateProfile:", e);
+      throw e;
     }
-    return data;
   }
 
   static async getAddresses(userId: string): Promise<CustomerAddress[]> {

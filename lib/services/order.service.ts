@@ -3,8 +3,9 @@ import { CheckoutRepository } from "../repositories/checkout.repository";
 import { CartService } from "./cart.service";
 import { CheckoutFormValues } from "@/schemas/checkout.schema";
 import { Order, OrderItem, PaymentPayload, OrderStatus, RiskLevel } from "@/types/checkout.types";
-import { InventoryService } from "@/services/inventory.service";
+import { InventoryService, ReservationItem } from "@/services/inventory.service";
 import { WarehouseService } from "@/services/warehouse.service";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 
 export class OrderService {
   /**
@@ -168,16 +169,50 @@ export class OrderService {
       const defaultWarehouse = await warehouseService
         .getDefaultWarehouse()
         .catch(() => null);
-      const warehouseId =
+      const fallbackWarehouseId =
         defaultWarehouse?.id || "85bf6ad1-be55-47b2-ab31-07b05c43bcfc";
 
-      const reservationItems = (cart.items as any[])
-        .filter((item: any) => item.variant_id || item.product_id)
-        .map((item: any) => ({
-          variant_id: (item.variant_id || item.product_id) as string,
-          warehouse_id: warehouseId,
+      const adminClient = createAdminClient();
+
+      const reservationItems: ReservationItem[] = [];
+      for (const item of (cart.items as any[])) {
+        const variantId = (item.variant_id || item.product_id) as string;
+        if (!variantId) continue;
+
+        let itemWarehouseId = fallbackWarehouseId;
+        try {
+          const { data: level } = await adminClient
+            .from("inventory_levels")
+            .select("warehouse_id, quantity_available")
+            .eq("variant_id", variantId)
+            .gte("quantity_available", item.quantity)
+            .order("quantity_available", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (level?.warehouse_id) {
+            itemWarehouseId = level.warehouse_id;
+          } else {
+            const { data: anyLevel } = await adminClient
+              .from("inventory_levels")
+              .select("warehouse_id, quantity_available")
+              .eq("variant_id", variantId)
+              .order("quantity_available", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (anyLevel?.warehouse_id) {
+              itemWarehouseId = anyLevel.warehouse_id;
+            }
+          }
+        } catch (_) {}
+
+        reservationItems.push({
+          variant_id: variantId,
+          warehouse_id: itemWarehouseId,
           quantity: item.quantity,
-        }));
+        });
+      }
 
       if (reservationItems.length > 0) {
         const inventoryService = new InventoryService();

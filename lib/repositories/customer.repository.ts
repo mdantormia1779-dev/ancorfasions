@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   CustomerProfile,
   CustomerAddress,
@@ -7,38 +8,134 @@ import {
 
 export class CustomerRepository {
   async getProfile(userId: string): Promise<CustomerProfile | null> {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("customer_profiles")
-      .select("*")
-      .eq("id", userId)
-      .single();
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase
+        .from("customer_profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
 
-    if (error) {
-      if (error.code === "PGRST116") return null; // not found
-      throw new Error(`Failed to fetch profile: ${error.message}`);
+      if (data) {
+        return data as CustomerProfile;
+      }
+
+      // If user client returns nothing or error (e.g. RLS strictness), fallback to adminClient
+      const admin = createAdminClient();
+      const { data: adminProfile } = await admin
+        .from("customer_profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (adminProfile) {
+        return adminProfile as CustomerProfile;
+      }
+
+      // If not yet in customer_profiles, check auth.users & profiles to auto-provision
+      const { data: authData } = await admin.auth.admin.getUserById(userId);
+      const { data: staffData } = await admin
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
+
+      if (authData?.user) {
+        const u = authData.user;
+        const firstName =
+          staffData?.first_name ||
+          u.user_metadata?.first_name ||
+          u.user_metadata?.name?.split(" ")[0] ||
+          u.user_metadata?.full_name?.split(" ")[0] ||
+          "Customer";
+        const lastName =
+          staffData?.last_name ||
+          u.user_metadata?.last_name ||
+          u.user_metadata?.name?.split(" ").slice(1).join(" ") ||
+          u.user_metadata?.full_name?.split(" ").slice(1).join(" ") ||
+          "";
+
+        const newProfile = {
+          id: userId,
+          first_name: firstName,
+          last_name: lastName,
+          email: u.email || "",
+          phone: staffData?.phone || u.phone || null,
+          avatar_url: staffData?.avatar_url || u.user_metadata?.avatar_url || null,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+
+        const { data: created } = await admin
+          .from("customer_profiles")
+          .upsert(newProfile)
+          .select()
+          .maybeSingle();
+
+        if (created) return created as CustomerProfile;
+        return newProfile as unknown as CustomerProfile;
+      }
+
+      return null;
+    } catch (err) {
+      console.error("Error in CustomerRepository.getProfile:", err);
+      return null;
     }
-
-    return data as CustomerProfile;
   }
 
   async updateProfile(
     userId: string,
     updates: Partial<CustomerProfile>
   ): Promise<CustomerProfile> {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("customer_profiles")
-      .update(updates)
-      .eq("id", userId)
-      .select()
-      .single();
+    try {
+      const admin = createAdminClient();
 
-    if (error) {
-      throw new Error(`Failed to update profile: ${error.message}`);
+      // First try to update existing record
+      const { data: updated, error: updateErr } = await admin
+        .from("customer_profiles")
+        .update({
+          ...updates,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", userId)
+        .select()
+        .maybeSingle();
+
+      if (updated) {
+        return updated as CustomerProfile;
+      }
+
+      // If no row existed, obtain user email to satisfy the NOT NULL constraint on insert
+      let email = updates.email;
+      if (!email) {
+        const { data: authData } = await admin.auth.admin.getUserById(userId);
+        email = authData?.user?.email || "";
+      }
+
+      const { data: inserted, error: insertErr } = await admin
+        .from("customer_profiles")
+        .upsert({
+          id: userId,
+          email,
+          ...updates,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select()
+        .single();
+
+      if (insertErr) {
+        console.error("Failed to update/create customer profile:", insertErr);
+        throw new Error(`Failed to update profile: ${insertErr.message}`);
+      }
+
+      return inserted as CustomerProfile;
+    } catch (err) {
+      console.error("Error in CustomerRepository.updateProfile:", err);
+      throw err;
     }
-
-    return data as CustomerProfile;
   }
 
   async getAddresses(userId: string): Promise<CustomerAddress[]> {

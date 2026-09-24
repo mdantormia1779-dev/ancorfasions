@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Package, Wallet, Award, Heart, TrendingUp, CreditCard, ChevronRight, ShoppingBag, ArrowRight } from "lucide-react";
+import { Package, Award, Heart, TrendingUp, CreditCard, ChevronRight, ShoppingBag, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { TierBadge } from "@/components/customer/loyalty/tier-badges";
@@ -14,7 +14,6 @@ interface AccountSummary {
   recentOrdersCount: number;
   monthlySpending: number;
   savedItemsCount: number;
-  walletBalance: number;
   loyaltyPoints?: number;
   loyaltyTier?: string;
   recentOrders: any[];
@@ -28,7 +27,8 @@ export default function AccountOverviewPage() {
     recentOrdersCount: 0,
     monthlySpending: 0,
     savedItemsCount: 0,
-    walletBalance: 0,
+    loyaltyPoints: 0,
+    loyaltyTier: "MEMBER",
     recentOrders: [],
     role: "CUSTOMER",
   });
@@ -78,14 +78,7 @@ export default function AccountOverviewPage() {
           .select("id", { count: "exact", head: true })
           .eq("user_id", user.id);
 
-        // 4. Wallet Balance
-        const { data: wallet } = await supabase
-          .from("wallets")
-          .select("balance")
-          .eq("customer_id", user.id)
-          .maybeSingle();
-
-        // 5. Loyalty
+        // 4. Loyalty
         const { data: loyalty } = await supabase
           .from("loyalty_accounts")
           .select("points_balance, tier")
@@ -97,7 +90,6 @@ export default function AccountOverviewPage() {
           recentOrdersCount,
           monthlySpending,
           savedItemsCount: wishlistCount || 0,
-          walletBalance: Number(wallet?.balance) || 0,
           loyaltyPoints: loyalty?.points_balance || 0,
           loyaltyTier: loyalty?.tier || "MEMBER",
           recentOrders,
@@ -173,10 +165,10 @@ export default function AccountOverviewPage() {
           icon={Heart} 
         />
         <InsightCard 
-          title="Wallet Balance" 
-          value={loading ? "..." : formatCurrency(summary.walletBalance)} 
-          subtitle="Available store credit" 
-          icon={Wallet} 
+          title="Reward Points" 
+          value={loading ? "..." : (summary.loyaltyPoints || 0)} 
+          subtitle="Available loyalty points" 
+          icon={Award} 
         />
       </div>
 
@@ -230,7 +222,6 @@ export default function AccountOverviewPage() {
             <CardContent className="space-y-3">
               <QuickLink href="/account/orders" label="Order History" />
               <QuickLink href="/account/wishlist" label="My Wishlist" />
-              <QuickLink href="/account/wallet" label="My Wallet & Balance" />
               <QuickLink href="/account/loyalty" label="Loyalty & Tier Status" />
               <QuickLink href="/account/profile" label="Profile Settings" />
             </CardContent>

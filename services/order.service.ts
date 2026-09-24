@@ -83,8 +83,9 @@ export class OrderService {
     const flashSalesToConsume: { id: string; quantity: number }[] = [];
 
     const defaultWarehouse = await this.warehouseService.getDefaultWarehouse();
-    const warehouseId =
-      defaultWarehouse?.id || "00000000-0000-0000-0000-000000000001";
+    const fallbackWarehouseId =
+      defaultWarehouse?.id || "85bf6ad1-be55-47b2-ab31-07b05c43bcfc";
+    const supabase = createAdminClient();
 
     for (const item of cart.items) {
       if (!item.product) continue;
@@ -121,9 +122,37 @@ export class OrderService {
       // variant_id falls back to product_id for simple (non-variant) products.
       const variantId = item.variant_id || item.product_id;
       if (variantId) {
+        let itemWarehouseId = fallbackWarehouseId;
+        try {
+          const { data: level } = await supabase
+            .from("inventory_levels")
+            .select("warehouse_id, quantity_available")
+            .eq("variant_id", variantId)
+            .gte("quantity_available", item.quantity)
+            .order("quantity_available", { ascending: false })
+            .limit(1)
+            .maybeSingle();
+
+          if (level?.warehouse_id) {
+            itemWarehouseId = level.warehouse_id;
+          } else {
+            const { data: anyLevel } = await supabase
+              .from("inventory_levels")
+              .select("warehouse_id, quantity_available")
+              .eq("variant_id", variantId)
+              .order("quantity_available", { ascending: false })
+              .limit(1)
+              .maybeSingle();
+
+            if (anyLevel?.warehouse_id) {
+              itemWarehouseId = anyLevel.warehouse_id;
+            }
+          }
+        } catch (_) {}
+
         reservationItems.push({
           variant_id: variantId,
-          warehouse_id: warehouseId,
+          warehouse_id: itemWarehouseId,
           quantity: item.quantity,
         });
       }
