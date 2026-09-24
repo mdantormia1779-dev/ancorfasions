@@ -47,6 +47,73 @@ export async function updateProfileAction(formData: FormData) {
   return { success: true };
 }
 
+export async function uploadAvatarAction(formData: FormData) {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (!user) {
+      return { success: false, error: "Unauthorized" };
+    }
+
+    const file = formData.get("file") as File | null;
+    if (!file || file.size === 0) {
+      return { success: false, error: "No file provided" };
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      return { success: false, error: "File size exceeds 5MB limit" };
+    }
+
+    const fileExt = file.name.split(".").pop() || "jpg";
+    const fileName = `avatars/${user.id}-${Date.now()}.${fileExt}`;
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    const admin = createAdminClient();
+    const { error: uploadError } = await admin.storage
+      .from("media")
+      .upload(fileName, buffer, {
+        contentType: file.type || "image/jpeg",
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Avatar upload error:", uploadError);
+      return { success: false, error: uploadError.message };
+    }
+
+    const { data: pubData } = admin.storage.from("media").getPublicUrl(fileName);
+    const avatarUrl = pubData.publicUrl;
+
+    // Update customer profile
+    await customerService.updateProfile(user.id, {
+      avatar_url: avatarUrl,
+    });
+
+    // Also update profiles table if it exists
+    await admin.from("profiles").update({
+      avatar_url: avatarUrl,
+    }).eq("id", user.id);
+
+    // Update auth user metadata
+    try {
+      await admin.auth.admin.updateUserById(user.id, {
+        user_metadata: { avatar_url: avatarUrl },
+      });
+    } catch {}
+
+    revalidatePath("/account/profile");
+    revalidatePath("/account");
+    return { success: true, avatarUrl };
+  } catch (err: any) {
+    console.error("Upload avatar exception:", err);
+    return { success: false, error: err.message || "Failed to upload avatar" };
+  }
+}
+
 export async function createAddressAction(formData: FormData) {
   const userId = await getUserId();
 

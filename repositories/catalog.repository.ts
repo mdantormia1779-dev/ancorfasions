@@ -193,8 +193,9 @@ export const CatalogRepository = {
       `
       )
       .eq("slug", slug)
-      .eq("status", "ACTIVE")
-      .single();
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching product by slug:", error);

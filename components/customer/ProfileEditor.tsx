@@ -1,8 +1,8 @@
 "use client";
 
-import { useTransition } from "react";
+import { useTransition, useState, useRef } from "react";
 import { CustomerProfile } from "@/types/customer.types";
-import { updateProfileAction } from "@/app/actions/customer.actions";
+import { updateProfileAction, uploadAvatarAction } from "@/app/actions/customer.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Upload } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -40,6 +40,9 @@ interface ProfileEditorProps {
 
 export function ProfileEditor({ profile }: ProfileEditorProps) {
   const [isPending, startTransition] = useTransition();
+  const [avatarUrl, setAvatarUrl] = useState(profile?.avatar_url || "");
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
@@ -58,12 +61,51 @@ export function ProfileEditor({ profile }: ProfileEditorProps) {
     },
   });
 
+  const handleAvatarFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file (PNG, JPG, WEBP, etc.)");
+      return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("Image file size must be less than 5MB");
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    const toastId = toast.loading("Uploading avatar...");
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await uploadAvatarAction(formData);
+      if (res.success && res.avatarUrl) {
+        setAvatarUrl(res.avatarUrl);
+        toast.success("Avatar updated successfully!", { id: toastId });
+      } else {
+        toast.error(res.error || "Failed to upload avatar", { id: toastId });
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload avatar", { id: toastId });
+    } finally {
+      setIsUploadingAvatar(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
   const onSubmit = (values: ProfileFormValues) => {
     const formData = new FormData();
     formData.append("first_name", values.first_name);
     formData.append("last_name", values.last_name);
     formData.append("phone", values.phone || "");
     formData.append("date_of_birth", values.date_of_birth || "");
+    if (avatarUrl) {
+      formData.append("avatar_url", avatarUrl);
+    }
 
     startTransition(async () => {
       try {
@@ -87,21 +129,51 @@ export function ProfileEditor({ profile }: ProfileEditorProps) {
       <form onSubmit={handleSubmit(onSubmit)}>
         <CardContent className="space-y-6">
           <div className="flex items-center space-x-4">
-            <Avatar className="h-20 w-20">
-              <AvatarImage
-                src={profile?.avatar_url || ""}
-                alt={profile?.first_name || "Avatar"}
-              />
-              <AvatarFallback>
-                {profile?.first_name?.charAt(0) || "U"}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <Avatar className="h-20 w-20 ring-2 ring-primary/20">
+                <AvatarImage
+                  src={avatarUrl}
+                  alt={profile?.first_name || "Avatar"}
+                />
+                <AvatarFallback className="text-lg bg-primary/10 text-primary">
+                  {profile?.first_name?.charAt(0) || "U"}
+                </AvatarFallback>
+              </Avatar>
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                <Upload className="h-6 w-6 text-white" />
+              </div>
+            </div>
+
             <div>
-              <Button type="button" variant="outline" size="sm">
-                Upload Avatar
+              <input
+                type="file"
+                ref={fileInputRef}
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarFileChange}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                disabled={isUploadingAvatar}
+                onClick={() => fileInputRef.current?.click()}
+                className="flex items-center gap-2"
+              >
+                {isUploadingAvatar ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4" />
+                    Upload Avatar
+                  </>
+                )}
               </Button>
               <p className="mt-2 text-xs text-muted-foreground">
-                JPG, GIF or PNG. Max size of 2MB.
+                JPG, GIF, WebP or PNG. Max size of 5MB.
               </p>
             </div>
           </div>

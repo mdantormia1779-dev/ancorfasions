@@ -36,20 +36,12 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const primaryMedia =
     mediaList.find((m: any) => m.is_primary) ||
     mediaList[0];
-  const secondaryMedia =
-    mediaList.filter((m: any) => !m.is_primary)[0] ||
-    mediaList[1];
 
   const primaryImage =
     primaryMedia?.url ||
     product.thumbnail ||
     (typeof primaryMedia === "string" ? primaryMedia : null) ||
     "/images/placeholder.webp";
-
-  const secondaryImage =
-    secondaryMedia?.url ||
-    (typeof secondaryMedia === "string" ? secondaryMedia : null) ||
-    null;
 
   // Extract Pricing & Discounts
   const price = Number(product.sale_price ?? product.base_price ?? product.price ?? 0);
@@ -138,20 +130,19 @@ export function ProductCard({ product, className }: ProductCardProps) {
       return;
     }
 
-    // If product has multiple sizes and none chosen directly, open QuickView
-    if (availableSizes.length > 0 && !variantId) {
-      setIsQuickViewOpen(true);
-      return;
+    let targetVariantId = variantId;
+    if (!targetVariantId && variants.length > 0) {
+      targetVariantId = variants[0]?.id || null;
     }
 
     setIsAddingToCart(true);
     try {
-      await addCartItem(product.id, variantId, 1);
+      await addCartItem(product.id, targetVariantId, 1);
       setAddedSuccess(true);
       toast.success(`${product.name} added to cart!`);
       setTimeout(() => setAddedSuccess(false), 2000);
-    } catch {
-      toast.error("Failed to add to cart");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to add to cart");
     } finally {
       setIsAddingToCart(false);
     }
@@ -179,37 +170,21 @@ export function ProductCard({ product, className }: ProductCardProps) {
           className
         )}
       >
-        {/* Top Image Showcase with Lookbook Flip */}
+        {/* Top Image Showcase */}
         <div className="relative aspect-[3/4] w-full overflow-hidden bg-[#F7F7F8]">
           <Link
             href={`/product/${product.slug}`}
             className="relative block h-full w-full"
             aria-label={`View ${product.name}`}
           >
-            {/* Primary Image */}
+            {/* Primary Image with smooth zoom */}
             <Image
               src={primaryImage}
               alt={product.name}
               fill
               sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-              className={cn(
-                "object-cover object-center transition-all duration-700 ease-out",
-                secondaryImage
-                  ? "group-hover:scale-105 group-hover:opacity-0"
-                  : "group-hover:scale-105"
-              )}
+              className="object-cover object-center transition-transform duration-500 ease-out group-hover:scale-105"
             />
-
-            {/* Secondary Image for Hover Flip */}
-            {secondaryImage && (
-              <Image
-                src={secondaryImage}
-                alt={`${product.name} Alternate View`}
-                fill
-                sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 25vw"
-                className="absolute inset-0 object-cover object-center opacity-0 transition-all duration-700 ease-out group-hover:scale-105 group-hover:opacity-100"
-              />
-            )}
           </Link>
 
           {/* Status Badges (Top Left) */}

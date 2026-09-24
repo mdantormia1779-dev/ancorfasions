@@ -457,34 +457,34 @@ export function CheckoutForm({
                     }}
                     className="flex flex-col space-y-1"
                   >
-                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 transition-colors hover:border-black hover:bg-gray-50 data-[state=checked]:border-black data-[state=checked]:bg-gray-50">
+                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border border-border p-4 transition-colors hover:border-primary/60 hover:bg-muted/40 data-[state=checked]:border-primary data-[state=checked]:bg-primary/5 cursor-pointer">
                       <FormControl>
                         <RadioGroupItem value="home_delivery" />
                       </FormControl>
-                      <div className="flex flex-1 justify-between items-center">
+                      <div className="flex flex-1 justify-between items-center cursor-pointer">
                         <div className="flex flex-col">
-                          <FormLabel className="cursor-pointer font-medium">
+                          <FormLabel className="cursor-pointer font-medium text-foreground text-sm">
                             Home Delivery (Inside Dhaka)
                           </FormLabel>
-                          <span className="text-xs text-gray-500 mt-1">Est. 1-2 business days</span>
+                          <span className="text-xs text-muted-foreground mt-0.5">Est. 1-2 business days</span>
                         </div>
-                        <span className="font-semibold text-[#1A1A1A]">
+                        <span className="font-semibold text-foreground">
                           ৳ 100
                         </span>
                       </div>
                     </FormItem>
-                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border p-4 transition-colors hover:border-black hover:bg-gray-50 data-[state=checked]:border-black data-[state=checked]:bg-gray-50">
+                    <FormItem className="flex items-center space-x-3 space-y-0 rounded-md border border-border p-4 transition-colors hover:border-primary/60 hover:bg-muted/40 data-[state=checked]:border-primary data-[state=checked]:bg-primary/5 cursor-pointer">
                       <FormControl>
                         <RadioGroupItem value="home_delivery_outside" />
                       </FormControl>
-                      <div className="flex flex-1 justify-between items-center">
+                      <div className="flex flex-1 justify-between items-center cursor-pointer">
                         <div className="flex flex-col">
-                          <FormLabel className="cursor-pointer font-medium">
+                          <FormLabel className="cursor-pointer font-medium text-foreground text-sm">
                             Home Delivery (Outside Dhaka)
                           </FormLabel>
-                          <span className="text-xs text-gray-500 mt-1">Est. 3-5 business days</span>
+                          <span className="text-xs text-muted-foreground mt-0.5">Est. 3-5 business days</span>
                         </div>
-                        <span className="font-semibold text-[#1A1A1A]">
+                        <span className="font-semibold text-foreground">
                           ৳ 150
                         </span>
                       </div>
@@ -499,7 +499,7 @@ export function CheckoutForm({
           <Button
             type="button"
             size="lg"
-            className="mt-6 w-full h-12 bg-[#1A1A1A] text-xs font-bold uppercase tracking-widest text-white hover:bg-black"
+            className="mt-6 w-full h-12 bg-[#1A1A1A] text-xs font-bold uppercase tracking-widest text-white hover:bg-black dark:bg-primary dark:text-primary-foreground dark:hover:bg-primary/90"
             onClick={() => handleNextStep("PAYMENT")}
           >
             Continue to Payment <ArrowRight className="ml-2 h-4 w-4" />
@@ -562,15 +562,15 @@ export function CheckoutForm({
                       className="flex flex-col space-y-2"
                     >
                       {isCodEnabled && (
-                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-black hover:bg-gray-50 data-[state=checked]:border-black data-[state=checked]:bg-gray-50/50">
+                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border border-border p-4 transition-colors hover:border-primary/60 hover:bg-muted/40 data-[state=checked]:border-primary data-[state=checked]:bg-primary/5 cursor-pointer">
                           <FormControl>
                             <RadioGroupItem value="COD" />
                           </FormControl>
-                          <div className="flex flex-1 items-center justify-between">
-                            <FormLabel className="cursor-pointer font-medium">
+                          <div className="flex flex-1 items-center justify-between cursor-pointer">
+                            <FormLabel className="cursor-pointer font-medium text-foreground text-sm">
                               Cash on Delivery (ক্যাশ অন ডেলিভারি)
                             </FormLabel>
-                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
+                            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
                               Cash
                             </span>
                           </div>
@@ -578,16 +578,16 @@ export function CheckoutForm({
                       )}
 
                       {isBkashEnabled && (
-                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-[#E2136E] hover:bg-pink-50/20 data-[state=checked]:border-[#E2136E] data-[state=checked]:bg-pink-50/30">
+                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border border-border p-4 transition-colors hover:border-[#E2136E]/60 hover:bg-pink-50/20 data-[state=checked]:border-[#E2136E] data-[state=checked]:bg-pink-50/30 cursor-pointer">
                           <FormControl>
                             <RadioGroupItem value="BKASH" />
                           </FormControl>
-                          <div className="flex flex-1 items-center justify-between">
-                            <FormLabel className="cursor-pointer font-medium flex items-center gap-2">
+                          <div className="flex flex-1 items-center justify-between cursor-pointer">
+                            <FormLabel className="cursor-pointer font-medium flex items-center gap-2 text-foreground text-sm">
                               <span className="h-2.5 w-2.5 rounded-full bg-[#E2136E]" />
                               bKash (বিকাশ)
                             </FormLabel>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-pink-100 text-[#E2136E]">
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-pink-100 text-[#E2136E] dark:bg-pink-950 dark:text-pink-300">
                               {currentConfigs?.bkash?.account_type || "Personal"}
                             </span>
                           </div>
@@ -595,16 +595,16 @@ export function CheckoutForm({
                       )}
 
                       {isNagadEnabled && (
-                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-[#F7941D] hover:bg-orange-50/20 data-[state=checked]:border-[#F7941D] data-[state=checked]:bg-orange-50/30">
+                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border border-border p-4 transition-colors hover:border-[#F7941D]/60 hover:bg-orange-50/20 data-[state=checked]:border-[#F7941D] data-[state=checked]:bg-orange-50/30 cursor-pointer">
                           <FormControl>
                             <RadioGroupItem value="NAGAD" />
                           </FormControl>
-                          <div className="flex flex-1 items-center justify-between">
-                            <FormLabel className="cursor-pointer font-medium flex items-center gap-2">
+                          <div className="flex flex-1 items-center justify-between cursor-pointer">
+                            <FormLabel className="cursor-pointer font-medium flex items-center gap-2 text-foreground text-sm">
                               <span className="h-2.5 w-2.5 rounded-full bg-[#F7941D]" />
                               Nagad (নগদ)
                             </FormLabel>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-orange-100 text-[#F7941D]">
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-orange-100 text-[#F7941D] dark:bg-orange-950 dark:text-orange-300">
                               {currentConfigs?.nagad?.account_type || "Personal"}
                             </span>
                           </div>
@@ -612,16 +612,16 @@ export function CheckoutForm({
                       )}
 
                       {isRocketEnabled && (
-                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-[#8C3494] hover:bg-purple-50/20 data-[state=checked]:border-[#8C3494] data-[state=checked]:bg-purple-50/30">
+                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border border-border p-4 transition-colors hover:border-[#8C3494]/60 hover:bg-purple-50/20 data-[state=checked]:border-[#8C3494] data-[state=checked]:bg-purple-50/30 cursor-pointer">
                           <FormControl>
                             <RadioGroupItem value="ROCKET" />
                           </FormControl>
-                          <div className="flex flex-1 items-center justify-between">
-                            <FormLabel className="cursor-pointer font-medium flex items-center gap-2">
+                          <div className="flex flex-1 items-center justify-between cursor-pointer">
+                            <FormLabel className="cursor-pointer font-medium flex items-center gap-2 text-foreground text-sm">
                               <span className="h-2.5 w-2.5 rounded-full bg-[#8C3494]" />
                               Rocket (রকেট)
                             </FormLabel>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-purple-100 text-[#8C3494]">
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-purple-100 text-[#8C3494] dark:bg-purple-950 dark:text-purple-300">
                               {currentConfigs?.rocket?.account_type || "Personal"}
                             </span>
                           </div>
@@ -629,16 +629,16 @@ export function CheckoutForm({
                       )}
 
                       {isBankEnabled && (
-                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-blue-600 hover:bg-blue-50/20 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-50/30">
+                        <FormItem className="flex items-center space-x-3 space-y-0 rounded-lg border border-border p-4 transition-colors hover:border-blue-600/60 hover:bg-blue-50/20 data-[state=checked]:border-blue-600 data-[state=checked]:bg-blue-50/30 cursor-pointer">
                           <FormControl>
                             <RadioGroupItem value="BANK_TRANSFER" />
                           </FormControl>
-                          <div className="flex flex-1 items-center justify-between">
-                            <FormLabel className="cursor-pointer font-medium flex items-center gap-2">
+                          <div className="flex flex-1 items-center justify-between cursor-pointer">
+                            <FormLabel className="cursor-pointer font-medium flex items-center gap-2 text-foreground text-sm">
                               <Landmark className="h-4 w-4 text-blue-600" />
                               Bank Transfer / Deposit (ব্যাংক ট্রান্সফার)
                             </FormLabel>
-                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800">
+                            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300">
                               BEFTN / NPSB
                             </span>
                           </div>
@@ -646,13 +646,13 @@ export function CheckoutForm({
                       )}
 
                       {isSslEnabled && (
-                        <FormItem className="flex items-start space-x-3 space-y-0 rounded-lg border p-4 transition-colors hover:border-emerald-600 hover:bg-emerald-50/10 data-[state=checked]:border-emerald-600 data-[state=checked]:bg-emerald-50/20 data-[state=checked]:ring-1 data-[state=checked]:ring-emerald-600">
+                        <FormItem className="flex items-start space-x-3 space-y-0 rounded-lg border border-border p-4 transition-colors hover:border-emerald-600/60 hover:bg-emerald-50/10 data-[state=checked]:border-emerald-600 data-[state=checked]:bg-emerald-50/20 data-[state=checked]:ring-1 data-[state=checked]:ring-emerald-600 cursor-pointer">
                           <FormControl className="mt-1">
                             <RadioGroupItem value="SSLCOMMERZ" />
                           </FormControl>
-                          <div className="flex flex-1 flex-col sm:flex-row sm:items-center justify-between gap-2">
+                          <div className="flex flex-1 flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer">
                             <div>
-                              <FormLabel className="cursor-pointer font-medium flex items-center gap-2 text-sm text-gray-900">
+                              <FormLabel className="cursor-pointer font-medium flex items-center gap-2 text-sm text-foreground">
                                 <CreditCard className="h-4 w-4 text-emerald-600" />
                                 <span>Cards / Mobile Banking (SSLCommerz Gateway)</span>
                               </FormLabel>
@@ -660,17 +660,16 @@ export function CheckoutForm({
                                 Visa, MasterCard, bKash, Nagad, Rocket, Net Banking
                               </p>
                             </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200">
+                            <div className="flex flex-wrap items-center gap-1.5 shrink-0">
+                              <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300/50">
                                 Instant Auto-Pay
                               </span>
-                              <Image
-                                src="https://securepay.sslcommerz.com/public/image/SSLCommerz-Pay-With-logo-All-Size-03.png"
-                                alt="SSLCommerz"
-                                width={130}
-                                height={20}
-                                className="h-4 w-auto object-contain hidden md:inline-block"
-                              />
+                              <div className="flex items-center gap-1">
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 dark:bg-blue-950/50 dark:text-blue-300 border border-blue-200/50">VISA</span>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300 border border-amber-200/50">Mastercard</span>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-pink-50 text-[#E2136E] dark:bg-pink-950/50 dark:text-pink-300 border border-pink-200/50">bKash</span>
+                                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-50 text-[#F7941D] dark:bg-orange-950/50 dark:text-orange-300 border border-orange-200/50">Nagad</span>
+                              </div>
                             </div>
                           </div>
                         </FormItem>

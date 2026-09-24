@@ -1,4 +1,5 @@
-import { createClient, createAdminClient } from "@/lib/supabase/server";
+import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 
 export interface SupportTicketRecord {
   id: string;
@@ -34,7 +35,7 @@ export interface TicketMessageRecord {
 export class SupportRepository {
   private static async getClient() {
     try {
-      return await createAdminClient();
+      return createAdminClient();
     } catch {
       return await createClient();
     }

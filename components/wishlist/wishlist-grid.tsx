@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ShoppingCart, Trash2, Heart } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useEffect } from "react";
+import { toast } from "sonner";
+import { useCartStore } from "@/stores/use-cart-store";
 
 export function WishlistGrid() {
   const { wishlist, fetchWishlist, removeItem, moveToCart, isLoading } =
@@ -15,6 +17,22 @@ export function WishlistGrid() {
   useEffect(() => {
     fetchWishlist();
   }, [fetchWishlist]);
+
+  const handleRemove = async (itemId: string) => {
+    await removeItem(itemId);
+    toast.success("Removed from wishlist");
+  };
+
+  const handleMoveToCart = async (itemId: string, productId: string) => {
+    const toastId = toast.loading("Moving to cart...");
+    try {
+      await moveToCart(itemId, productId);
+      await useCartStore.getState().fetchCart();
+      toast.success("Moved to shopping cart!", { id: toastId });
+    } catch {
+      toast.error("Failed to move to cart", { id: toastId });
+    }
+  };
 
   if (isLoading && (!wishlist || !wishlist.items)) {
     return (
@@ -73,7 +91,7 @@ export function WishlistGrid() {
                 className="object-cover transition-transform group-hover:scale-105"
               />
               <button
-                onClick={() => removeItem(item.id)}
+                onClick={() => handleRemove(item.id)}
                 className="absolute right-2 top-2 rounded-full bg-white/80 p-2 transition-colors hover:text-rose-500 dark:bg-black/50"
                 title="Remove from Wishlist"
               >
@@ -107,7 +125,7 @@ export function WishlistGrid() {
 
             <Button
               className="w-full bg-[#1A1A1A] hover:bg-black text-white text-xs font-bold uppercase tracking-widest"
-              onClick={() => moveToCart(item.id, item.product_id)}
+              onClick={() => handleMoveToCart(item.id, item.product_id)}
             >
               <ShoppingCart className="mr-2 h-4 w-4" />
               Move to Cart

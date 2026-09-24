@@ -50,21 +50,44 @@ export default async function ProductDetailPage({
     notFound();
   }
 
-  // 1. Fetch active flash sale for product if one exists
-  const flashSale = await FlashSaleService.getFlashSaleForProduct(product.id);
-
-  // 2. Fetch related products in the same category
-  let relatedProducts: any[] = [];
-  if (product.categories?.slug) {
-    const { data } = await CatalogService.getProducts({
-      category: product.categories.slug,
-      limit: 5,
-    });
-    relatedProducts = (data || []).filter((p: any) => p.id !== product.id);
+  // Normalize category & brand if returned as array
+  if (Array.isArray(product.categories)) {
+    product.categories = product.categories[0] || null;
+  }
+  if (Array.isArray(product.brands)) {
+    product.brands = product.brands[0] || null;
   }
 
-  // 3. Fetch real reviews from database
-  const reviews = await ReviewRepository.getReviewsByProductId(product.id);
+  // 1. Fetch active flash sale for product if one exists (safe fallback)
+  let flashSale: any = null;
+  try {
+    flashSale = await FlashSaleService.getFlashSaleForProduct(product.id);
+  } catch (err) {
+    console.warn("Could not fetch flash sale for product:", err);
+  }
+
+  // 2. Fetch related products in the same category (safe fallback)
+  let relatedProducts: any[] = [];
+  try {
+    const categorySlug = product.categories?.slug;
+    if (categorySlug) {
+      const { data } = await CatalogService.getProducts({
+        category: categorySlug,
+        limit: 5,
+      });
+      relatedProducts = (data || []).filter((p: any) => p.id !== product.id);
+    }
+  } catch (err) {
+    console.warn("Could not fetch related products:", err);
+  }
+
+  // 3. Fetch real reviews from database (safe fallback)
+  let reviews: any[] = [];
+  try {
+    reviews = await ReviewRepository.getReviewsByProductId(product.id);
+  } catch (err) {
+    console.warn("Could not fetch reviews:", err);
+  }
 
   // 4. Build JSON-LD structured metadata
   const isInStock = (product as any).is_in_stock ?? false;

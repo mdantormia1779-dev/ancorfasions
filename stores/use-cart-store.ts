@@ -55,6 +55,7 @@ export const useCartStore = create<CartState>()(
           set({ isSheetOpen: true });
         } else {
           set({ error: res.error, isLoading: false });
+          throw new Error(res.error || "Failed to add item to cart");
         }
       },
 

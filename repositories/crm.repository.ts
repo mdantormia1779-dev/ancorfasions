@@ -126,6 +126,12 @@ export class CRMRepository {
 
   async deleteLead(id: string): Promise<void> {
     const supabase = this.getAdminClient();
+    try {
+      await supabase.from("communication_logs").delete().eq("lead_id", id);
+    } catch {}
+    try {
+      await supabase.from("crm_notes").delete().eq("lead_id", id);
+    } catch {}
     const { error } = await supabase.from("crm_leads").delete().eq("id", id);
     if (error) throw new Error(error.message);
   }

@@ -54,25 +54,25 @@ export function ManualPaymentFields({
 
   if (method === "SSLCOMMERZ") {
     return (
-      <div className="rounded-xl border border-emerald-200 bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-white p-5 shadow-sm space-y-4 animate-in fade-in-50 duration-300">
+      <div className="rounded-xl border border-emerald-200 dark:border-emerald-800/50 bg-gradient-to-br from-emerald-50/70 via-teal-50/40 to-white dark:from-emerald-950/40 dark:via-slate-900 dark:to-card p-5 shadow-sm space-y-4 animate-in fade-in-50 duration-300">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-emerald-600 text-white shadow-sm">
               <ShieldCheck className="h-5 w-5" />
             </div>
             <div>
-              <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
+              <h4 className="text-sm font-semibold text-foreground flex items-center gap-2">
                 SSLCommerz Instant Payment
-                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[10px] font-semibold text-emerald-800">
+                <span className="inline-flex items-center gap-1 rounded-full bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 text-[10px] font-semibold border border-emerald-300/40">
                   <Check className="h-3 w-3" /> Auto Confirm
                 </span>
               </h4>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-muted-foreground">
                 সুরক্ষিত অনলাইন পেমেন্ট গেটওয়ে
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-1.5 rounded-md bg-white px-2 py-1 text-[11px] font-medium text-gray-600 border border-gray-200 shadow-2xs">
+          <div className="flex items-center gap-1.5 rounded-md bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground border border-border shadow-xs">
             <Lock className="h-3.5 w-3.5 text-emerald-600" />
             <span>256-bit SSL</span>
           </div>
@@ -80,41 +80,41 @@ export function ManualPaymentFields({
 
         {/* Channels Grid */}
         <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-gray-500">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
             সমর্থিত পেমেন্ট মাধ্যমসমূহ (Supported Channels):
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-            <div className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white p-2.5 shadow-2xs">
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-card p-2.5 shadow-xs">
               <CreditCard className="h-4 w-4 text-blue-600 shrink-0" />
               <div className="text-xs">
-                <p className="font-medium text-gray-800">Debit / Credit Card</p>
-                <p className="text-[10px] text-gray-500">Visa, Mastercard, Amex, Nexus</p>
+                <p className="font-medium text-foreground">Debit / Credit Card</p>
+                <p className="text-[10px] text-muted-foreground">Visa, Mastercard, Amex, Nexus</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white p-2.5 shadow-2xs">
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-card p-2.5 shadow-xs">
               <Smartphone className="h-4 w-4 text-pink-600 shrink-0" />
               <div className="text-xs">
-                <p className="font-medium text-gray-800">Mobile Banking</p>
-                <p className="text-[10px] text-gray-500">bKash, Nagad, Rocket, Upay</p>
+                <p className="font-medium text-foreground">Mobile Banking</p>
+                <p className="text-[10px] text-muted-foreground">bKash, Nagad, Rocket, Upay</p>
               </div>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border border-gray-100 bg-white p-2.5 shadow-2xs">
-              <Landmark className="h-4 w-4 text-emerald-700 shrink-0" />
+            <div className="flex items-center gap-2 rounded-lg border border-border bg-card p-2.5 shadow-xs">
+              <Landmark className="h-4 w-4 text-emerald-700 dark:text-emerald-400 shrink-0" />
               <div className="text-xs">
-                <p className="font-medium text-gray-800">Internet Banking</p>
-                <p className="text-[10px] text-gray-500">City Touch, EBL, IBBL, Bank Asia</p>
+                <p className="font-medium text-foreground">Internet Banking</p>
+                <p className="text-[10px] text-muted-foreground">City Touch, EBL, IBBL, Bank Asia</p>
               </div>
             </div>
           </div>
         </div>
 
         {/* Instructions */}
-        <div className="rounded-lg bg-emerald-100/50 border border-emerald-200/60 p-3 text-xs text-emerald-950 space-y-1">
-          <p className="font-medium flex items-center gap-1.5 text-emerald-900">
-            <Info className="h-3.5 w-3.5 text-emerald-700" />
+        <div className="rounded-lg bg-emerald-100/60 dark:bg-emerald-950/40 border border-emerald-200/80 dark:border-emerald-800/40 p-3 text-xs text-foreground space-y-1">
+          <p className="font-medium flex items-center gap-1.5 text-emerald-900 dark:text-emerald-300">
+            <Info className="h-3.5 w-3.5 text-emerald-700 dark:text-emerald-400" />
             পেমেন্ট নির্দেশিকা:
           </p>
-          <ul className="list-disc pl-4 space-y-0.5 text-emerald-900/90 text-[11px] leading-relaxed">
+          <ul className="list-disc pl-4 space-y-0.5 text-emerald-950 dark:text-emerald-200 text-[11px] leading-relaxed">
             <li>নিচের <strong>&quot;Complete Order&quot;</strong> বাটনে ক্লিক করলেই নিরাপদ SSLCommerz পোর্টালে নিয়ে যাওয়া হবে।</li>
             <li>সেখানে আপনার কার্ড অথবা বিকাশ/নগদ সিলেক্ট করে পিন ও ওটিপি দিয়ে পেমেন্ট করুন।</li>
             <li>পেমেন্ট শেষ হওয়ামাত্র স্বয়ংক্রিয়ভাবে আপনার অর্ডারটি কনফার্ম হয়ে যাবে (কোনো ট্রানজ্যাকশন আইডি কপি-পেস্টের প্রয়োজন নেই)।</li>

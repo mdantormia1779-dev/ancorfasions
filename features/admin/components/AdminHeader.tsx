@@ -179,24 +179,34 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
   // ── Data fetching ──────────────────────────────────────────────────────────
   const fetchNotifications = useCallback(async () => {
     setNotifLoading(true);
-    await seedInitialNotificationsIfEmptyAction();
-    const result = await getAdminHeaderNotificationsAction();
-    if (!result.error) {
-      setNotifications(result.data);
-      setNotifUnread(result.unreadCount);
+    try {
+      await seedInitialNotificationsIfEmptyAction();
+      const result = await getAdminHeaderNotificationsAction();
+      if (!result.error) {
+        setNotifications(result.data);
+        setNotifUnread(result.unreadCount);
+      }
+    } catch (e) {
+      console.warn("Error fetching admin notifications:", e);
+    } finally {
+      setNotifLoading(false);
     }
-    setNotifLoading(false);
   }, []);
 
   const fetchMessages = useCallback(async () => {
     setMsgLoading(true);
-    await seedInitialMessagesIfEmptyAction();
-    const result = await getAdminHeaderMessagesAction();
-    if (!result.error) {
-      setMessages(result.data);
-      setMsgUnread(result.unreadCount);
+    try {
+      await seedInitialMessagesIfEmptyAction();
+      const result = await getAdminHeaderMessagesAction();
+      if (!result.error) {
+        setMessages(result.data);
+        setMsgUnread(result.unreadCount);
+      }
+    } catch (e) {
+      console.warn("Error fetching admin messages:", e);
+    } finally {
+      setMsgLoading(false);
     }
-    setMsgLoading(false);
   }, []);
 
   useEffect(() => {

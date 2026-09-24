@@ -14,10 +14,13 @@ export class WishlistRepository {
         "*, items:wishlist_items(*, product:products(id, name, slug, base_price, compare_at_price, product_media(url, is_primary)))"
       )
       .eq("user_id", userId)
-      .single();
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
 
-    if (error && error.code !== "PGRST116") {
-      throw new Error(`Failed to fetch wishlist: ${error.message}`);
+    if (error) {
+      console.error(`Failed to fetch wishlist for ${userId}:`, error.message);
+      return null;
     }
 
     return data as Wishlist | null;
@@ -28,6 +31,19 @@ export class WishlistRepository {
    */
   static async createWishlist(userId: string): Promise<Wishlist> {
     const supabase = await createAdminClient();
+
+    // Check if user already has a wishlist
+    const { data: existing } = await supabase
+      .from("wishlists")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (existing) {
+      return { ...existing, items: [] } as Wishlist;
+    }
 
     const { data, error } = await supabase
       .from("wishlists")
@@ -59,7 +75,7 @@ export class WishlistRepository {
       .eq("wishlist_id", wishlistId)
       .eq("product_id", productId);
 
-    const { data: existing } = await query.single();
+    const { data: existing } = await query.maybeSingle();
 
     if (existing) {
       return; // Already in wishlist

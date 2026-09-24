@@ -535,6 +535,15 @@ export function LeadsClient({ initialLeads }: LeadsClientProps) {
                                   Edit Lead
                                 </DropdownMenuItem>
 
+                                {lead.phone && (
+                                  <DropdownMenuItem asChild className="gap-2 text-emerald-600 focus:text-emerald-600">
+                                    <a href={`tel:${lead.phone}`}>
+                                      <Phone className="h-4 w-4" />
+                                      Call Lead ({lead.phone})
+                                    </a>
+                                  </DropdownMenuItem>
+                                )}
+
                                 {lead.status !== "converted" && (
                                   <DropdownMenuItem
                                     onClick={() => handleConvert(lead)}

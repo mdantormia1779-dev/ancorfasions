@@ -87,8 +87,8 @@ export async function deleteNavigation(id: string): Promise<void> {
 // Media
 export async function getMedia(): Promise<CMSMediaItem[]> {
   try {
-    const { createAdminClient } = await import("@/lib/supabase/server");
-    const supabase = await createAdminClient();
+    const { createAdminClient } = await import("@/lib/supabase/admin-client");
+    const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("cms_media")
       .select("*")
@@ -114,8 +114,9 @@ export async function uploadMedia(formData: FormData) {
     throw new Error("No valid files uploaded");
   }
 
-  const { createAdminClient, createClient } = await import("@/lib/supabase/server");
-  const adminSupabase = await createAdminClient();
+  const { createAdminClient } = await import("@/lib/supabase/admin-client");
+  const { createClient } = await import("@/lib/supabase/server");
+  const adminSupabase = createAdminClient();
 
   // Safely get logged-in user without breaking if session is absent
   let userId: string | null = null;
@@ -183,8 +184,8 @@ export async function uploadMedia(formData: FormData) {
 
 export async function deleteMedia(id: string, fileUrl?: string) {
   try {
-    const { createAdminClient } = await import("@/lib/supabase/server");
-    const supabase = await createAdminClient();
+    const { createAdminClient } = await import("@/lib/supabase/admin-client");
+    const supabase = createAdminClient();
 
     // Remove from storage bucket if fileUrl is provided
     if (fileUrl) {
@@ -213,8 +214,8 @@ export async function deleteMedia(id: string, fileUrl?: string) {
 
 export async function seedSampleMedia() {
   try {
-    const { createAdminClient } = await import("@/lib/supabase/server");
-    const supabase = await createAdminClient();
+    const { createAdminClient } = await import("@/lib/supabase/admin-client");
+    const supabase = createAdminClient();
 
     const sampleAssets = [
       {

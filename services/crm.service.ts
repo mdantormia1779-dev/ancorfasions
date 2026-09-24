@@ -49,22 +49,40 @@ export class CRMService {
       throw new Error(`A lead with email "${validData.email}" already exists.`);
     }
 
-    const { notes, ...leadFields } = validData;
+    const { notes, custom_fields, assigned_agent_id, ...rest } = validData as any;
+    const leadFields: Record<string, any> = {
+      first_name: rest.first_name,
+      last_name: rest.last_name || null,
+      email: rest.email.trim().toLowerCase(),
+      phone: rest.phone || null,
+      company_name: rest.company_name || null,
+      source: rest.source || "Direct",
+      status: rest.status || "new",
+      score: rest.score ?? 0,
+      assigned_to: assigned_agent_id || null,
+      notes: notes?.trim() || null,
+    };
+
     const lead = await crmRepository.createLead(leadFields);
-
-    if (notes && notes.trim() && lead?.id) {
-      await crmRepository.createNote({
-        lead_id: lead.id,
-        content: notes.trim(),
-      });
-    }
-
     return lead;
   }
 
   async updateLead(id: string, data: unknown): Promise<CRMLead> {
     const validData = updateCRMLeadSchema.parse(data);
-    return await crmRepository.updateLead(id, validData);
+    const { notes, custom_fields, assigned_agent_id, ...rest } = validData as any;
+    const updateFields: Record<string, any> = {};
+    if (rest.first_name !== undefined) updateFields.first_name = rest.first_name;
+    if (rest.last_name !== undefined) updateFields.last_name = rest.last_name || null;
+    if (rest.email !== undefined) updateFields.email = rest.email.trim().toLowerCase();
+    if (rest.phone !== undefined) updateFields.phone = rest.phone || null;
+    if (rest.company_name !== undefined) updateFields.company_name = rest.company_name || null;
+    if (rest.source !== undefined) updateFields.source = rest.source;
+    if (rest.status !== undefined) updateFields.status = rest.status;
+    if (rest.score !== undefined) updateFields.score = rest.score;
+    if (assigned_agent_id !== undefined) updateFields.assigned_to = assigned_agent_id || null;
+    if (notes !== undefined) updateFields.notes = notes || null;
+
+    return await crmRepository.updateLead(id, updateFields);
   }
 
   async convertLead(id: string, profileId?: string): Promise<CRMLead> {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -85,6 +85,14 @@ export function AddTaskDialog({ onTaskCreated, trigger }: AddTaskDialogProps) {
       assigned_to: "",
     },
   });
+
+  useEffect(() => {
+    fetchStaffMembersAction().then((res) => {
+      if (res.success && res.data && res.data.length > 0) {
+        setStaff(res.data);
+      }
+    });
+  }, []);
 
   const handleOpenChange = async (val: boolean) => {
     setOpen(val);
@@ -284,29 +292,37 @@ export function AddTaskDialog({ onTaskCreated, trigger }: AddTaskDialogProps) {
                     <FormLabel>
                       Assignee <span className="text-destructive">*</span>
                     </FormLabel>
-                    <FormControl>
-                      <div>
-                        <Input
-                          list="staff-options"
-                          placeholder="e.g. Operations Team, John Doe"
-                          {...field}
+                    <Select onValueChange={field.onChange} value={field.value || undefined}>
+                      <FormControl>
+                        <SelectTrigger
                           className={
                             form.formState.errors.assigned_to
                               ? "border-destructive focus-visible:ring-destructive"
                               : ""
                           }
-                        />
-                        {staff.length > 0 && (
-                          <datalist id="staff-options">
-                            {staff.map((s) => (
-                              <option key={s.id} value={s.name}>
-                                {s.role}
-                              </option>
-                            ))}
-                          </datalist>
+                        >
+                          <SelectValue placeholder="Select staff member" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {staff.length > 0 ? (
+                          staff.map((s) => (
+                            <SelectItem key={s.id} value={s.id}>
+                              <div className="flex items-center justify-between gap-3 w-full">
+                                <span>{s.name}</span>
+                                <span className="text-[10px] text-muted-foreground uppercase px-1.5 py-0.5 rounded bg-muted">
+                                  {s.role}
+                                </span>
+                              </div>
+                            </SelectItem>
+                          ))
+                        ) : (
+                          <SelectItem value="unassigned" disabled>
+                            Loading team members...
+                          </SelectItem>
                         )}
-                      </div>
-                    </FormControl>
+                      </SelectContent>
+                    </Select>
                     <FormMessage className="text-xs text-destructive font-medium" />
                   </FormItem>
                 )}

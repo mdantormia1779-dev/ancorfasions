@@ -209,14 +209,14 @@ export function CampaignBuilderClient({ backHref = "/manager/marketing" }: Campa
       if (targetSegment === "vip") {
         setSubject(`🌟 Exclusive VIP Preview: ${nameRef} is here!`);
         setEmailBody(
-          `<h2>Dear Preferred Member,</h2>\n<p>As one of Anchor Fashion's most valued patrons, you receive <strong>24-hour early access</strong> to the <em>${nameRef}</em>.</p>\n<p>Hand-crafted textiles, tailored silhouettes, and timeless luxury await you.</p>\n<p><a href="https://anchorfashion.com.bd/catalog?vip=true" style="display:inline-block;padding:12px 24px;background:#0f172a;color:#fff;text-decoration:none;border-radius:6px;">Enter VIP Showroom</a></p>`
+          `<h2>Dear Preferred Member,</h2>\n<p>As one of Anchor Fashion's most valued patrons, you receive <strong>24-hour early access</strong> to the <em>${nameRef}</em>.</p>\n<p>Hand-crafted textiles, tailored silhouettes, and timeless luxury await you.</p>\n<p><a href="/products?vip=true" style="display:inline-block;padding:12px 24px;background:#0f172a;color:#fff;text-decoration:none;border-radius:6px;">Enter VIP Showroom</a></p>`
         );
         setPushTitle(`✨ VIP Early Access Live!`);
         setPushMessage(`Shop the ${nameRef} 24 hours before public release.`);
       } else {
         setSubject(`Discover the New ${nameRef} | Anchor Fashion`);
         setEmailBody(
-          `<h2>Elevate Your Wardrobe</h2>\n<p>We are thrilled to unveil our latest collection: <strong>${nameRef}</strong>.</p>\n<p>Featuring lightweight breathable fabrics, contemporary cuts, and sustainable craftmanship.</p>\n<p><a href="https://anchorfashion.com.bd/catalog" style="display:inline-block;padding:12px 24px;background:#0f172a;color:#fff;text-decoration:none;border-radius:6px;">Explore New Arrivals</a></p>`
+          `<h2>Elevate Your Wardrobe</h2>\n<p>We are thrilled to unveil our latest collection: <strong>${nameRef}</strong>.</p>\n<p>Featuring lightweight breathable fabrics, contemporary cuts, and sustainable craftmanship.</p>\n<p><a href="/products" style="display:inline-block;padding:12px 24px;background:#0f172a;color:#fff;text-decoration:none;border-radius:6px;">Explore New Arrivals</a></p>`
         );
         setPushTitle(`${nameRef} is Now Live!`);
         setPushMessage(

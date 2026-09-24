@@ -38,7 +38,7 @@ export async function getAdminHeaderMessagesAction(): Promise<{
       .select(
         `
         *,
-        profile:customer_profiles(first_name, last_name)
+        profile:profiles(first_name, last_name)
       `
       )
       .eq("direction", "INBOUND")

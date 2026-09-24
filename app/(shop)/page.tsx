@@ -13,8 +13,6 @@ import { ExploreCollections } from "@/components/home/explore-collections";
 import { FeaturedProducts } from "@/components/home/featured-products";
 import { WhyChooseUs } from "@/components/home/why-choose-us";
 import { BrandedCollection } from "@/components/home/branded-collection";
-import { SocialFeed } from "@/components/home/social-feed";
-import { NewsletterSection } from "@/components/home/newsletter-section";
 import { PromoBanner } from "@/components/home/promo-banner";
 import { TrendingProducts } from "@/components/home/trending-products";
 import { Testimonials } from "@/components/home/testimonials";
@@ -185,16 +183,6 @@ export default async function HomePage() {
           <TrustBar />
         </FadeIn>
       </div>
-
-      {/* 13. Social Feed */}
-      <FadeIn>
-        <SocialFeed />
-      </FadeIn>
-
-      {/* 14. Newsletter */}
-      <FadeIn direction="none">
-        <NewsletterSection />
-      </FadeIn>
     </div>
   );
 }

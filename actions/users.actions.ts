@@ -361,15 +361,17 @@ export async function updateUserPasswordAction(
       }
       targetUserId = user.id;
 
-      const { error: updateError } = await adminClient.auth.admin.updateUserById(targetUserId, {
+      // Try updating via the user session client first so auth session cookies are updated and not revoked
+      const { error: sessionUpdateErr } = await supabase.auth.updateUser({
         password: newPassword.trim(),
       });
 
-      if (updateError) {
-        const { error: sessionUpdateErr } = await supabase.auth.updateUser({
+      if (sessionUpdateErr) {
+        // Fallback to admin client if session client fails
+        const { error: updateError } = await adminClient.auth.admin.updateUserById(targetUserId, {
           password: newPassword.trim(),
         });
-        if (sessionUpdateErr) throw sessionUpdateErr;
+        if (updateError) throw updateError;
       }
     } else {
       // Admin updating a user's password directly

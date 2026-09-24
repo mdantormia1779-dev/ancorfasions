@@ -228,6 +228,9 @@ export class BlogRepository {
 
   async deletePost(id: string): Promise<void> {
     const admin = createAdminClient();
+    try {
+      await admin.from("blog_post_tags").delete().eq("post_id", id);
+    } catch {}
     const { error } = await admin.from("blog_posts").delete().eq("id", id);
     if (error) throw new Error(error.message);
   }

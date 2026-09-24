@@ -10,11 +10,27 @@ import { cn, formatCurrency } from "@/lib/utils";
 export function CouponsClient({ coupons }: { coupons: any[] }) {
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const handleCopy = (code: string, id: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedId(id);
-    toast.success("Coupon code copied!");
-    setTimeout(() => setCopiedId(null), 2000);
+  const handleCopy = async (code: string, id: string) => {
+    try {
+      if (navigator?.clipboard?.writeText) {
+        await navigator.clipboard.writeText(code);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = code;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-999999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        textArea.remove();
+      }
+      setCopiedId(id);
+      toast.success(`Coupon code ${code} copied to clipboard!`);
+      setTimeout(() => setCopiedId(null), 2500);
+    } catch {
+      toast.error("Failed to copy code. Please copy manually: " + code);
+    }
   };
 
   const available = coupons.filter(c => c.type === "Available" && !c.recommended);
@@ -79,54 +95,84 @@ export function CouponsClient({ coupons }: { coupons: any[] }) {
 }
 
 function CouponCard({ coupon, copiedId, onCopy, isPremium, isUsed }: any) {
+  const isCopied = copiedId === coupon.id;
+
   return (
     <Card
       className={cn(
-        "relative overflow-hidden transition-all duration-300",
-        isUsed ? "opacity-60 bg-gray-50 border-gray-100 grayscale-[0.5]" : "border-gray-200 shadow-sm",
-        isPremium ? "border-[#C9A86A]/30 bg-gradient-to-br from-white to-[#C9A86A]/5" : ""
+        "relative overflow-hidden transition-all duration-300 bg-card border",
+        isUsed
+          ? "opacity-60 bg-muted/30 border-muted grayscale-[0.5]"
+          : "border-border shadow-sm hover:shadow-md",
+        isPremium ? "border-[#C9A86A]/40 bg-gradient-to-br from-card via-card to-[#C9A86A]/10" : ""
       )}
     >
-      <div className="absolute top-0 left-0 bottom-0 w-2 bg-gradient-to-b from-[#1A1A1A] to-[#2D2D2D] opacity-10" />
-      {isPremium && <div className="absolute top-0 left-0 bottom-0 w-2 bg-gradient-to-b from-[#C9A86A] to-[#B08D55]" />}
-      
-      <CardHeader className="pb-4 pl-6 border-b border-dashed border-gray-200">
-        <div className="flex items-start justify-between">
+      <div className="absolute top-0 left-0 bottom-0 w-2 bg-gradient-to-b from-[#1A1A1A] to-[#2D2D2D] opacity-20" />
+      {isPremium && (
+        <div className="absolute top-0 left-0 bottom-0 w-2 bg-gradient-to-b from-[#C9A86A] to-[#B08D55]" />
+      )}
+
+      <CardHeader className="pb-4 pl-6 border-b border-dashed border-border/60">
+        <div className="flex items-start justify-between gap-3">
           <div>
-            <CardTitle className={cn("text-2xl font-light tracking-tight", isPremium ? "text-[#C9A86A]" : "text-[#1A1A1A]")}>
+            <CardTitle
+              className={cn(
+                "text-2xl font-light tracking-tight",
+                isPremium ? "text-[#C9A86A] dark:text-[#E5CA92]" : "text-foreground"
+              )}
+            >
               {coupon.discount}
             </CardTitle>
-            <p className="mt-1 text-sm font-medium text-gray-600">
+            <p className="mt-1 text-sm font-medium text-muted-foreground">
               {coupon.description}
             </p>
           </div>
-          <Ticket className={cn("h-6 w-6", isPremium ? "text-[#C9A86A]" : "text-gray-300")} />
+          <div
+            className={cn(
+              "rounded-full p-2.5",
+              isPremium ? "bg-[#C9A86A]/10 text-[#C9A86A]" : "bg-muted text-muted-foreground"
+            )}
+          >
+            <Ticket className="h-5 w-5" />
+          </div>
         </div>
       </CardHeader>
-      
-      <CardContent className="flex items-center justify-between pt-4 pl-6 bg-white/50">
+
+      <CardContent className="flex flex-wrap sm:flex-nowrap items-center justify-between gap-4 pt-4 pl-6 bg-muted/20">
         <div>
-          <div className="inline-block bg-gray-100 px-3 py-1 rounded border border-gray-200">
-            <span className="font-mono font-bold tracking-widest text-sm text-[#1A1A1A]">
+          <div className="inline-block bg-background px-3 py-1.5 rounded-md border border-border shadow-xs">
+            <span className="font-mono font-bold tracking-widest text-sm text-foreground">
               {coupon.code}
             </span>
           </div>
-          <p className="mt-2 text-[11px] uppercase tracking-widest font-semibold text-gray-400">
+          <p className="mt-2 text-[11px] uppercase tracking-widest font-semibold text-muted-foreground">
             {coupon.expiry}
           </p>
         </div>
-        
+
         {!isUsed && (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="h-10 px-4 border-gray-200 text-[#1A1A1A] hover:bg-gray-50 font-semibold uppercase tracking-widest text-xs"
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className={cn(
+              "h-10 px-4 shrink-0 font-semibold uppercase tracking-wider text-xs transition-all duration-200",
+              isCopied
+                ? "bg-[#C9A86A] text-white border-[#C9A86A] hover:bg-[#B08D55]"
+                : "border-border text-foreground hover:bg-[#C9A86A]/10 hover:text-[#C9A86A] hover:border-[#C9A86A]/50"
+            )}
             onClick={() => onCopy(coupon.code, coupon.id)}
           >
-            {copiedId === coupon.id ? (
-              <><CheckCircle2 className="h-4 w-4 mr-2 text-[#C9A86A]" /> Copied</>
+            {isCopied ? (
+              <>
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+                Copied!
+              </>
             ) : (
-              <><Copy className="h-4 w-4 mr-2" /> Copy Code</>
+              <>
+                <Copy className="h-4 w-4 mr-2" />
+                Copy Code
+              </>
             )}
           </Button>
         )}
