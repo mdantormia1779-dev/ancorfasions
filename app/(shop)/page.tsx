@@ -8,7 +8,6 @@ import {
 } from "@/lib/cache/catalog-cache";
 import { HomeHero } from "@/components/home/home-hero";
 import { CategoryHighlight } from "@/components/home/category-highlight";
-import { PremiumShades } from "@/components/home/premium-shades";
 import { FeaturesBar } from "@/components/home/features-bar";
 import { ExploreCollections } from "@/components/home/explore-collections";
 import { FeaturedProducts } from "@/components/home/featured-products";
@@ -20,7 +19,6 @@ import { PromoBanner } from "@/components/home/promo-banner";
 import { TrendingProducts } from "@/components/home/trending-products";
 import { Testimonials } from "@/components/home/testimonials";
 import { TrustBar } from "@/components/home/trust-bar";
-import { TrustStrip } from "@/components/home/trust-strip";
 import { RecentlyViewedHome } from "@/components/home/recently-viewed-home";
 import { PersonalizedSection } from "@/components/home/personalized-section";
 import { LatestBlogs } from "@/components/home/latest-blogs";
@@ -74,15 +72,12 @@ export default async function HomePage() {
       {/* 1. Immersive Hero Banner */}
       <HomeHero slides={heroSlides} />
 
-      {/* 2. Trust Strip (Premium E-commerce) */}
-      <TrustStrip />
-
-      {/* 3. Features Bar */}
+      {/* 2. Features Bar (Service Guarantees) */}
       <FadeIn delay={0.1} direction="none">
         <FeaturesBar />
       </FadeIn>
 
-      {/* 3.5 Flash Deals Banner (Dynamic) */}
+      {/* 2.5 Flash Deals Banner (Dynamic) */}
       {activeFlashSales && activeFlashSales.length > 0 && (
         <FadeIn delay={0.15} direction="up">
           <div className="bg-red-600 text-white py-4 px-4 text-center shadow-lg relative z-20">
@@ -95,14 +90,9 @@ export default async function HomePage() {
         </FadeIn>
       )}
 
-      {/* 3. Category Highlight Grid */}
+      {/* 3. Editorial Category Highlight Masonry */}
       <FadeIn delay={0.2} direction="up">
         <CategoryHighlight />
-      </FadeIn>
-
-      {/* 4. Premium Category Shades */}
-      <FadeIn direction="up">
-        <PremiumShades />
       </FadeIn>
 
       <div className="space-y-10 py-6 md:space-y-16 md:py-12 lg:space-y-20 lg:py-16">

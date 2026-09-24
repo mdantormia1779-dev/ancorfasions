@@ -8,7 +8,7 @@ import {
   ReactNode,
 } from "react";
 import { User } from "@supabase/supabase-js";
-import { createClient } from "@/lib/supabase/browser";
+import { createClient } from "@/lib/supabase/client";
 import { Role } from "@/lib/rbac/matrix";
 
 interface SessionContextType {
@@ -38,27 +38,32 @@ export function SessionProvider({
   const supabase = createClient();
 
   useEffect(() => {
-    if (initialUser) return;
+    let isMounted = true;
 
     const fetchSession = async () => {
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession();
+        if (!isMounted) return;
+
         if (session?.user) {
           setUser(session.user);
-          // Extract role from app_metadata or default to Customer
           const userRole =
-            (session.user.app_metadata?.role as Role) || "Customer";
+            (session.user.user_metadata?.role as Role) ||
+            (session.user.app_metadata?.role as Role) ||
+            "Customer";
           setRole(userRole);
-        } else {
+        } else if (!initialUser) {
           setUser(null);
           setRole(null);
         }
       } catch (error) {
         console.error("Error fetching session:", error);
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
@@ -67,9 +72,14 @@ export function SessionProvider({
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
       if (session?.user) {
         setUser(session.user);
-        setRole((session.user.app_metadata?.role as Role) || "Customer");
+        const userRole =
+          (session.user.user_metadata?.role as Role) ||
+          (session.user.app_metadata?.role as Role) ||
+          "Customer";
+        setRole(userRole);
       } else {
         setUser(null);
         setRole(null);
@@ -78,9 +88,10 @@ export function SessionProvider({
     });
 
     return () => {
+      isMounted = false;
       subscription.unsubscribe();
     };
-  }, [supabase.auth, initialUser]);
+  }, [supabase, initialUser]);
 
   return (
     <SessionContext.Provider value={{ user, role, isLoading }}>

@@ -1,21 +1,14 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
-import {
-  ArrowRight,
-  Heart,
-  ChevronLeft,
-  ChevronRight,
-  ShoppingBag,
-  Zap,
-} from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
-import { useCallback, useState } from "react";
-import { useRouter } from "next/navigation";
-import { toast } from "sonner";
-import { formatCurrency } from "@/lib/utils";
+import { useCallback } from "react";
+import { ProductCard } from "@/components/product/product-card";
+import { Jost } from "next/font/google";
+
+const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
 interface Product {
   id: string;
@@ -25,35 +18,20 @@ interface Product {
   brands?: { name: string } | null;
   product_media?: { url: string; is_primary: boolean }[];
   average_rating?: number;
+  compare_at_price?: number;
+  discount?: number;
+  status?: string;
+  variants?: any[];
 }
 
 export function FeaturedProducts({ products }: { products: Product[] }) {
-  const router = useRouter();
-  const [wishlist, setWishlist] = useState<Set<string>>(new Set());
-
-  const toggleWishlist = (e: React.MouseEvent, productId: string, productName: string) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setWishlist((prev) => {
-      const next = new Set(prev);
-      if (next.has(productId)) {
-        next.delete(productId);
-        toast.success("Removed from Wishlist");
-      } else {
-        next.add(productId);
-        toast.success(`${productName} added to Wishlist! ❤️`);
-      }
-      return next;
-    });
-  };
-
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
       align: "start",
-      loop: true,
-      dragFree: false,
+      loop: false,
+      dragFree: true,
     },
-    [Autoplay({ delay: 4000, stopOnInteraction: true })]
+    [Autoplay({ delay: 5000, stopOnInteraction: true })]
   );
 
   const scrollPrev = useCallback(() => {
@@ -64,182 +42,88 @@ export function FeaturedProducts({ products }: { products: Product[] }) {
     if (emblaApi) emblaApi.scrollNext();
   }, [emblaApi]);
 
-  const placeholders = [
-    "https://images.unsplash.com/photo-1525507119028-ed4c629a60a3?w=500&q=80",
-    "https://images.unsplash.com/photo-1618932260643-eee4a2f652a6?w=500&q=80",
-    "https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=500&q=80",
-    "https://images.unsplash.com/photo-1554412933-514a83d2f3c8?w=500&q=80",
-    "https://images.unsplash.com/photo-1581044777550-4cfa60707c03?w=500&q=80",
-  ];
+  // Remove all fake / dummy products. Only render real products from database.
+  const displayProducts = products?.filter((p) => p && p.id && !p.id.startsWith("featured-") && !p.id.startsWith("dummy-")) || [];
 
-  const displayProducts = products && products.length > 0 ? products : [];
-  const dummyProducts: Product[] = Array.from({
-    length: Math.max(0, 8 - displayProducts.length),
-  }).map((_, i) => ({
-    id: `featured-${i}`,
-    name: "Trending Collection Item",
-    slug: "trending-item",
-    base_price: 4500,
-    brands: { name: "Anchor Fashion" },
-    average_rating: 5,
-  }));
-
-  const finalProducts = [...displayProducts, ...dummyProducts].slice(0, 8);
+  if (displayProducts.length === 0) {
+    return null;
+  }
 
   return (
-    <section className="bg-gray-50 py-16">
-      <div className="container px-4 md:px-6">
+    <section className="bg-zinc-50/60 py-16 md:py-24 border-y border-zinc-100">
+      <div className="container mx-auto px-4 md:px-6">
+        {/* Header */}
         <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
-          <div className="flex flex-col gap-2">
-            <span className="text-xs font-bold uppercase tracking-widest text-primary">
-              Top Picks
+          <div className="max-w-2xl">
+            <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#C9A86A] mb-2 block">
+              Curated Selection
             </span>
-            <h2 className="font-serif text-3xl text-gray-900 md:text-4xl">
-              Featured Products
+            <h2 className={`${jost.className} text-3xl font-light tracking-tight text-zinc-900 md:text-5xl`}>
+              Featured Pieces
             </h2>
+            <p className="mt-2 text-sm text-zinc-500 font-light">
+              Handpicked standout designs embodying modern sophistication and timeless elegance.
+            </p>
           </div>
 
           <div className="flex items-center gap-4">
             <Link
-              href="/products?sort=rating"
-              className="group mr-4 flex hidden items-center text-sm font-medium text-gray-900 transition-colors hover:text-primary md:flex"
+              href="/products?sort=newest"
+              className="group hidden items-center text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 transition-colors hover:text-[#C9A86A] md:flex"
             >
               View All Featured
               <ArrowRight
                 className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
-                strokeWidth={2.5}
+                strokeWidth={1.5}
               />
             </Link>
           </div>
         </div>
 
+        {/* Carousel */}
         <div className="group/carousel relative">
-          <div className="-mx-4 overflow-hidden px-4" ref={emblaRef}>
-            <div className="flex gap-6 py-2">
-              {finalProducts.map((product, index) => {
-                const primaryMedia =
-                  product.product_media?.find((m) => m.is_primary) ||
-                  product.product_media?.[0];
-                const secondaryMedia = product.product_media?.filter(
-                  (m) => !m.is_primary
-                )?.[0];
-
-                const imageUrl =
-                  primaryMedia?.url ||
-                  placeholders[index % placeholders.length];
-                const secondaryImageUrl =
-                  secondaryMedia?.url ||
-                  placeholders[(index + 1) % placeholders.length];
-                const brandName = product.brands?.name || "Unknown Brand";
-
-                return (
-                  <div
-                    key={product.id}
-                    className="group flex flex-[0_0_45%] cursor-pointer flex-col rounded-md bg-transparent transition-shadow sm:flex-[0_0_33%] md:flex-[0_0_25%] lg:flex-[0_0_20%]"
-                  >
-                    <div className="relative mb-4 aspect-[4/5] w-full overflow-hidden bg-[#F7F7F7] transition-all duration-500">
-                      <Link
-                        href={`/product/${product.slug}`}
-                        className="relative block h-full w-full"
-                      >
-                        <Image
-                          src={imageUrl}
-                          alt={product.name}
-                          fill
-                          sizes="(max-width: 640px) 45vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                          className="object-cover object-top opacity-100 transition-all duration-700 group-hover:scale-105 group-hover:opacity-0"
-                        />
-                        <Image
-                          src={secondaryImageUrl}
-                          alt={`${product.name} Alternate`}
-                          fill
-                          sizes="(max-width: 640px) 45vw, (max-width: 768px) 33vw, (max-width: 1024px) 25vw, 20vw"
-                          className="absolute inset-0 object-cover object-top opacity-0 transition-all duration-700 group-hover:scale-105 group-hover:opacity-100"
-                        />
-                      </Link>
-
-                      {/* Dual Icon Action Bar */}
-                      <div className="pointer-events-none absolute bottom-0 left-0 right-0 z-10 flex translate-y-full transition-transform duration-500 ease-out group-hover:pointer-events-auto group-hover:translate-y-0">
-                        <button
-                          onClick={(e) => { e.preventDefault(); toast.success(`${product.name} added to cart!`); }}
-                          className="flex flex-1 items-center justify-center gap-2 bg-black/90 py-3.5 text-white backdrop-blur-md transition-all duration-200 hover:bg-[#C9A86A]"
-                          title="Add to Cart"
-                        >
-                          <ShoppingBag className="h-4 w-4" strokeWidth={1.5} />
-                          <span className="text-[10px] font-semibold uppercase tracking-widest">Cart</span>
-                        </button>
-                        <div className="w-px bg-white/20" />
-                        <button
-                          onClick={(e) => { e.preventDefault(); router.push(`/product/${product.slug}`); }}
-                          className="flex flex-1 items-center justify-center gap-2 bg-black/90 py-3.5 text-white backdrop-blur-md transition-all duration-200 hover:bg-[#1A1A1A]"
-                          title="Order Now"
-                        >
-                          <Zap className="h-4 w-4" strokeWidth={1.5} />
-                          <span className="text-[10px] font-semibold uppercase tracking-widest">Buy</span>
-                        </button>
-                      </div>
-
-                      {/* Wishlist Heart */}
-                      <button
-                        onClick={(e) => toggleWishlist(e, product.id, product.name)}
-                        className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white/80 opacity-0 shadow-sm backdrop-blur-sm transition-all duration-300 hover:scale-110 group-hover:opacity-100"
-                      >
-                        <Heart
-                          className={`h-4 w-4 transition-colors duration-200 ${wishlist.has(product.id) ? 'fill-red-500 text-red-500' : 'text-gray-600'}`}
-                          strokeWidth={1.5}
-                        />
-                      </button>
-                    </div>
-
-                    <Link
-                      href={`/product/${product.slug}`}
-                      className="flex flex-1 flex-col text-center"
-                    >
-                      <span className="mb-1.5 text-[10px] font-semibold uppercase tracking-[0.2em] text-gray-400">
-                        {brandName}
-                      </span>
-                      <h3 className="mb-2 line-clamp-1 text-sm font-medium text-gray-900 transition-colors group-hover:text-black">
-                        {product.name}
-                      </h3>
-                      <div className="mt-auto flex items-center justify-center">
-                        <span className="text-sm font-medium text-gray-900">
-                          {formatCurrency(product.base_price)}
-                        </span>
-                      </div>
-                    </Link>
-                  </div>
-                );
-              })}
+          <div className="-mx-3 overflow-hidden px-3" ref={emblaRef}>
+            <div className="flex gap-4 sm:gap-6 py-2">
+              {displayProducts.map((product) => (
+                <div
+                  key={product.id}
+                  className="flex-[0_0_72%] sm:flex-[0_0_45%] md:flex-[0_0_30%] lg:flex-[0_0_25%] min-w-0"
+                >
+                  <ProductCard product={product} />
+                </div>
+              ))}
             </div>
           </div>
 
-          {/* Side Navigation Buttons */}
-          <button
-            onClick={scrollPrev}
-            className="absolute left-0 top-[40%] z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-gray-100 bg-white text-gray-600 opacity-0 shadow-lg transition-all hover:scale-110 hover:text-primary disabled:opacity-0 group-hover/carousel:opacity-100 md:-left-4"
-            aria-label="Previous slide"
-          >
-            <ChevronLeft className="h-6 w-6" strokeWidth={2} />
-          </button>
-          <button
-            onClick={scrollNext}
-            className="absolute right-0 top-[40%] z-10 flex h-12 w-12 -translate-y-1/2 items-center justify-center rounded-full border border-gray-100 bg-white text-gray-600 opacity-0 shadow-lg transition-all hover:scale-110 hover:text-primary disabled:opacity-0 group-hover/carousel:opacity-100 md:-right-4"
-            aria-label="Next slide"
-          >
-            <ChevronRight className="h-6 w-6" strokeWidth={2} />
-          </button>
+          {/* Navigation Controls */}
+          {displayProducts.length > 4 && (
+            <>
+              <button
+                onClick={scrollPrev}
+                className="absolute left-0 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-zinc-200 bg-white/90 text-zinc-800 opacity-0 shadow-lg backdrop-blur-md transition-all hover:bg-black hover:text-white group-hover/carousel:opacity-100 -translate-x-3 md:-translate-x-5"
+                aria-label="Previous slide"
+              >
+                <ChevronLeft className="h-5 w-5" strokeWidth={1.5} />
+              </button>
+              <button
+                onClick={scrollNext}
+                className="absolute right-0 top-1/2 z-30 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full border border-zinc-200 bg-white/90 text-zinc-800 opacity-0 shadow-lg backdrop-blur-md transition-all hover:bg-black hover:text-white group-hover/carousel:opacity-100 translate-x-3 md:translate-x-5"
+                aria-label="Next slide"
+              >
+                <ChevronRight className="h-5 w-5" strokeWidth={1.5} />
+              </button>
+            </>
+          )}
         </div>
 
+        {/* Mobile View All */}
         <div className="mt-8 flex justify-center md:hidden">
           <Link
-            href="/products?sort=rating"
-            className="group flex items-center text-sm font-medium text-gray-900 transition-colors hover:text-primary"
+            href="/products?sort=newest"
+            className="flex items-center text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 border-b border-black pb-1"
           >
             View All Featured
-            <ArrowRight
-              className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1"
-              strokeWidth={2.5}
-            />
+            <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
           </Link>
         </div>
       </div>

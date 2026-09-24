@@ -236,8 +236,7 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
       return;
     }
     toast.success("Logged out successfully.");
-    router.push("/auth/login");
-    router.refresh();
+    window.location.href = "/auth/login";
   }
 
   // ── Notification actions ───────────────────────────────────────────────────

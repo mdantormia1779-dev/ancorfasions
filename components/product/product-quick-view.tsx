@@ -14,6 +14,7 @@ import { formatCurrency } from "@/lib/utils";
 import { useCartStore } from "@/stores/use-cart-store";
 import { useWishlistStore } from "@/stores/use-wishlist-store";
 import { useSession } from "@/hooks/use-session";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import {
@@ -100,7 +101,14 @@ export function ProductQuickView({
     wishlist?.items?.some((item) => item.product_id === product.id) || false;
 
   const handleToggleWishlist = async () => {
-    if (!user) {
+    let currentUser = user;
+    if (!currentUser) {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      currentUser = data?.user ?? null;
+    }
+
+    if (!currentUser) {
       toast.info("Please sign in to save items to your wishlist.", {
         action: {
           label: "Sign In",
@@ -123,6 +131,28 @@ export function ProductQuickView({
   };
 
   const handleAddToCart = async () => {
+    let currentUser = user;
+    if (!currentUser) {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      currentUser = data?.user ?? null;
+    }
+
+    if (!currentUser) {
+      toast.info("Please log in to add items to your cart.", {
+        action: {
+          label: "Login",
+          onClick: () => {
+            onClose();
+            router.push(`/auth/login?next=${encodeURIComponent(`/product/${product.slug}`)}`);
+          },
+        },
+      });
+      onClose();
+      router.push(`/auth/login?next=${encodeURIComponent(`/product/${product.slug}`)}`);
+      return;
+    }
+
     // If sizes exist and none selected, remind user
     if (sizes.length > 0 && !selectedSize) {
       toast.error("Please select a size first");

@@ -3,6 +3,7 @@
 import { ThemeProvider } from "./ThemeProvider";
 import { ReactQueryProvider } from "./ReactQueryProvider";
 import { SupabaseProvider } from "./SupabaseProvider";
+import { SessionProvider } from "./session-provider";
 import { ToastProvider } from "./ToastProvider";
 
 export function GlobalProviders({ children }: { children: React.ReactNode }) {
@@ -13,12 +14,14 @@ export function GlobalProviders({ children }: { children: React.ReactNode }) {
       enableSystem
       disableTransitionOnChange
     >
-      <SupabaseProvider>
-        <ReactQueryProvider>
-          {children}
-          <ToastProvider />
-        </ReactQueryProvider>
-      </SupabaseProvider>
+      <SessionProvider>
+        <SupabaseProvider>
+          <ReactQueryProvider>
+            {children}
+            <ToastProvider />
+          </ReactQueryProvider>
+        </SupabaseProvider>
+      </SessionProvider>
     </ThemeProvider>
   );
 }

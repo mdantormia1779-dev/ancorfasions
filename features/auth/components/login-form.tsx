@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
@@ -20,8 +19,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { PasswordInput } from "@/components/ui/password-input";
-import { mergeGuestCartAction } from "@/lib/actions/cart.actions";
-import { useCartStore } from "@/stores/use-cart-store";
 import { syncUserAuthAction } from "@/actions/users.actions";
 
 const formSchema = z.object({
@@ -34,7 +31,6 @@ const formSchema = z.object({
 });
 
 export function LoginForm() {
-  const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const supabase = createClient();
@@ -100,14 +96,6 @@ export function LoginForm() {
 
     toast.success("Successfully logged in!");
 
-    // Merge guest cart if any (auto-merge will also trigger on subsequent page loads)
-    try {
-      await mergeGuestCartAction();
-      await useCartStore.getState().fetchCart();
-    } catch (err) {
-      console.debug("Non-critical cart merge deferred:", err);
-    }
-
     // Role-based redirect after login
     let role =
       data.user?.user_metadata?.role ||
@@ -140,21 +128,21 @@ export function LoginForm() {
     const params = new URLSearchParams(window.location.search);
     const next = params.get("next");
 
+    let targetPath = "/account/profile";
     if (next) {
-      router.push(next);
+      targetPath = next;
     } else if (ADMIN_ROLES.includes(role)) {
-      router.push("/admin");
+      targetPath = "/admin";
     } else if (MARKETING_ROLES.includes(role)) {
-      router.push("/admin/marketing");
+      targetPath = "/admin/marketing";
     } else if (MANAGER_ROLES.includes(role)) {
-      router.push("/manager");
+      targetPath = "/manager";
     } else if (STAFF_ROLES.includes(role)) {
-      router.push("/admin");
-    } else {
-      router.push("/account/profile");
+      targetPath = "/admin";
     }
 
-    router.refresh();
+    // Direct browser navigation guarantees fresh cookies in the HTTP request headers without RSC hydration delay
+    window.location.href = targetPath;
   }
 
   return (

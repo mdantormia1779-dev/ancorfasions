@@ -48,16 +48,18 @@ export function CategoryHighlight() {
   return (
     <section className="border-b border-gray-100 bg-white py-12 md:py-20">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="mb-10 flex flex-col items-end justify-between gap-4 md:flex-row">
+        <div className="mb-10 flex flex-col items-start justify-between gap-4 md:flex-row md:items-end">
           <div className="max-w-xl">
+            <span className="mb-2 block text-[10px] font-bold uppercase tracking-[0.3em] text-[#C9A86A]">
+              The Style Edit
+            </span>
             <h2
               className={`${jost.className} mb-3 text-3xl font-light tracking-tight text-[#1A1A1A] md:text-5xl`}
             >
-              New Arrivals
+              Curated Categories
             </h2>
-            <p className="text-sm tracking-wide text-gray-500">
-              Explore our most sought-after collections, designed for the modern
-              lifestyle.
+            <p className="text-sm font-light tracking-wide text-gray-500">
+              Explore our most sought-after silhouettes and luxury tailoring, designed for modern elegance.
             </p>
           </div>
           <Link

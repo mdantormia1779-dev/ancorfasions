@@ -11,10 +11,11 @@ import { FloatingPurchaseCard } from "@/components/product/floating-purchase-car
 import { ProductViewTracker } from "@/components/product/product-view-tracker";
 import { ProductReviews } from "@/components/product/product-reviews";
 import { ProductCard } from "@/components/product/product-card";
-import { Truck, RefreshCw, ShieldCheck, Ruler, Info, Zap } from "lucide-react";
+import { Truck, RefreshCw, ShieldCheck, Ruler, Info, Zap, Share2, Check, Flame, CreditCard } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
 import { Jost } from "next/font/google";
+import { toast } from "sonner";
 
 const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
@@ -58,6 +59,16 @@ export function ProductDetailView({
   );
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(null);
   const [selectedVariantLabel, setSelectedVariantLabel] = useState<string>("");
+  const [copied, setCopied] = useState<boolean>(false);
+
+  const handleShare = () => {
+    if (typeof window !== "undefined") {
+      navigator.clipboard.writeText(window.location.href);
+      setCopied(true);
+      toast.success("Product link copied to clipboard! ✨");
+      setTimeout(() => setCopied(false), 2500);
+    }
+  };
 
   // Callback when variant changes in ProductVariantSelector
   const handleVariantChange = useCallback(
@@ -160,31 +171,61 @@ export function ProductDetailView({
 
           {/* Right Column: Sticky Product Details & Variant Selection */}
           <div className="sticky top-20 flex flex-col lg:col-span-5">
-            {/* Header: Brand & Title */}
+            {/* Header: Brand & Title & Share */}
             <div className="border-b border-gray-100 pb-6">
-              {product.brands && (
-                <Link
-                  href={`/products?brand=${product.brands.slug}`}
-                  className="mb-2 block text-[10px] font-bold uppercase tracking-[0.3em] text-gray-500 hover:text-black transition-colors"
+              <div className="flex items-center justify-between mb-2">
+                {product.brands ? (
+                  <Link
+                    href={`/products?brand=${product.brands.slug}`}
+                    className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#C9A86A] hover:text-black transition-colors"
+                  >
+                    {product.brands.name}
+                  </Link>
+                ) : (
+                  <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#C9A86A]">
+                    Anchor Exclusive
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={handleShare}
+                  aria-label="Share product"
+                  className="flex items-center gap-1.5 text-xs text-gray-500 hover:text-black transition-colors"
                 >
-                  {product.brands.name}
-                </Link>
-              )}
+                  {copied ? (
+                    <>
+                      <Check className="h-3.5 w-3.5 text-emerald-600" />
+                      <span className="text-[11px] text-emerald-600 font-medium">Link Copied!</span>
+                    </>
+                  ) : (
+                    <>
+                      <Share2 className="h-3.5 w-3.5" />
+                      <span className="text-[11px] font-medium">Share</span>
+                    </>
+                  )}
+                </button>
+              </div>
+
               <h1
-                className={`${jost.className} mb-4 text-3xl font-light leading-[1.1] tracking-tight text-[#1A1A1A] md:text-4xl lg:text-5xl`}
+                className={`${jost.className} mb-4 text-3xl font-light capitalize leading-[1.15] tracking-tight text-[#1A1A1A] md:text-4xl lg:text-5xl`}
               >
                 {product.name}
               </h1>
 
               {/* Price & Stock Badge Display */}
-              <div className="mt-4 flex flex-wrap items-baseline gap-4">
+              <div className="mt-4 flex flex-wrap items-center gap-3.5">
                 <span className="text-3xl font-semibold tracking-tight text-[#1A1A1A]">
                   {formatCurrency(currentPrice)}
                 </span>
-                {comparePrice && (
-                  <span className="text-lg text-gray-400 line-through">
-                    {formatCurrency(comparePrice)}
-                  </span>
+                {comparePrice && comparePrice > currentPrice && (
+                  <>
+                    <span className="text-lg text-gray-400 line-through">
+                      {formatCurrency(comparePrice)}
+                    </span>
+                    <span className="rounded-full bg-rose-50 border border-rose-200/80 px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider text-rose-700">
+                      Save {Math.round(((comparePrice - currentPrice) / comparePrice) * 100)}%
+                    </span>
+                  </>
                 )}
                 {isFlashActive && (
                   <span className="inline-flex items-center gap-1 rounded bg-amber-500/10 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-amber-800">
@@ -195,15 +236,15 @@ export function ProductDetailView({
 
                 <div className="ml-auto">
                   {isOutOfStock ? (
-                    <span className="border border-zinc-300 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
+                    <span className="rounded-full border border-zinc-300 bg-zinc-50 px-3.5 py-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">
                       Out of Stock
                     </span>
                   ) : isLowStock ? (
-                    <span className="border border-amber-500 bg-amber-50/50 px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-amber-700">
-                      Low Stock ({currentStock} left)
+                    <span className="rounded-full border border-amber-500/80 bg-amber-50/80 px-3.5 py-1 text-[10px] font-bold uppercase tracking-widest text-amber-800 animate-pulse">
+                      Only {currentStock} Left
                     </span>
                   ) : (
-                    <span className="border border-[#1A1A1A] px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#1A1A1A]">
+                    <span className="rounded-full border border-emerald-600/40 bg-emerald-50/60 px-3.5 py-1 text-[10px] font-bold uppercase tracking-widest text-emerald-800">
                       In Stock
                     </span>
                   )}
@@ -217,7 +258,7 @@ export function ProductDetailView({
                     SKU: <strong className="text-gray-900">{currentSku}</strong>
                   </span>
                 )}
-                {averageRating > 0 && (
+                {averageRating > 0 ? (
                   <div className="flex items-center gap-1.5">
                     <div className="flex text-amber-400">
                       {Array.from({ length: 5 }).map((_, i) => (
@@ -239,7 +280,19 @@ export function ProductDetailView({
                       {averageRating.toFixed(1)} ({totalReviews})
                     </span>
                   </div>
+                ) : (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-gray-400">
+                    <span className="text-amber-400">★</span> New Arrival
+                  </span>
                 )}
+              </div>
+
+              {/* Live Interest Badge */}
+              <div className="mt-4 flex items-center gap-2 rounded-lg bg-orange-50/80 border border-orange-200/50 px-3 py-2 text-xs text-orange-950">
+                <Flame className="h-4 w-4 text-orange-600 animate-pulse shrink-0" />
+                <span>
+                  High demand piece: <strong>14 shoppers</strong> are viewing this right now.
+                </span>
               </div>
             </div>
 
@@ -335,6 +388,22 @@ export function ProductDetailView({
                   </div>
                 </div>
               </details>
+            </div>
+
+            {/* Delivery & Payment Guarantee Box */}
+            <div className="mt-6 rounded-xl border border-gray-100 bg-[#FAFAFA] p-4 text-xs space-y-2.5">
+              <div className="flex items-center gap-2.5 font-medium text-gray-900">
+                <Truck className="h-4 w-4 text-[#C9A86A] shrink-0" />
+                <span>Delivery: <strong>24–48 Hours</strong> (Dhaka) | <strong>3–5 Days</strong> (Nationwide)</span>
+              </div>
+              <div className="flex items-center gap-2.5 font-medium text-gray-900">
+                <CreditCard className="h-4 w-4 text-[#C9A86A] shrink-0" />
+                <span>Payment: <strong>Cash on Delivery (COD)</strong>, bKash, Nagad & Cards</span>
+              </div>
+              <div className="flex items-center gap-2.5 text-gray-600">
+                <RefreshCw className="h-4 w-4 text-gray-500 shrink-0" />
+                <span>7-Day Easy Exchange & 100% Authentic Quality Guaranteed</span>
+              </div>
             </div>
 
             {/* Trust Badges */}

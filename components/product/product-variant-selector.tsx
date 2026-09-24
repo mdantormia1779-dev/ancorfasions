@@ -429,6 +429,16 @@ export function ProductVariantSelector({
 
       {/* Dynamic Attribute Selectors (Color, Size, etc.) */}
       {attributeDimensions.map((dimension) => {
+        // Skip dummy single default attributes (e.g. Standard: Default)
+        const isDummyDefault =
+          dimension.values.length === 1 &&
+          (dimension.values[0].toLowerCase() === "default" ||
+            dimension.name.toLowerCase() === "standard");
+
+        if (isDummyDefault) {
+          return null;
+        }
+
         const isColorDim = dimension.name.toLowerCase() === "color";
         const selectedValue = selectedAttributes[dimension.name];
 

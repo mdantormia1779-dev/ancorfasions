@@ -78,8 +78,7 @@ export function ManagerHeader({ user }: { user?: any }) {
       return;
     }
     toast.success("Logged out successfully.");
-    router.push("/auth/login");
-    router.refresh();
+    window.location.href = "/auth/login";
   }
 
   function handleSearch(e: React.FormEvent) {

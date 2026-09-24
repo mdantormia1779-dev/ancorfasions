@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { ArrowRight, Sparkles } from "lucide-react";
+import Image from "next/image";
+import { ArrowRight, Sparkles, ArrowUpRight } from "lucide-react";
 import { Jost } from "next/font/google";
 import { Collection } from "@/types/catalog.types";
 
@@ -13,73 +14,79 @@ interface ExploreCollectionsProps {
 export function ExploreCollections({
   collections = [],
 }: ExploreCollectionsProps) {
-  const activeCollections = (collections || []).filter((c) => c.is_active);
+  // Filter out any test or malformed collections
+  const activeCollections = (collections || []).filter(
+    (c) =>
+      c.is_active &&
+      !c.name.toLowerCase().includes("done") &&
+      !c.name.toLowerCase().includes("test") &&
+      c.slug !== "collection"
+  );
 
-  // Fallback fashion placeholders if no collections exist yet
-  const placeholders = [
-    "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=800&q=80", // Men's
-    "https://images.unsplash.com/photo-1490578474895-699cd4e2cf59?w=800&q=80", // Women's
-    "https://images.unsplash.com/photo-1519689680058-324335c77eba?w=800&q=80", // Kids
-    "https://images.unsplash.com/photo-1509319117193-57bab727e09d?w=800&q=80", // Accessories
+  const fashionImagery = [
+    "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80", // Summer Elegance
+    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80", // Urban Minimalist
+    "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80", // Evening Luxe
+    "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80", // Casual Denim Edit
   ];
 
-  const fallbackItems = [
+  const defaultCollections = [
     {
-      id: "fb-1",
-      name: "Men's Edit",
-      slug: "mens",
-      banner_url: placeholders[0],
-      isFallback: true,
+      id: "col-1",
+      name: "Summer Elegance",
+      slug: "summer-elegance",
+      banner_url: fashionImagery[0],
+      description: "Breezy silhouettes and light fabrics crafted for warm days.",
     },
     {
-      id: "fb-2",
-      name: "Women's Luxe",
-      slug: "womens",
-      banner_url: placeholders[1],
-      isFallback: true,
+      id: "col-2",
+      name: "Urban Minimalist",
+      slug: "urban-minimalist",
+      banner_url: fashionImagery[1],
+      description: "Clean tailoring and modern monochrome essentials.",
     },
     {
-      id: "fb-3",
-      name: "Junior Styles",
-      slug: "kids",
-      banner_url: placeholders[2],
-      isFallback: true,
+      id: "col-3",
+      name: "Evening Luxe",
+      slug: "evening-luxe",
+      banner_url: fashionImagery[2],
+      description: "Rich textures and glamorous statement pieces.",
     },
     {
-      id: "fb-4",
-      name: "Statement Pieces",
-      slug: "accessories",
-      banner_url: placeholders[3],
-      isFallback: true,
+      id: "col-4",
+      name: "Casual Denim Edit",
+      slug: "casual-denim-edit",
+      banner_url: fashionImagery[3],
+      description: "Timeless denim cuts designed for everyday luxury.",
     },
   ];
 
   const displayItems =
-    activeCollections.length > 0 ? activeCollections : fallbackItems;
+    activeCollections.length > 0 ? activeCollections : defaultCollections;
 
   return (
     <section className="bg-white py-16 md:py-24">
-      <div className="container px-4 md:px-6">
-        <div className="mb-14 flex flex-col items-center gap-3 text-center md:mb-20">
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#C9A86A]/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-[#C9A86A]">
+      <div className="container mx-auto px-4 md:px-6">
+        <div className="mb-12 flex flex-col items-center gap-3 text-center md:mb-16">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[#C9A86A]/10 px-3.5 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-[#C9A86A]">
             <Sparkles className="h-3.5 w-3.5" />
             <span>Curated For You</span>
           </div>
           <h2
-            className={`${jost.className} max-w-2xl text-4xl font-light leading-tight tracking-tight text-[#1A1A1A] md:text-5xl lg:text-6xl`}
+            className={`${jost.className} max-w-2xl text-3xl font-light leading-tight tracking-tight text-zinc-900 md:text-5xl lg:text-6xl`}
           >
             Explore Collections.
           </h2>
-          <p className="max-w-md text-sm font-light text-gray-500">
+          <p className="max-w-md text-sm font-light text-zinc-500">
             Discover seasonal wardrobes, handpicked capsule lines, and trendsetting style edits.
           </p>
           <Link
             href="/collections"
-            className="group mt-3 flex items-center border-b border-black pb-1 text-xs font-bold uppercase tracking-[0.2em] text-[#1A1A1A] transition-colors hover:border-[#C9A86A] hover:text-[#C9A86A]"
+            className="group mt-2 flex items-center border-b border-black pb-1 text-xs font-bold uppercase tracking-[0.2em] text-zinc-900 transition-colors hover:border-[#C9A86A] hover:text-[#C9A86A]"
           >
             View All Collections
             <ArrowRight
-              className="ml-3 h-4 w-4 transition-transform group-hover:translate-x-2"
+              className="ml-2.5 h-4 w-4 transition-transform group-hover:translate-x-1.5"
               strokeWidth={1.5}
             />
           </Link>
@@ -87,52 +94,49 @@ export function ExploreCollections({
 
         {/* Collections Grid */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 md:gap-8">
-          {displayItems.map((item: any, index: number) => {
-            const linkHref = item.isFallback
-              ? `/categories/${item.slug}`
-              : `/collections/${item.slug}`;
+          {displayItems.slice(0, 4).map((item: any, index: number) => {
+            const linkHref = `/collections/${item.slug}`;
             const imageSrc =
-              item.banner_url || placeholders[index % placeholders.length];
+              item.banner_url || fashionImagery[index % fashionImagery.length];
 
             return (
               <div key={item.id} className="group relative flex flex-col">
                 <Link
                   href={linkHref}
-                  className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-gray-100 shadow-xs transition-all duration-500 group-hover:shadow-xl"
+                  className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-zinc-100 shadow-sm transition-all duration-500 group-hover:shadow-2xl"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
+                  <Image
                     src={imageSrc}
                     alt={item.name}
-                    className="h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
-                    loading="lazy"
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
                   />
-                  {/* Gradient Overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent transition-opacity duration-300 group-hover:from-black/85" />
+                  {/* Luxury Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent transition-opacity duration-300 group-hover:opacity-95" />
 
-                  {/* Top Product Count Badge */}
-                  {item.product_count !== undefined && item.product_count > 0 && (
-                    <div className="absolute top-3 left-3">
-                      <span className="rounded-full bg-white/90 backdrop-blur-xs px-2.5 py-1 text-[10px] font-semibold tracking-wider text-black uppercase shadow-xs">
-                        {item.product_count}{" "}
-                        {item.product_count === 1 ? "Item" : "Items"}
-                      </span>
-                    </div>
-                  )}
-
-                  {/* Bottom Content inside Card */}
-                  <div className="absolute inset-x-0 bottom-0 p-5 text-white flex flex-col justify-end">
-                    <span className="text-[11px] font-medium tracking-[0.2em] uppercase text-[#EAD098] mb-1">
-                      Collection
+                  {/* Top Badge */}
+                  <div className="absolute top-4 left-4 z-10">
+                    <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-white/20">
+                      Capsule Edit
                     </span>
-                    <h3
-                      className={`${jost.className} text-2xl font-medium tracking-tight text-white mb-2 transition-transform duration-300 group-hover:translate-x-1`}
-                    >
+                  </div>
+
+                  {/* Card Content Overlay */}
+                  <div className="absolute inset-x-0 bottom-0 p-6 flex flex-col justify-end text-white z-10">
+                    <h3 className={`${jost.className} text-2xl font-normal tracking-wide text-white group-hover:text-[#C9A86A] transition-colors`}>
                       {item.name}
                     </h3>
-                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/90 group-hover:text-[#EAD098] transition-colors">
-                      <span>Shop Now</span>
-                      <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1.5" />
+
+                    {item.description && (
+                      <p className="mt-2 text-xs font-light text-zinc-300 line-clamp-2">
+                        {item.description}
+                      </p>
+                    )}
+
+                    <div className="mt-4 flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-[#C9A86A] transition-all group-hover:translate-x-1">
+                      <span>Shop Capsule</span>
+                      <ArrowUpRight className="h-4 w-4" />
                     </div>
                   </div>
                 </Link>

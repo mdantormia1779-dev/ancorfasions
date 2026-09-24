@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
-import { Gift, Sparkles, Loader2, CheckCircle2, Ticket, Copy } from "lucide-react";
+import { Gift, Sparkles, Loader2, CheckCircle2, Ticket, Copy, Wallet } from "lucide-react";
 import { toast } from "sonner";
 import { redeemLoyaltyPointsAction, fetchRewardCatalogAction } from "@/app/actions/customer.actions";
 import Link from "next/link";

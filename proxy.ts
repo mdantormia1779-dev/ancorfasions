@@ -63,6 +63,11 @@ export async function proxy(request: NextRequest) {
     pathname.startsWith("/auth/reset-password");
 
   if (user && isAuthRoute) {
+    const next = request.nextUrl.searchParams.get("next");
+    if (next && next.startsWith("/") && !next.startsWith("/auth/")) {
+      return NextResponse.redirect(new URL(next, request.url));
+    }
+
     let currentRole = user?.user_metadata?.role || user?.app_metadata?.role || "";
     
     // Quick role fetch if missing

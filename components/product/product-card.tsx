@@ -8,6 +8,7 @@ import { Jost } from "next/font/google";
 import { useWishlistStore } from "@/stores/use-wishlist-store";
 import { useCartStore } from "@/stores/use-cart-store";
 import { useSession } from "@/hooks/use-session";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { cn, formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
@@ -81,7 +82,14 @@ export function ProductCard({ product, className }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!user) {
+    let currentUser = user;
+    if (!currentUser) {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      currentUser = data?.user ?? null;
+    }
+
+    if (!currentUser) {
       toast.info("Please sign in to save items to your wishlist.", {
         action: {
           label: "Sign In",
@@ -106,6 +114,29 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const handleQuickAdd = async (e: React.MouseEvent, variantId: string | null = null) => {
     e.preventDefault();
     e.stopPropagation();
+
+    let currentUser = user;
+    if (!currentUser) {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      currentUser = data?.user ?? null;
+    }
+
+    if (!currentUser) {
+      toast.info("Please log in to add items to your cart.", {
+        action: {
+          label: "Login",
+          onClick: () =>
+            router.push(
+              `/auth/login?next=${encodeURIComponent(`/product/${product.slug}`)}`
+            ),
+        },
+      });
+      router.push(
+        `/auth/login?next=${encodeURIComponent(`/product/${product.slug}`)}`
+      );
+      return;
+    }
 
     // If product has multiple sizes and none chosen directly, open QuickView
     if (availableSizes.length > 0 && !variantId) {
