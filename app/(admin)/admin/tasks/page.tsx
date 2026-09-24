@@ -11,6 +11,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AdminTasksPage() {
   const { data: allTasks = [] } = await fetchTasksAction();
+  const safeTasks = Array.isArray(allTasks) ? allTasks : [];
 
-  return <TasksManagerClient initialTasks={allTasks} />;
+  return <TasksManagerClient initialTasks={safeTasks} />;
 }

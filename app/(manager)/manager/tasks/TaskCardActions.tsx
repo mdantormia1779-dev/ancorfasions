@@ -31,7 +31,7 @@ import {
   deleteTaskAction,
 } from "@/app/actions/manager/task.actions";
 import { toast } from "sonner";
-import { ManagerTask } from "@/lib/repositories/manager/task.repository";
+import type { ManagerTask } from "@/lib/repositories/manager/task.repository";
 
 interface TaskCardActionsProps {
   task: ManagerTask;

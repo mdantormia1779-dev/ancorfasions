@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle2, Clock, AlertTriangle, Circle, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { fetchTasksAction } from "@/app/actions/manager/task.actions";
-import { ManagerTask } from "@/lib/repositories/manager/task.repository";
+import type { ManagerTask } from "@/lib/repositories/manager/task.repository";
 
 const priorityConfig: Record<
   ManagerTask["priority"],
@@ -34,7 +34,8 @@ const StatusIcon = ({ status }: { status: ManagerTask["status"] }) => {
 
 export async function TasksWidget() {
   const result = await fetchTasksAction();
-  const tasks: ManagerTask[] = (result.data || [])
+  const safeData = Array.isArray(result?.data) ? result.data : [];
+  const tasks: ManagerTask[] = safeData
     .filter((t: ManagerTask) => t.status !== "archived" && t.status !== "completed")
     .slice(0, 5);
 

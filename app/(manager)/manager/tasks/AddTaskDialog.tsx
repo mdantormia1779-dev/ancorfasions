@@ -32,7 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Loader2 } from "lucide-react";
 import { createTaskAction, fetchStaffMembersAction } from "@/app/actions/manager/task.actions";
-import { ManagerTask } from "@/lib/repositories/manager/task.repository";
+import type { ManagerTask } from "@/lib/repositories/manager/task.repository";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
@@ -124,16 +124,16 @@ export function AddTaskDialog({ onTaskCreated, trigger }: AddTaskDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogTrigger
-        render={
-          (trigger as React.ReactElement) || (
-            <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm">
-              <Plus className="h-4 w-4" />
-              Add Task
-            </Button>
-          )
-        }
-      />
+      <DialogTrigger asChild>
+        {trigger ? (
+          trigger
+        ) : (
+          <Button className="gap-2 bg-primary hover:bg-primary/90 text-primary-foreground font-medium shadow-sm">
+            <Plus className="h-4 w-4" />
+            Add Task
+          </Button>
+        )}
+      </DialogTrigger>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold">Add New Task</DialogTitle>

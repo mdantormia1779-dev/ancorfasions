@@ -16,14 +16,15 @@ export const dynamic = "force-dynamic";
 
 export default async function TasksPage() {
   const { data: allTasks = [] } = await fetchTasksAction();
+  const safeTasks = Array.isArray(allTasks) ? allTasks : [];
 
-  const pendingTasks = allTasks.filter(
+  const pendingTasks = safeTasks.filter(
     (t: ManagerTask) => t.status === "pending"
   );
-  const inProgressTasks = allTasks.filter(
+  const inProgressTasks = safeTasks.filter(
     (t: ManagerTask) => t.status === "in_progress"
   );
-  const completedTasks = allTasks.filter(
+  const completedTasks = safeTasks.filter(
     (t: ManagerTask) => t.status === "completed"
   );
 

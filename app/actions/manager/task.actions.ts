@@ -122,12 +122,16 @@ export async function createTaskAction(data: {
       assigned_to,
     });
 
-    revalidatePath("/admin/tasks");
-    revalidatePath("/manager/tasks");
+    try {
+      revalidatePath("/admin/tasks");
+      revalidatePath("/manager/tasks");
+    } catch (e) {
+      console.warn("revalidatePath warning:", e);
+    }
     return { success: true, data: task };
   } catch (error: any) {
     console.error("createTaskAction error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || "Failed to create task" };
   }
 }
 
@@ -154,23 +158,31 @@ export async function updateTaskAction(
     }
 
     const task = await taskRepo.updateTask(id, updatePayload);
-    revalidatePath("/admin/tasks");
-    revalidatePath("/manager/tasks");
+    try {
+      revalidatePath("/admin/tasks");
+      revalidatePath("/manager/tasks");
+    } catch (e) {
+      console.warn("revalidatePath warning:", e);
+    }
     return { success: true, data: task };
   } catch (error: any) {
     console.error("updateTaskAction error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || "Failed to update task" };
   }
 }
 
 export async function deleteTaskAction(id: string) {
   try {
     await taskRepo.deleteTask(id);
-    revalidatePath("/admin/tasks");
-    revalidatePath("/manager/tasks");
+    try {
+      revalidatePath("/admin/tasks");
+      revalidatePath("/manager/tasks");
+    } catch (e) {
+      console.warn("revalidatePath warning:", e);
+    }
     return { success: true };
   } catch (error: any) {
     console.error("deleteTaskAction error:", error);
-    return { success: false, error: error.message };
+    return { success: false, error: error.message || "Failed to delete task" };
   }
 }

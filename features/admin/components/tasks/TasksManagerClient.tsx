@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { ManagerTask } from "@/lib/repositories/manager/task.repository";
+import type { ManagerTask } from "@/lib/repositories/manager/task.repository";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -52,15 +52,22 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 interface TasksManagerClientProps {
-  initialTasks: ManagerTask[];
+  initialTasks?: ManagerTask[];
 }
 
-export function TasksManagerClient({ initialTasks }: TasksManagerClientProps) {
+export function TasksManagerClient({ initialTasks = [] }: TasksManagerClientProps) {
   const router = useRouter();
-  const [tasks, setTasks] = useState<ManagerTask[]>(initialTasks);
+  const safeInitialTasks = Array.isArray(initialTasks) ? initialTasks : [];
+  const [tasks, setTasks] = useState<ManagerTask[]>(safeInitialTasks);
   const [searchQuery, setSearchQuery] = useState("");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+
+  useEffect(() => {
+    if (Array.isArray(initialTasks)) {
+      setTasks(initialTasks);
+    }
+  }, [initialTasks]);
 
   // Dialog states
   const [viewingTask, setViewingTask] = useState<ManagerTask | null>(null);
@@ -224,8 +231,10 @@ export function TasksManagerClient({ initialTasks }: TasksManagerClientProps) {
           <div className="flex items-center gap-1">
             {getPriorityBadge(task.priority)}
             <DropdownMenu>
-              <DropdownMenuTrigger render={<Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground" />}>
-                <MoreVertical className="h-4 w-4" />
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+                  <MoreVertical className="h-4 w-4" />
+                </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={() => setViewingTask(task)}>

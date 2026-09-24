@@ -13,7 +13,10 @@ import { Database } from "@/types/supabase";
  */
 export function createAdminClient() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://dummy.supabase.co";
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY || "dummy_key";
+  const key =
+    process.env.SUPABASE_SERVICE_ROLE_KEY ||
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+    "dummy_key";
 
   return createSupabaseClient<Database>(
     url,
