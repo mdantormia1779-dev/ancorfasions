@@ -21,7 +21,7 @@ const footerLinks = {
     { label: "Men's Collection", href: "/categories/men" },
     { label: "Women's Collection", href: "/categories/women" },
     { label: "Accessories", href: "/categories/accessories" },
-    { label: "Sale & Clearance", href: "/collections/sale" },
+    { label: "Sale & Clearance", href: "/categories/sale" },
     { label: "All Products", href: "/products" },
   ],
   help: [

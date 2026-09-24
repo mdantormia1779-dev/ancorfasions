@@ -30,27 +30,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ADMIN_ROLES, MANAGER_ROLES } from "@/lib/constants/auth";
 import { useCartStore } from "@/stores/use-cart-store";
 
-const baseNavLinks = [
-  { label: "Home", href: "/" },
-  {
-    label: "Shop",
-    href: "/products",
-    dropdown: [
-      { label: "New Arrivals", href: "/products?sort=newest" },
-      { label: "Best Sellers", href: "/products?sort=rating" },
-      { label: "Collections", href: "/collections" },
-      { label: "Sale", href: "/categories/sale" },
-      { label: "All Products", href: "/products" },
-    ],
-  },
-  // Clothing and Accessories will be injected dynamically
-  { label: "Collections", href: "/collections" },
-  { label: "New In", href: "/products?sort=newest" },
-  { label: "Sale", href: "/categories/sale" },
-  { label: "Blog", href: "/blog" },
-  { label: "About Us", href: "/about" },
-  { label: "Contact Us", href: "/contact" },
-];
+
 
 interface Category {
   id: string;
@@ -228,29 +208,60 @@ export function StoreHeader({
     .toUpperCase();
 
   // Dynamically build navLinks by inserting Clothing and Accessories with DB categories
-  const clothingCategories = dbCategories
+  const cleanCategories = dbCategories.filter(
+    (c) =>
+      !c.name.toLowerCase().includes("test") &&
+      !c.slug.includes("test") &&
+      !c.slug.includes("qa") &&
+      c.slug !== "jhkjhkj"
+  );
+
+  const clothingCategories = cleanCategories
     .filter(
       (c) =>
-        c.slug !== "accessories" && c.slug !== "sale" && c.slug !== "new-in"
+        c.slug !== "accessories" &&
+        c.slug !== "bags" &&
+        c.slug !== "jewellery" &&
+        c.slug !== "sale" &&
+        c.slug !== "new-in"
     )
     .map((c) => ({ label: c.name, href: `/categories/${c.slug}` }));
 
-  const accessoryCategories = dbCategories
-    .filter((c) => c.slug === "accessories" || c.parent_id === "accessories")
+  const accessoryCategories = cleanCategories
+    .filter(
+      (c) =>
+        c.slug === "accessories" ||
+        c.slug === "bags" ||
+        c.slug === "jewellery"
+    )
     .map((c) => ({ label: c.name, href: `/categories/${c.slug}` }));
 
   const navLinks: NavLinkItem[] = [
-    baseNavLinks[0], // Home
-    baseNavLinks[1], // Shop
+    { label: "Home", href: "/" },
+    {
+      label: "Shop",
+      href: "/products",
+      dropdown: [
+        { label: "All Apparel", href: "/products" },
+        { label: "New Arrivals", href: "/products?sort=newest" },
+        { label: "Best Sellers", href: "/products?sort=rating" },
+        { label: "Curated Collections", href: "/collections" },
+      ],
+    },
     {
       label: "Clothing",
       href: "/categories",
       dropdown:
         clothingCategories.length > 0
-          ? clothingCategories
+          ? [
+              ...clothingCategories,
+              { label: "View All Clothing", href: "/categories" },
+            ]
           : [
               { label: "Dresses", href: "/categories/dresses" },
               { label: "Tops", href: "/categories/tops" },
+              { label: "Jeans", href: "/categories/jeans" },
+              { label: "View All Clothing", href: "/categories" },
             ],
     },
     {
@@ -258,13 +269,21 @@ export function StoreHeader({
       href: "/categories/accessories",
       dropdown:
         accessoryCategories.length > 0
-          ? accessoryCategories
+          ? [
+              ...accessoryCategories.filter((a) => a.href !== "/categories/accessories"),
+              { label: "All Accessories", href: "/categories/accessories" },
+            ]
           : [
               { label: "Bags", href: "/categories/bags" },
               { label: "Jewellery", href: "/categories/jewellery" },
+              { label: "All Accessories", href: "/categories/accessories" },
             ],
     },
-    ...baseNavLinks.slice(2), // Collections, New In, Sale, Blog, About Us, Contact Us
+    { label: "Collections", href: "/collections" },
+    { label: "Sale", href: "/categories/sale" },
+    { label: "Blog", href: "/blog" },
+    { label: "About", href: "/about" },
+    { label: "Contact", href: "/contact" },
   ];
 
   const toggleExpand = (label: string) => {

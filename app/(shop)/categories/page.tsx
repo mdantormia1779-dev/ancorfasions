@@ -1,76 +1,118 @@
 import { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
+import { CatalogRepository } from "@/repositories/catalog.repository";
+import { ArrowRight, Sparkles } from "lucide-react";
 
 export const metadata: Metadata = {
   title: "Categories | Anchor Fashion",
-  description: "Explore all fashion categories.",
+  description: "Explore all luxury fashion apparel, clothing and accessory categories at Anchor Fashion.",
 };
 
-export default function CategoriesPage() {
-  const categories = [
-    {
-      id: "1",
-      name: "Men",
-      slug: "men",
-      count: 120,
-      image: "https://placehold.co/600x400/111/fff?text=Men",
-    },
-    {
-      id: "2",
-      name: "Women",
-      slug: "women",
-      count: 145,
-      image: "https://placehold.co/600x400/333/fff?text=Women",
-    },
-    {
-      id: "3",
-      name: "Kids",
-      slug: "kids",
-      count: 85,
-      image: "https://placehold.co/600x400/555/fff?text=Kids",
-    },
-    {
-      id: "4",
-      name: "Accessories",
-      slug: "accessories",
-      count: 210,
-      image: "https://placehold.co/600x400/777/fff?text=Accessories",
-    },
-  ];
+export const revalidate = 60;
+
+// Curated high-res editorial imagery map for each category
+const categoryImageMap: Record<string, string> = {
+  dresses: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
+  tops: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800&q=80",
+  jeans: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80",
+  "coats-jackets": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=800&q=80",
+  jumpsuits: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80",
+  playsuits: "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=800&q=80",
+  trousers: "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&q=80",
+  men: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=800&q=80",
+  mens: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=800&q=80",
+  women: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80",
+  womens: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80",
+  kids: "https://images.unsplash.com/photo-1519689680058-324335c77eba?w=800&q=80",
+  accessories: "https://images.unsplash.com/photo-1576053139778-7e32f2ae3cfd?w=800&q=80",
+  bags: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80",
+  jewellery: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&q=80",
+  sale: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80",
+  ethnic: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80",
+};
+
+export default async function CategoriesPage() {
+  const dbCategories: any[] = (await CatalogRepository.getCategories()) || [];
+
+  // Filter out any messy QA test records
+  const validCategories = dbCategories.filter(
+    (c: any) =>
+      !c.name?.toLowerCase().includes("test") &&
+      !c.slug?.includes("test") &&
+      !c.slug?.includes("qa") &&
+      c.slug !== "jhkjhkj"
+  );
 
   return (
-    <div className="container mx-auto px-4 py-12">
-      <h1 className="mb-8 text-center text-4xl font-bold tracking-tight">
-        Shop by Category
-      </h1>
-      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {categories.map((category) => (
-          <Link
-            href={`/categories/${category.slug}`}
-            key={category.id}
-            className="group relative block overflow-hidden rounded-lg"
-          >
-            <div className="aspect-[4/5]">
-              <Image
-                src={category.image}
-                alt={category.name}
-                fill
-                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 25vw"
-                className="object-cover transition-transform duration-500 group-hover:scale-105"
-              />
-              <div className="absolute inset-0 bg-black/30 transition-colors group-hover:bg-black/40" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                <h2 className="text-2xl font-bold uppercase tracking-widest">
-                  {category.name}
-                </h2>
-                <p className="mt-2 text-sm opacity-90">
-                  {category.count} Products
-                </p>
-              </div>
-            </div>
-          </Link>
-        ))}
+    <div className="min-h-screen bg-[#FAFAFA] pb-24">
+      {/* Header Banner */}
+      <section className="relative border-b border-gray-200 bg-[#0D1B2A] text-white py-16 md:py-24 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_20%,rgba(201,168,106,0.18),transparent_60%)] pointer-events-none" />
+        <div className="container relative mx-auto px-4 text-center max-w-3xl md:px-6">
+          <div className="inline-flex items-center gap-1.5 rounded-full border border-[#C9A86A]/30 bg-[#C9A86A]/10 px-3.5 py-1 text-[11px] font-semibold uppercase tracking-[0.25em] text-[#EAD098] mb-4">
+            <Sparkles className="h-3 w-3" />
+            <span>Curated Taxonomies</span>
+          </div>
+          <h1 className="text-4xl font-light tracking-tight sm:text-5xl md:text-6xl text-white">
+            Shop By Category
+          </h1>
+          <p className="mt-4 text-sm md:text-base text-gray-300 font-light leading-relaxed max-w-xl mx-auto">
+            Explore our signature silhouettes, seasonal wardrobe edits, and timeless modern essentials.
+          </p>
+        </div>
+      </section>
+
+      {/* Categories Grid */}
+      <div className="container mx-auto px-4 pt-12 md:px-6">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-8">
+          {validCategories.map((category) => {
+            const image =
+              category.icon_url ||
+              categoryImageMap[category.slug] ||
+              "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80";
+
+            return (
+              <Link
+                href={`/categories/${category.slug}`}
+                key={category.id}
+                className="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-2xl bg-neutral-900 shadow-sm transition-all duration-500 hover:shadow-xl"
+              >
+                <Image
+                  src={image}
+                  alt={category.name}
+                  fill
+                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-108 opacity-90"
+                />
+
+                {/* Dark Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent transition-opacity duration-300 group-hover:from-black/95" />
+
+                {/* Top Badge */}
+                <div className="absolute top-4 left-4">
+                  <span className="rounded-full bg-white/90 backdrop-blur-xs px-3 py-1 text-[10px] font-bold tracking-wider text-black uppercase shadow-xs">
+                    Anchor Edit
+                  </span>
+                </div>
+
+                {/* Bottom Content */}
+                <div className="absolute inset-x-0 bottom-0 p-6 text-white flex flex-col justify-end">
+                  <span className="text-[11px] font-medium tracking-[0.2em] uppercase text-[#EAD098] mb-1">
+                    Department
+                  </span>
+                  <h2 className="text-2xl font-medium tracking-tight text-white mb-2 transition-transform duration-300 group-hover:translate-x-1">
+                    {category.name}
+                  </h2>
+                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/90 group-hover:text-[#EAD098] transition-colors">
+                    <span>Explore Collection</span>
+                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1.5" />
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

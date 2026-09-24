@@ -42,11 +42,12 @@ export default function AboutPage() {
                 in life.
               </p>
             </div>
-            <div className="flex h-[400px] items-center justify-center overflow-hidden rounded-lg bg-slate-200">
-              {/* Placeholder for an image */}
-              <span className="font-medium text-slate-400">
-                Brand Image Placeholder
-              </span>
+            <div className="relative h-[400px] overflow-hidden rounded-2xl shadow-md">
+              <img
+                src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80"
+                alt="Anchor Fashion Design Atelier"
+                className="h-full w-full object-cover"
+              />
             </div>
           </div>
         </section>
