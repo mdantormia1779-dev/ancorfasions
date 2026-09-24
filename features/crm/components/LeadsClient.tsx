@@ -154,16 +154,16 @@ export function LeadsClient({ initialLeads }: LeadsClientProps) {
   const handleConvert = async (lead: CRMLead) => {
     try {
       const res = await convertLeadAction(lead.id);
-      if (res.error) {
+      if (res?.error) {
         toast.error(res.error || "Failed to convert lead");
         return;
       }
       toast.success(`${lead.first_name || "Lead"} converted to customer successfully!`);
-      if (res.data) {
+      if (res?.data) {
         handleDialogSuccess(res.data);
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to convert lead");
+      toast.error(err?.message || "Failed to convert lead");
     }
   };
 

@@ -1,4 +1,5 @@
 import { crmRepository } from "@/repositories/crm.repository";
+import { createAdminClient } from "@/lib/supabase/admin-client";
 import {
   createCRMLeadSchema,
   updateCRMLeadSchema,
@@ -67,11 +68,112 @@ export class CRMService {
   }
 
   async convertLead(id: string, profileId?: string): Promise<CRMLead> {
+    const lead = await crmRepository.getLeadById(id);
+    if (!lead) {
+      throw new Error("Lead not found");
+    }
+
+    let targetProfileId = profileId || lead.converted_to_profile_id;
+
+    // If no target profile was specified, convert lead into an official customer profile
+    if (!targetProfileId && lead.email) {
+      const supabase = createAdminClient();
+      const cleanEmail = lead.email.trim().toLowerCase();
+
+      // Check if customer profile already exists
+      const { data: existingProfile } = await supabase
+        .from("customer_profiles")
+        .select("id")
+        .ilike("email", cleanEmail)
+        .maybeSingle();
+
+      if (existingProfile?.id) {
+        targetProfileId = existingProfile.id;
+      } else {
+        // Create an official customer profile
+        const newUserId = crypto.randomUUID();
+        const firstName = lead.first_name?.trim() || "Customer";
+        const lastName = lead.last_name?.trim() || "";
+        const phone = lead.phone?.trim() || null;
+
+        // 1. Try to create or find Auth user
+        let authUserId = newUserId;
+        try {
+          const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+            email: cleanEmail,
+            email_confirm: true,
+            user_metadata: {
+              first_name: firstName,
+              last_name: lastName,
+              full_name: `${firstName} ${lastName}`.trim(),
+              phone: phone || "",
+              role: "customer",
+            },
+          });
+          if (authData?.user?.id) {
+            authUserId = authData.user.id;
+          } else if (authError) {
+            const { data: listData } = await supabase.auth.admin.listUsers();
+            const existingAuth = listData?.users?.find(
+              (u) => u.email?.toLowerCase() === cleanEmail
+            );
+            if (existingAuth?.id) authUserId = existingAuth.id;
+          }
+        } catch {
+          // fallback to newUserId
+        }
+
+        // 2. Upsert customer_profiles
+        await supabase.from("customer_profiles").upsert(
+          {
+            id: authUserId,
+            first_name: firstName,
+            last_name: lastName,
+            email: cleanEmail,
+            phone: phone,
+            is_active: true,
+          },
+          { onConflict: "id" }
+        );
+
+        // 3. Upsert profiles
+        try {
+          await supabase.from("profiles").upsert(
+            {
+              id: authUserId,
+              first_name: firstName,
+              last_name: lastName,
+              email: cleanEmail,
+              phone: phone,
+              role: "customer",
+              is_active: true,
+            },
+            { onConflict: "id" }
+          );
+        } catch {}
+
+        // 4. Upsert crm_customers
+        await supabase.from("crm_customers").upsert(
+          {
+            profile_id: authUserId,
+            customer_lifecycle_stage: "FIRST_TIME_BUYER",
+            is_vip: false,
+            health_score: 80,
+            total_support_tickets: 0,
+            last_interaction_at: new Date().toISOString(),
+          },
+          { onConflict: "profile_id" }
+        );
+
+        targetProfileId = authUserId;
+      }
+    }
+
     const updateData: Partial<CRMLead> = {
       status: "converted",
     };
-    if (profileId) {
-      updateData.converted_to_profile_id = profileId;
+    if (targetProfileId) {
+      updateData.converted_to_profile_id = targetProfileId;
     }
     return await crmRepository.updateLead(id, updateData);
   }

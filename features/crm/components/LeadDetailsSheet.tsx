@@ -87,16 +87,16 @@ export function LeadDetailsSheet({
     setConverting(true);
     try {
       const res = await convertLeadAction(lead.id);
-      if (res.error) {
+      if (res?.error) {
         toast.error(res.error || "Failed to convert lead");
         return;
       }
       toast.success("Lead converted to customer successfully!");
-      if (res.data) {
+      if (res?.data) {
         onLeadUpdated(res.data);
       }
     } catch (err: any) {
-      toast.error(err.message || "Failed to convert lead");
+      toast.error(err?.message || "Failed to convert lead");
     } finally {
       setConverting(false);
     }

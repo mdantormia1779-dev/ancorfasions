@@ -79,11 +79,16 @@ export async function updateLeadAction(id: string, data: unknown) {
 export async function convertLeadAction(id: string, profileId?: string) {
   try {
     const lead = await crmService.convertLead(id, profileId);
-    revalidatePath("/admin/crm/leads");
-    revalidatePath("/admin/crm/customers");
+    try {
+      revalidatePath("/admin/crm/leads");
+      revalidatePath("/admin/customers");
+    } catch (revalErr) {
+      console.warn("Revalidation warning:", revalErr);
+    }
     return { data: lead };
   } catch (error: any) {
-    return { error: error.message };
+    console.error("[convertLeadAction] Error:", error);
+    return { error: error?.message || "Failed to convert lead" };
   }
 }
 
@@ -118,10 +123,12 @@ export async function getLeadCommunicationLogsAction(leadId: string) {
 export async function addCustomerNoteAction(profileId: string, data: unknown) {
   try {
     const note = await crmService.addNoteToCustomer(profileId, data);
-    revalidatePath(`/admin/crm/customers/${profileId}`);
+    try {
+      revalidatePath(`/admin/customers/${profileId}`);
+    } catch {}
     return { data: note };
   } catch (error: any) {
-    return { error: error.message };
+    return { error: error?.message || "Failed to add customer note" };
   }
 }
 
