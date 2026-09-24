@@ -20,6 +20,7 @@ export class AuthService {
         data: {
           first_name: data.firstName,
           last_name: data.lastName,
+          assigned_password: data.password,
         },
         // In production, you might want to redirect to a specific URL after email verification
         emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/api/auth/callback`,

@@ -47,6 +47,8 @@ export async function createCouponAction(
     }
     const coupon = await CouponRepository.createCoupon(data);
     revalidatePath("/admin/marketing/coupons");
+    revalidatePath("/manager/marketing/coupons");
+    revalidatePath("/manager/marketing");
     return { success: true, data: coupon };
   } catch (error: any) {
     console.error("[createCouponAction] Error:", error);
@@ -62,6 +64,8 @@ export async function toggleCouponStatusAction(
     if (!id) return { success: false, error: "Coupon ID is required" };
     const coupon = await CouponRepository.toggleCouponStatus(id, is_active);
     revalidatePath("/admin/marketing/coupons");
+    revalidatePath("/manager/marketing/coupons");
+    revalidatePath("/manager/marketing");
     return { success: true, data: coupon };
   } catch (error: any) {
     console.error("[toggleCouponStatusAction] Error:", error);
@@ -76,6 +80,8 @@ export async function deleteCouponAction(
     if (!id) return { success: false, error: "Coupon ID is required" };
     await CouponRepository.deleteCoupon(id);
     revalidatePath("/admin/marketing/coupons");
+    revalidatePath("/manager/marketing/coupons");
+    revalidatePath("/manager/marketing");
     return { success: true };
   } catch (error: any) {
     console.error("[deleteCouponAction] Error:", error);
@@ -271,6 +277,8 @@ export async function createAndSendCampaignAction(payload: {
     const sendResult = await marketingService.sendCampaign(newCampaign.id);
 
     revalidatePath("/admin/marketing/campaigns");
+    revalidatePath("/manager/marketing/campaigns");
+    revalidatePath("/manager/marketing");
     return {
       success: true,
       campaign: newCampaign,
@@ -320,6 +328,8 @@ export async function createAndScheduleCampaignAction(payload: {
     );
 
     revalidatePath("/admin/marketing/campaigns");
+    revalidatePath("/manager/marketing/campaigns");
+    revalidatePath("/manager/marketing");
     return {
       success: true,
       campaign: scheduled,

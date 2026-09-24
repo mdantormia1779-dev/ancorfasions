@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
-import { posSearchCustomersAction, posCreateCustomerAction, posSearchProductsAction, placePosOrderAction } from "@/app/actions/oms/pos.actions";
+import { posSearchCustomersAction, posSearchProductsAction, placePosOrderAction } from "@/app/actions/oms/pos.actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,8 +13,6 @@ export function ManagerPOS({ branchId }: { branchId: string }) {
   const [customers, setCustomers] = useState<any[]>([]);
   const [selectedCustomer, setSelectedCustomer] = useState<any>(null);
   const [isSearchingCustomer, setIsSearchingCustomer] = useState(false);
-  const [showNewCustomerForm, setShowNewCustomerForm] = useState(false);
-  const [newCustomerData, setNewCustomerData] = useState({ firstName: "", lastName: "", phone: "", email: "" });
 
   // Product State
   const [productQuery, setProductQuery] = useState("");
@@ -39,19 +37,6 @@ export function ManagerPOS({ branchId }: { branchId: string }) {
     const res = await posSearchCustomersAction(customerQuery);
     if (res.success && res.data) {
       setCustomers(res.data);
-    }
-    setIsSearchingCustomer(false);
-  };
-
-  const handleCreateCustomer = async () => {
-    setIsSearchingCustomer(true);
-    setError(null);
-    const res = await posCreateCustomerAction(newCustomerData);
-    if (res.success) {
-      setSelectedCustomer(res.data);
-      setShowNewCustomerForm(false);
-    } else {
-      setError(res.error);
     }
     setIsSearchingCustomer(false);
   };
@@ -176,7 +161,7 @@ export function ManagerPOS({ branchId }: { branchId: string }) {
             <div className="space-y-4">
               <div className="flex gap-2">
                 <Input 
-                  placeholder="Phone, Email or Name..." 
+                  placeholder="Search registered customer by phone, email, or name..." 
                   value={customerQuery}
                   onChange={e => setCustomerQuery(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleCustomerSearch()}
@@ -184,24 +169,9 @@ export function ManagerPOS({ branchId }: { branchId: string }) {
                 <Button onClick={handleCustomerSearch} disabled={isSearchingCustomer}>
                   {isSearchingCustomer ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
                 </Button>
-                <Button variant="outline" onClick={() => setShowNewCustomerForm(!showNewCustomerForm)}>
-                  New
-                </Button>
               </div>
 
-              {showNewCustomerForm && (
-                <div className="p-4 bg-gray-50 rounded border space-y-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><Label>First Name</Label><Input value={newCustomerData.firstName} onChange={e => setNewCustomerData({...newCustomerData, firstName: e.target.value})} /></div>
-                    <div><Label>Last Name</Label><Input value={newCustomerData.lastName} onChange={e => setNewCustomerData({...newCustomerData, lastName: e.target.value})} /></div>
-                  </div>
-                  <div><Label>Phone *</Label><Input value={newCustomerData.phone} onChange={e => setNewCustomerData({...newCustomerData, phone: e.target.value})} /></div>
-                  <div><Label>Email</Label><Input value={newCustomerData.email} onChange={e => setNewCustomerData({...newCustomerData, email: e.target.value})} /></div>
-                  <Button onClick={handleCreateCustomer} className="w-full">Save Customer</Button>
-                </div>
-              )}
-
-              {customers.length > 0 && !showNewCustomerForm && (
+              {customers.length > 0 && (
                 <div className="border rounded divide-y mt-2">
                   {customers.map(c => (
                     <div key={c.id} className="p-2 flex justify-between items-center hover:bg-gray-50 cursor-pointer" onClick={() => setSelectedCustomer(c)}>

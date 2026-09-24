@@ -52,6 +52,7 @@ export async function POST(request: Request) {
           name,
           phone: phone || "",
           role: "customer",
+          assigned_password: password,
         },
       },
     });

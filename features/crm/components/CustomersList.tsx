@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { TierBadge, LoyaltyTier } from "@/components/customer/loyalty/tier-badges";
+import { CustomerAdminActions } from "./CustomerAdminActions";
 
 export type CustomerLifecycleStage =
   | "PROSPECT"
@@ -23,6 +24,8 @@ export interface CrmCustomer {
   first_name: string;
   last_name: string;
   email: string;
+  phone?: string;
+  assigned_password?: string | null;
   is_vip: boolean;
   customer_lifecycle_stage: CustomerLifecycleStage;
   health_score: number;
@@ -32,9 +35,13 @@ export interface CrmCustomer {
 
 interface CustomersListProps {
   customers?: CrmCustomer[];
+  isAdmin?: boolean;
 }
 
-export const CustomersList = ({ customers = [] }: CustomersListProps) => {
+export const CustomersList = ({
+  customers = [],
+  isAdmin = false,
+}: CustomersListProps) => {
   return (
     <div className="rounded-md border bg-card">
       <div className="overflow-x-auto">
@@ -45,13 +52,14 @@ export const CustomersList = ({ customers = [] }: CustomersListProps) => {
               <TableHead>Loyalty & Tags</TableHead>
               <TableHead>Lifecycle Stage</TableHead>
               <TableHead className="text-right">Health Score</TableHead>
+              {isAdmin && <TableHead className="text-right">Actions</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
             {customers.length === 0 ? (
               <TableRow>
                 <TableCell
-                  colSpan={4}
+                  colSpan={isAdmin ? 5 : 4}
                   className="py-6 text-center text-muted-foreground"
                 >
                   No customers found.
@@ -96,6 +104,11 @@ export const CustomersList = ({ customers = [] }: CustomersListProps) => {
                       {customer.health_score}/100
                     </span>
                   </TableCell>
+                  {isAdmin && (
+                    <TableCell className="text-right">
+                      <CustomerAdminActions customer={customer} />
+                    </TableCell>
+                  )}
                 </TableRow>
               ))
             )}

@@ -196,7 +196,7 @@ export function ManagerHeader({ user }: { user?: any }) {
               <DropdownMenuLabel className="font-bold flex justify-between items-center">
                 Notifications
                 <Link
-                  href="/admin/notifications"
+                  href="/manager/support"
                   className="text-xs font-normal text-primary hover:underline"
                 >
                   Manage
@@ -233,10 +233,10 @@ export function ManagerHeader({ user }: { user?: any }) {
             <DropdownMenuSeparator />
             <div className="p-2 text-center">
               <Link
-                href="/admin/notifications"
+                href="/manager/support"
                 className="text-xs text-primary font-medium hover:underline"
               >
-                View all system alerts
+                View all operational alerts
               </Link>
             </div>
           </DropdownMenuContent>
@@ -285,10 +285,10 @@ export function ManagerHeader({ user }: { user?: any }) {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="cursor-pointer"
-                onClick={() => router.push("/admin/profile")}
+                onClick={() => router.push("/account/profile")}
               >
                 <User className="mr-2 h-4 w-4" />
-                Employee Profile
+                User Profile
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer"

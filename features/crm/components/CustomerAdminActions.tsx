@@ -1,81 +1,66 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { toast } from "sonner";
+import { Switch } from "@/components/ui/switch";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { PasswordInput } from "@/components/ui/password-input";
 import {
   Edit2,
   Trash2,
-  KeyRound,
   Loader2,
-  MessageSquare,
-  Award,
+  KeyRound,
   Eye,
   EyeOff,
   Copy,
   Check,
   Sparkles,
 } from "lucide-react";
+import { toast } from "sonner";
 import {
   updateCustomerByAdminAction,
   deleteCustomerByAdminAction,
   getCustomerPasswordAction,
 } from "@/app/actions/crm/customer-admin.actions";
+import { CrmCustomer, CustomerLifecycleStage } from "./CustomersList";
 
-export interface CustomerActionButtonsProps {
-  customerId: string;
-  initialPoints: number;
-  initialData?: {
-    firstName?: string;
-    lastName?: string;
-    email?: string;
-    phone?: string;
-    password?: string | null;
-  };
+interface CustomerAdminActionsProps {
+  customer: CrmCustomer;
 }
 
-export function CustomerActionButtons({
-  customerId,
-  initialPoints,
-  initialData,
-}: CustomerActionButtonsProps) {
-  const router = useRouter();
-
-  // Dialog open states
-  const [isMessageOpen, setIsMessageOpen] = useState(false);
-  const [isPointsOpen, setIsPointsOpen] = useState(false);
+export function CustomerAdminActions({ customer }: CustomerAdminActionsProps) {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
 
-  // Points state
-  const [points, setPoints] = useState(initialPoints);
-  const [pointsDelta, setPointsDelta] = useState(0);
-
-  // Message state
-  const [message, setMessage] = useState("");
-
-  // Edit customer form state
-  const [firstName, setFirstName] = useState(initialData?.firstName || "");
-  const [lastName, setLastName] = useState(initialData?.lastName || "");
-  const [email, setEmail] = useState(initialData?.email || "");
-  const [phone, setPhone] = useState(initialData?.phone || "");
+  // Form states
+  const [firstName, setFirstName] = useState(customer.first_name || "");
+  const [lastName, setLastName] = useState(customer.last_name || "");
+  const [email, setEmail] = useState(customer.email || "");
+  const [phone, setPhone] = useState(customer.phone || "");
+  const [lifecycleStage, setLifecycleStage] = useState<CustomerLifecycleStage>(
+    customer.customer_lifecycle_stage || "PROSPECT"
+  );
+  const [isVip, setIsVip] = useState(customer.is_vip || false);
 
   // Password management states
   const [currentPassword, setCurrentPassword] = useState<string | null>(
-    initialData?.password || null
+    customer.assigned_password || null
   );
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [copiedPassword, setCopiedPassword] = useState(false);
@@ -85,35 +70,27 @@ export function CustomerActionButtons({
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleAdjustPoints = async () => {
-    toast.success(`Successfully adjusted points by ${pointsDelta}`);
-    setPoints(points + Number(pointsDelta));
-    setIsPointsOpen(false);
-  };
-
-  const handleSendMessage = async () => {
-    toast.success("Message sent successfully to customer");
-    setIsMessageOpen(false);
-    setMessage("");
-  };
-
+  // Reset form and fetch latest password when opening edit modal
   const handleOpenEdit = async () => {
-    setFirstName(initialData?.firstName || "");
-    setLastName(initialData?.lastName || "");
-    setEmail(initialData?.email || "");
-    setPhone(initialData?.phone || "");
+    setFirstName(customer.first_name || "");
+    setLastName(customer.last_name || "");
+    setEmail(customer.email || "");
+    setPhone(customer.phone || "");
+    setLifecycleStage(customer.customer_lifecycle_stage || "PROSPECT");
+    setIsVip(customer.is_vip || false);
     setNewPassword("");
     setShowCurrentPassword(false);
     setShowNewPassword(false);
     setIsEditOpen(true);
 
+    // Fetch latest password from auth metadata
     try {
-      const res = await getCustomerPasswordAction(customerId);
+      const res = await getCustomerPasswordAction(customer.id);
       if (res.success && res.password) {
         setCurrentPassword(res.password);
       }
     } catch {
-      // non-critical
+      // non-critical fallback to initial prop
     }
   };
 
@@ -147,23 +124,25 @@ export function CustomerActionButtons({
       return;
     }
     if (newPassword && newPassword.trim().length < 6) {
-      toast.error("Password must be at least 6 characters long.");
+      toast.error("Password must be at least 6 characters.");
       return;
     }
 
     try {
       setIsUpdating(true);
       const res = await updateCustomerByAdminAction({
-        id: customerId,
+        id: customer.id,
         firstName: firstName.trim(),
         lastName: lastName.trim(),
         email: email.trim(),
         phone: phone.trim() ? phone.trim() : null,
+        lifecycleStage,
+        isVip,
         password: newPassword.trim() ? newPassword.trim() : undefined,
       });
 
       if (!res.success) {
-        toast.error(res.error || "Failed to update customer profile.");
+        toast.error(res.error || "Failed to update customer.");
         return;
       }
 
@@ -173,7 +152,6 @@ export function CustomerActionButtons({
       }
       setIsEditOpen(false);
       setNewPassword("");
-      router.refresh();
     } catch (err: any) {
       toast.error(err?.message || "An unexpected error occurred.");
     } finally {
@@ -184,7 +162,7 @@ export function CustomerActionButtons({
   const handleDelete = async () => {
     try {
       setIsDeleting(true);
-      const res = await deleteCustomerByAdminAction(customerId);
+      const res = await deleteCustomerByAdminAction(customer.id);
 
       if (!res.success) {
         toast.error(res.error || "Failed to delete customer.");
@@ -193,7 +171,6 @@ export function CustomerActionButtons({
 
       toast.success("Customer account deleted successfully.");
       setIsDeleteOpen(false);
-      router.push("/admin/customers");
     } catch (err: any) {
       toast.error(err?.message || "An unexpected error occurred.");
     } finally {
@@ -202,105 +179,38 @@ export function CustomerActionButtons({
   };
 
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div className="flex items-center justify-end gap-1.5">
       {/* Edit Customer Button */}
       <Button
-        variant="outline"
-        size="sm"
+        variant="ghost"
+        size="icon"
         onClick={handleOpenEdit}
-        className="flex items-center gap-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/50"
+        className="h-8 w-8 text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950/50"
+        title="View & Edit Customer Details & Password"
       >
         <Edit2 className="h-4 w-4" />
-        <span>Edit Customer & Password</span>
       </Button>
 
       {/* Delete Customer Button */}
       <Button
-        variant="outline"
-        size="sm"
+        variant="ghost"
+        size="icon"
         onClick={() => setIsDeleteOpen(true)}
-        className="flex items-center gap-1.5 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950/50"
+        title="Delete Customer"
       >
         <Trash2 className="h-4 w-4" />
-        <span>Delete</span>
       </Button>
 
-      {/* Message Dialog */}
-      <Dialog open={isMessageOpen} onOpenChange={setIsMessageOpen}>
-        <DialogTrigger render={<Button variant="outline" size="sm" className="flex items-center gap-1.5" />}>
-          <MessageSquare className="h-4 w-4" />
-          <span>Message</span>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Send Message</DialogTitle>
-            <DialogDescription>
-              Send an email or SMS directly to this customer.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Message</Label>
-              <Textarea
-                placeholder="Type your message here..."
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsMessageOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSendMessage}>Send</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Adjust Points Dialog */}
-      <Dialog open={isPointsOpen} onOpenChange={setIsPointsOpen}>
-        <DialogTrigger render={<Button variant="outline" size="sm" className="flex items-center gap-1.5" />}>
-          <Award className="h-4 w-4" />
-          <span>Adjust Points</span>
-        </DialogTrigger>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Adjust Reward Points</DialogTitle>
-            <DialogDescription>
-              Add or remove loyalty points for this customer.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Adjustment (use negative to remove)</Label>
-              <Input
-                type="number"
-                value={pointsDelta}
-                onChange={(e) => setPointsDelta(Number(e.target.value))}
-              />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              New Balance: {points + Number(pointsDelta)}
-            </p>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsPointsOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleAdjustPoints}>Apply Adjustment</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Customer & Password Dialog */}
+      {/* Edit Customer Dialog */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
         <DialogContent className="max-w-lg">
           <form onSubmit={handleUpdate}>
             <DialogHeader>
-              <DialogTitle>Customer Account & Password</DialogTitle>
+              <DialogTitle>Customer Account & Credentials</DialogTitle>
               <DialogDescription>
-                View customer current credentials, update details, or assign a
-                new password.
+                View customer current password, edit contact profile, or assign a
+                new login password.
               </DialogDescription>
             </DialogHeader>
 
@@ -376,20 +286,20 @@ export function CustomerActionButtons({
               {/* PROFILE FIELDS */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <Label htmlFor="detail-first-name">
+                  <Label htmlFor="edit-first-name">
                     First Name <span className="text-red-500">*</span>
                   </Label>
                   <Input
-                    id="detail-first-name"
+                    id="edit-first-name"
                     value={firstName}
                     onChange={(e) => setFirstName(e.target.value)}
                     required
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="detail-last-name">Last Name</Label>
+                  <Label htmlFor="edit-last-name">Last Name</Label>
                   <Input
-                    id="detail-last-name"
+                    id="edit-last-name"
                     value={lastName}
                     onChange={(e) => setLastName(e.target.value)}
                   />
@@ -397,11 +307,11 @@ export function CustomerActionButtons({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="detail-email">
+                <Label htmlFor="edit-email">
                   Email Address <span className="text-red-500">*</span>
                 </Label>
                 <Input
-                  id="detail-email"
+                  id="edit-email"
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -410,20 +320,64 @@ export function CustomerActionButtons({
               </div>
 
               <div className="space-y-1.5">
-                <Label htmlFor="detail-phone">Phone Number</Label>
+                <Label htmlFor="edit-phone">Phone Number</Label>
                 <Input
-                  id="detail-phone"
+                  id="edit-phone"
                   placeholder="+8801XXXXXXXXX"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                 />
               </div>
 
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1.5">
+                  <Label htmlFor="edit-stage">Lifecycle Stage</Label>
+                  <Select
+                    value={lifecycleStage}
+                    onValueChange={(val) => {
+                      if (val) setLifecycleStage(val as CustomerLifecycleStage);
+                    }}
+                  >
+                    <SelectTrigger id="edit-stage" className="w-full">
+                      <SelectValue placeholder="Select stage" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="PROSPECT">Prospect</SelectItem>
+                      <SelectItem value="FIRST_TIME_BUYER">
+                        First Time Buyer
+                      </SelectItem>
+                      <SelectItem value="REPEAT_CUSTOMER">
+                        Repeat Customer
+                      </SelectItem>
+                      <SelectItem value="LOYAL">Loyal</SelectItem>
+                      <SelectItem value="AT_RISK">At Risk</SelectItem>
+                      <SelectItem value="CHURNED">Churned</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-1.5 flex flex-col justify-end">
+                  <div className="flex items-center justify-between border rounded-md p-2.5 h-10">
+                    <Label
+                      htmlFor="edit-vip"
+                      className="text-xs font-semibold cursor-pointer"
+                    >
+                      VIP Customer
+                    </Label>
+                    <Switch
+                      id="edit-vip"
+                      checked={isVip}
+                      onCheckedChange={setIsVip}
+                    />
+                  </div>
+                </div>
+              </div>
+
               {/* SET / RESET PASSWORD SECTION */}
               <div className="pt-2 border-t mt-1 space-y-2">
                 <div className="flex items-center justify-between">
                   <Label
-                    htmlFor="detail-password"
+                    htmlFor="edit-password"
                     className="text-xs font-semibold text-slate-900 dark:text-slate-100 flex items-center gap-1.5"
                   >
                     <span>Update / Assign New Password</span>
@@ -441,7 +395,7 @@ export function CustomerActionButtons({
                 </div>
                 <div className="relative">
                   <Input
-                    id="detail-password"
+                    id="edit-password"
                     type={showNewPassword ? "text" : "password"}
                     placeholder="Enter new password (optional)"
                     value={newPassword}
@@ -462,7 +416,8 @@ export function CustomerActionButtons({
                   </button>
                 </div>
                 <p className="text-[11px] text-muted-foreground">
-                  Leave blank to keep existing password. Minimum 6 characters.
+                  Leave blank to keep existing password. If updating, minimum 6
+                  characters.
                 </p>
               </div>
             </div>
@@ -500,7 +455,11 @@ export function CustomerActionButtons({
               Delete Customer Account
             </DialogTitle>
             <DialogDescription className="pt-2">
-              Are you sure you want to permanently delete this customer account?
+              Are you sure you want to permanently delete{" "}
+              <strong>
+                {customer.first_name} {customer.last_name}
+              </strong>{" "}
+              ({customer.email})?
               <br />
               <br />
               This will remove their profile and authentication credentials. This

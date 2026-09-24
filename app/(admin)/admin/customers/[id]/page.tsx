@@ -20,6 +20,7 @@ import {
   Activity,
 } from "lucide-react";
 import { fetchCustomerDetailsAction } from "@/app/actions/crm/customer.actions";
+import { getCustomerPasswordAction } from "@/app/actions/crm/customer-admin.actions";
 import { CustomerActionButtons } from "./CustomerActionButtons";
 
 export default async function CustomerProfilePage({
@@ -28,7 +29,10 @@ export default async function CustomerProfilePage({
   params: Promise<{ id: string }>;
 }) {
   const customerId = (await params).id;
-  const { success, data, error } = await fetchCustomerDetailsAction(customerId);
+  const [{ success, data, error }, passwordRes] = await Promise.all([
+    fetchCustomerDetailsAction(customerId),
+    getCustomerPasswordAction(customerId),
+  ]);
 
   if (!success || !data) {
     return (
@@ -81,7 +85,17 @@ export default async function CustomerProfilePage({
             </div>
           </div>
         </div>
-        <CustomerActionButtons customerId={customerId} initialPoints={customer.points} />
+        <CustomerActionButtons
+          customerId={customerId}
+          initialPoints={customer.points}
+          initialData={{
+            firstName: profile.first_name || "",
+            lastName: profile.last_name || "",
+            email: profile.email || "",
+            phone: profile.phone || "",
+            password: passwordRes?.success ? passwordRes.password : null,
+          }}
+        />
       </div>
 
       {/* KPI Cards */}

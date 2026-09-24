@@ -4,6 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
+function getCustomerName(t: any): string {
+  if (t.customer_name && typeof t.customer_name === "string") return t.customer_name;
+  if (typeof t.customer === "string") return t.customer;
+  if (t.customer && typeof t.customer === "object") {
+    return t.customer.full_name || t.customer.name || t.customer.phone || "Customer";
+  }
+  return "Guest";
+}
+
 export function ExportTicketsButton({ tickets = [] }: { tickets?: any[] }) {
   const handleExport = () => {
     try {
@@ -14,11 +23,11 @@ export function ExportTicketsButton({ tickets = [] }: { tickets?: any[] }) {
 
       const headers = ["Ticket ID", "Subject", "Customer", "Priority", "Status", "Created At"];
       const csvData = tickets.map((t) => [
-        `"${(t.ticket_number || t.id || "").replace(/"/g, '""')}"`,
-        `"${(t.subject || "").replace(/"/g, '""')}"`,
-        `"${(t.customer_name || t.customer || "Guest").replace(/"/g, '""')}"`,
-        `"${(t.priority || "MEDIUM").toUpperCase()}"`,
-        `"${(t.status || "OPEN").toUpperCase()}"`,
+        `"${String(t.ticket_number || t.id || "").replace(/"/g, '""')}"`,
+        `"${String(t.subject || "").replace(/"/g, '""')}"`,
+        `"${getCustomerName(t).replace(/"/g, '""')}"`,
+        `"${String(t.priority || "MEDIUM").toUpperCase()}"`,
+        `"${String(t.status || "OPEN").toUpperCase()}"`,
         `"${new Date(t.created_at || Date.now()).toLocaleDateString()}"`,
       ]);
 
@@ -32,8 +41,8 @@ export function ExportTicketsButton({ tickets = [] }: { tickets?: any[] }) {
       link.click();
       document.body.removeChild(link);
       toast.success("Tickets exported successfully");
-    } catch {
-      toast.error("Failed to export tickets");
+    } catch (err: any) {
+      toast.error("Failed to export tickets: " + (err.message || "Unknown error"));
     }
   };
 

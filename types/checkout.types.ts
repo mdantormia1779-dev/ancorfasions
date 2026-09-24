@@ -22,6 +22,7 @@ export interface CartItem {
     sale_price?: number | null;
     main_image_url?: string | null;
     stock_quantity: number;
+    sku?: string | null;
   };
   variant?: {
     id: string;
@@ -160,10 +161,17 @@ export interface OrderItem {
   order_id: string;
   product_id: string;
   variant_id?: string | null;
+  sku?: string | null;
+  product_name?: string | null;
+  variant_name?: string | null;
   quantity: number;
   unit_price: number;
   line_total?: number;
   total_price?: number;
+  discount?: number;
+  tax?: number;
+  inventory_reserved?: boolean;
+  allocated_warehouse_id?: string | null;
   created_at: string;
 }
 

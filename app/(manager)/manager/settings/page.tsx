@@ -136,7 +136,7 @@ export default async function ManagerSettingsPage() {
             </Button>
 
             <Button variant="outline" asChild className="justify-start h-auto py-3 px-4">
-              <Link href="/admin/profile">
+              <Link href="/account/profile">
                 <Shield className="h-4 w-4 mr-3 text-amber-500" />
                 <div className="text-left">
                   <div className="font-semibold text-sm">Security & Password</div>

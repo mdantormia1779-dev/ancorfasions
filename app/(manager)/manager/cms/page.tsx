@@ -51,12 +51,12 @@ export default function CMSPage() {
           <CardContent>
             <div className="flex gap-2">
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/admin/cms/banners">
+                <Link href="/manager/cms/banners">
                   Banners & Hero
                 </Link>
               </Button>
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/admin/cms/blogs">
+                <Link href="/manager/cms/blogs">
                   Static Pages
                 </Link>
               </Button>
@@ -81,12 +81,12 @@ export default function CMSPage() {
           <CardContent>
             <div className="flex gap-2">
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/admin/cms/blogs">
+                <Link href="/manager/cms/blogs">
                   Manage Posts
                 </Link>
               </Button>
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/admin/cms/blogs">
+                <Link href="/manager/cms/blogs">
                   Categories
                 </Link>
               </Button>
@@ -110,7 +110,7 @@ export default function CMSPage() {
           </CardHeader>
           <CardContent>
             <Button variant="outline" className="w-full" asChild>
-              <Link href="/admin/cms/media">
+              <Link href="/manager/cms/media">
                 Open Media Manager
               </Link>
             </Button>
@@ -134,12 +134,12 @@ export default function CMSPage() {
           <CardContent>
             <div className="flex gap-2">
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/admin/cms/blogs">
+                <Link href="/manager/cms/blogs">
                   Edit FAQs
                 </Link>
               </Button>
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/admin/settings/store">
+                <Link href="/manager/settings">
                   Store Policies
                 </Link>
               </Button>

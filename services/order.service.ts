@@ -113,8 +113,8 @@ export class OrderService {
         quantity: item.quantity,
         unit_price: price,
         line_total: itemTotal,
-        product_name: (item.product as any).name || item.product.title || "Product",
-        sku: item.variant?.sku || item.product.sku || "N/A",
+        product_name: (item.product as any)?.name || item.product?.title || "Product",
+        sku: item.variant?.sku || item.product?.sku || "N/A",
       });
 
       // Build reservation payload for the RPC.

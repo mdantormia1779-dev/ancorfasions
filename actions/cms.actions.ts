@@ -792,6 +792,8 @@ export async function upsertHeroSlideWithUpload(formData: FormData) {
     if (error) throw error;
     invalidateHomepageCache();
     revalidatePath("/admin/cms/banners");
+    revalidatePath("/manager/cms/banners");
+    revalidatePath("/manager/cms");
     revalidatePath("/");
     return { success: true, image_url, id: data?.id };
   } catch (error: any) {
@@ -818,6 +820,8 @@ export async function deleteHeroSlide(id: string) {
     }
     invalidateHomepageCache();
     revalidatePath("/admin/cms/banners");
+    revalidatePath("/manager/cms/banners");
+    revalidatePath("/manager/cms");
     revalidatePath("/");
     return { success: true };
   } catch (error: any) {

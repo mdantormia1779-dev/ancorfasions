@@ -10,23 +10,41 @@ export async function createCustomerAction(data: {
   phone?: string;
   lifecycleStage?: string;
 }): Promise<{ success?: boolean; data?: any; error?: string }> {
+  const cleanEmail = data.email.trim().toLowerCase();
+  const cleanPhone = data.phone?.trim() ? data.phone.trim() : null;
+
   try {
     const supabase = createAdminClient();
 
-    const cleanEmail = data.email.trim().toLowerCase();
-
     // 1. Check if customer profile already exists with this email
-    const { data: existing } = await supabase
+    const { data: existingEmail } = await supabase
       .from("customer_profiles")
-      .select("id")
+      .select("id, email, first_name, last_name")
       .ilike("email", cleanEmail)
       .maybeSingle();
 
-    if (existing) {
-      return { error: `A customer with email "${data.email.trim()}" already exists.` };
+    if (existingEmail) {
+      return {
+        error: `A customer with email "${cleanEmail}" already exists (${existingEmail.first_name || ""} ${existingEmail.last_name || ""}).`,
+      };
     }
 
-    // 2. Provision user in Supabase Auth to obtain a valid UUID (primary key for customer_profiles)
+    // 2. Check if customer profile already exists with this phone number (unique constraint)
+    if (cleanPhone) {
+      const { data: existingPhone } = await supabase
+        .from("customer_profiles")
+        .select("id, email, first_name, last_name")
+        .eq("phone", cleanPhone)
+        .maybeSingle();
+
+      if (existingPhone) {
+        return {
+          error: `Phone number "${cleanPhone}" is already registered to another customer (${existingPhone.first_name || ""} ${existingPhone.last_name || ""}, ${existingPhone.email}). Please use a unique phone number or leave it blank.`,
+        };
+      }
+    }
+
+    // 3. Provision user in Supabase Auth to obtain a valid UUID (primary key for customer_profiles)
     let userId: string;
     const tempPassword = `AnchorCustomer@${Math.random().toString(36).slice(-8)}!2026`;
 
@@ -38,7 +56,7 @@ export async function createCustomerAction(data: {
         first_name: data.firstName.trim(),
         last_name: data.lastName.trim(),
         full_name: `${data.firstName.trim()} ${data.lastName.trim()}`,
-        phone: data.phone?.trim() || "",
+        phone: cleanPhone || "",
         role: "customer",
       },
     });
@@ -66,7 +84,7 @@ export async function createCustomerAction(data: {
       userId = authData?.user?.id || crypto.randomUUID();
     }
 
-    // 3. Sync with profiles table if present
+    // 4. Sync with profiles table if present
     try {
       await supabase.from("profiles").upsert(
         {
@@ -74,7 +92,7 @@ export async function createCustomerAction(data: {
           email: cleanEmail,
           first_name: data.firstName.trim(),
           last_name: data.lastName.trim(),
-          phone: data.phone?.trim() || null,
+          phone: cleanPhone,
           role: "customer",
           is_active: true,
         },
@@ -84,7 +102,7 @@ export async function createCustomerAction(data: {
       // Non-critical if profiles table schema differs
     }
 
-    // 4. Create customer profile with valid primary key id
+    // 5. Create customer profile with valid primary key id
     const { data: newCustomer, error: profileError } = await supabase
       .from("customer_profiles")
       .upsert(
@@ -93,7 +111,7 @@ export async function createCustomerAction(data: {
           first_name: data.firstName.trim(),
           last_name: data.lastName.trim(),
           email: cleanEmail,
-          phone: data.phone?.trim() || null,
+          phone: cleanPhone,
           is_active: true,
         },
         { onConflict: "id" }
@@ -103,7 +121,7 @@ export async function createCustomerAction(data: {
 
     if (profileError) throw profileError;
 
-    // 5. Initialize CRM customer metadata
+    // 6. Initialize CRM customer metadata
     if (newCustomer?.id) {
       await supabase.from("crm_customers").upsert(
         {
@@ -119,9 +137,35 @@ export async function createCustomerAction(data: {
     }
 
     revalidatePath("/admin/customers");
+    revalidatePath("/manager/customers");
     return { success: true, data: newCustomer };
   } catch (error: any) {
     console.error("[createCustomerAction]", error);
+
+    // Handle unique constraint violations gracefully
+    if (
+      error.code === "23505" ||
+      error.message?.includes("customer_profiles_phone_key") ||
+      error.message?.includes("unique constraint")
+    ) {
+      if (
+        error.message?.includes("customer_profiles_phone_key") ||
+        error.message?.includes("phone")
+      ) {
+        return {
+          error: `Phone number "${cleanPhone}" is already in use by another customer. Phone numbers must be unique, or you can leave the phone field blank.`,
+        };
+      }
+      if (error.message?.includes("email")) {
+        return {
+          error: `A customer with email "${cleanEmail}" is already registered.`,
+        };
+      }
+      return {
+        error: "A customer with this email or phone number already exists in the system.",
+      };
+    }
+
     return { error: error.message || "Failed to create customer" };
   }
 }

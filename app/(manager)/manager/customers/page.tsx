@@ -1,12 +1,10 @@
 import { Metadata } from "next";
 import { Button } from "@/components/ui/button";
-import { Download, Filter, UserPlus } from "lucide-react";
+import { Filter } from "lucide-react";
 import { fetchCustomersAction } from "@/app/actions/crm/customer.actions";
 import { CustomersList } from "@/features/crm/components/CustomersList";
 import { CustomerSearch } from "@/features/crm/components/customer-search";
-
 import { ExportCustomersButton } from "./ExportCustomersButton";
-import Link from "next/link";
 
 export const metadata: Metadata = {
   title: "Customers | Manager Dashboard",
@@ -31,12 +29,6 @@ export default async function CustomersPage({
         </div>
         <div className="flex items-center gap-2">
           <ExportCustomersButton customers={customers || []} />
-          <Button asChild>
-            <Link href="/admin/customers">
-              <UserPlus className="mr-2 h-4 w-4" />
-              Add Customer
-            </Link>
-          </Button>
         </div>
       </div>
 

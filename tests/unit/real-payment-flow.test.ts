@@ -26,8 +26,8 @@ describe("Real Product & Payment Lifecycle Integration Suite", () => {
 
     expect(error).toBeNull();
     expect(product).toBeDefined();
-    expect(product.name).toBeTruthy();
-    expect(Number(product.base_price)).toBeGreaterThan(0);
+    expect(product?.name).toBeTruthy();
+    expect(Number(product?.base_price)).toBeGreaterThan(0);
     realProduct = product;
   });
 
@@ -107,9 +107,9 @@ describe("Real Product & Payment Lifecycle Integration Suite", () => {
       .eq("id", testOrderId)
       .single();
 
-    expect(updatedOrder.payment_status).toBe("paid");
-    expect(updatedOrder.status).toBe("confirmed");
-    expect(updatedOrder.paid_at).toBeTruthy();
+    expect(updatedOrder?.payment_status).toBe("paid");
+    expect(updatedOrder?.status).toBe("confirmed");
+    expect(updatedOrder?.paid_at).toBeTruthy();
   });
 
   it("6. Should dispatch confirmed order with Courier Provider", async () => {

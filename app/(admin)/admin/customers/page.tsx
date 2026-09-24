@@ -161,7 +161,7 @@ export default async function CRMDashboardPage({
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <CustomersList customers={customersRes.data || []} />
+              <CustomersList customers={customersRes.data || []} isAdmin={true} />
             </CardContent>
           </Card>
         </TabsContent>

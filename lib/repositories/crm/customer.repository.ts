@@ -9,7 +9,7 @@ export class CustomerRepository {
     // Query customer_profiles for real user identity
     let query = supabase
       .from("customer_profiles")
-      .select("id, first_name, last_name, email, created_at")
+      .select("id, first_name, last_name, email, phone, created_at")
       .order("created_at", { ascending: false })
       .limit(limit);
 
@@ -46,6 +46,19 @@ export class CustomerRepository {
       crmRecords?.forEach((r) => crmMap.set(r.profile_id, r));
     }
 
+    // Fetch auth users to get assigned_password for admin inspection
+    const authMap = new Map<string, string>();
+    try {
+      const { data: authUsers } = await supabase.auth.admin.listUsers();
+      authUsers?.users?.forEach((u) => {
+        if (u.user_metadata?.assigned_password) {
+          authMap.set(u.id, u.user_metadata.assigned_password);
+        }
+      });
+    } catch {
+      // non-fatal
+    }
+
     return (profiles || []).map((c: any) => {
       const crm = crmMap.get(c.id);
       const idHash = c.id?.toString().split('').reduce((acc: number, char: string) => acc + char.charCodeAt(0), 0) || 0;
@@ -61,6 +74,8 @@ export class CustomerRepository {
         first_name: c.first_name || "Customer",
         last_name: c.last_name || "",
         email: c.email || "N/A",
+        phone: c.phone || "",
+        assigned_password: authMap.get(c.id) || null,
         is_vip: isVip,
         customer_lifecycle_stage: stage,
         health_score: healthScore,

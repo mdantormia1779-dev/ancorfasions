@@ -35,7 +35,7 @@ export default async function MarketingPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button asChild>
-            <Link href="/admin/marketing/campaigns">
+            <Link href="/manager/marketing/campaigns">
               <Plus className="mr-2 h-4 w-4" />
               Create Campaign
             </Link>
@@ -44,7 +44,7 @@ export default async function MarketingPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-4">
-        <Link href="/admin/marketing/coupons" className="block">
+        <Link href="/manager/marketing/coupons" className="block">
           <Card className="h-full cursor-pointer transition-colors hover:border-primary/50">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-medium">Coupons</CardTitle>
@@ -64,7 +64,7 @@ export default async function MarketingPage() {
           </Card>
         </Link>
 
-        <Link href="/admin/marketing/promotions" className="block">
+        <Link href="/manager/marketing/promotions" className="block">
           <Card className="h-full cursor-pointer transition-colors hover:border-primary/50">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-medium">Flash Sales</CardTitle>
@@ -84,7 +84,7 @@ export default async function MarketingPage() {
           </Card>
         </Link>
 
-        <Link href="/admin/marketing/newsletter" className="block">
+        <Link href="/manager/marketing/newsletter" className="block">
           <Card className="h-full cursor-pointer transition-colors hover:border-primary/50">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-medium">
@@ -106,7 +106,7 @@ export default async function MarketingPage() {
           </Card>
         </Link>
 
-        <Link href="/admin/notifications" className="block">
+        <Link href="/manager/marketing/campaigns" className="block">
           <Card className="h-full cursor-pointer transition-colors hover:border-primary/50">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-lg font-medium">
@@ -157,8 +157,8 @@ export default async function MarketingPage() {
                       Started: {new Date(campaign.created_at).toLocaleDateString()}
                     </span>
                     <Button variant="ghost" size="sm" asChild>
-                      <Link href="/admin/marketing/campaigns">
-                        Edit
+                      <Link href="/manager/marketing/campaigns">
+                        View / Edit
                       </Link>
                     </Button>
                   </div>

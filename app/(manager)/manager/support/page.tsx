@@ -1,5 +1,4 @@
 import { Metadata } from "next";
-import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -22,6 +21,19 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
+function getCustomerDisplayName(ticket: any): string {
+  if (ticket.customer_name && typeof ticket.customer_name === "string") {
+    return ticket.customer_name;
+  }
+  if (typeof ticket.customer === "string") {
+    return ticket.customer;
+  }
+  if (ticket.customer && typeof ticket.customer === "object") {
+    return ticket.customer.full_name || ticket.customer.name || ticket.customer.phone || "Customer";
+  }
+  return "Guest";
+}
+
 export default async function SupportPage({
   searchParams,
 }: {
@@ -33,12 +45,13 @@ export default async function SupportPage({
 
   // Filter if query is provided
   const tickets = query
-    ? allTickets.filter(
-        (t) =>
-          (t.subject || "").toLowerCase().includes(query.toLowerCase()) ||
-          (t.customer_name || t.customer || "").toLowerCase().includes(query.toLowerCase()) ||
-          (t.ticket_number || t.id || "").toLowerCase().includes(query.toLowerCase())
-      )
+    ? allTickets.filter((t) => {
+        const customerName = getCustomerDisplayName(t).toLowerCase();
+        const subject = (t.subject || "").toLowerCase();
+        const ticketNum = String(t.ticket_number || t.id || "").toLowerCase();
+        const q = query.toLowerCase();
+        return subject.includes(q) || customerName.includes(q) || ticketNum.includes(q);
+      })
     : allTickets;
 
   const openCount = allTickets.filter(
@@ -138,11 +151,12 @@ export default async function SupportPage({
               tickets.map((ticket: any) => {
                 const priorityStr = (ticket.priority || "medium").toLowerCase();
                 const statusStr = (ticket.status || "OPEN").toUpperCase();
+                const customerName = getCustomerDisplayName(ticket);
 
                 return (
                   <TableRow key={ticket.id}>
                     <TableCell className="font-mono text-xs text-muted-foreground">
-                      {ticket.ticket_number || ticket.id.slice(0, 8)}
+                      {ticket.ticket_number ? `#${ticket.ticket_number}` : ticket.id.slice(0, 8)}
                     </TableCell>
                     <TableCell className="font-medium">
                       <div>{ticket.subject}</div>
@@ -153,7 +167,7 @@ export default async function SupportPage({
                       )}
                     </TableCell>
                     <TableCell className="text-sm text-foreground">
-                      {ticket.customer_name || ticket.customer || "Guest"}
+                      {customerName}
                     </TableCell>
                     <TableCell>
                       <Badge
