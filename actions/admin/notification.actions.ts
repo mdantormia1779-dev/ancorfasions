@@ -43,6 +43,18 @@ export async function getAdminHeaderNotificationsAction(): Promise<{
     const { data, error } = await query;
 
     if (error) {
+      const admin = createAdminClient();
+      const { data: adminData } = await admin
+        .from("notifications")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(10);
+
+      if (adminData) {
+        const notifications: AdminNotification[] = adminData;
+        const unreadCount = notifications.filter((n) => !n.read_at).length;
+        return { data: notifications, unreadCount };
+      }
       return { data: [], unreadCount: 0, error: error.message };
     }
 

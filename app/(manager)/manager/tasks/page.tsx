@@ -15,8 +15,14 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function TasksPage() {
-  const { data: allTasks = [] } = await fetchTasksAction();
-  const safeTasks = Array.isArray(allTasks) ? allTasks : [];
+  let safeTasks: ManagerTask[] = [];
+  try {
+    const res = await fetchTasksAction();
+    safeTasks = Array.isArray(res?.data) ? res.data : [];
+  } catch (err) {
+    console.error("TasksPage fetchTasksAction failed:", err);
+    safeTasks = [];
+  }
 
   const pendingTasks = safeTasks.filter(
     (t: ManagerTask) => t.status === "pending"

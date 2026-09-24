@@ -69,7 +69,6 @@ export class TaskRepository {
     let fallbackQuery = supabase
       .from("tasks")
       .select("*, profiles:assignee_id(id, first_name, last_name)")
-      .eq("is_deleted", false)
       .order("created_at", { ascending: false });
 
     if (status) {

@@ -42,11 +42,24 @@ export default async function AdminDashboardPage() {
     fetchRecentOrdersAction()
   ]);
 
-  const kpis = kpisRes.data || {
-    revenue: { value: 0, trend: { value: 0, isPositive: true } },
-    orders: { value: 0, trend: { value: 0, isPositive: true } },
-    aov: { value: 0, trend: { value: 0, isPositive: true } },
-    newCustomers: { value: 0, trend: { value: 0, isPositive: true } },
+  const kpisData = kpisRes?.data;
+  const kpis = {
+    revenue: {
+      value: kpisData?.revenue?.value ?? 0,
+      trend: kpisData?.revenue?.trend ?? { value: 0, isPositive: true },
+    },
+    orders: {
+      value: kpisData?.orders?.value ?? 0,
+      trend: kpisData?.orders?.trend ?? { value: 0, isPositive: true },
+    },
+    aov: {
+      value: kpisData?.aov?.value ?? 0,
+      trend: kpisData?.aov?.trend ?? { value: 0, isPositive: true },
+    },
+    newCustomers: {
+      value: kpisData?.newCustomers?.value ?? 0,
+      trend: kpisData?.newCustomers?.trend ?? { value: 0, isPositive: true },
+    },
   };
 
   const rawSalesData = revenueRes.data || [];

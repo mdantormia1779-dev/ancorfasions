@@ -31,41 +31,39 @@ export async function getAdminHeaderMessagesAction(): Promise<{
   error?: string;
 }> {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
 
-    const { data, error } = await supabase
+    const { data: logs, error } = await supabase
       .from("communication_logs")
-      .select(
-        `
-        *,
-        profile:profiles(first_name, last_name)
-      `
-      )
+      .select("*")
       .eq("direction", "INBOUND")
       .order("created_at", { ascending: false })
       .limit(10);
 
     if (error) {
-      const { data: simpleLogs, error: e2 } = await supabase
-        .from("communication_logs")
-        .select("*")
-        .eq("direction", "INBOUND")
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      if (e2) return { data: [], unreadCount: 0, error: e2.message };
-
-      const messages: AdminMessage[] = (simpleLogs || []).map((log) => ({
-        ...log,
-        profile: null,
-      }));
-      const unreadCount = messages.filter((m) => m.status !== "READ").length;
-      return { data: messages, unreadCount };
+      return { data: [], unreadCount: 0, error: error.message };
     }
 
-    const messages: AdminMessage[] = (data || []).map((log) => ({
+    const simpleLogs = logs || [];
+    const profileIds = Array.from(new Set(simpleLogs.map((l: any) => l.profile_id).filter(Boolean)));
+    const profileMap = new Map<string, { first_name: string | null; last_name: string | null }>();
+
+    if (profileIds.length > 0) {
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("id, first_name, last_name")
+        .in("id", profileIds);
+
+      if (profiles) {
+        profiles.forEach((p: any) => {
+          profileMap.set(p.id, { first_name: p.first_name, last_name: p.last_name });
+        });
+      }
+    }
+
+    const messages: AdminMessage[] = simpleLogs.map((log: any) => ({
       ...log,
-      profile: log.profile || null,
+      profile: log.profile_id ? profileMap.get(log.profile_id) || null : null,
     }));
     const unreadCount = messages.filter((m) => m.status !== "READ").length;
 
@@ -219,7 +217,7 @@ export async function markAllMessagesAsReadAction(): Promise<{ error?: string }>
  */
 export async function seedInitialMessagesIfEmptyAction(): Promise<void> {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { count } = await supabase
       .from("communication_logs")
       .select("*", { count: "exact", head: true });

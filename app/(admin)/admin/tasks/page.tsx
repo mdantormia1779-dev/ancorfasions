@@ -10,8 +10,14 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminTasksPage() {
-  const { data: allTasks = [] } = await fetchTasksAction();
-  const safeTasks = Array.isArray(allTasks) ? allTasks : [];
+  let safeTasks: any[] = [];
+  try {
+    const res = await fetchTasksAction();
+    safeTasks = Array.isArray(res?.data) ? res.data : [];
+  } catch (err) {
+    console.error("AdminTasksPage fetchTasksAction failed:", err);
+    safeTasks = [];
+  }
 
   return <TasksManagerClient initialTasks={safeTasks} />;
 }
