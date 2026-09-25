@@ -121,7 +121,11 @@ function DropdownMenuItem({
 }) {
   const effectiveRender =
     render !== undefined
-      ? render
+      ? React.isValidElement(render) &&
+        !(render.props as { children?: React.ReactNode })?.children &&
+        children
+        ? React.cloneElement(render as React.ReactElement, {}, children)
+        : render
       : asChild && React.isValidElement(children)
         ? (children as React.ReactElement)
         : undefined;

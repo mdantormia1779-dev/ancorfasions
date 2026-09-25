@@ -198,7 +198,14 @@ export default function EditBlogPost() {
         </div>
         <div className="flex items-center gap-2">
           {formData.slug && (
-            <Link href={`/blog/${formData.slug}`} target="_blank">
+            <Link
+              href={
+                formData.status === "published"
+                  ? `/blog/${formData.slug}`
+                  : `/blog/${formData.slug}?preview=true`
+              }
+              target="_blank"
+            >
               <Button type="button" variant="outline">
                 <Eye className="mr-2 h-4 w-4" /> View Post
               </Button>

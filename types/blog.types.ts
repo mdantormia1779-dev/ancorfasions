@@ -30,6 +30,8 @@ export interface BlogPost {
   published_at: Date | null;
   created_at: Date;
   updated_at: Date;
+  blog_categories?: BlogCategory | null;
+  blog_tags?: BlogTag[];
 }
 
 export interface BlogPostTag {
