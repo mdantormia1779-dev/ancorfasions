@@ -1,12 +1,15 @@
 import { Suspense } from "react";
 import { CatalogRepository } from "@/repositories/catalog.repository";
 import { ProductCard } from "@/components/product/product-card";
-import { Search } from "lucide-react";
+import { ProductSearchBar } from "@/components/product/product-search-bar";
+import { Search, ArrowRight, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { jost } from "@/lib/fonts";
 
 export const metadata = {
-  title: "Search Results | Anchor Fashion",
+  title: "Search Products",
+  description: "Search luxury apparel, fashion edits and accessories at Anchor Fashion.",
 };
 
 export default async function SearchPage({
@@ -15,66 +18,89 @@ export default async function SearchPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const sp = await searchParams;
-  const query = typeof sp.q === "string" ? sp.q : "";
+  const query = typeof sp.q === "string" ? sp.q.trim() : "";
 
   // Only fetch if there is a query
   let products: any[] = [];
+  let count = 0;
   if (query) {
     const res = await CatalogRepository.getProducts({
       search: query,
-      limit: 20,
+      limit: 40,
     });
     products = res.data || [];
+    count = res.count || products.length;
   }
 
   return (
-    <div className="container min-h-[70vh] py-8 md:py-12">
-      <div className="mx-auto mb-10 max-w-3xl text-center">
-        <h1 className="mb-2 text-3xl font-bold tracking-tight">
-          Search Results
+    <div className={`${jost.className} container mx-auto px-4 py-8 md:py-14 min-h-[75vh]`}>
+      {/* Search Header */}
+      <div className="mx-auto mb-8 max-w-2xl text-center">
+        <span className="text-[10px] font-bold uppercase tracking-[0.3em] text-[#C9A86A]">
+          Search Catalog
+        </span>
+        <h1 className="mt-1 text-2xl sm:text-3xl md:text-4xl font-light tracking-tight text-gray-900">
+          {query ? (
+            <>
+              Results for &ldquo;<span className="font-medium text-black">{query}</span>&rdquo;
+            </>
+          ) : (
+            "Explore Our Collection"
+          )}
         </h1>
-        {query ? (
-          <p className="text-muted-foreground">
-            Showing {products.length} results for{" "}
-            <span className="font-semibold text-foreground">"{query}"</span>
-          </p>
-        ) : (
-          <p className="text-muted-foreground">
-            Enter a search term to find products.
+        {query && (
+          <p className="mt-2 text-xs text-gray-500">
+            Found {count} {count === 1 ? "matching piece" : "matching pieces"}
           </p>
         )}
+
+        {/* Live Search Input */}
+        <div className="mt-6 mx-auto max-w-lg">
+          <ProductSearchBar
+            defaultValue={query}
+            placeholder="Search dresses, shirts, accessories…"
+          />
+        </div>
       </div>
 
       {!query ? (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 py-20">
-          <Search className="mb-4 h-12 w-12 text-muted-foreground opacity-20" />
-          <h2 className="mb-2 text-xl font-medium">
+        <div className="mx-auto max-w-md rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 py-16 px-6 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+            <Search className="h-6 w-6" strokeWidth={1.5} />
+          </div>
+          <h2 className="mb-1 text-lg font-medium text-gray-900">
             What are you looking for?
           </h2>
-          <p className="mb-6 max-w-sm text-center text-muted-foreground">
-            Use the search bar above to find specific products, brands, or
-            categories.
+          <p className="mb-6 text-xs text-gray-500 leading-relaxed">
+            Enter a search term above to find signature apparel, seasonal edits, or specific styles.
           </p>
-          <Button>
-            <Link href="/products">Browse All Products</Link>
+          <Button asChild className="rounded-full bg-black px-6 py-2.5 text-xs font-semibold uppercase tracking-wider text-white transition-colors hover:bg-[#C9A86A]">
+            <Link href="/products" className="inline-flex items-center gap-2">
+              Browse All Products
+              <ArrowRight className="h-3.5 w-3.5" />
+            </Link>
           </Button>
         </div>
       ) : products.length > 0 ? (
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
+        <div className="grid grid-cols-2 gap-3 sm:gap-4 md:gap-6 lg:grid-cols-4 xl:grid-cols-5">
           {products.map((product: any) => (
             <ProductCard key={product.id} product={product} />
           ))}
         </div>
       ) : (
-        <div className="flex flex-col items-center justify-center rounded-lg border border-dashed bg-muted/20 py-20">
-          <Search className="mb-4 h-12 w-12 text-muted-foreground opacity-20" />
-          <h2 className="mb-2 text-xl font-medium">No results found</h2>
-          <p className="mb-6 max-w-sm text-center text-muted-foreground">
-            We couldn't find anything matching "{query}". Try checking your
-            spelling or using different keywords.
+        <div className="mx-auto max-w-md rounded-2xl border border-dashed border-gray-200 bg-gray-50/50 py-16 px-6 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gray-100 text-gray-400">
+            <Search className="h-6 w-6" strokeWidth={1.5} />
+          </div>
+          <h2 className="mb-1 text-lg font-medium text-gray-900">No results found</h2>
+          <p className="mb-6 text-xs text-gray-500 leading-relaxed">
+            We couldn&apos;t find anything matching &ldquo;{query}&rdquo;. Try checking for typos or searching with broader keywords.
           </p>
-          <Button variant="outline">
-            <Link href="/products">Browse All Products</Link>
+          <Button asChild variant="outline" className="rounded-full border-black px-6 py-2.5 text-xs font-semibold uppercase tracking-wider text-black transition-colors hover:bg-black hover:text-white">
+            <Link href="/products" className="inline-flex items-center gap-2">
+              <RotateCcw className="h-3.5 w-3.5" />
+              Explore All Products
+            </Link>
           </Button>
         </div>
       )}

@@ -101,6 +101,18 @@ export const getProducts = async (params?: {
       query = query.or(
         "gender.eq.KIDS,name.ilike.%kid%,name.ilike.%boys%,name.ilike.%girls%"
       );
+    } else if (slug === "dresses") {
+      query = query.or(
+        "name.ilike.%dress%,name.ilike.%gown%,name.ilike.%frock%"
+      );
+    } else if (slug === "tops") {
+      query = query.or(
+        "name.ilike.%top%,name.ilike.%shirt%,name.ilike.%t-shirt%,name.ilike.%tshirt%,name.ilike.%blouse%"
+      );
+    } else if (slug === "jeans") {
+      query = query.or(
+        "name.ilike.%jean%,name.ilike.%denim%,name.ilike.%pant%,name.ilike.%trouser%"
+      );
     } else if (slug === "accessories" || slug === "bags" || slug === "jewellery") {
       query = query.or(
         "name.ilike.%cap%,name.ilike.%bag%,name.ilike.%jewel%,name.ilike.%belt%,name.ilike.%accessory%"

@@ -134,9 +134,9 @@ export default async function CollectionDetailPage({
               We are currently adding curated pieces to the {collection.name} collection. Check back shortly or explore our full store catalog.
             </p>
             <div className="mt-6">
-              <Link href="/products">
-                <Button className="rounded-full px-6">Explore All Products</Button>
-              </Link>
+              <Button asChild className="rounded-full px-6">
+                <Link href="/products">Explore All Products</Link>
+              </Button>
             </div>
           </div>
         )}

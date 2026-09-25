@@ -9,6 +9,7 @@ import {
   User,
   Menu,
   ChevronDown,
+  ChevronRight,
   X,
   Phone,
   Mail,
@@ -29,6 +30,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ADMIN_ROLES, MANAGER_ROLES } from "@/lib/constants/auth";
 import { useCartStore } from "@/stores/use-cart-store";
+import { useWishlistStore } from "@/stores/use-wishlist-store";
+
 
 
 
@@ -89,45 +92,64 @@ function NavItem({ link }: { link: NavLinkItem }) {
   return (
     <div
       ref={ref}
-      className="relative"
+      className="relative py-2"
       onMouseEnter={() => setOpen(true)}
       onMouseLeave={() => setOpen(false)}
     >
       <Link
         href={link.href}
-        className={`group flex items-center gap-1 py-1 text-xs font-semibold uppercase tracking-[0.12em] transition-colors ${
+        className={`group flex items-center gap-1.5 text-xs font-semibold uppercase tracking-[0.14em] transition-colors ${
           isSale
             ? "text-rose-600 hover:text-rose-700"
             : "text-[#1A1A1A] hover:text-[#C9A86A]"
         }`}
       >
-        {link.label}
+        <span>{link.label}</span>
         <ChevronDown
           className={`h-3 w-3 transition-transform duration-200 ${
             open ? "rotate-180 text-[#C9A86A]" : "text-gray-400"
           }`}
         />
-        <span className="absolute -bottom-0.5 left-0 h-0.5 w-0 bg-[#C9A86A] transition-all duration-300 group-hover:w-full" />
+        <span
+          className={`absolute bottom-0 left-0 h-0.5 transition-all duration-300 ${
+            open ? "w-full bg-[#C9A86A]" : "w-0 group-hover:w-full bg-[#C9A86A]"
+          }`}
+        />
       </Link>
 
-      {/* Dropdown Panel */}
+      {/* Dropdown Panel with seamless hover bridge */}
       <div
-        className={`absolute left-0 top-full z-50 mt-2 min-w-[200px] origin-top border border-[#C9A86A]/20 bg-white py-2 shadow-xl transition-all duration-200 ${
+        className={`absolute left-0 top-full z-50 min-w-[220px] origin-top-left transition-all duration-200 ${
           open
-            ? "translate-y-0 scale-y-100 opacity-100 pointer-events-auto"
-            : "pointer-events-none -translate-y-1 scale-y-95 opacity-0"
+            ? "translate-y-0 scale-100 opacity-100 pointer-events-auto"
+            : "pointer-events-none -translate-y-1 scale-95 opacity-0"
         }`}
       >
-        {link.dropdown.map((item: DropdownItem) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="block px-4 py-2 text-xs font-medium uppercase tracking-wider text-[#1A1A1A] transition-colors hover:bg-[#C9A86A]/10 hover:text-[#C9A86A]"
-            onClick={() => setOpen(false)}
-          >
-            {item.label}
-          </Link>
-        ))}
+        {/* Invisible Bridge to prevent hover dropping */}
+        <div className="h-2 w-full" />
+
+        <div className="overflow-hidden rounded-xl border border-gray-100 bg-white p-1.5 shadow-2xl ring-1 ring-black/10">
+          {link.dropdown.map((item: DropdownItem) => {
+            const isHighlighted =
+              item.label.toLowerCase().includes("all") ||
+              item.label.toLowerCase().includes("new");
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`group flex items-center justify-between rounded-lg px-3.5 py-2.5 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                  isHighlighted
+                    ? "text-gray-950 hover:bg-gray-50 hover:text-[#C9A86A]"
+                    : "text-gray-700 hover:bg-gray-50 hover:text-[#C9A86A]"
+                }`}
+                onClick={() => setOpen(false)}
+              >
+                <span>{item.label}</span>
+                <ChevronRight className="h-3 w-3 text-gray-400 transition-all duration-150 group-hover:translate-x-0.5 group-hover:text-[#C9A86A]" />
+              </Link>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -156,12 +178,15 @@ export function StoreHeader({
   const lastScrollY = useRef(0);
 
   const { cart, fetchCart, setSheetOpen } = useCartStore();
+  const { wishlist, fetchWishlist } = useWishlistStore();
   const cartItemCount =
     cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const wishlistItemCount = wishlist?.items?.length || 0;
 
   useEffect(() => {
     fetchCart();
-  }, [fetchCart]);
+    fetchWishlist();
+  }, [fetchCart, fetchWishlist]);
 
   useEffect(() => {
     setMounted(true);
@@ -630,6 +655,11 @@ export function StoreHeader({
               aria-label="Wishlist"
             >
               <Heart className="h-5 w-5" strokeWidth={1.75} />
+              {mounted && wishlistItemCount > 0 && (
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#C9A86A] px-1 text-[9px] font-bold text-white shadow-sm animate-in zoom-in-50">
+                  {wishlistItemCount > 99 ? "99+" : wishlistItemCount}
+                </span>
+              )}
             </Link>
 
             {/* Cart Button */}

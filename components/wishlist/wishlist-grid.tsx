@@ -58,7 +58,7 @@ export function WishlistGrid() {
         <p className="mb-6 text-slate-500">
           Save items you love and buy them later.
         </p>
-        <Button>
+        <Button asChild className="rounded-full bg-black px-8 py-2.5 text-xs font-semibold uppercase tracking-wider text-white transition-colors hover:bg-[#C9A86A]">
           <Link href="/products">Explore Products</Link>
         </Button>
       </div>

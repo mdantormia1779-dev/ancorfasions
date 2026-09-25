@@ -87,27 +87,26 @@ export default async function BlogIndexPage({
       {categories.length > 0 && (
         <section className="border-b bg-background/95 backdrop-blur sticky top-14 z-20">
           <div className="container mx-auto px-4 py-3 flex items-center gap-2 overflow-x-auto no-scrollbar">
-            <Link href="/blog">
-              <Button
-                variant={!selectedCategory ? "default" : "outline"}
-                size="sm"
-                className="rounded-full text-xs"
-              >
-                All Articles
-              </Button>
-            </Link>
+            <Button
+              variant={!selectedCategory ? "default" : "outline"}
+              size="sm"
+              className="rounded-full text-xs"
+              asChild
+            >
+              <Link href="/blog">All Articles</Link>
+            </Button>
             {categories.map((cat) => {
               const isActive = selectedCategory === cat.id || selectedCategory === cat.slug;
               return (
-                <Link key={cat.id} href={`/blog?category=${cat.id}`}>
-                  <Button
-                    variant={isActive ? "default" : "outline"}
-                    size="sm"
-                    className="rounded-full text-xs shrink-0"
-                  >
-                    {cat.name}
-                  </Button>
-                </Link>
+                <Button
+                  key={cat.id}
+                  variant={isActive ? "default" : "outline"}
+                  size="sm"
+                  className="rounded-full text-xs shrink-0"
+                  asChild
+                >
+                  <Link href={`/blog?category=${cat.id}`}>{cat.name}</Link>
+                </Button>
               );
             })}
           </div>
@@ -128,11 +127,11 @@ export default async function BlogIndexPage({
                 : "No articles have been published yet. Check back soon for fresh style advice!"}
             </p>
             {(searchQuery || selectedCategory) && (
-              <Link href="/blog" className="mt-4 inline-block">
-                <Button variant="outline" size="sm">
-                  View All Articles
+              <div className="mt-4">
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/blog">View All Articles</Link>
                 </Button>
-              </Link>
+              </div>
             )}
           </div>
         ) : (
@@ -194,11 +193,11 @@ export default async function BlogIndexPage({
                             : "Recently"}
                         </span>
                       </div>
-                      <Link href={`/blog/${featuredPost.slug}`}>
-                        <Button variant="ghost" size="sm" className="group-hover:translate-x-1 transition-transform p-0 font-semibold text-primary">
+                      <Button variant="ghost" size="sm" className="group-hover:translate-x-1 transition-transform p-0 font-semibold text-primary" asChild>
+                        <Link href={`/blog/${featuredPost.slug}`}>
                           Read Story <ArrowRight className="ml-1 h-4 w-4" />
-                        </Button>
-                      </Link>
+                        </Link>
+                      </Button>
                     </div>
                   </div>
                 </div>

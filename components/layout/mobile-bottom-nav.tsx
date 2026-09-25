@@ -6,12 +6,14 @@ import { Home, Search, ShoppingCart, User, Heart } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ADMIN_ROLES, MANAGER_ROLES } from "@/lib/constants/auth";
 import { useCartStore } from "@/stores/use-cart-store";
+import { useWishlistStore } from "@/stores/use-wishlist-store";
 import { useState, useEffect } from "react";
 
 export function MobileBottomNav({ user }: { user: any }) {
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
   const { cart } = useCartStore();
+  const { wishlist } = useWishlistStore();
 
   useEffect(() => {
     setMounted(true);
@@ -19,6 +21,7 @@ export function MobileBottomNav({ user }: { user: any }) {
 
   const cartItemCount =
     cart?.items?.reduce((sum, item) => sum + item.quantity, 0) || 0;
+  const wishlistItemCount = wishlist?.items?.length || 0;
 
   const getInitials = (name?: string, email?: string) => {
     if (name) return name.slice(0, 2).toUpperCase();
@@ -48,6 +51,7 @@ export function MobileBottomNav({ user }: { user: any }) {
         {navItems.map((item) => {
           const isActive = pathname === item.href;
           const isCart = item.label === "Cart";
+          const isWishlist = item.label === "Wishlist";
 
           return (
             <Link
@@ -67,6 +71,11 @@ export function MobileBottomNav({ user }: { user: any }) {
                 {isCart && mounted && cartItemCount > 0 && (
                   <span className="absolute -top-1 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-black text-[8px] font-bold text-white">
                     {cartItemCount > 99 ? "99+" : cartItemCount}
+                  </span>
+                )}
+                {isWishlist && mounted && wishlistItemCount > 0 && (
+                  <span className="absolute -top-1 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#C9A86A] text-[8px] font-bold text-white">
+                    {wishlistItemCount > 99 ? "99+" : wishlistItemCount}
                   </span>
                 )}
               </div>

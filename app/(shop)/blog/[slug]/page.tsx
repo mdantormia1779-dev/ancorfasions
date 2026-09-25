@@ -203,11 +203,11 @@ export default async function BlogPostDetailPage({
 
         {/* Footer Actions */}
         <div className="mt-12 pt-8 border-t border-border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <Link href="/blog">
-            <Button variant="outline" size="sm" className="gap-2">
+          <Button variant="outline" size="sm" className="gap-2" asChild>
+            <Link href="/blog">
               <ArrowLeft className="h-4 w-4" /> Back to all articles
-            </Button>
-          </Link>
+            </Link>
+          </Button>
           <div className="flex items-center gap-2">
             <Button
               variant="secondary"
@@ -227,11 +227,11 @@ export default async function BlogPostDetailPage({
           <div className="container mx-auto px-4 max-w-6xl">
             <div className="flex items-center justify-between mb-8">
               <h3 className="text-2xl font-bold tracking-tight">You Might Also Like</h3>
-              <Link href="/blog">
-                <Button variant="ghost" size="sm" className="gap-1 font-semibold text-primary">
+              <Button variant="ghost" size="sm" className="gap-1 font-semibold text-primary" asChild>
+                <Link href="/blog">
                   View all <ChevronRight className="h-4 w-4" />
-                </Button>
-              </Link>
+                </Link>
+              </Button>
             </div>
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {relatedPosts.map((rp) => {
