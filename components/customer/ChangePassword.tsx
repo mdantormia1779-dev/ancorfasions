@@ -13,7 +13,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-import { Loader2, Eye, EyeOff, Lock, CheckCircle2 } from "lucide-react";
+import { Loader2, Eye, EyeOff, Lock, CheckCircle2, Copy, Check } from "lucide-react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -40,11 +40,13 @@ export function ChangePassword() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [isCopied, setIsCopied] = useState(false);
 
   const {
     register,
     handleSubmit,
     setValue,
+    watch,
     formState: { errors },
   } = useForm<ChangePasswordValues>({
     resolver: zodResolver(changePasswordSchema),
@@ -54,6 +56,16 @@ export function ChangePassword() {
       confirm_password: "",
     },
   });
+
+  const currentPasswordVal = watch("current_password");
+
+  const handleCopyCurrentPassword = () => {
+    if (!currentPasswordVal) return;
+    navigator.clipboard.writeText(currentPasswordVal);
+    setIsCopied(true);
+    toast.success("Current password copied to clipboard!");
+    setTimeout(() => setIsCopied(false), 2000);
+  };
 
   useEffect(() => {
     try {
@@ -125,20 +137,34 @@ export function ChangePassword() {
                 type={showCurrentPassword ? "text" : "password"}
                 {...register("current_password")}
                 placeholder="Current password"
-                className="pr-10 font-mono text-sm bg-muted/40"
+                className="pr-16 font-mono text-sm bg-muted/40"
               />
-              <button
-                type="button"
-                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground focus:outline-none transition-colors"
-                title={showCurrentPassword ? "Hide current password" : "Show current password"}
-              >
-                {showCurrentPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
-              </button>
+              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-muted-foreground">
+                <button
+                  type="button"
+                  onClick={handleCopyCurrentPassword}
+                  className="p-1 hover:text-foreground focus:outline-none transition-colors"
+                  title="Copy current password"
+                >
+                  {isCopied ? (
+                    <Check className="h-4 w-4 text-emerald-500" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                  className="p-1 hover:text-foreground focus:outline-none transition-colors"
+                  title={showCurrentPassword ? "Hide current password" : "Show current password"}
+                >
+                  {showCurrentPassword ? (
+                    <EyeOff className="h-4 w-4" />
+                  ) : (
+                    <Eye className="h-4 w-4" />
+                  )}
+                </button>
+              </div>
             </div>
             <p className="text-[11px] text-muted-foreground">
               Click the eye icon to view your current password. You can change your password just by providing a new password below.

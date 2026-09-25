@@ -10,7 +10,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { Store, Globe, Bell, Shield, ExternalLink, Package, ShoppingCart } from "lucide-react";
+import { Store, Globe, Bell, Shield, ExternalLink, Package, ShoppingCart, KeyRound } from "lucide-react";
+import { ChangePassword } from "@/components/customer/ChangePassword";
 
 export const metadata: Metadata = {
   title: "Settings | Manager Dashboard",
@@ -136,7 +137,7 @@ export default async function ManagerSettingsPage() {
             </Button>
 
             <Button variant="outline" asChild className="justify-start h-auto py-3 px-4">
-              <Link href="/account/profile">
+              <Link href="#security">
                 <Shield className="h-4 w-4 mr-3 text-amber-500" />
                 <div className="text-left">
                   <div className="font-semibold text-sm">Security & Password</div>
@@ -147,6 +148,20 @@ export default async function ManagerSettingsPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Account Security & Password Change */}
+      <div id="security" className="space-y-4 pt-2">
+        <div>
+          <h2 className="text-xl font-bold tracking-tight flex items-center gap-2">
+            <KeyRound className="h-5 w-5 text-primary" />
+            Security & Password Management
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            View your current password and update login credentials directly from your manager dashboard.
+          </p>
+        </div>
+        <ChangePassword />
+      </div>
     </div>
   );
 }

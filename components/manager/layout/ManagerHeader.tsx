@@ -284,10 +284,10 @@ export function ManagerHeader({ user }: { user?: any }) {
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 className="cursor-pointer"
-                onClick={() => router.push("/account/profile")}
+                onClick={() => router.push("/manager/settings/security")}
               >
                 <User className="mr-2 h-4 w-4" />
-                User Profile
+                Security & Profile
               </DropdownMenuItem>
               <DropdownMenuItem
                 className="cursor-pointer"
