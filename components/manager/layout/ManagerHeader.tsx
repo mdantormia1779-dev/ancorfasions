@@ -89,7 +89,7 @@ export function ManagerHeader({ user }: { user?: any }) {
   }
 
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-muted/40 dark:bg-background/80 dark:border-border px-4 backdrop-blur-md lg:h-[60px] lg:px-6">
+    <header className="shrink-0 sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-muted/40 dark:bg-background/80 dark:border-border px-4 backdrop-blur-md lg:h-[60px] lg:px-6">
       {/* Mobile Drawer Navigation */}
       <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
         <SheetTrigger asChild>

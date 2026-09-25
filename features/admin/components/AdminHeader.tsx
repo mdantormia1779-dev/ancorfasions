@@ -133,9 +133,10 @@ const ADMIN_ROUTES = [
 interface AdminHeaderProps {
   user: SupabaseUser;
   role?: string;
+  className?: string;
 }
 
-export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
+export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
   const pathname = usePathname();
   const router = useRouter();
   const supabase = createClient();
@@ -283,7 +284,7 @@ export const AdminHeader = ({ user, role }: AdminHeaderProps) => {
   // Render
   // ────────────────────────────────────────────────────────────────────────────
   return (
-    <header className="sticky top-0 z-30 flex h-[80px] w-full items-center justify-between border-b border-slate-200 dark:border-border bg-white dark:bg-background px-4 shadow-sm lg:px-8">
+    <header className={cn("shrink-0 sticky top-0 z-30 flex h-[80px] w-full items-center justify-between border-b border-slate-200 dark:border-border bg-white dark:bg-background px-4 shadow-sm lg:px-8", className)}>
       {/* ── Left: mobile menu + breadcrumb ── */}
       <div className="flex items-center gap-4">
         <Sheet>

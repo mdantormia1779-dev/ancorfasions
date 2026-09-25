@@ -32,11 +32,11 @@ export default async function ManagerLayout({ children }: { children: ReactNode 
   }
 
   return (
-    <div className="flex min-h-screen w-full bg-muted/20">
+    <div className="flex h-screen h-[100dvh] max-h-screen max-h-[100dvh] w-full overflow-hidden bg-muted/20">
       <ManagerSidebar />
-      <div className="flex w-full min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 min-h-0 flex-1 flex-col h-screen h-[100dvh] max-h-screen max-h-[100dvh] overflow-hidden">
         <ManagerHeader user={user} />
-        <main className="flex w-full flex-1 flex-col p-4 lg:p-6">
+        <main className="flex-1 min-h-0 overflow-y-auto p-4 lg:p-6 overscroll-contain">
           <div className="mx-auto w-full max-w-[1600px] flex-1 flex flex-col gap-6">
             {children}
           </div>

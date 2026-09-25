@@ -249,12 +249,12 @@ export const AdminSidebar = ({
   return (
     <div
       className={cn(
-        "flex h-full flex-shrink-0 flex-col bg-card text-card-foreground shadow-[0_0_20px_rgba(89,102,122,0.05)] transition-all duration-300 relative z-20 border-r border-border",
+        "flex h-full h-[100dvh] shrink-0 flex-col bg-card text-card-foreground shadow-[0_0_20px_rgba(89,102,122,0.05)] transition-all duration-300 relative z-20 border-r border-border",
         isCollapsed ? "w-[80px]" : "w-[280px]",
         className
       )}
     >
-      <div className={cn("flex items-center py-6 border-b border-border relative", isCollapsed ? "px-0 justify-center" : "px-6 gap-3")}>
+      <div className={cn("shrink-0 flex items-center py-6 border-b border-border relative", isCollapsed ? "px-0 justify-center" : "px-6 gap-3")}>
         {!isCollapsed && (
           <>
             <AnchorFashionLogo noLink={true} className="text-slate-900 dark:text-slate-100" />
@@ -270,7 +270,7 @@ export const AdminSidebar = ({
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
         <div className="space-y-6 py-4">
           {navigation.map((category) => {
             const filteredItems = category.items.filter((item) => {
@@ -442,7 +442,7 @@ export const AdminSidebar = ({
         </div>
       </div>
 
-      <div className="p-4 border-t border-border flex justify-center">
+      <div className="shrink-0 p-4 border-t border-border flex justify-center">
         {isCollapsed ? (
           <LogoutButton 
             className="w-10 h-10 p-0 justify-center bg-muted/50 hover:bg-muted dark:hover:bg-slate-800 text-foreground/90 border-none rounded-xl"
