@@ -185,24 +185,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
             />
           </Link>
 
-          {/* Status Badges (Top Left) */}
-          <div className="absolute left-2.5 top-2.5 z-20 flex flex-col gap-1.5 pointer-events-none">
-            {product.status === "NEW" && (
-              <span className="bg-black/90 text-white backdrop-blur-md px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-full shadow-sm">
-                New
-              </span>
-            )}
-            {hasDiscount && discountPercent && (
-              <span className="bg-rose-600 text-white px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider rounded-full shadow-sm">
-                -{discountPercent}%
-              </span>
-            )}
-            {rating >= 4.7 && (
-              <span className="bg-[#C9A86A] text-white px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider rounded-full shadow-sm">
-                Bestseller
-              </span>
-            )}
-          </div>
+
 
           {/* Floating Actions (Top Right) */}
           <div className="absolute right-2.5 top-2.5 z-20 flex flex-col gap-1.5">

@@ -130,9 +130,14 @@ export const CatalogRepository = {
     if (params.maxPrice !== undefined) {
       query = query.lte("base_price", params.maxPrice);
     }
-    if (params.search) {
-      // Using search vector
-      query = query.textSearch("search_vector", params.search);
+    if (params.search && params.search.trim()) {
+      // Use ILIKE for partial, case-insensitive matching across name, description, and sku
+      const cleanTerm = params.search.trim().replace(/["',\\]/g, "");
+      if (cleanTerm) {
+        query = (query as any).or(
+          `name.ilike."%${cleanTerm}%",description.ilike."%${cleanTerm}%",short_description.ilike."%${cleanTerm}%",sku.ilike."%${cleanTerm}%"`
+        );
+      }
     }
 
     if (params.sortBy) {

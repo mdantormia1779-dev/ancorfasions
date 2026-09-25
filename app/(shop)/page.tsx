@@ -16,7 +16,7 @@ import { BrandedCollection } from "@/components/home/branded-collection";
 import { PromoBanner } from "@/components/home/promo-banner";
 import { TrendingProducts } from "@/components/home/trending-products";
 import { Testimonials } from "@/components/home/testimonials";
-import { TrustBar } from "@/components/home/trust-bar";
+
 import { RecentlyViewedHome } from "@/components/home/recently-viewed-home";
 import { PersonalizedSection } from "@/components/home/personalized-section";
 import { LatestBlogs } from "@/components/home/latest-blogs";
@@ -176,11 +176,6 @@ export default async function HomePage() {
         {/* 12. Latest from Blog / Editorial Journal */}
         <FadeIn>
           <LatestBlogs />
-        </FadeIn>
-
-        {/* 13. Trust Bar */}
-        <FadeIn direction="up">
-          <TrustBar />
         </FadeIn>
       </div>
     </div>

@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { getStoreInfo, getSocialLinks } from "@/lib/actions/settings.actions";
 import { jost } from "@/lib/fonts";
-import { StoreFooterNewsletter } from "./StoreFooterNewsletter";
+
 
 const footerLinks = {
   shop: [
@@ -54,28 +54,7 @@ export async function StoreFooter() {
   ]);
 
   return (
-    <footer className={`${jost.className} bg-[#FAFAFA] text-gray-900`}>
-      {/* Top Section: Newsletter Banner */}
-      <div className="border-b border-gray-200">
-        <div className="container mx-auto px-4 py-12 md:px-6 md:py-14">
-          <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
-            <div>
-              <span className="mb-3 block text-[10px] font-semibold uppercase tracking-[0.3em] text-[#C9A86A]">
-                Stay Ahead of the Curve
-              </span>
-              <h3 className="text-3xl font-light tracking-tight md:text-4xl">
-                Exclusive Offers, <span className="text-[#C9A86A]">First.</span>
-              </h3>
-              <p className="mt-2 text-sm font-light text-gray-600">
-                Join thousands of style-savvy shoppers and get new drops before
-                everyone else.
-              </p>
-            </div>
-            <StoreFooterNewsletter />
-          </div>
-        </div>
-      </div>
-
+    <footer className={`${jost.className} bg-[#FAFAFA] text-gray-900 border-t border-gray-200`}>
       {/* Main Links Section */}
       <div className="container mx-auto px-4 py-14 md:px-6">
         <div className="grid grid-cols-1 gap-10 md:grid-cols-2 lg:grid-cols-5 lg:gap-6">

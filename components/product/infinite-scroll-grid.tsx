@@ -12,8 +12,15 @@ export function InfiniteScrollGrid({
   products,
   initialCount = 12,
 }: InfiniteScrollGridProps) {
-  const [displayedCount, setDisplayedCount] = useState(initialCount);
+  const [displayedCount, setDisplayedCount] = useState(
+    Math.min(initialCount, products.length)
+  );
   const observerTarget = useRef<HTMLDivElement>(null);
+
+  // Reset displayed count when the products list changes (e.g. new filter applied)
+  useEffect(() => {
+    setDisplayedCount(Math.min(initialCount, products.length));
+  }, [products, initialCount]);
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -43,7 +50,7 @@ export function InfiniteScrollGrid({
           <ProductCard key={product.id} product={product} />
         ))}
       </div>
-      
+
       {displayedCount < products.length && (
         <div ref={observerTarget} className="mt-16 flex justify-center py-8">
           <div className="h-6 w-6 animate-spin rounded-full border-2 border-black border-t-transparent" />

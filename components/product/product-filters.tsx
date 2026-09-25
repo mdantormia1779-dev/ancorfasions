@@ -1,17 +1,15 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useTransition } from "react";
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { X, Check } from "lucide-react";
+import { X, Check, Loader2, RotateCcw } from "lucide-react";
 
 interface Category {
   id: string;
@@ -28,6 +26,8 @@ interface Brand {
 interface ProductFiltersProps {
   categories: Category[];
   brands: Brand[];
+  onClose?: () => void;
+  productCount?: number;
 }
 
 const PRICE_PRESETS = [
@@ -37,14 +37,21 @@ const PRICE_PRESETS = [
   { label: "Over ৳5,000", min: "5000", max: "" },
 ];
 
-export function ProductFilters({ categories, brands }: ProductFiltersProps) {
+export function ProductFilters({
+  categories,
+  brands,
+  onClose,
+  productCount,
+}: ProductFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [isPending, startTransition] = useTransition();
 
   const currentCategory = searchParams.get("category");
   const currentBrand = searchParams.get("brand");
   const currentMinPrice = searchParams.get("minPrice");
   const currentMaxPrice = searchParams.get("maxPrice");
+  const currentSearch = searchParams.get("q");
 
   const [customMin, setCustomMin] = useState(currentMinPrice || "");
   const [customMax, setCustomMax] = useState(currentMaxPrice || "");
@@ -52,37 +59,33 @@ export function ProductFilters({ categories, brands }: ProductFiltersProps) {
   // Update query params
   const updateQuery = useCallback(
     (updates: Record<string, string | null>) => {
-      const params = new URLSearchParams(searchParams.toString());
+      const p = new URLSearchParams(searchParams.toString());
       Object.entries(updates).forEach(([key, val]) => {
         if (val === null || val === "") {
-          params.delete(key);
+          p.delete(key);
         } else {
-          params.set(key, val);
+          p.set(key, val);
         }
       });
-      router.push(`?${params.toString()}`);
+      p.delete("page"); // Reset to page 1 on filter change
+      startTransition(() => router.push(`/products?${p.toString()}`));
     },
     [router, searchParams]
   );
 
   const toggleCategory = (slug: string) => {
-    if (currentCategory === slug) {
-      updateQuery({ category: null });
-    } else {
-      updateQuery({ category: slug });
-    }
+    updateQuery({ category: currentCategory === slug ? null : slug });
   };
 
   const toggleBrand = (slug: string) => {
-    if (currentBrand === slug) {
-      updateQuery({ brand: null });
-    } else {
-      updateQuery({ brand: slug });
-    }
+    updateQuery({ brand: currentBrand === slug ? null : slug });
   };
 
   const applyPricePreset = (min: string, max: string) => {
-    if (currentMinPrice === min && currentMaxPrice === max) {
+    if (
+      currentMinPrice === min &&
+      (currentMaxPrice === max || (!currentMaxPrice && !max))
+    ) {
       updateQuery({ minPrice: null, maxPrice: null });
     } else {
       updateQuery({ minPrice: min || null, maxPrice: max || null });
@@ -98,43 +101,72 @@ export function ProductFilters({ categories, brands }: ProductFiltersProps) {
   };
 
   const clearAllFilters = () => {
-    router.push("/products");
+    startTransition(() => router.push("/products"));
   };
 
   const hasActiveFilters = Boolean(
-    currentCategory || currentBrand || currentMinPrice || currentMaxPrice
+    currentCategory ||
+      currentBrand ||
+      currentMinPrice ||
+      currentMaxPrice ||
+      currentSearch
   );
 
+  const currentCategoryObj = categories.find((c) => c.slug === currentCategory);
+  const currentBrandObj = brands.find((b) => b.slug === currentBrand);
+
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col space-y-5">
+      {/* Header row */}
       <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-        <h3 className="text-sm font-semibold uppercase tracking-wider text-[#1A1A1A]">
-          Refine Search
-        </h3>
+        <div className="flex items-center gap-2">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-gray-900">
+            Filters
+          </h3>
+          {isPending && (
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-[#C9A86A]" />
+          )}
+        </div>
         {hasActiveFilters && (
-          <Button
-            variant="ghost"
-            size="sm"
+          <button
+            type="button"
             onClick={clearAllFilters}
-            className="h-auto p-0 text-xs font-medium text-[#C9A86A] hover:text-[#1A1A1A] hover:bg-transparent"
+            disabled={isPending}
+            className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#C9A86A] transition-colors hover:text-black disabled:opacity-50"
           >
+            <RotateCcw className="h-3 w-3" />
             Reset all
-          </Button>
+          </button>
         )}
       </div>
 
       {/* Active Filter Badges */}
       {hasActiveFilters && (
-        <div className="flex flex-wrap gap-1.5 pt-1">
+        <div className="flex flex-wrap gap-1.5 pb-2 border-b border-gray-100">
+          {currentSearch && (
+            <span className="inline-flex items-center gap-1 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-[11px] font-medium text-amber-900">
+              <span>Search: &ldquo;{currentSearch}&rdquo;</span>
+              <button
+                type="button"
+                onClick={() => updateQuery({ q: null })}
+                disabled={isPending}
+                className="hover:text-red-600 disabled:opacity-50"
+                aria-label="Remove search filter"
+              >
+                <X className="h-3 w-3" />
+              </button>
+            </span>
+          )}
           {currentCategory && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-xs text-gray-800">
+            <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-800">
               <span className="capitalize">
-                {categories.find((c) => c.slug === currentCategory)?.name || currentCategory}
+                {currentCategoryObj?.name || currentCategory}
               </span>
               <button
                 type="button"
                 onClick={() => updateQuery({ category: null })}
-                className="hover:text-red-500"
+                disabled={isPending}
+                className="hover:text-red-600 disabled:opacity-50"
                 aria-label="Remove category filter"
               >
                 <X className="h-3 w-3" />
@@ -142,12 +174,13 @@ export function ProductFilters({ categories, brands }: ProductFiltersProps) {
             </span>
           )}
           {currentBrand && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-xs text-gray-800">
-              <span>{brands.find((b) => b.slug === currentBrand)?.name || currentBrand}</span>
+            <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-800">
+              <span>{currentBrandObj?.name || currentBrand}</span>
               <button
                 type="button"
                 onClick={() => updateQuery({ brand: null })}
-                className="hover:text-red-500"
+                disabled={isPending}
+                className="hover:text-red-600 disabled:opacity-50"
                 aria-label="Remove brand filter"
               >
                 <X className="h-3 w-3" />
@@ -155,14 +188,16 @@ export function ProductFilters({ categories, brands }: ProductFiltersProps) {
             </span>
           )}
           {(currentMinPrice || currentMaxPrice) && (
-            <span className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-gray-50 px-2.5 py-0.5 text-xs text-gray-800">
+            <span className="inline-flex items-center gap-1 rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-[11px] font-medium text-gray-800">
               <span>
-                ৳{currentMinPrice || "0"} - {currentMaxPrice ? `৳${currentMaxPrice}` : "Above"}
+                ৳{currentMinPrice || "0"} –{" "}
+                {currentMaxPrice ? `৳${currentMaxPrice}` : "above"}
               </span>
               <button
                 type="button"
                 onClick={() => updateQuery({ minPrice: null, maxPrice: null })}
-                className="hover:text-red-500"
+                disabled={isPending}
+                className="hover:text-red-600 disabled:opacity-50"
                 aria-label="Remove price filter"
               >
                 <X className="h-3 w-3" />
@@ -172,34 +207,43 @@ export function ProductFilters({ categories, brands }: ProductFiltersProps) {
         </div>
       )}
 
+      {/* Accordion Filter Sections */}
       <Accordion
         type="multiple"
         defaultValue={["category", "brand", "price"]}
-        className="w-full space-y-2"
+        className="w-full space-y-1"
       >
         {/* Categories */}
         {categories.length > 0 && (
           <AccordionItem value="category" className="border-b border-gray-100">
-            <AccordionTrigger className="py-3 text-xs font-semibold uppercase tracking-wider text-[#1A1A1A] hover:no-underline">
-              Category
+            <AccordionTrigger className="py-2.5 text-xs font-bold uppercase tracking-wider text-gray-900 hover:no-underline">
+              Categories
             </AccordionTrigger>
             <AccordionContent>
-              <div className="max-h-56 space-y-2 overflow-y-auto pr-2 pt-1 scrollbar-thin">
+              <div
+                className="max-h-56 space-y-0.5 overflow-y-auto pr-1 pt-1"
+                role="listbox"
+                aria-label="Filter by category"
+              >
                 {categories.map((cat) => {
                   const active = currentCategory === cat.slug;
                   return (
-                    <div
+                    <button
                       key={cat.id}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
                       onClick={() => toggleCategory(cat.slug)}
-                      className={`flex cursor-pointer items-center justify-between rounded px-2 py-1.5 text-xs transition-colors ${
+                      disabled={isPending}
+                      className={`flex w-full cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 text-left text-xs transition-colors disabled:cursor-wait ${
                         active
-                          ? "bg-black text-white font-medium"
+                          ? "bg-black text-white font-medium shadow-sm"
                           : "text-gray-600 hover:bg-gray-100 hover:text-black"
                       }`}
                     >
-                      <span>{cat.name}</span>
-                      {active && <Check className="h-3 w-3" />}
-                    </div>
+                      <span className="capitalize">{cat.name}</span>
+                      {active && <Check className="h-3.5 w-3.5 shrink-0" />}
+                    </button>
                   );
                 })}
               </div>
@@ -210,26 +254,34 @@ export function ProductFilters({ categories, brands }: ProductFiltersProps) {
         {/* Brands */}
         {brands.length > 0 && (
           <AccordionItem value="brand" className="border-b border-gray-100">
-            <AccordionTrigger className="py-3 text-xs font-semibold uppercase tracking-wider text-[#1A1A1A] hover:no-underline">
-              Brand
+            <AccordionTrigger className="py-2.5 text-xs font-bold uppercase tracking-wider text-gray-900 hover:no-underline">
+              Brands
             </AccordionTrigger>
             <AccordionContent>
-              <div className="max-h-56 space-y-2 overflow-y-auto pr-2 pt-1 scrollbar-thin">
+              <div
+                className="max-h-56 space-y-0.5 overflow-y-auto pr-1 pt-1"
+                role="listbox"
+                aria-label="Filter by brand"
+              >
                 {brands.map((brand) => {
                   const active = currentBrand === brand.slug;
                   return (
-                    <div
+                    <button
                       key={brand.id}
+                      type="button"
+                      role="option"
+                      aria-selected={active}
                       onClick={() => toggleBrand(brand.slug)}
-                      className={`flex cursor-pointer items-center justify-between rounded px-2 py-1.5 text-xs transition-colors ${
+                      disabled={isPending}
+                      className={`flex w-full cursor-pointer items-center justify-between rounded-md px-2.5 py-1.5 text-left text-xs transition-colors disabled:cursor-wait ${
                         active
-                          ? "bg-black text-white font-medium"
+                          ? "bg-black text-white font-medium shadow-sm"
                           : "text-gray-600 hover:bg-gray-100 hover:text-black"
                       }`}
                     >
                       <span>{brand.name}</span>
-                      {active && <Check className="h-3 w-3" />}
-                    </div>
+                      {active && <Check className="h-3.5 w-3.5 shrink-0" />}
+                    </button>
                   );
                 })}
               </div>
@@ -239,64 +291,83 @@ export function ProductFilters({ categories, brands }: ProductFiltersProps) {
 
         {/* Price Range */}
         <AccordionItem value="price" className="border-b-0">
-          <AccordionTrigger className="py-3 text-xs font-semibold uppercase tracking-wider text-[#1A1A1A] hover:no-underline">
+          <AccordionTrigger className="py-2.5 text-xs font-bold uppercase tracking-wider text-gray-900 hover:no-underline">
             Price (BDT ৳)
           </AccordionTrigger>
           <AccordionContent>
             <div className="space-y-3 pt-1">
-              <div className="space-y-1.5">
+              {/* Presets */}
+              <div
+                className="space-y-0.5"
+                role="listbox"
+                aria-label="Filter by price range"
+              >
                 {PRICE_PRESETS.map((preset, idx) => {
                   const active =
                     currentMinPrice === preset.min &&
-                    (preset.max ? currentMaxPrice === preset.max : !currentMaxPrice);
+                    (preset.max
+                      ? currentMaxPrice === preset.max
+                      : !currentMaxPrice);
                   return (
                     <button
                       key={idx}
                       type="button"
+                      role="option"
+                      aria-selected={active}
                       onClick={() => applyPricePreset(preset.min, preset.max)}
-                      className={`flex w-full items-center justify-between rounded px-2 py-1.5 text-left text-xs transition-colors ${
+                      disabled={isPending}
+                      className={`flex w-full items-center justify-between rounded-md px-2.5 py-1.5 text-left text-xs transition-colors disabled:cursor-wait ${
                         active
-                          ? "bg-black text-white font-medium"
+                          ? "bg-black text-white font-medium shadow-sm"
                           : "text-gray-600 hover:bg-gray-100 hover:text-black"
                       }`}
                     >
                       <span>{preset.label}</span>
-                      {active && <Check className="h-3 w-3" />}
+                      {active && <Check className="h-3.5 w-3.5 shrink-0" />}
                     </button>
                   );
                 })}
               </div>
 
-              {/* Custom Min / Max Input */}
+              {/* Custom Range */}
               <form onSubmit={handleCustomPriceSubmit} className="pt-2">
-                <span className="mb-2 block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+                <span className="mb-1.5 block text-[10px] font-semibold uppercase tracking-wider text-gray-400">
                   Custom Range
                 </span>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <div className="relative flex-1">
-                    <span className="absolute left-2 top-1.5 text-[11px] text-gray-400">৳</span>
+                    <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">
+                      ৳
+                    </span>
                     <input
                       type="number"
                       placeholder="Min"
+                      min={0}
+                      step={1}
                       value={customMin}
                       onChange={(e) => setCustomMin(e.target.value)}
-                      className="w-full rounded border border-gray-200 py-1 pl-5 pr-1 text-xs focus:border-black focus:outline-none"
+                      className="h-8 w-full rounded border border-gray-200 pl-5 pr-1 text-xs focus:border-black focus:outline-none"
                     />
                   </div>
-                  <span className="text-xs text-gray-400">-</span>
+                  <span className="text-xs text-gray-400">–</span>
                   <div className="relative flex-1">
-                    <span className="absolute left-2 top-1.5 text-[11px] text-gray-400">৳</span>
+                    <span className="pointer-events-none absolute left-2 top-1/2 -translate-y-1/2 text-[11px] text-gray-400">
+                      ৳
+                    </span>
                     <input
                       type="number"
                       placeholder="Max"
+                      min={0}
+                      step={1}
                       value={customMax}
                       onChange={(e) => setCustomMax(e.target.value)}
-                      className="w-full rounded border border-gray-200 py-1 pl-5 pr-1 text-xs focus:border-black focus:outline-none"
+                      className="h-8 w-full rounded border border-gray-200 pl-5 pr-1 text-xs focus:border-black focus:outline-none"
                     />
                   </div>
                   <button
                     type="submit"
-                    className="rounded bg-black px-2.5 py-1 text-xs font-medium text-white transition-colors hover:bg-[#C9A86A]"
+                    disabled={isPending}
+                    className="h-8 rounded bg-black px-2.5 text-xs font-medium text-white transition-colors hover:bg-[#C9A86A] disabled:opacity-50"
                   >
                     Go
                   </button>
@@ -306,6 +377,21 @@ export function ProductFilters({ categories, brands }: ProductFiltersProps) {
           </AccordionContent>
         </AccordionItem>
       </Accordion>
+
+      {/* Mobile Drawer Bottom Action */}
+      {onClose && (
+        <div className="pt-4 border-t border-gray-100">
+          <Button
+            type="button"
+            onClick={onClose}
+            className="w-full rounded-full bg-black text-white hover:bg-[#C9A86A] text-xs font-semibold uppercase tracking-wider py-2.5"
+          >
+            {productCount !== undefined
+              ? `View ${productCount} Products`
+              : "Apply Filters"}
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
