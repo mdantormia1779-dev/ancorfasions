@@ -35,13 +35,9 @@ const categoryImageMap: Record<string, string> = {
 export default async function CategoriesPage() {
   const dbCategories: any[] = (await CatalogRepository.getCategories()) || [];
 
-  // Filter out any messy QA test records
+  // Include all active valid categories
   const validCategories = dbCategories.filter(
-    (c: any) =>
-      !c.name?.toLowerCase().includes("test") &&
-      !c.slug?.includes("test") &&
-      !c.slug?.includes("qa") &&
-      c.slug !== "jhkjhkj"
+    (c: any) => c && c.id && c.is_active !== false
   );
 
   return (
@@ -65,54 +61,61 @@ export default async function CategoriesPage() {
 
       {/* Categories Grid */}
       <div className="container mx-auto px-4 pt-12 md:px-6">
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-8">
-          {validCategories.map((category) => {
-            const image =
-              category.icon_url ||
-              categoryImageMap[category.slug] ||
-              "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80";
+        {validCategories.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-gray-300 bg-white p-12 text-center my-8">
+            <p className="text-sm font-medium text-gray-500">No categories found at the moment.</p>
+            <p className="mt-1 text-xs text-gray-400">Categories added from the admin panel will appear here.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-8">
+            {validCategories.map((category) => {
+              const image =
+                category.icon_url ||
+                categoryImageMap[category.slug] ||
+                "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80";
 
-            return (
-              <Link
-                href={`/categories/${category.slug}`}
-                key={category.id}
-                className="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-2xl bg-neutral-900 shadow-sm transition-all duration-500 hover:shadow-xl"
-              >
-                <Image
-                  src={image}
-                  alt={category.name}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                  className="object-cover transition-transform duration-700 ease-out group-hover:scale-108 opacity-90"
-                />
+              return (
+                <Link
+                  href={`/categories/${category.slug}`}
+                  key={category.id}
+                  className="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-2xl bg-neutral-900 shadow-sm transition-all duration-500 hover:shadow-xl"
+                >
+                  <Image
+                    src={image}
+                    alt={category.name}
+                    fill
+                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-108 opacity-90"
+                  />
 
-                {/* Dark Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent transition-opacity duration-300 group-hover:from-black/95" />
+                  {/* Dark Gradient Overlay */}
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent transition-opacity duration-300 group-hover:from-black/95" />
 
-                {/* Top Badge */}
-                <div className="absolute top-4 left-4">
-                  <span className="rounded-full bg-white/90 backdrop-blur-xs px-3 py-1 text-[10px] font-bold tracking-wider text-black uppercase shadow-xs">
-                    Anchor Edit
-                  </span>
-                </div>
-
-                {/* Bottom Content */}
-                <div className="absolute inset-x-0 bottom-0 p-6 text-white flex flex-col justify-end">
-                  <span className="text-[11px] font-medium tracking-[0.2em] uppercase text-[#EAD098] mb-1">
-                    Department
-                  </span>
-                  <h2 className="text-2xl font-medium tracking-tight text-white mb-2 transition-transform duration-300 group-hover:translate-x-1">
-                    {category.name}
-                  </h2>
-                  <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/90 group-hover:text-[#EAD098] transition-colors">
-                    <span>Explore Collection</span>
-                    <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1.5" />
+                  {/* Top Badge */}
+                  <div className="absolute top-4 left-4">
+                    <span className="rounded-full bg-white/90 backdrop-blur-xs px-3 py-1 text-[10px] font-bold tracking-wider text-black uppercase shadow-xs">
+                      Anchor Edit
+                    </span>
                   </div>
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+
+                  {/* Bottom Content */}
+                  <div className="absolute inset-x-0 bottom-0 p-6 text-white flex flex-col justify-end">
+                    <span className="text-[11px] font-medium tracking-[0.2em] uppercase text-[#EAD098] mb-1">
+                      Department
+                    </span>
+                    <h2 className="text-2xl font-medium tracking-tight text-white mb-2 transition-transform duration-300 group-hover:translate-x-1">
+                      {category.name}
+                    </h2>
+                    <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-white/90 group-hover:text-[#EAD098] transition-colors">
+                      <span>Explore Collection</span>
+                      <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1.5" />
+                    </div>
+                  </div>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </div>
     </div>
   );

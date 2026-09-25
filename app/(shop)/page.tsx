@@ -90,7 +90,7 @@ export default async function HomePage() {
 
       {/* 3. Editorial Category Highlight Masonry */}
       <FadeIn delay={0.2} direction="up">
-        <CategoryHighlight />
+        <CategoryHighlight categories={categories} />
       </FadeIn>
 
       <div className="space-y-10 py-6 md:space-y-16 md:py-12 lg:space-y-20 lg:py-16">
