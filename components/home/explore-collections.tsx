@@ -12,55 +12,24 @@ interface ExploreCollectionsProps {
 export function ExploreCollections({
   collections = [],
 }: ExploreCollectionsProps) {
-  // Filter out any test or malformed collections
+  // Only genuine active collections created from admin
   const activeCollections = (collections || []).filter(
-    (c) =>
-      c.is_active &&
-      !c.name.toLowerCase().includes("done") &&
-      !c.name.toLowerCase().includes("test") &&
-      c.slug !== "collection"
+    (c) => c && c.id && c.is_active !== false
   );
 
+  // If no active collections exist in the catalog yet, hide the section gracefully
+  if (activeCollections.length === 0) {
+    return null;
+  }
+
   const fashionImagery = [
-    "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80", // Summer Elegance
-    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80", // Urban Minimalist
-    "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80", // Evening Luxe
-    "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80", // Casual Denim Edit
+    "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80",
+    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80",
+    "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80",
+    "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80",
   ];
 
-  const defaultCollections = [
-    {
-      id: "col-1",
-      name: "Summer Elegance",
-      slug: "summer-elegance",
-      banner_url: fashionImagery[0],
-      description: "Breezy silhouettes and light fabrics crafted for warm days.",
-    },
-    {
-      id: "col-2",
-      name: "Urban Minimalist",
-      slug: "urban-minimalist",
-      banner_url: fashionImagery[1],
-      description: "Clean tailoring and modern monochrome essentials.",
-    },
-    {
-      id: "col-3",
-      name: "Evening Luxe",
-      slug: "evening-luxe",
-      banner_url: fashionImagery[2],
-      description: "Rich textures and glamorous statement pieces.",
-    },
-    {
-      id: "col-4",
-      name: "Casual Denim Edit",
-      slug: "casual-denim-edit",
-      banner_url: fashionImagery[3],
-      description: "Timeless denim cuts designed for everyday luxury.",
-    },
-  ];
-
-  const displayItems =
-    activeCollections.length > 0 ? activeCollections : defaultCollections;
+  const displayItems = activeCollections;
 
   return (
     <section className="bg-white py-16 md:py-24">
@@ -116,7 +85,9 @@ export function ExploreCollections({
                   {/* Top Badge */}
                   <div className="absolute top-4 left-4 z-10">
                     <span className="bg-white/20 backdrop-blur-md text-white text-[10px] font-bold uppercase tracking-wider px-3 py-1 rounded-full border border-white/20">
-                      Capsule Edit
+                      {item.product_count !== undefined && item.product_count > 0
+                        ? `${item.product_count} ${item.product_count === 1 ? "Item" : "Items"}`
+                        : "Capsule Edit"}
                     </span>
                   </div>
 
