@@ -301,19 +301,36 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
         </Sheet>
 
         <div className="hidden flex-col md:flex">
-          <h2 className="text-[22px] font-bold tracking-tight text-slate-800 dark:text-slate-100 capitalize">
-            {paths.length > 0 ? paths[paths.length - 1].replace(/-/g, " ") : "Dashboard"}
+          <h2 className="text-[20px] font-bold tracking-tight text-slate-800 dark:text-slate-100 capitalize">
+            {paths.length === 1 && paths[0].toLowerCase() === "admin"
+              ? "Dashboard"
+              : paths.length > 0
+                ? paths[paths.length - 1].replace(/-/g, " ")
+                : "Dashboard"}
           </h2>
-          <nav className="flex items-center text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 gap-2">
-            <Home className="h-3 w-3" />
-            {paths.map((path, index) => (
-              <span key={`${path}-${index}`} className="flex items-center gap-2">
-                <span>/</span>
-                <span className={index === paths.length - 1 ? "text-[#00A1FF] capitalize font-semibold" : "capitalize"}>
-                  {path.replace(/-/g, " ")}
+          <nav className="flex items-center text-xs font-medium text-slate-500 dark:text-slate-400 mt-1 gap-1.5">
+            <Link href="/admin" className="hover:text-primary transition-colors flex items-center">
+              <Home className="h-3 w-3" />
+            </Link>
+            {paths.map((path, index) => {
+              const href = "/" + paths.slice(0, index + 1).join("/");
+              const isLast = index === paths.length - 1;
+              const formattedName = path === "admin" ? "Dashboard" : path.replace(/-/g, " ");
+              return (
+                <span key={`${path}-${index}`} className="flex items-center gap-1.5">
+                  <span className="text-slate-400 dark:text-slate-600">/</span>
+                  {isLast ? (
+                    <span className="text-[#00A1FF] capitalize font-semibold">
+                      {formattedName}
+                    </span>
+                  ) : (
+                    <Link href={href} className="capitalize hover:text-slate-700 dark:hover:text-slate-200 transition-colors">
+                      {formattedName}
+                    </Link>
+                  )}
                 </span>
-              </span>
-            ))}
+              );
+            })}
           </nav>
         </div>
       </div>
@@ -322,7 +339,7 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
       <div className="flex items-center gap-3 lg:gap-4">
 
         {/* Global Search with autocomplete */}
-        <div className="relative hidden w-full max-w-[280px] sm:flex lg:max-w-[320px]">
+        <div className="relative hidden w-full sm:flex sm:w-[260px] md:w-[280px] lg:w-[320px]">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400 dark:text-slate-500 pointer-events-none" />
           <Input
             type="search"
@@ -371,17 +388,15 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
           <AdminBookmarksMenu />
 
           {/* Theme Toggle */}
-          {mounted && (
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="h-10 w-10 rounded-full border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-700 dark:hover:text-slate-100 transition-colors"
-              title="Toggle theme"
-            >
-              {theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
-            </Button>
-          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+            className="h-10 w-10 rounded-full border border-slate-200/80 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:bg-slate-100 hover:text-slate-900 dark:hover:bg-slate-700 dark:hover:text-slate-100 transition-colors"
+            title="Toggle theme"
+          >
+            {mounted && theme === "dark" ? <Sun className="h-[18px] w-[18px]" /> : <Moon className="h-[18px] w-[18px]" />}
+          </Button>
 
           {/* ── Notifications Dropdown ── */}
           <DropdownMenu>

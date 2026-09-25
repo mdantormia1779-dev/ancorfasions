@@ -254,7 +254,7 @@ export const AdminSidebar = ({
         className
       )}
     >
-      <div className={cn("shrink-0 flex items-center py-6 border-b border-border relative", isCollapsed ? "px-0 justify-center" : "px-6 gap-3")}>
+      <div className={cn("h-[80px] shrink-0 flex items-center border-b border-border relative", isCollapsed ? "px-0 justify-center" : "px-6 gap-3")}>
         {!isCollapsed && (
           <>
             <AnchorFashionLogo noLink={true} className="text-slate-900 dark:text-slate-100" />
@@ -264,9 +264,10 @@ export const AdminSidebar = ({
         
         <button
           onClick={() => setIsCollapsed(!isCollapsed)}
-          className="absolute -right-3 top-6 flex h-6 w-6 items-center justify-center rounded-full border bg-background shadow-sm hover:bg-muted"
+          className="absolute -right-3 top-1/2 -translate-y-1/2 z-30 flex h-6 w-6 items-center justify-center rounded-full border border-border bg-background shadow-sm hover:bg-muted text-foreground transition-colors"
+          title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
         >
-          {isCollapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
+          {isCollapsed ? <ChevronRight className="h-3.5 w-3.5" /> : <ChevronLeft className="h-3.5 w-3.5" />}
         </button>
       </div>
 
