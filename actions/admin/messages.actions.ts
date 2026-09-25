@@ -22,6 +22,25 @@ export interface AdminMessage {
   } | null;
 }
 
+const FAKE_MESSAGE_CONTENTS = [
+  "Hi, can you check the shipping status of my recent order? It's been 5 days.",
+  "I'd like to initiate a return for order #ORD-8834. The size didn't fit.",
+  "Is the Premium Silk Gown available in navy blue? The website only shows black.",
+  "The packaging was damaged on arrival. Please advise on next steps.",
+];
+
+export async function cleanupFakeMessages() {
+  try {
+    const admin = createAdminClient();
+    await admin
+      .from("communication_logs")
+      .delete()
+      .in("content", FAKE_MESSAGE_CONTENTS);
+  } catch {
+    // Silently ignore cleanup errors
+  }
+}
+
 /**
  * Fetches recent inbound customer messages from communication_logs for the admin header dropdown.
  */
@@ -31,6 +50,7 @@ export async function getAdminHeaderMessagesAction(): Promise<{
   error?: string;
 }> {
   try {
+    await cleanupFakeMessages();
     const supabase = createAdminClient();
 
     const { data: logs, error } = await supabase
@@ -213,6 +233,28 @@ export async function markAllMessagesAsReadAction(): Promise<{ error?: string }>
 }
 
 /**
+ * Deletes all communication messages/logs.
+ */
+export async function deleteAllMessagesAction(): Promise<{ success: boolean; error?: string }> {
+  try {
+    const admin = createAdminClient();
+    const { error } = await admin
+      .from("communication_logs")
+      .delete()
+      .not("id", "is", null);
+
+    if (error) return { success: false, error: error.message };
+
+    revalidatePath("/admin", "layout");
+    revalidatePath("/admin/crm/messages");
+    revalidatePath("/admin/messages");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
+}
+
+/**
  * Seeds sample inbound customer messages if the communication_logs table is empty.
  * (Permanently disabled so fake data never automatically reappears)
  */
@@ -220,4 +262,5 @@ export async function seedInitialMessagesIfEmptyAction(): Promise<void> {
   // Permanently disabled: do not seed fake messages
   return;
 }
+
 

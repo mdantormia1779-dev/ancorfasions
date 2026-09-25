@@ -25,6 +25,7 @@ import {
   Inbox,
   MessageCircle,
   Loader2,
+  Trash2,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
@@ -62,6 +63,8 @@ import {
 import {
   getAdminHeaderMessagesAction,
   markAllMessagesAsReadAction,
+  deleteMessageAction,
+  deleteAllMessagesAction,
   type AdminMessage,
 } from "@/actions/admin/messages.actions";
 
@@ -273,6 +276,32 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
       setMessages((prev) => prev.map((m) => ({ ...m, status: "READ" })));
       setMsgUnread(0);
       toast.success("All messages marked as read");
+    });
+  };
+
+  const handleDeleteMsg = (id: string) => {
+    startTransition(async () => {
+      const res = await deleteMessageAction(id);
+      if (res.success) {
+        setMessages((prev) => prev.filter((m) => m.id !== id));
+        setMsgUnread((c) => Math.max(0, c - 1));
+        toast.success("Message deleted");
+      } else {
+        toast.error(res.error || "Failed to delete message");
+      }
+    });
+  };
+
+  const handleClearAllMsgs = () => {
+    startTransition(async () => {
+      const res = await deleteAllMessagesAction();
+      if (res.success) {
+        setMessages([]);
+        setMsgUnread(0);
+        toast.success("All messages cleared");
+      } else {
+        toast.error(res.error || "Failed to clear messages");
+      }
     });
   };
 
@@ -515,16 +544,28 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
                     </span>
                   )}
                 </div>
-                {msgUnread > 0 && (
-                  <button
-                    onClick={handleMarkAllMsgsRead}
-                    disabled={isPending}
-                    className="flex items-center gap-1 text-xs font-normal text-[#00A1FF] hover:underline disabled:opacity-50"
-                  >
-                    <CheckCheck className="h-3 w-3" />
-                    Mark all read
-                  </button>
-                )}
+                <div className="flex items-center gap-2">
+                  {msgUnread > 0 && (
+                    <button
+                      onClick={handleMarkAllMsgsRead}
+                      disabled={isPending}
+                      className="flex items-center gap-1 text-xs font-normal text-[#00A1FF] hover:underline disabled:opacity-50"
+                    >
+                      <CheckCheck className="h-3 w-3" />
+                      Mark read
+                    </button>
+                  )}
+                  {messages.length > 0 && (
+                    <button
+                      onClick={handleClearAllMsgs}
+                      disabled={isPending}
+                      className="flex items-center gap-1 text-xs font-normal text-rose-500 hover:underline disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                      Clear all
+                    </button>
+                  )}
+                </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="m-0" />
               <div className="max-h-[340px] overflow-y-auto">
@@ -566,6 +607,17 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
                             <div className="flex items-center gap-1.5 shrink-0">
                               {msgIcon(m.type)}
                               {isUnread && <span className="h-2 w-2 rounded-full bg-[#00A1FF]" />}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteMsg(m.id);
+                                }}
+                                disabled={isPending}
+                                className="h-5 w-5 text-muted-foreground/50 hover:text-rose-500 flex items-center justify-center rounded transition-colors"
+                                title="Delete message"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
                             </div>
                           </div>
                           {m.subject && (

@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { crmService } from "@/services/crm.service";
 import { CRMLead, CRMNote } from "@/types/crm.types";
+import { cleanupFakeMessages } from "@/actions/admin/messages.actions";
 
 export async function getCustomersAction() {
   try {
@@ -134,6 +135,7 @@ export async function addCustomerNoteAction(profileId: string, data: unknown) {
 
 export async function getCommunicationLogsAction() {
   try {
+    await cleanupFakeMessages();
     const logs = await crmService.getCommunicationLogs();
     return { data: logs };
   } catch (error: any) {
