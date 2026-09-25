@@ -37,13 +37,30 @@ export async function createSupplierProfileAction(data: {
     const supabase = createAdminClient();
     const cleanCompany = data.company_name.trim();
     const cleanStatus = (data.status || "ACTIVE").toUpperCase();
+    const cleanEmail = data.email?.trim() ? data.email.trim().toLowerCase() : null;
+
+    // Check duplicate email beforehand to provide helpful message
+    if (cleanEmail) {
+      const { data: existingSupplier } = await supabase
+        .from("supplier_profiles")
+        .select("company_name, email")
+        .ilike("email", cleanEmail)
+        .maybeSingle();
+
+      if (existingSupplier) {
+        return {
+          success: false,
+          error: `A supplier with email "${cleanEmail}" already exists (${existingSupplier.company_name}). Please use a different email address.`,
+        };
+      }
+    }
 
     const { data: supplier, error } = await supabase
       .from("supplier_profiles")
       .insert({
         company_name: cleanCompany,
         contact_person: data.contact_person?.trim() || null,
-        email: data.email?.trim() || null,
+        email: cleanEmail,
         phone: data.phone?.trim() || null,
         performance_score: Number(data.performance_score) || 5.0,
         status: cleanStatus,
@@ -51,14 +68,22 @@ export async function createSupplierProfileAction(data: {
       .select()
       .single();
 
-    if (error) return { success: false, error: error.message };
+    if (error) {
+      if (error.code === "23505" || error.message?.includes("supplier_profiles_email_key")) {
+        return {
+          success: false,
+          error: `A supplier with this email already exists. Each supplier must have a unique email address.`,
+        };
+      }
+      return { success: false, error: error.message };
+    }
 
     // Also sync into `suppliers` table for compatibility
     try {
       await supabase.from("suppliers").upsert({
         id: supplier.id,
         name: cleanCompany,
-        contact_email: data.email?.trim() || null,
+        contact_email: cleanEmail,
         contact_phone: data.phone?.trim() || null,
         lead_time_days: 7,
         rating: Number(data.performance_score) || 5.0,
@@ -92,21 +117,64 @@ export async function updateSupplierProfileAction(
 ) {
   try {
     const supabase = createAdminClient();
+    const cleanEmail =
+      data.email !== undefined
+        ? data.email?.trim()
+          ? data.email.trim().toLowerCase()
+          : null
+        : undefined;
+
+    // Check duplicate email across other suppliers
+    if (cleanEmail) {
+      const { data: existingSupplier } = await supabase
+        .from("supplier_profiles")
+        .select("id, company_name, email")
+        .ilike("email", cleanEmail)
+        .neq("id", id)
+        .maybeSingle();
+
+      if (existingSupplier) {
+        return {
+          success: false,
+          error: `Another supplier (${existingSupplier.company_name}) is already using the email "${cleanEmail}". Please use a different email address.`,
+        };
+      }
+    }
+
+    const updatePayload: any = { ...data };
+    if (cleanEmail !== undefined) {
+      updatePayload.email = cleanEmail;
+    }
+    if (data.company_name) {
+      updatePayload.company_name = data.company_name.trim();
+    }
+    if (data.status) {
+      updatePayload.status = data.status.toUpperCase();
+    }
+
     const { data: updated, error } = await supabase
       .from("supplier_profiles")
-      .update(data)
+      .update(updatePayload)
       .eq("id", id)
       .select()
       .single();
 
-    if (error) return { success: false, error: error.message };
+    if (error) {
+      if (error.code === "23505" || error.message?.includes("supplier_profiles_email_key")) {
+        return {
+          success: false,
+          error: `A supplier with this email already exists. Each supplier must have a unique email address.`,
+        };
+      }
+      return { success: false, error: error.message };
+    }
 
     // Sync to suppliers table as well
     try {
       await supabase.from("suppliers").update({
-        name: data.company_name,
-        contact_email: data.email,
-        contact_phone: data.phone,
+        name: data.company_name?.trim(),
+        contact_email: cleanEmail,
+        contact_phone: data.phone?.trim(),
         rating: data.performance_score,
       }).eq("id", id);
     } catch {}

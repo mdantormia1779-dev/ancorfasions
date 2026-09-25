@@ -121,6 +121,18 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
     });
   }, [supplierList, search, statusFilter]);
 
+  const handleOpenAdd = () => {
+    setAddForm({
+      company_name: "",
+      contact_person: "",
+      email: "",
+      phone: "",
+      performance_score: "5.0",
+      status: "ACTIVE",
+    });
+    setIsAddOpen(true);
+  };
+
   const handleAddSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!addForm.company_name.trim()) {
@@ -128,11 +140,22 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
       return;
     }
 
+    const trimmedEmail = addForm.email.trim().toLowerCase();
+    if (trimmedEmail) {
+      const duplicate = supplierList.find(
+        (s) => s.email && s.email.trim().toLowerCase() === trimmedEmail
+      );
+      if (duplicate) {
+        toast.error(`A supplier with email "${trimmedEmail}" already exists (${duplicate.company_name}).`);
+        return;
+      }
+    }
+
     setAddLoading(true);
     const res = await createSupplierProfileAction({
       company_name: addForm.company_name.trim(),
       contact_person: addForm.contact_person.trim() || undefined,
-      email: addForm.email.trim() || undefined,
+      email: trimmedEmail || undefined,
       phone: addForm.phone.trim() || undefined,
       performance_score: parseFloat(addForm.performance_score) || 5.0,
       status: addForm.status,
@@ -175,11 +198,22 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
     e.preventDefault();
     if (!editItem) return;
 
+    const trimmedEmail = editForm.email.trim().toLowerCase();
+    if (trimmedEmail) {
+      const duplicate = supplierList.find(
+        (s) => s.id !== editItem.id && s.email && s.email.trim().toLowerCase() === trimmedEmail
+      );
+      if (duplicate) {
+        toast.error(`A supplier with email "${trimmedEmail}" already exists (${duplicate.company_name}).`);
+        return;
+      }
+    }
+
     setEditLoading(true);
     const res = await updateSupplierProfileAction(editItem.id, {
       company_name: editForm.company_name.trim(),
       contact_person: editForm.contact_person.trim() || undefined,
-      email: editForm.email.trim() || undefined,
+      email: trimmedEmail || undefined,
       phone: editForm.phone.trim() || undefined,
       performance_score: parseFloat(editForm.performance_score) || 5.0,
       status: editForm.status,
@@ -196,7 +230,7 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
                 ...(res.data || {}),
                 company_name: editForm.company_name,
                 contact_person: editForm.contact_person,
-                email: editForm.email,
+                email: trimmedEmail,
                 phone: editForm.phone,
                 performance_score: parseFloat(editForm.performance_score),
                 status: editForm.status,
@@ -237,7 +271,7 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
             Manage vendor profiles, contact information, performance ratings, and active status.
           </p>
         </div>
-        <Button onClick={() => setIsAddOpen(true)}>
+        <Button onClick={handleOpenAdd}>
           <Plus className="mr-2 h-4 w-4" /> Add Supplier
         </Button>
       </div>
@@ -374,7 +408,7 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
                   <div className="flex flex-col items-center justify-center gap-2">
                     <AlertCircle className="h-8 w-8 text-muted-foreground/50" />
                     <p>No suppliers found matching your criteria.</p>
-                    <Button variant="outline" size="sm" onClick={() => setIsAddOpen(true)}>
+                    <Button variant="outline" size="sm" onClick={handleOpenAdd}>
                       <Plus className="mr-1.5 h-4 w-4" /> Add New Supplier
                     </Button>
                   </div>
@@ -395,14 +429,16 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleAddSubmit} className="space-y-4">
+          <form onSubmit={handleAddSubmit} className="space-y-4" autoComplete="off">
             <div className="space-y-2">
               <Label htmlFor="company_name">Company Name <span className="text-destructive">*</span></Label>
               <Input
                 id="company_name"
+                name="supplier_company_name"
                 placeholder="e.g. Acme Textiles Ltd."
                 value={addForm.company_name}
                 onChange={(e) => setAddForm({ ...addForm, company_name: e.target.value })}
+                autoComplete="off"
                 required
               />
             </div>
@@ -412,18 +448,22 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
                 <Label htmlFor="contact_person">Contact Person</Label>
                 <Input
                   id="contact_person"
+                  name="supplier_contact_person"
                   placeholder="e.g. John Doe"
                   value={addForm.contact_person}
                   onChange={(e) => setAddForm({ ...addForm, contact_person: e.target.value })}
+                  autoComplete="off"
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="phone">Phone Number</Label>
                 <Input
                   id="phone"
+                  name="supplier_phone"
                   placeholder="+8801700000000"
                   value={addForm.phone}
                   onChange={(e) => setAddForm({ ...addForm, phone: e.target.value })}
+                  autoComplete="off"
                 />
               </div>
             </div>
@@ -432,10 +472,12 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
               <Label htmlFor="email">Email Address</Label>
               <Input
                 id="email"
+                name="supplier_email_address"
                 type="email"
                 placeholder="supplier@example.com"
                 value={addForm.email}
                 onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
+                autoComplete="new-password"
               />
             </div>
 
@@ -493,13 +535,15 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
           </DialogHeader>
 
           {editItem && (
-            <form onSubmit={handleEditSubmit} className="space-y-4">
+            <form onSubmit={handleEditSubmit} className="space-y-4" autoComplete="off">
               <div className="space-y-2">
                 <Label htmlFor="edit_company_name">Company Name</Label>
                 <Input
                   id="edit_company_name"
+                  name="edit_supplier_company_name"
                   value={editForm.company_name}
                   onChange={(e) => setEditForm({ ...editForm, company_name: e.target.value })}
+                  autoComplete="off"
                   required
                 />
               </div>
@@ -509,16 +553,20 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
                   <Label htmlFor="edit_contact_person">Contact Person</Label>
                   <Input
                     id="edit_contact_person"
+                    name="edit_supplier_contact_person"
                     value={editForm.contact_person}
                     onChange={(e) => setEditForm({ ...editForm, contact_person: e.target.value })}
+                    autoComplete="off"
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="edit_phone">Phone Number</Label>
                   <Input
                     id="edit_phone"
+                    name="edit_supplier_phone"
                     value={editForm.phone}
                     onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                    autoComplete="off"
                   />
                 </div>
               </div>
@@ -527,9 +575,11 @@ export function SuppliersClient({ suppliers = [] }: { suppliers: SupplierProfile
                 <Label htmlFor="edit_email">Email Address</Label>
                 <Input
                   id="edit_email"
+                  name="edit_supplier_email_address"
                   type="email"
                   value={editForm.email}
                   onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                  autoComplete="new-password"
                 />
               </div>
 
