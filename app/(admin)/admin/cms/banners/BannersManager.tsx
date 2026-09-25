@@ -19,6 +19,7 @@ import { toast } from "sonner";
 import {
   upsertHeroSlideWithUpload,
   deleteHeroSlide,
+  deleteAllHeroSlides,
   HeroSlide,
 } from "@/actions/cms.actions";
 import {
@@ -73,6 +74,7 @@ export function BannersManager({
   const [isPending, startTransition] = useTransition();
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
+  const [deleteAllConfirmOpen, setDeleteAllConfirmOpen] = useState(false);
   const [formData, setFormData] = useState<BannerFormData>(emptyBannerForm);
   const [previewUrl, setPreviewUrl] = useState<string>("");
 
@@ -180,13 +182,6 @@ export function BannersManager({
 
   const handleDelete = (id: string) => {
     startTransition(async () => {
-      if (id.startsWith("default-")) {
-        setSlides((prev) => prev.filter((s) => s.id !== id));
-        setDeleteConfirmId(null);
-        toast.success("Default banner removed");
-        return;
-      }
-
       const res = await deleteHeroSlide(id);
       if (res.success) {
         setSlides((prev) => prev.filter((s) => s.id !== id));
@@ -194,6 +189,19 @@ export function BannersManager({
         toast.success("Banner deleted successfully");
       } else {
         toast.error(res.error || "Failed to delete banner");
+      }
+    });
+  };
+
+  const handleDeleteAll = () => {
+    startTransition(async () => {
+      const res = await deleteAllHeroSlides();
+      if (res.success) {
+        setSlides([]);
+        setDeleteAllConfirmOpen(false);
+        toast.success("All banners deleted successfully");
+      } else {
+        toast.error(res.error || "Failed to delete banners");
       }
     });
   };
@@ -213,9 +221,21 @@ export function BannersManager({
             Manage the carousel slides and featured promo banners shown on the homepage.
           </p>
         </div>
-        <Button onClick={handleOpenAdd} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" /> Add Banner
-        </Button>
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          {slides.length > 0 && (
+            <Button
+              variant="outline"
+              onClick={() => setDeleteAllConfirmOpen(true)}
+              className="text-rose-600 border-rose-200 hover:bg-rose-50 dark:border-rose-900 dark:hover:bg-rose-950/30"
+              disabled={isPending}
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Clear All
+            </Button>
+          )}
+          <Button onClick={handleOpenAdd} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" /> Add Banner
+          </Button>
+        </div>
       </div>
 
       {/* Category Tabs */}
@@ -638,6 +658,38 @@ export function BannersManager({
             >
               {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
               Delete Banner
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete All Confirmation Dialog */}
+      <Dialog
+        open={deleteAllConfirmOpen}
+        onOpenChange={(open) => !open && setDeleteAllConfirmOpen(false)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clear All Banners</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete ALL banners? This will remove all hero slides and promo banners. This action cannot be undone.
+          </p>
+          <DialogFooter className="mt-4">
+            <Button
+              variant="outline"
+              onClick={() => setDeleteAllConfirmOpen(false)}
+              disabled={isPending}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDeleteAll}
+              disabled={isPending}
+            >
+              {isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Delete All Banners
             </Button>
           </DialogFooter>
         </DialogContent>

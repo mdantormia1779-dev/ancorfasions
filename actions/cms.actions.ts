@@ -591,7 +591,7 @@ export async function getAdminHeroSlides(): Promise<HeroSlide[]> {
       .order("created_at", { ascending: true });
 
     if (error || !banners || banners.length === 0) {
-      return DEFAULT_SLIDES;
+      return [];
     }
 
     const slides = (banners as any[]).map((b: any, i: number) => {
@@ -645,33 +645,9 @@ export async function getAdminHeroSlides(): Promise<HeroSlide[]> {
       };
     });
 
-    const hasPromo = slides.some((s) => s.placement === "promo");
-    if (!hasPromo) {
-      slides.push({
-        id: "default-promo-1",
-        image_url: DEFAULT_PROMO_BANNER.imageUrl,
-        media_url: DEFAULT_PROMO_BANNER.imageUrl,
-        image: DEFAULT_PROMO_BANNER.imageUrl,
-        link_url: DEFAULT_PROMO_BANNER.ctaLink,
-        cta_url: DEFAULT_PROMO_BANNER.ctaLink,
-        ctaHref: DEFAULT_PROMO_BANNER.ctaLink,
-        display_order: 1,
-        title: DEFAULT_PROMO_BANNER.title,
-        headline: DEFAULT_PROMO_BANNER.title,
-        subtitle: DEFAULT_PROMO_BANNER.subtitle,
-        subheadline: DEFAULT_PROMO_BANNER.subtitle,
-        description: DEFAULT_PROMO_BANNER.description ?? null,
-        cta_text: DEFAULT_PROMO_BANNER.ctaText,
-        is_active: true,
-        start_date: null,
-        end_date: null,
-        placement: "promo",
-      });
-    }
-
     return slides.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
   } catch {
-    return DEFAULT_SLIDES;
+    return [];
   }
 }
 
@@ -859,18 +835,30 @@ export async function deleteHeroSlide(id: string) {
   try {
     const { createAdminClient } = await import("@/lib/supabase/admin-client");
     const supabase = createAdminClient();
-    const isUuid =
-      id &&
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
-        id
-      );
-    if (isUuid) {
-      const { error } = await supabase
-        .from("cms_banners")
-        .delete()
-        .eq("id", id);
-      if (error) throw error;
+
+    // If default id, also attempt to delete by matching title
+    if (id.startsWith("default-")) {
+      const defaultTitles: Record<string, string> = {
+        "default-1": "Summer Collection",
+        "default-2": "Ethnic Wear",
+        "default-3": "Seasonal Essentials",
+        "default-promo-1": "Mid-Season Sale Up To 50% Off",
+      };
+      const title = defaultTitles[id];
+      if (title) {
+        await supabase.from("cms_banners").delete().eq("title", title);
+      }
     }
+
+    const { error } = await supabase
+      .from("cms_banners")
+      .delete()
+      .eq("id", id);
+
+    if (error && !id.startsWith("default-")) {
+      throw error;
+    }
+
     invalidateHomepageCache();
     revalidatePath("/admin/cms/banners");
     revalidatePath("/manager/cms/banners");
@@ -879,6 +867,29 @@ export async function deleteHeroSlide(id: string) {
     return { success: true };
   } catch (error: any) {
     console.error("deleteHeroSlide error:", error);
+    return { success: false, error: error.message };
+  }
+}
+
+export async function deleteAllHeroSlides() {
+  try {
+    const { createAdminClient } = await import("@/lib/supabase/admin-client");
+    const supabase = createAdminClient();
+    const { error } = await supabase
+      .from("cms_banners")
+      .delete()
+      .in("type", ["hero", "sidebar"]);
+
+    if (error) throw error;
+
+    invalidateHomepageCache();
+    revalidatePath("/admin/cms/banners");
+    revalidatePath("/manager/cms/banners");
+    revalidatePath("/manager/cms");
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    console.error("deleteAllHeroSlides error:", error);
     return { success: false, error: error.message };
   }
 }

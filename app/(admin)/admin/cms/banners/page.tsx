@@ -5,6 +5,9 @@ export const metadata = {
   title: "Hero Banners | CMS | Anchor Fashion Enterprise",
 };
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export default async function BannersPage() {
   const slides = await getAdminHeroSlides();
 
