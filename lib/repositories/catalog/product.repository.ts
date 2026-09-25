@@ -5,6 +5,51 @@ import { cache } from "react";
 
 export class ProductRepository {
   /**
+   * Helper to ensure an active warehouse exists and return its ID
+   */
+  static async getDefaultWarehouseId(supabase: any): Promise<string> {
+    const { data: warehouse } = await supabase
+      .from("warehouses")
+      .select("id")
+      .eq("is_active", true)
+      .limit(1)
+      .maybeSingle();
+
+    if (warehouse?.id) {
+      return warehouse.id;
+    }
+
+    const { data: anyWarehouse } = await supabase
+      .from("warehouses")
+      .select("id")
+      .limit(1)
+      .maybeSingle();
+
+    if (anyWarehouse?.id) {
+      return anyWarehouse.id;
+    }
+
+    const { data: newWarehouse, error } = await supabase
+      .from("warehouses")
+      .insert({
+        name: "Main Central Warehouse",
+        warehouse_code: "WH-MAIN-01",
+        type: "WAREHOUSE",
+        is_active: true,
+        status: "active",
+      })
+      .select("id")
+      .single();
+
+    if (error || !newWarehouse?.id) {
+      console.error("Failed to create default warehouse:", error);
+      throw new Error(`Failed to ensure default warehouse: ${error?.message || "Unknown error"}`);
+    }
+
+    return newWarehouse.id;
+  }
+
+  /**
    * Retrieves a paginated list of products with optional filtering.
    */
   static getProducts = cache(async ({
@@ -281,16 +326,7 @@ export class ProductRepository {
     }
 
     // 5. Create Variants & Inventory Levels
-    let defaultWarehouseId: string | null = null;
-    const { data: warehouse } = await supabase
-      .from("warehouses")
-      .select("id")
-      .eq("is_active", true)
-      .limit(1)
-      .maybeSingle();
-    if (warehouse) {
-      defaultWarehouseId = warehouse.id;
-    }
+    const defaultWarehouseId = await ProductRepository.getDefaultWarehouseId(supabase);
 
     if (variants && variants.length > 0) {
       const productSlugPrefix = (productData.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
@@ -536,34 +572,27 @@ export class ProductRepository {
 
     // 5. Update Variants & Inventory Levels
     if (variants !== undefined || productData.stockQuantity !== undefined) {
-      let defaultWarehouseId: string | null = null;
-      const { data: warehouse } = await supabase
-        .from("warehouses")
-        .select("id")
-        .eq("is_active", true)
-        .limit(1)
-        .maybeSingle();
-      if (warehouse) {
-        defaultWarehouseId = warehouse.id;
-      }
+      const defaultWarehouseId = await ProductRepository.getDefaultWarehouseId(supabase);
 
-      // Delete old inventory levels and variants for this product
+      const { data: currentProduct } = await supabase
+        .from("products")
+        .select("sku, slug, base_price, sale_price, barcode")
+        .eq("id", id)
+        .single();
+
+      // Check existing variants for this product
       const { data: oldVariants } = await supabase
         .from("variants")
-        .select("id")
+        .select("id, sku, attributes")
         .eq("product_id", id);
-      if (oldVariants && oldVariants.length > 0) {
-        const oldIds = oldVariants.map((v) => v.id);
-        await supabase.from("inventory_levels").delete().in("variant_id", oldIds);
-        await supabase.from("variants").delete().eq("product_id", id);
-      }
 
       if (variants && variants.length > 0) {
-        const { data: currentProduct } = await supabase
-          .from("products")
-          .select("sku, slug, base_price, sale_price, barcode")
-          .eq("id", id)
-          .single();
+        // Multi-variant product: replace with new variants
+        if (oldVariants && oldVariants.length > 0) {
+          const oldIds = oldVariants.map((v) => v.id);
+          await supabase.from("inventory_levels").delete().in("variant_id", oldIds);
+          await supabase.from("variants").delete().eq("product_id", id);
+        }
 
         const productSlugPrefix = (productData.slug || currentProduct?.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
         const baseSkuPrefix = (productData.sku?.trim() || currentProduct?.sku || productSlugPrefix).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
@@ -613,7 +642,7 @@ export class ProductRepository {
           .select("id, sku");
         if (insertVariantsError) throw new Error(`Failed to insert new product variants: ${insertVariantsError.message}`);
 
-        if (createdVariants && createdVariants.length > 0 && defaultWarehouseId) {
+        if (createdVariants && createdVariants.length > 0) {
           const inventoryInserts = createdVariants.map((cv, idx) => ({
             variant_id: cv.id,
             warehouse_id: defaultWarehouseId,
@@ -625,50 +654,82 @@ export class ProductRepository {
         }
       } else if (productData.stockQuantity !== undefined || variants !== undefined) {
         // Simple product: ensure default variant exists with updated stockQuantity
-        const { data: currentProduct } = await supabase
-          .from("products")
-          .select("sku, slug, base_price, sale_price, barcode")
-          .eq("id", id)
-          .single();
+        let targetVariantId: string | null = null;
+        if (oldVariants && oldVariants.length === 1) {
+          targetVariantId = oldVariants[0].id;
+          await supabase
+            .from("variants")
+            .update({
+              price_override: productData.basePrice ?? currentProduct?.base_price ?? 0,
+              sale_price: productData.salePrice ?? currentProduct?.sale_price ?? null,
+              barcode: productData.barcode ?? currentProduct?.barcode ?? null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", targetVariantId);
+        } else {
+          if (oldVariants && oldVariants.length > 0) {
+            const oldIds = oldVariants.map((v) => v.id);
+            await supabase.from("inventory_levels").delete().in("variant_id", oldIds);
+            await supabase.from("variants").delete().eq("product_id", id);
+          }
 
-        const productSlugPrefix = (productData.slug || currentProduct?.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
-        let defaultSku = productData.sku?.trim()
-          ? `${productData.sku.trim().toUpperCase()}-DEF`
-          : currentProduct?.sku
-            ? `${currentProduct.sku.trim().toUpperCase()}-DEF`
-            : `${productSlugPrefix}-DEF-${Date.now().toString().slice(-4)}`;
+          const productSlugPrefix = (productData.slug || currentProduct?.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
+          let defaultSku = productData.sku?.trim()
+            ? `${productData.sku.trim().toUpperCase()}-DEF`
+            : currentProduct?.sku
+              ? `${currentProduct.sku.trim().toUpperCase()}-DEF`
+              : `${productSlugPrefix}-DEF-${Date.now().toString().slice(-4)}`;
 
-        const { data: existingDef } = await supabase.from("variants").select("id").eq("sku", defaultSku).maybeSingle();
-        if (existingDef) {
-          defaultSku = `${defaultSku}-${Date.now().toString().slice(-3)}`;
+          const { data: existingDef } = await supabase.from("variants").select("id").eq("sku", defaultSku).maybeSingle();
+          if (existingDef) {
+            defaultSku = `${defaultSku}-${Date.now().toString().slice(-3)}`;
+          }
+
+          const { data: defaultVariant, error: defaultVariantErr } = await supabase
+            .from("variants")
+            .insert({
+              product_id: id,
+              sku: defaultSku,
+              barcode: productData.barcode ?? currentProduct?.barcode ?? null,
+              price_override: productData.basePrice ?? currentProduct?.base_price ?? 0,
+              sale_price: productData.salePrice ?? currentProduct?.sale_price ?? null,
+              is_active: true,
+              attributes: { Standard: "Default" },
+            })
+            .select("id")
+            .single();
+
+          if (defaultVariantErr) {
+            throw new Error(`Failed to initialize default variant on update: ${defaultVariantErr.message}`);
+          }
+          targetVariantId = defaultVariant.id;
         }
 
-        const { data: defaultVariant, error: defaultVariantErr } = await supabase
-          .from("variants")
-          .insert({
-            product_id: id,
-            sku: defaultSku,
-            barcode: productData.barcode ?? currentProduct?.barcode ?? null,
-            price_override: productData.basePrice ?? currentProduct?.base_price ?? 0,
-            sale_price: productData.salePrice ?? currentProduct?.sale_price ?? null,
-            is_active: true,
-            attributes: { Standard: "Default" },
-          })
-          .select("id")
-          .single();
+        if (targetVariantId) {
+          const { data: existingInv } = await supabase
+            .from("inventory_levels")
+            .select("id")
+            .eq("variant_id", targetVariantId)
+            .eq("warehouse_id", defaultWarehouseId)
+            .maybeSingle();
 
-        if (defaultVariantErr) {
-          throw new Error(`Failed to initialize default variant on update: ${defaultVariantErr.message}`);
-        }
-
-        if (defaultVariant && defaultWarehouseId) {
-          await supabase.from("inventory_levels").insert({
-            variant_id: defaultVariant.id,
-            warehouse_id: defaultWarehouseId,
-            quantity_available: Number(productData.stockQuantity ?? 0),
-            quantity_reserved: 0,
-            reorder_point: 10,
-          });
+          if (existingInv) {
+            await supabase
+              .from("inventory_levels")
+              .update({
+                quantity_available: Number(productData.stockQuantity ?? 0),
+                updated_at: new Date().toISOString(),
+              })
+              .eq("id", existingInv.id);
+          } else {
+            await supabase.from("inventory_levels").insert({
+              variant_id: targetVariantId,
+              warehouse_id: defaultWarehouseId,
+              quantity_available: Number(productData.stockQuantity ?? 0),
+              quantity_reserved: 0,
+              reorder_point: 10,
+            });
+          }
         }
       }
     }

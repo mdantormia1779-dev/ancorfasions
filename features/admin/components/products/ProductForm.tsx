@@ -167,20 +167,42 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     mediaType: m.media_type ?? m.mediaType ?? "IMAGE",
   }));
 
-  const normalizedVariants = ((initialData as any)?.variants || []).map((v: any) => ({
-    sku: v.sku || "",
-    barcode: v.barcode ?? undefined,
-    priceOverride: v.price_override ?? v.priceOverride ?? undefined,
-    salePrice: v.sale_price ?? v.salePrice ?? undefined,
-    isActive: v.is_active ?? v.isActive ?? true,
-    attributes: v.attributes || {},
-    stockQuantity:
-      v.stockQuantity ??
-      v.stock_quantity ??
-      (Array.isArray(v.inventory_levels)
-        ? v.inventory_levels.reduce((s: number, l: any) => s + (l.quantity_available || 0), 0)
-        : 0),
-  }));
+  const rawVariants = (initialData as any)?.variants || [];
+  const isDefaultVariantOnly =
+    rawVariants.length === 1 &&
+    (!rawVariants[0]?.attributes ||
+      Object.keys(rawVariants[0]?.attributes || {}).length === 0 ||
+      rawVariants[0]?.attributes?.Standard === "Default");
+
+  const normalizedVariants = isDefaultVariantOnly
+    ? []
+    : rawVariants.map((v: any) => ({
+        sku: v.sku || "",
+        barcode: v.barcode ?? undefined,
+        priceOverride: v.price_override ?? v.priceOverride ?? undefined,
+        salePrice: v.sale_price ?? v.salePrice ?? undefined,
+        isActive: v.is_active ?? v.isActive ?? true,
+        attributes: v.attributes || {},
+        stockQuantity:
+          v.stockQuantity ??
+          v.stock_quantity ??
+          (Array.isArray(v.inventory_levels)
+            ? v.inventory_levels.reduce((s: number, l: any) => s + (l.quantity_available || 0), 0)
+            : 0),
+      }));
+
+  const initialStock =
+    (initialData as any)?.stockQuantity ??
+    (initialData as any)?.stock_quantity ??
+    (isDefaultVariantOnly && rawVariants[0]
+      ? rawVariants[0].stockQuantity ??
+        (Array.isArray(rawVariants[0].inventory_levels)
+          ? rawVariants[0].inventory_levels.reduce(
+              (s: number, l: any) => s + (l.quantity_available || 0),
+              0
+            )
+          : 0)
+      : 0);
 
   const normalizedSeo = initialData?.seo
     ? {
@@ -198,7 +220,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     basePrice: initialData?.basePrice || 0,
     costPrice: initialData?.costPrice ?? undefined,
     salePrice: initialData?.salePrice ?? undefined,
-    stockQuantity: (initialData as any)?.stockQuantity ?? (initialData as any)?.stock_quantity ?? 0,
+    stockQuantity: initialStock,
     sku: initialData?.sku || "",
     barcode: initialData?.barcode || "",
     status: initialData?.status || "DRAFT",
@@ -266,17 +288,20 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
       categoryId: rawValues.categoryId,
       barcode: rawValues.barcode && rawValues.barcode.trim() !== "" ? rawValues.barcode.trim() : null,
       sku: rawValues.sku && rawValues.sku.trim() !== "" ? rawValues.sku.trim() : null,
-      variants: rawValues.variants?.map((v, idx) => {
-        const currentSlug = form.getValues("slug")?.trim() || form.getValues("name")?.trim() || "PROD";
-        const cleanPrefix = currentSlug.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
-        const fallbackSku = `${cleanPrefix}-V${idx + 1}-${Date.now().toString().slice(-3)}`;
-        return {
-          ...v,
-          stockQuantity: Number(v.stockQuantity ?? 0),
-          barcode: v.barcode && v.barcode.trim() !== "" ? v.barcode.trim() : null,
-          sku: v.sku?.trim() || fallbackSku,
-        };
-      }),
+      variants:
+        (rawValues.variants || []).length > 0
+          ? rawValues.variants?.map((v, idx) => {
+              const currentSlug = form.getValues("slug")?.trim() || form.getValues("name")?.trim() || "PROD";
+              const cleanPrefix = currentSlug.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 8);
+              const fallbackSku = `${cleanPrefix}-V${idx + 1}-${Date.now().toString().slice(-3)}`;
+              return {
+                ...v,
+                stockQuantity: Number(v.stockQuantity ?? 0),
+                barcode: v.barcode && v.barcode.trim() !== "" ? v.barcode.trim() : null,
+                sku: v.sku?.trim() || fallbackSku,
+              };
+            })
+          : [],
     };
 
     if (status === "ACTIVE") setIsPublishing(true);

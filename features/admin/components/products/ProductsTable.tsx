@@ -499,10 +499,27 @@ export function ProductsTable({
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1.5">
-                        <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
-                          {(product as any).variants?.length ?? 0}
-                        </span>
-                        <span className="text-xs text-muted-foreground">variants</span>
+                        {(() => {
+                          const vars = (product as any).variants || [];
+                          const isSingleDefault =
+                            vars.length === 1 &&
+                            (!vars[0]?.attributes ||
+                              Object.keys(vars[0]?.attributes || {}).length === 0 ||
+                              vars[0]?.attributes?.Standard === "Default");
+                          if (isSingleDefault || vars.length === 0) {
+                            return (
+                              <span className="text-xs text-muted-foreground font-medium">Standard</span>
+                            );
+                          }
+                          return (
+                            <>
+                              <span className="inline-flex items-center justify-center h-5 w-5 rounded-full bg-slate-100 text-xs font-semibold text-slate-600">
+                                {vars.length}
+                              </span>
+                              <span className="text-xs text-muted-foreground">variants</span>
+                            </>
+                          );
+                        })()}
                       </div>
                     </TableCell>
                     <TableCell>
