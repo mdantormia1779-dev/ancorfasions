@@ -6,15 +6,19 @@ export const metadata = {
   title: "Collections | Catalog | Anchor Fashion Enterprise",
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function AdminCollectionsPage() {
   const supabase = await createClient();
 
-  // Fetch all collections and available products in parallel
+  // Fetch all collections and active available products in parallel
   const [collections, { data: products }] = await Promise.all([
     CollectionRepository.getCollections(false),
     supabase
       .from("products")
       .select("id, name, slug, base_price, product_media(url, is_primary)")
+      .is("deleted_at", null)
+      .neq("status", "ARCHIVED")
       .order("name", { ascending: true })
       .limit(500),
   ]);

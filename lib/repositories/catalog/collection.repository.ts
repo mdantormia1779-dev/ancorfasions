@@ -18,7 +18,7 @@ export class CollectionRepository {
       const supabase = getPublicSupabaseClient();
       let query = supabase
         .from("collections")
-        .select("*, collection_products(product_id)")
+        .select("*, collection_products(product_id, products(id, deleted_at, status))")
         .order("created_at", { ascending: false });
 
       if (activeOnly) {
@@ -31,11 +31,16 @@ export class CollectionRepository {
         return [];
       }
 
-      return (data || []).map((col: any) => ({
-        ...col,
-        product_count: col.collection_products?.length ?? 0,
-        product_ids: col.collection_products?.map((cp: any) => cp.product_id) ?? [],
-      })) as Collection[];
+      return (data || []).map((col: any) => {
+        const activeLinks = (col.collection_products || []).filter(
+          (cp: any) => !cp.products?.deleted_at && cp.products?.status !== "ARCHIVED"
+        );
+        return {
+          ...col,
+          product_count: activeLinks.length,
+          product_ids: activeLinks.map((cp: any) => cp.product_id),
+        };
+      }) as Collection[];
     } catch (err) {
       console.error("Unexpected error in getCollections:", err);
       return [];
@@ -90,7 +95,13 @@ export class CollectionRepository {
 
       const products = (colProducts || [])
         .map((cp: any) => cp.products)
-        .filter((p: any) => p && (!activeOnly || p.status === "ACTIVE"));
+        .filter(
+          (p: any) =>
+            p &&
+            !p.deleted_at &&
+            p.status !== "ARCHIVED" &&
+            (!activeOnly || p.status === "ACTIVE")
+        );
 
       return {
         collection: {
