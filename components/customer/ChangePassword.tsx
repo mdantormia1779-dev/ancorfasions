@@ -41,6 +41,7 @@ export function ChangePassword() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isCopied, setIsCopied] = useState(false);
+  const [hasSavedPassword, setHasSavedPassword] = useState(false);
 
   const {
     register,
@@ -72,11 +73,14 @@ export function ChangePassword() {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
         setValue("current_password", saved);
+        setHasSavedPassword(true);
       } else {
-        setValue("current_password", "Admin123456!");
+        setValue("current_password", "");
+        setHasSavedPassword(false);
       }
     } catch {
-      setValue("current_password", "Admin123456!");
+      setValue("current_password", "");
+      setHasSavedPassword(false);
     }
   }, [setValue]);
 
@@ -101,6 +105,7 @@ export function ChangePassword() {
           localStorage.setItem(STORAGE_KEY, values.new_password);
         } catch {}
         setValue("current_password", values.new_password);
+        setHasSavedPassword(true);
         setValue("new_password", "");
         setValue("confirm_password", "");
       } catch (err: any) {
@@ -117,7 +122,9 @@ export function ChangePassword() {
           Change Password
         </CardTitle>
         <CardDescription>
-          You can update your password directly by typing a new password below. Current password is pre-filled.
+          {hasSavedPassword
+            ? "Your current session password is saved below. You can update your password directly by typing a new password."
+            : "You can update your password directly by typing and confirming a new password below."}
         </CardDescription>
       </CardHeader>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -125,49 +132,57 @@ export function ChangePassword() {
           {/* Current Password Field */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label htmlFor="current_password">Current Password (Pre-filled)</Label>
-              <span className="text-xs text-muted-foreground flex items-center gap-1">
-                <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
-                Pre-filled
-              </span>
+              <Label htmlFor="current_password">Current Password</Label>
+              {hasSavedPassword ? (
+                <span className="text-xs text-muted-foreground flex items-center gap-1">
+                  <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+                  Saved
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">Optional</span>
+              )}
             </div>
             <div className="relative">
               <Input
                 id="current_password"
                 type={showCurrentPassword ? "text" : "password"}
                 {...register("current_password")}
-                placeholder="Current password"
+                placeholder={hasSavedPassword ? "Current password" : "Enter current password (optional)"}
                 className="pr-16 font-mono text-sm bg-muted/40"
               />
-              <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-muted-foreground">
-                <button
-                  type="button"
-                  onClick={handleCopyCurrentPassword}
-                  className="p-1 hover:text-foreground focus:outline-none transition-colors"
-                  title="Copy current password"
-                >
-                  {isCopied ? (
-                    <Check className="h-4 w-4 text-emerald-500" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                  className="p-1 hover:text-foreground focus:outline-none transition-colors"
-                  title={showCurrentPassword ? "Hide current password" : "Show current password"}
-                >
-                  {showCurrentPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
-                </button>
-              </div>
+              {currentPasswordVal ? (
+                <div className="absolute right-2.5 top-1/2 -translate-y-1/2 flex items-center gap-1 text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={handleCopyCurrentPassword}
+                    className="p-1 hover:text-foreground focus:outline-none transition-colors"
+                    title="Copy current password"
+                  >
+                    {isCopied ? (
+                      <Check className="h-4 w-4 text-emerald-500" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                    className="p-1 hover:text-foreground focus:outline-none transition-colors"
+                    title={showCurrentPassword ? "Hide current password" : "Show current password"}
+                  >
+                    {showCurrentPassword ? (
+                      <EyeOff className="h-4 w-4" />
+                    ) : (
+                      <Eye className="h-4 w-4" />
+                    )}
+                  </button>
+                </div>
+              ) : null}
             </div>
             <p className="text-[11px] text-muted-foreground">
-              Click the eye icon to view your current password. You can change your password just by providing a new password below.
+              {hasSavedPassword
+                ? "Click the eye icon to view your current password. To change your password, simply enter a new password below."
+                : "You do not need your current password to set a new password. Enter a new password below."}
             </p>
           </div>
 

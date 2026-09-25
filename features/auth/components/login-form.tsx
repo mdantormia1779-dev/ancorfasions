@@ -85,9 +85,9 @@ export function LoginForm() {
     }
 
     try {
+      localStorage.setItem("anchor_user_password", password);
       if (rememberMe) {
         localStorage.setItem("anchor_saved_email", email);
-        localStorage.setItem("anchor_user_password", password);
       } else {
         localStorage.removeItem("anchor_saved_email");
       }

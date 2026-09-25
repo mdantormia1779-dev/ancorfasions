@@ -80,6 +80,10 @@ export function RegisterForm() {
       return;
     }
 
+    try {
+      localStorage.setItem("anchor_user_password", values.password);
+    } catch {}
+
     // If auto-logged in (session provided directly)
     if (data?.user && data?.session) {
       try {
