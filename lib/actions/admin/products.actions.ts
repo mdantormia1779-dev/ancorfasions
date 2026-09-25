@@ -178,6 +178,24 @@ export const bulkDeleteProductsAction = createAdminAction(
   }
 );
 
+const BulkDeleteAllSchema = z.object({
+  status: z.string().optional(),
+  search: z.string().optional(),
+});
+
+/**
+ * Bulk delete all products matching optional filter criteria, or all non-deleted products.
+ */
+export const bulkDeleteAllProductsAction = createAdminAction(
+  BulkDeleteAllSchema,
+  async (filters) => {
+    const count = await ProductRepository.deleteAllProducts(filters);
+    revalidatePath("/admin/products");
+    invalidateProductCache();
+    return { count };
+  }
+);
+
 /**
  * Fetch all categories for forms.
  */

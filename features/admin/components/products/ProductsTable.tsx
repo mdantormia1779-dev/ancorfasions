@@ -55,23 +55,30 @@ import {
   duplicateAdminProductAction,
   bulkUpdateProductStatusAction,
   bulkDeleteProductsAction,
+  bulkDeleteAllProductsAction,
 } from "@/lib/actions/admin/products.actions";
 
 export function ProductsTable({
   initialProducts,
   totalCount,
+  currentPage = 1,
+  pageSize = 20,
 }: {
   initialProducts: Product[];
   totalCount: number;
+  currentPage?: number;
+  pageSize?: number;
 }) {
   const router = useRouter();
   const [products, setProducts] = useState(initialProducts);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [selectAllAcrossCatalog, setSelectAllAcrossCatalog] = useState(false);
   
-  // BUG FIX: Sync local state when server data changes (e.g. from search/filter)
+  // Sync local state when server data changes (e.g. from search/filter/pagination)
   useEffect(() => {
     setProducts(initialProducts);
     setSelectedIds([]); // Clear selection on new data
+    setSelectAllAcrossCatalog(false);
   }, [initialProducts]);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [isDuplicating, setIsDuplicating] = useState<string | null>(null);
@@ -90,15 +97,17 @@ export function ProductsTable({
   const isIndeterminate =
     selectedIds.length > 0 && selectedIds.length < products.length;
 
-  const handleSelectAll = (checked: boolean | "indeterminate") => {
-    if (checked === true) {
-      setSelectedIds(products.map((p) => p.id));
-    } else {
+  const handleSelectAll = () => {
+    if (allSelected) {
       setSelectedIds([]);
+      setSelectAllAcrossCatalog(false);
+    } else {
+      setSelectedIds(products.map((p) => p.id));
     }
   };
 
   const handleSelectOne = (id: string, checked: boolean) => {
+    setSelectAllAcrossCatalog(false);
     if (checked) {
       setSelectedIds((prev) => [...prev, id]);
     } else {
@@ -125,6 +134,7 @@ export function ProductsTable({
         if (res.success) {
           toast.success("Product deleted successfully");
           setProducts((prev) => prev.filter((p) => p.id !== id));
+          router.refresh();
         } else {
           toast.error(res.error || "Failed to delete product");
         }
@@ -151,20 +161,41 @@ export function ProductsTable({
     if (selectedIds.length === 0) return;
 
     if (action === "delete") {
+      const isCatalogWide = selectAllAcrossCatalog && totalCount > products.length;
+      const countToDelete = isCatalogWide ? totalCount : selectedIds.length;
       openConfirm(
-        `Delete ${selectedIds.length} products?`,
-        "These products will be archived and removed from your store.",
+        `Delete ${isCatalogWide ? `ALL ${countToDelete}` : `${countToDelete}`} products?`,
+        isCatalogWide
+          ? `All ${countToDelete} products in your catalog matching the current view will be archived and removed from your store. This cannot be undone.`
+          : "These products will be archived and removed from your store. This cannot be undone.",
         async () => {
           setConfirmState((s) => ({ ...s, isLoading: true }));
-          const res = await bulkDeleteProductsAction({ ids: selectedIds });
-          if (res.success) {
-            toast.success(`Deleted ${res.data?.count ?? selectedIds.length} products`);
-            setProducts((prev) =>
-              prev.filter((p) => !selectedIds.includes(p.id))
-            );
-            setSelectedIds([]);
+          if (isCatalogWide) {
+            const res = await bulkDeleteAllProductsAction({
+              status: statusFilter === "ALL" ? undefined : statusFilter,
+              search: searchQuery || undefined,
+            });
+            if (res.success) {
+              toast.success(`Deleted ${res.data?.count ?? countToDelete} products`);
+              setProducts([]);
+              setSelectedIds([]);
+              setSelectAllAcrossCatalog(false);
+              router.refresh();
+            } else {
+              toast.error(res.error || "Failed to delete products");
+            }
           } else {
-            toast.error(res.error || "Failed to delete products");
+            const res = await bulkDeleteProductsAction({ ids: selectedIds });
+            if (res.success) {
+              toast.success(`Deleted ${res.data?.count ?? selectedIds.length} products`);
+              setProducts((prev) =>
+                prev.filter((p) => !selectedIds.includes(p.id))
+              );
+              setSelectedIds([]);
+              router.refresh();
+            } else {
+              toast.error(res.error || "Failed to delete products");
+            }
           }
           setConfirmState((s) => ({ ...s, open: false, isLoading: false }));
         }
@@ -190,6 +221,7 @@ export function ProductsTable({
               prev.map((p) => (selectedIds.includes(p.id) ? { ...p, status } : p))
             );
             setSelectedIds([]);
+            router.refresh();
           } else {
             toast.error(res.error || "Failed to update products");
           }
@@ -314,6 +346,35 @@ export function ProductsTable({
           )}
         </div>
       </div>
+
+      {allSelected && totalCount > products.length && (
+        <div className="flex items-center justify-between rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-xs text-primary">
+          <span>
+            {selectAllAcrossCatalog
+              ? `All ${totalCount} products across the entire catalog are selected.`
+              : `All ${products.length} products on this page are selected.`}
+          </span>
+          {selectAllAcrossCatalog ? (
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs font-semibold text-primary underline"
+              onClick={() => setSelectAllAcrossCatalog(false)}
+            >
+              Clear catalog selection (select this page only)
+            </Button>
+          ) : (
+            <Button
+              variant="link"
+              size="sm"
+              className="h-auto p-0 text-xs font-semibold text-primary underline"
+              onClick={() => setSelectAllAcrossCatalog(true)}
+            >
+              Select all {totalCount} products in entire catalog
+            </Button>
+          )}
+        </div>
+      )}
 
       <div className="rounded-md border border-border bg-card text-card-foreground">
         <Table>
@@ -533,11 +594,58 @@ export function ProductsTable({
           </TableBody>
         </Table>
       </div>
-      <div className="flex items-center justify-between px-1 text-xs text-muted-foreground">
-        <span>Showing <strong>{products.length}</strong> of <strong>{totalCount}</strong> products</span>
-        {selectedIds.length > 0 && (
-          <span className="text-slate-600 font-medium">{selectedIds.length} selected</span>
-        )}
+      {/* Pagination & Status Footer */}
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between px-1 text-xs text-muted-foreground">
+        <div>
+          Showing <strong>{products.length}</strong> of <strong>{totalCount}</strong> products
+          {Math.ceil(totalCount / pageSize) > 1 && (
+            <span className="ml-1 text-muted-foreground/75">
+              (Page {currentPage} of {Math.ceil(totalCount / pageSize)})
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-3">
+          {selectedIds.length > 0 && (
+            <span className="text-slate-600 dark:text-slate-300 font-medium">
+              {selectAllAcrossCatalog ? `All ${totalCount}` : selectedIds.length} selected
+            </span>
+          )}
+
+          {Math.ceil(totalCount / pageSize) > 1 && (
+            <div className="flex items-center gap-1.5">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage <= 1}
+                onClick={() => {
+                  const params = new URLSearchParams(window.location.search);
+                  params.set("page", String(currentPage - 1));
+                  router.push(`/admin/products?${params.toString()}`);
+                }}
+                className="h-7 px-2.5 text-xs"
+              >
+                Previous
+              </Button>
+              <span className="px-1 text-xs font-medium">
+                {currentPage} / {Math.ceil(totalCount / pageSize)}
+              </span>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={currentPage >= Math.ceil(totalCount / pageSize)}
+                onClick={() => {
+                  const params = new URLSearchParams(window.location.search);
+                  params.set("page", String(currentPage + 1));
+                  router.push(`/admin/products?${params.toString()}`);
+                }}
+                className="h-7 px-2.5 text-xs"
+              >
+                Next
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* BUG FIX: replaces window.confirm() with proper Dialog */}

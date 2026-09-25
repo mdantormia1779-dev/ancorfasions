@@ -32,7 +32,12 @@ export default async function AdminProductsPage({
         </p>
       </div>
 
-      <ProductsTable initialProducts={products} totalCount={totalCount} />
+      <ProductsTable
+        initialProducts={products}
+        totalCount={totalCount}
+        currentPage={page}
+        pageSize={20}
+      />
     </div>
   );
 }

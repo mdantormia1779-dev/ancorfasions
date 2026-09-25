@@ -38,6 +38,9 @@ export class ProductRepository {
       { count: "exact" }
     );
 
+    // Only return active, non-deleted products
+    query = query.is("deleted_at", null);
+
     if (search) {
       query = query.or(
         `name.ilike.%${search}%,sku.ilike.%${search}%,barcode.ilike.%${search}%`
@@ -115,6 +118,7 @@ export class ProductRepository {
       `
       )
       .eq("id", id)
+      .is("deleted_at", null)
       .single();
 
     if (error) {
@@ -713,5 +717,29 @@ export class ProductRepository {
       .in("id", ids);
     if (error) throw error;
     return count ?? ids.length;
+  }
+
+  /**
+   * Bulk soft-delete all products matching optional filter criteria, or all non-deleted products.
+   */
+  static async deleteAllProducts(filters?: { status?: string; search?: string }): Promise<number> {
+    const supabase = createAdminClient();
+    let query = supabase
+      .from("products")
+      .update({ deleted_at: new Date().toISOString(), status: "ARCHIVED" })
+      .is("deleted_at", null);
+
+    if (filters?.status && filters.status !== "ALL") {
+      query = query.eq("status", filters.status);
+    }
+    if (filters?.search) {
+      query = query.or(
+        `name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,barcode.ilike.%${filters.search}%`
+      );
+    }
+
+    const { error, count } = await query;
+    if (error) throw error;
+    return count ?? 0;
   }
 }
