@@ -279,7 +279,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="sticky top-0 z-20 -mt-4 -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 py-4 bg-slate-50/95 dark:bg-background/95 backdrop-blur-md border-b border-border/50 flex items-center justify-between flex-wrap gap-3">
+        <div className="flex items-center justify-between flex-wrap gap-4 pb-6 border-b border-border/50">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               {initialData ? "Edit Product" : "Create Product"}
@@ -320,7 +320,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
           </div>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-3">
+        <div className="grid gap-6 md:grid-cols-3 pb-8">
           {/* Main Info Column */}
           <div className="space-y-6 md:col-span-2">
             <Card className="border-border/60 shadow-sm">
