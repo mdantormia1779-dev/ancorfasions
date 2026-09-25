@@ -5,9 +5,7 @@ import { ProductCard } from "@/components/product/product-card";
 import { ProductFilters } from "@/components/product/product-filters";
 import { InfiniteScrollGrid } from "@/components/product/infinite-scroll-grid";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { Jost } from "next/font/google";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500"] });
+import { jost } from "@/lib/fonts";
 import { SlidersHorizontal, ChevronDown } from "lucide-react";
 import {
   DropdownMenu,

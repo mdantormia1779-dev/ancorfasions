@@ -1,10 +1,8 @@
 import { ProductCard } from "@/components/product/product-card";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-
-const jost = Jost({ subsets: ["latin"] });
 
 interface PersonalizedSectionProps {
   title: string;

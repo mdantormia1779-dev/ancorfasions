@@ -1,8 +1,6 @@
 import { ShieldCheck, Truck, RefreshCcw, HeartHandshake } from "lucide-react";
 import Image from "next/image";
-import { Jost } from "next/font/google";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
+import { jost } from "@/lib/fonts";
 
 export function WhyChooseUs() {
   const benefits = [

@@ -2,13 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { Playfair_Display, Jost } from "next/font/google";
-
-const playfair = Playfair_Display({
-  subsets: ["latin"],
-  weight: ["500", "600"],
-});
-const jost = Jost({ subsets: ["latin"], weight: ["400", "500"] });
+import { playfair, jost } from "@/lib/fonts";
 
 export const AnchorFashionLogo = ({
   className,

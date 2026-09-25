@@ -1,12 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ChevronRight, ArrowLeft, PackageOpen } from "lucide-react";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts";
 import { getCachedCollectionBySlug } from "@/lib/cache/catalog-cache";
 import { ProductCard } from "@/components/product/product-card";
 import { Button } from "@/components/ui/button";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
 export const revalidate = 60;
 

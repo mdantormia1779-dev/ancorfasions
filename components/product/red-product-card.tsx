@@ -3,11 +3,9 @@
 import Image from "next/image";
 import Link from "next/link";
 import { Heart, ShoppingBag } from "lucide-react";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/utils";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
 export function RedProductCard({ product }: { product: any }) {
   const imageSrc =

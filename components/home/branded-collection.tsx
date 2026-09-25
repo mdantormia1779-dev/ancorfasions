@@ -5,9 +5,7 @@ import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import useEmblaCarousel from "embla-carousel-react";
 import { useCallback, KeyboardEvent } from "react";
 import { ProductCard } from "@/components/product/product-card";
-import { Jost } from "next/font/google";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
+import { jost } from "@/lib/fonts";
 
 export function BrandedCollection({ 
   products,

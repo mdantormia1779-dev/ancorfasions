@@ -2,10 +2,8 @@
 
 import { usePersonalizationStore } from "@/stores/use-personalization-store";
 import { ProductCard } from "@/components/product/product-card";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts";
 import { useEffect, useState } from "react";
-
-const jost = Jost({ subsets: ["latin"] });
 
 export function RecentlyViewedHome() {
   const { recentlyViewed } = usePersonalizationStore();

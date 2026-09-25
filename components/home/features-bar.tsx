@@ -1,7 +1,5 @@
 import { Truck, RotateCcw, Award, ShieldCheck } from "lucide-react";
-import { Jost } from "next/font/google";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500"] });
+import { jost } from "@/lib/fonts";
 
 const features = [
   {

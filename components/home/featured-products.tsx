@@ -6,9 +6,7 @@ import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { useCallback } from "react";
 import { ProductCard } from "@/components/product/product-card";
-import { Jost } from "next/font/google";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
+import { jost } from "@/lib/fonts";
 
 interface Product {
   id: string;

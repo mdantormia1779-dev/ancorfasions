@@ -1,10 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Sparkles, ArrowUpRight } from "lucide-react";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts";
 import { Collection } from "@/types/catalog.types";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
 interface ExploreCollectionsProps {
   collections?: Collection[];

@@ -1,9 +1,7 @@
 "use client";
 
-import { Inter } from "next/font/google";
+import { inter } from "@/lib/fonts";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"] });
 
 export default function GlobalError({
   error,

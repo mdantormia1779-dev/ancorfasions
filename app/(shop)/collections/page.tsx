@@ -1,9 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, Sparkles, FolderHeart } from "lucide-react";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts";
 import { getCachedCollections } from "@/lib/cache/catalog-cache";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
 export const revalidate = 60;
 

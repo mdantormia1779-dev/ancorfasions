@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Heart, ShoppingBag, Eye, Star, Loader2, Check } from "lucide-react";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts";
 import { useWishlistStore } from "@/stores/use-wishlist-store";
 import { useCartStore } from "@/stores/use-cart-store";
 import { useSession } from "@/hooks/use-session";
@@ -13,8 +13,6 @@ import { useRouter } from "next/navigation";
 import { cn, formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 import { ProductQuickView } from "./product-quick-view";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"] });
 
 interface ProductCardProps {
   product: any;

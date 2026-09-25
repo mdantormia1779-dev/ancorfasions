@@ -1,9 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
-import { Jost } from "next/font/google";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
+import { jost } from "@/lib/fonts";
 
 const collections = [
   {

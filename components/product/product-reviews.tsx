@@ -2,15 +2,13 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { Star, CheckCircle2, ThumbsUp, ImageIcon, X, SlidersHorizontal, ChevronDown } from "lucide-react";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts";
 import { WriteReviewButton } from "@/features/customer/WriteReviewButton";
 import { Review } from "@/types/catalog.types";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import { voteReviewHelpfulAction } from "@/app/actions/customer.actions";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 const STORAGE_KEY = "anchor_voted_helpful_reviews";
 
 interface ProductReviewsProps {

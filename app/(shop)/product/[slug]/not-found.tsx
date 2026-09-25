@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Compass, ShoppingBag } from "lucide-react";
-import { Jost } from "next/font/google";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
+import { jost } from "@/lib/fonts";
 
 export default function ProductNotFound() {
   return (

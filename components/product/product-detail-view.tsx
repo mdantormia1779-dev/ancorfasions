@@ -14,10 +14,8 @@ import { ProductCard } from "@/components/product/product-card";
 import { Truck, RefreshCw, ShieldCheck, Ruler, Info, Zap, Share2, Check, Flame, CreditCard } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import Link from "next/link";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts";
 import { toast } from "sonner";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
 export interface ProductDetailViewProps {
   product: any;

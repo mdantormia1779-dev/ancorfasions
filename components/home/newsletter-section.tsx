@@ -1,13 +1,11 @@
 "use client";
 
 import { ArrowRight, Sparkles, Loader2 } from "lucide-react";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts";
 import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
 const newsletterSchema = z.object({
   email: z.string().trim().email("Please enter a valid email address"),

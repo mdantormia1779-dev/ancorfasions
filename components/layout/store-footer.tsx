@@ -10,10 +10,8 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { getStoreInfo, getSocialLinks } from "@/lib/actions/settings.actions";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts";
 import { StoreFooterNewsletter } from "./StoreFooterNewsletter";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600"] });
 
 const footerLinks = {
   shop: [

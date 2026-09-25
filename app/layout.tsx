@@ -1,14 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import { Jost } from "next/font/google";
+import { jost } from "@/lib/fonts";
 import "./globals.css";
 import { GlobalProviders } from "@/providers/GlobalProviders";
 import { AnalyticsProviders } from "@/components/analytics/AnalyticsProviders";
-
-const jost = Jost({
-  subsets: ["latin"],
-  weight: ["200", "300", "400", "500", "600", "700"],
-});
 
 export const viewport: Viewport = {
   themeColor: "#000000",

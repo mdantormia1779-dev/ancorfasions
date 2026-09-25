@@ -30,9 +30,7 @@ import {
   Truck,
   RotateCcw,
 } from "lucide-react";
-import { Jost } from "next/font/google";
-
-const jost = Jost({ subsets: ["latin"], weight: ["300", "400", "500", "600", "700"] });
+import { jost } from "@/lib/fonts";
 
 interface ProductQuickViewProps {
   product: any;
