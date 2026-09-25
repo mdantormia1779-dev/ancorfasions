@@ -16,6 +16,7 @@ import {
   Globe,
   Layout,
   Activity,
+  HelpCircle,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -29,6 +30,13 @@ const cmsModules = [
     icon: FileText,
     description: "Manage editorial content and fashion guides",
     href: "/admin/cms/blogs",
+  },
+  {
+    id: "faqs",
+    name: "FAQs & Policies",
+    icon: HelpCircle,
+    description: "Manage store FAQ questions, shipping rates & return rules",
+    href: "/admin/cms/faqs",
   },
   {
     id: "media",

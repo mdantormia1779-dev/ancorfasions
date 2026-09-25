@@ -134,12 +134,12 @@ export default function CMSPage() {
           <CardContent>
             <div className="flex gap-2">
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/manager/cms/blogs">
+                <Link href="/manager/cms/faqs">
                   Edit FAQs
                 </Link>
               </Button>
               <Button variant="outline" className="w-full" asChild>
-                <Link href="/manager/settings">
+                <Link href="/manager/cms/policies">
                   Store Policies
                 </Link>
               </Button>

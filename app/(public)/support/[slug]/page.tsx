@@ -3,6 +3,7 @@ import Link from "next/link";
 import { StoreHeader } from "@/components/layout/store-header";
 import { StoreFooter } from "@/components/layout/store-footer";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import {
   Ruler,
   Truck,
@@ -14,7 +15,12 @@ import {
   ShieldCheck,
   CheckCircle2,
   Package,
+  Clock,
 } from "lucide-react";
+import { getFaqsAction, getStorePoliciesAction } from "@/app/actions/cms/faq-policy.actions";
+import { SupportFaqClient } from "@/features/support/components/SupportFaqClient";
+
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({
   params,
@@ -42,6 +48,14 @@ export default async function SupportTopicPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
+
+  const [faqsRes, policiesRes] = await Promise.all([
+    slug === "faq" ? getFaqsAction() : Promise.resolve({ success: true, data: [] }),
+    slug === "shipping" ? getStorePoliciesAction() : Promise.resolve(null),
+  ]);
+
+  const faqs = faqsRes?.data || [];
+  const policies = policiesRes;
 
   return (
     <div className="flex min-h-screen flex-col bg-[#FAFAFA]">
@@ -218,6 +232,7 @@ export default async function SupportTopicPage({
 
           {slug === "shipping" && (
             <div className="space-y-8">
+              {/* Delivery Speed & Rates */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xs">
                   <div className="flex items-center gap-3 mb-3">
@@ -225,10 +240,12 @@ export default async function SupportTopicPage({
                     <h3 className="text-lg font-bold text-gray-900">Inside Dhaka</h3>
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed mb-3">
-                    Deliveries within Dhaka Metropolitan are completed within <strong>24 to 48 hours</strong>.
+                    Deliveries within Dhaka Metropolitan are completed within{" "}
+                    <strong>{policies?.shipping?.inside_dhaka_delivery_time || "24 to 48 hours"}</strong>.
                   </p>
-                  <p className="text-xs font-semibold text-gray-700 bg-gray-50 p-2.5 rounded-lg">
-                    Standard Shipping: ৳60 | Free above ৳999
+                  <p className="text-xs font-semibold text-gray-700 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                    Standard Shipping: ৳{policies?.shipping?.inside_dhaka_fee ?? 60} | Free above ৳
+                    {policies?.shipping?.free_shipping_threshold ?? 999}
                   </p>
                 </div>
 
@@ -238,103 +255,77 @@ export default async function SupportTopicPage({
                     <h3 className="text-lg font-bold text-gray-900">Outside Dhaka</h3>
                   </div>
                   <p className="text-sm text-gray-600 leading-relaxed mb-3">
-                    All other nationwide divisions and districts are delivered within <strong>3 to 5 business days</strong> via courier.
+                    All other nationwide divisions and districts are delivered within{" "}
+                    <strong>{policies?.shipping?.outside_dhaka_delivery_time || "3 to 5 business days"}</strong> via courier.
                   </p>
-                  <p className="text-xs font-semibold text-gray-700 bg-gray-50 p-2.5 rounded-lg">
-                    Standard Shipping: ৳120 | Free above ৳999
+                  <p className="text-xs font-semibold text-gray-700 bg-gray-50 p-2.5 rounded-lg border border-gray-100">
+                    Standard Shipping: ৳{policies?.shipping?.outside_dhaka_fee ?? 120} | Free above ৳
+                    {policies?.shipping?.free_shipping_threshold ?? 999}
                   </p>
                 </div>
               </div>
 
-              <div className="rounded-2xl border border-gray-200 bg-white p-6 md:p-8 shadow-xs space-y-4">
-                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                  <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                  7-Day Hassle-Free Exchange Policy
-                </h3>
+              {/* Order Processing & Couriers */}
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xs space-y-3">
+                <div className="flex items-center gap-2.5 text-sm font-semibold text-gray-900">
+                  <Clock className="h-4 w-4 text-[#C9A86A]" />
+                  <span>Order Processing & Dispatch</span>
+                </div>
                 <p className="text-sm text-gray-600 leading-relaxed">
-                  We want you to love what you wear. If your size doesn't fit or you wish to exchange for another design, simply contact our support line within 7 days of delivery with your order invoice.
+                  {policies?.shipping?.processing_time || "Same day dispatch for orders confirmed before 2:00 PM."}
                 </p>
-                <div className="bg-amber-50/70 border border-amber-200/60 p-4 rounded-xl text-xs text-amber-900 leading-relaxed">
-                  <strong>Exchange conditions:</strong> Items must be unworn, unwashed, and with all original tags attached.
-                </div>
-              </div>
-            </div>
-          )}
-
-          {slug === "track-order" && (
-            <div className="rounded-2xl border border-gray-200 bg-white p-6 md:p-10 shadow-xs max-w-xl mx-auto">
-              <div className="text-center mb-6">
-                <div className="mx-auto w-12 h-12 rounded-full bg-[#0D1B2A] text-white flex items-center justify-center mb-3">
-                  <Search className="h-5 w-5" />
-                </div>
-                <h2 className="text-xl font-bold text-gray-900">Live Order Tracking</h2>
-                <p className="text-xs text-gray-500 mt-1">
-                  Enter your Order ID and contact phone number to view real-time delivery status.
-                </p>
+                {policies?.shipping?.courier_partners && (
+                  <p className="text-xs text-gray-500">
+                    <span className="font-semibold text-gray-700">Courier Partners:</span>{" "}
+                    {policies.shipping.courier_partners}
+                  </p>
+                )}
+                {policies?.shipping?.notice && (
+                  <div className="bg-blue-50/70 border border-blue-100 p-3 rounded-xl text-xs text-blue-900">
+                    {policies.shipping.notice}
+                  </div>
+                )}
               </div>
 
-              <form className="space-y-4">
+              {/* Exchange Policy */}
+              <div className="rounded-2xl border border-gray-200 bg-white p-6 md:p-8 shadow-xs space-y-5">
                 <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                    Order ID
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. AF-82914 or UUID"
-                    className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-black focus:outline-none"
-                  />
+                  <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
+                    {policies?.returns?.return_window_days ?? 7}-Day Hassle-Free Exchange Policy
+                  </h3>
+                  <p className="text-sm text-gray-600 leading-relaxed mt-2">
+                    {policies?.returns?.policy_notice ||
+                      "We want you to love what you wear. If your size doesn't fit or you wish to exchange for another design, simply contact our support line with your order invoice."}
+                  </p>
                 </div>
-                <div>
-                  <label className="block text-xs font-bold uppercase tracking-wider text-gray-700 mb-1.5">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    placeholder="e.g. 017XXXXXXXX"
-                    className="w-full rounded-xl border border-gray-300 px-4 py-2.5 text-sm focus:border-black focus:outline-none"
-                  />
-                </div>
-                <Button className="w-full bg-[#0D1B2A] hover:bg-black text-white text-xs font-semibold uppercase tracking-widest py-3">
-                  Track Delivery
-                </Button>
-              </form>
 
-              <div className="mt-8 border-t border-gray-100 pt-6 text-center text-xs text-gray-500">
-                Need immediate help? Reach us via <Link href="/contact" className="underline font-semibold text-black">Contact Us</Link>
+                <div className="bg-amber-50/80 border border-amber-200/70 p-4 rounded-xl text-xs text-amber-900 leading-relaxed">
+                  <strong>Exchange conditions:</strong>{" "}
+                  {policies?.returns?.conditions ||
+                    "Items must be unworn, unwashed, and with all original tags attached."}
+                </div>
+
+                {policies?.returns?.allowed_reasons && policies.returns.allowed_reasons.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-gray-100">
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-gray-500">
+                      Eligible Exchange & Return Reasons
+                    </h4>
+                    <div className="flex flex-wrap gap-2">
+                      {policies.returns.allowed_reasons.map((reason, idx) => (
+                        <Badge key={idx} variant="outline" className="text-xs py-1 px-2.5 bg-gray-50 border-gray-200">
+                          {reason}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           )}
 
           {slug === "faq" && (
-            <div className="space-y-4">
-              {[
-                {
-                  q: "What payment methods are supported?",
-                  a: "We accept Cash on Delivery (COD) across Bangladesh, as well as bKash, Nagad, Rocket, Visa, Mastercard, and SSLCOMMERZ gateway payments.",
-                },
-                {
-                  q: "How long does delivery take?",
-                  a: "Orders inside Dhaka are delivered within 24-48 hours. Orders across other divisions take between 3-5 business days.",
-                },
-                {
-                  q: "Are the product images accurate to actual items?",
-                  a: "Yes. All photography is produced in professional studio lighting. Slight tonal differences may occur depending on your screen color profile.",
-                },
-                {
-                  q: "How do I exchange an item for a different size?",
-                  a: "Reach out to our customer care team via phone or email within 7 days of receiving your package. Our courier can pick up the original item and deliver your replacement.",
-                },
-                {
-                  q: "Do you offer international shipping?",
-                  a: "We currently serve customers all across Bangladesh and select international corporate orders upon custom inquiry.",
-                },
-              ].map((faq, i) => (
-                <div key={i} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-xs">
-                  <h3 className="text-base font-bold text-gray-900 mb-2">{faq.q}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">{faq.a}</p>
-                </div>
-              ))}
-            </div>
+            <SupportFaqClient faqs={faqs} />
           )}
 
           {/* Quick Contact Assistance Strip */}
