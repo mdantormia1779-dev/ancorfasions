@@ -57,13 +57,11 @@ import {
   getAdminHeaderNotificationsAction,
   markNotificationAsReadAction,
   markAllNotificationsAsReadAction,
-  seedInitialNotificationsIfEmptyAction,
   type AdminNotification,
 } from "@/actions/admin/notification.actions";
 import {
   getAdminHeaderMessagesAction,
   markAllMessagesAsReadAction,
-  seedInitialMessagesIfEmptyAction,
   type AdminMessage,
 } from "@/actions/admin/messages.actions";
 
@@ -181,7 +179,6 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
   const fetchNotifications = useCallback(async () => {
     setNotifLoading(true);
     try {
-      await seedInitialNotificationsIfEmptyAction();
       const result = await getAdminHeaderNotificationsAction();
       if (!result.error) {
         setNotifications(result.data);
@@ -197,7 +194,6 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
   const fetchMessages = useCallback(async () => {
     setMsgLoading(true);
     try {
-      await seedInitialMessagesIfEmptyAction();
       const result = await getAdminHeaderMessagesAction();
       if (!result.error) {
         setMessages(result.data);

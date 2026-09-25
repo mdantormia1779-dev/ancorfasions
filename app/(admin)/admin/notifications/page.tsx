@@ -64,6 +64,7 @@ import {
   createAdminNotificationAction,
   updateAdminNotificationAction,
   deleteAdminNotificationAction,
+  deleteAllAdminNotificationsAction,
   toggleNotificationStatusAction,
   markAllNotificationsAsReadAction,
   type AdminNotification,
@@ -155,9 +156,33 @@ export default function NotificationsPage() {
   const [deleteTarget, setDeleteTarget] = useState<AdminNotification | null>(null);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState<boolean>(false);
   const [deleting, setDeleting] = useState<boolean>(false);
+  const [isDeleteAllOpen, setIsDeleteAllOpen] = useState<boolean>(false);
+  const [deletingAll, setDeletingAll] = useState<boolean>(false);
 
   // Templates State
-  const [templates, setTemplates] = useState<Template[]>(defaultTemplates);
+  const [templates, setTemplates] = useState<Template[]>([]);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("admin_notification_templates");
+      if (saved) {
+        setTemplates(JSON.parse(saved));
+      } else {
+        setTemplates(defaultTemplates);
+      }
+    } catch {
+      setTemplates(defaultTemplates);
+    }
+  }, []);
+
+  const updateTemplates = (newTemplates: Template[]) => {
+    setTemplates(newTemplates);
+    try {
+      localStorage.setItem("admin_notification_templates", JSON.stringify(newTemplates));
+    } catch {
+      // Ignore storage errors
+    }
+  };
   const [templateDialogOpen, setTemplateDialogOpen] = useState<boolean>(false);
   const [editingTemplate, setEditingTemplate] = useState<Template | null>(null);
   const [tplName, setTplName] = useState<string>("");
@@ -319,6 +344,27 @@ export default function NotificationsPage() {
     }
   };
 
+  // Delete All Notifications
+  const handleConfirmDeleteAll = async () => {
+    setDeletingAll(true);
+    try {
+      const res = await deleteAllAdminNotificationsAction();
+      if (res.success) {
+        toast.success("All notifications deleted successfully");
+        setNotifications([]);
+        setTotalCount(0);
+        setUnreadCount(0);
+        setIsDeleteAllOpen(false);
+      } else {
+        toast.error(res.error || "Failed to delete notifications");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete notifications");
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   // Mark all read
   const handleMarkAllRead = () => {
     startTransition(async () => {
@@ -337,14 +383,14 @@ export default function NotificationsPage() {
 
   // Template handling
   const handleToggleTemplate = (id: string) => {
-    setTemplates((prev) =>
-      prev.map((t) => (t.id === id ? { ...t, active: !t.active } : t))
-    );
+    const updated = templates.map((t) => (t.id === id ? { ...t, active: !t.active } : t));
+    updateTemplates(updated);
     toast.success("Template status updated");
   };
 
   const handleDeleteTemplate = (id: string) => {
-    setTemplates((prev) => prev.filter((t) => t.id !== id));
+    const updated = templates.filter((t) => t.id !== id);
+    updateTemplates(updated);
     toast.success("Template deleted");
   };
 
@@ -356,13 +402,12 @@ export default function NotificationsPage() {
     }
     const channels = tplChannels.split(",").map((c) => c.trim().toLowerCase()).filter(Boolean);
     if (editingTemplate) {
-      setTemplates((prev) =>
-        prev.map((t) =>
-          t.id === editingTemplate.id
-            ? { ...t, name: tplName.trim(), type: tplType, channels }
-            : t
-        )
+      const updated = templates.map((t) =>
+        t.id === editingTemplate.id
+          ? { ...t, name: tplName.trim(), type: tplType, channels }
+          : t
       );
+      updateTemplates(updated);
       toast.success("Template updated successfully");
     } else {
       const newTpl: Template = {
@@ -372,7 +417,7 @@ export default function NotificationsPage() {
         channels: channels.length > 0 ? channels : ["email"],
         active: true,
       };
-      setTemplates((prev) => [...prev, newTpl]);
+      updateTemplates([...templates, newTpl]);
       toast.success("Template created successfully");
     }
     setTemplateDialogOpen(false);
@@ -411,6 +456,18 @@ export default function NotificationsPage() {
               className="border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
             >
               <CheckCheck className="mr-2 h-4 w-4 text-emerald-500" /> Mark All Read
+            </Button>
+          )}
+
+          {notifications.length > 0 && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDeleteAllOpen(true)}
+              disabled={isPending || deleting || deletingAll}
+              className="border-rose-200 dark:border-rose-900 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+            >
+              <Trash2 className="mr-2 h-4 w-4 text-rose-500" /> Clear All
             </Button>
           )}
 
@@ -1028,6 +1085,19 @@ export default function NotificationsPage() {
           setIsDeleteDialogOpen(false);
           setDeleteTarget(null);
         }}
+      />
+
+      {/* ── Dialog: Confirm Delete All Notifications ── */}
+      <ConfirmDialog
+        open={isDeleteAllOpen}
+        title="Delete All Notifications"
+        description="Are you sure you want to permanently delete all notifications? This action cannot be undone."
+        confirmLabel="Delete All"
+        cancelLabel="Cancel"
+        variant="destructive"
+        isLoading={deletingAll}
+        onConfirm={handleConfirmDeleteAll}
+        onCancel={() => setIsDeleteAllOpen(false)}
       />
     </div>
   );

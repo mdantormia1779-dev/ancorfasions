@@ -214,49 +214,10 @@ export async function markAllMessagesAsReadAction(): Promise<{ error?: string }>
 
 /**
  * Seeds sample inbound customer messages if the communication_logs table is empty.
+ * (Permanently disabled so fake data never automatically reappears)
  */
 export async function seedInitialMessagesIfEmptyAction(): Promise<void> {
-  try {
-    const supabase = createAdminClient();
-    const { count } = await supabase
-      .from("communication_logs")
-      .select("*", { count: "exact", head: true });
-
-    if (count && count > 0) return;
-
-    const seedData = [
-      {
-        type: "IN_APP",
-        direction: "INBOUND",
-        subject: "Order Inquiry",
-        content: "Hi, can you check the shipping status of my recent order? It's been 5 days.",
-        status: "SENT",
-      },
-      {
-        type: "EMAIL",
-        direction: "INBOUND",
-        subject: "Return Request",
-        content: "I'd like to initiate a return for order #ORD-8834. The size didn't fit.",
-        status: "SENT",
-      },
-      {
-        type: "IN_APP",
-        direction: "INBOUND",
-        subject: "Product Question",
-        content: "Is the Premium Silk Gown available in navy blue? The website only shows black.",
-        status: "READ",
-      },
-      {
-        type: "EMAIL",
-        direction: "INBOUND",
-        subject: "Complaint",
-        content: "The packaging was damaged on arrival. Please advise on next steps.",
-        status: "SENT",
-      },
-    ];
-
-    await supabase.from("communication_logs").insert(seedData);
-  } catch {
-    // Silently fail
-  }
+  // Permanently disabled: do not seed fake messages
+  return;
 }
+

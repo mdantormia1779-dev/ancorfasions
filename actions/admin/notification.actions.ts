@@ -14,6 +14,24 @@ export interface AdminNotification {
   created_at: string;
 }
 
+const FAKE_NOTIFICATION_MESSAGES = [
+  "Order #ORD-8921 has been placed by Sarah Johnson for ৳4,250.",
+  'Product "Premium Silk Evening Gown" (SKU: SEG-001) is running low — only 3 units left.',
+  "Ahmed Raza just signed up. Total customers: 1,247.",
+  "Order #ORD-8920 payment failed. Customer notified automatically.",
+  "Scheduled maintenance tonight at 12:00 AM BDT. Expected downtime: 30 minutes.",
+  '"Eid Special" campaign achieved 320% ROI. 1,450 clicks, 143 conversions.',
+];
+
+async function cleanupFakeNotifications() {
+  try {
+    const admin = createAdminClient();
+    await admin.from("notifications").delete().in("message", FAKE_NOTIFICATION_MESSAGES);
+  } catch {
+    // Silently ignore cleanup error
+  }
+}
+
 /**
  * Fetches the most recent notifications for display in the admin header dropdown.
  */
@@ -23,6 +41,7 @@ export async function getAdminHeaderNotificationsAction(): Promise<{
   error?: string;
 }> {
   try {
+    await cleanupFakeNotifications();
     const supabase = await createClient();
     const {
       data: { user },
@@ -81,6 +100,7 @@ export async function getAllAdminNotificationsAction(filters?: {
   error?: string;
 }> {
   try {
+    await cleanupFakeNotifications();
     const admin = createAdminClient();
     let query = admin
       .from("notifications")
@@ -284,53 +304,32 @@ export async function markAllNotificationsAsReadAction(): Promise<{ error?: stri
 }
 
 /**
- * Seeds realistic operational notifications if the table is empty.
+ * Deletes all notifications.
  */
-export async function seedInitialNotificationsIfEmptyAction(): Promise<void> {
+export async function deleteAllAdminNotificationsAction(): Promise<{ success: boolean; error?: string }> {
   try {
     const admin = createAdminClient();
-    const { count } = await admin
+    const { error } = await admin
       .from("notifications")
-      .select("*", { count: "exact", head: true });
+      .delete()
+      .not("id", "is", null);
 
-    if (count && count > 0) return;
+    if (error) return { success: false, error: error.message };
 
-    const seedData = [
-      {
-        title: "New Order Received",
-        message: "Order #ORD-8921 has been placed by Sarah Johnson for ৳4,250.",
-        type: "order",
-      },
-      {
-        title: "Low Stock Alert",
-        message:
-          'Product "Premium Silk Evening Gown" (SKU: SEG-001) is running low — only 3 units left.',
-        type: "inventory",
-      },
-      {
-        title: "New Customer Registration",
-        message: "Ahmed Raza just signed up. Total customers: 1,247.",
-        type: "customer",
-      },
-      {
-        title: "Payment Failed",
-        message: "Order #ORD-8920 payment failed. Customer notified automatically.",
-        type: "payment",
-      },
-      {
-        title: "System Maintenance Scheduled",
-        message: "Scheduled maintenance tonight at 12:00 AM BDT. Expected downtime: 30 minutes.",
-        type: "system",
-      },
-      {
-        title: "Campaign Performance Update",
-        message: '"Eid Special" campaign achieved 320% ROI. 1,450 clicks, 143 conversions.',
-        type: "marketing",
-      },
-    ];
-
-    await admin.from("notifications").insert(seedData);
-  } catch {
-    // Silently fail
+    revalidatePath("/admin/notifications");
+    revalidatePath("/admin", "layout");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
   }
 }
+
+/**
+ * Seeds realistic operational notifications if the table is empty.
+ * (Permanently disabled so fake data never automatically reappears)
+ */
+export async function seedInitialNotificationsIfEmptyAction(): Promise<void> {
+  // Permanently disabled: do not seed fake notifications
+  return;
+}
+
