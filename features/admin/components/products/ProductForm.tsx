@@ -279,12 +279,12 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
-        <div className="flex items-center justify-between flex-wrap gap-3">
+        <div className="sticky top-0 z-20 -mt-4 -mx-4 md:-mx-6 lg:-mx-8 px-4 md:px-6 lg:px-8 py-4 bg-slate-50/95 dark:bg-background/95 backdrop-blur-md border-b border-border/50 flex items-center justify-between flex-wrap gap-3">
           <div>
             <h1 className="text-2xl font-bold tracking-tight text-foreground">
               {initialData ? "Edit Product" : "Create Product"}
             </h1>
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-sm text-muted-foreground mt-0.5">
               {initialData ? `Editing: ${initialData.name}` : "Add a new product to your catalog"}
             </p>
           </div>
@@ -294,6 +294,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
               type="button"
               onClick={() => router.push(returnPath)}
               disabled={isLoading || isPublishing}
+              className="cursor-pointer"
             >
               Cancel
             </Button>
@@ -302,13 +303,14 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
               variant="outline"
               onClick={() => submitWithStatus("DRAFT")}
               disabled={isLoading || isPublishing}
+              className="cursor-pointer"
             >
               {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
               {isLoading ? "Saving..." : "Save Draft"}
             </Button>
             <Button
               type="button"
-              className="bg-emerald-600 text-white hover:bg-emerald-500"
+              className="bg-emerald-600 text-white hover:bg-emerald-500 cursor-pointer"
               onClick={() => submitWithStatus("ACTIVE")}
               disabled={isLoading || isPublishing}
             >
@@ -993,6 +995,56 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
               <p>• Use variants for different sizes/colors</p>
               <p>• Add alt text for better SEO &amp; accessibility</p>
             </div>
+          </div>
+        </div>
+
+        {/* Sticky Bottom Action Footer */}
+        <div className="sticky bottom-0 z-20 -mx-4 md:-mx-6 lg:-mx-8 -mb-4 md:-mb-6 lg:-mb-8 mt-8 border-t border-border bg-white/95 dark:bg-background/95 backdrop-blur-md px-4 py-3 md:px-8 shadow-[0_-4px_16px_rgba(0,0,0,0.06)] flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-medium text-muted-foreground hidden sm:inline">
+              {form.watch("name") ? (
+                <>Product: <strong className="text-foreground">{form.watch("name")}</strong></>
+              ) : (
+                "New Product (Unsaved)"
+              )}
+            </span>
+            <span className="text-xs text-muted-foreground/50 hidden sm:inline">•</span>
+            <span className="text-xs text-muted-foreground">
+              Status: <span className="font-semibold text-foreground uppercase">{form.watch("status") || "DRAFT"}</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-2 ml-auto">
+            <Button
+              variant="outline"
+              type="button"
+              size="sm"
+              onClick={() => router.push(returnPath)}
+              disabled={isLoading || isPublishing}
+              className="cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => submitWithStatus("DRAFT")}
+              disabled={isLoading || isPublishing}
+              className="cursor-pointer"
+            >
+              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isLoading ? "Saving..." : "Save Draft"}
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              className="bg-emerald-600 text-white hover:bg-emerald-500 cursor-pointer"
+              onClick={() => submitWithStatus("ACTIVE")}
+              disabled={isLoading || isPublishing}
+            >
+              {isPublishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              {isPublishing ? "Publishing..." : "Publish Product"}
+            </Button>
           </div>
         </div>
       </form>
