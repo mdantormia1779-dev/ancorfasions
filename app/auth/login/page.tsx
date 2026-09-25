@@ -10,36 +10,45 @@ export const metadata: Metadata = {
 
 export default function LoginPage() {
   return (
-    <div className="flex flex-col items-center">
+    <div className="flex flex-col items-center gap-6">
       {/* Logo */}
-      <div className="mb-6">
-        <Link href="/">
-          <Image
-            src="/logo.png"
-            alt="Anchor Fashion"
-            width={200}
-            height={60}
-            style={{ width: "auto", height: "auto" }}
-            className="max-w-[200px]"
-            priority
-          />
-        </Link>
+      <Link href="/" aria-label="Go to homepage">
+        <Image
+          src="/logo.png"
+          alt="Anchor Fashion"
+          width={180}
+          height={10}
+          style={{ width: "auto", height: "auto" }}
+          className="max-w-[160px]"
+          priority
+        />
+      </Link>
+
+      {/* Heading */}
+      <div className="text-center space-y-1">
+        <h1 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100">
+          Welcome back 👋
+        </h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          Sign in to your account to continue
+        </p>
       </div>
 
-      <h1 className="text-2xl font-semibold mb-8 text-slate-900 dark:text-slate-100">
-        Hello ! Welcome back
-      </h1>
+      {/* Divider */}
+      <div className="w-full h-px bg-slate-200 dark:bg-slate-700/60" />
 
+      {/* Form */}
       <div className="w-full">
         <LoginForm />
       </div>
 
-      <p className="mt-8 text-center text-sm text-slate-600 dark:text-slate-400">
-        Dont Have an account?{" "}
+      {/* Register link */}
+      <p className="text-center text-sm text-slate-500 dark:text-slate-400">
+        Don&apos;t have an account?{" "}
         <Link
           href="/auth/register"
           prefetch={false}
-          className="text-[#C9A86A] hover:underline font-semibold"
+          className="font-semibold text-[#C9A86A] hover:text-[#b09156] hover:underline underline-offset-4 transition-colors"
         >
           Create Account
         </Link>
@@ -47,3 +56,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
