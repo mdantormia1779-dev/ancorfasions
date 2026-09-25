@@ -406,10 +406,34 @@ const DEFAULT_SLIDES: HeroSlide[] = [
     is_active: true,
     placement: "hero",
   },
+  {
+    id: "default-promo-1",
+    image_url: DEFAULT_PROMO_BANNER.imageUrl,
+    media_url: DEFAULT_PROMO_BANNER.imageUrl,
+    image: DEFAULT_PROMO_BANNER.imageUrl,
+    link_url: DEFAULT_PROMO_BANNER.ctaLink,
+    cta_url: DEFAULT_PROMO_BANNER.ctaLink,
+    ctaHref: DEFAULT_PROMO_BANNER.ctaLink,
+    display_order: 1,
+    title: DEFAULT_PROMO_BANNER.title,
+    headline: DEFAULT_PROMO_BANNER.title,
+    subtitle: DEFAULT_PROMO_BANNER.subtitle,
+    subheadline: DEFAULT_PROMO_BANNER.subtitle,
+    description: DEFAULT_PROMO_BANNER.description ?? null,
+    cta_text: DEFAULT_PROMO_BANNER.ctaText,
+    is_active: true,
+    placement: "promo",
+  },
 ];
 
 function isBannerActive(b: any, now: Date): boolean {
   if (b.status && b.status !== "active") return false;
+  // If dates are inverted (start date after end date), do not block if banner is marked active
+  if (b.start_date && b.end_date) {
+    const s = new Date(b.start_date).getTime();
+    const e = new Date(b.end_date).getTime();
+    if (s > e) return true;
+  }
   if (b.start_date) {
     const startDate = new Date(b.start_date);
     if (startDate.getTime() > now.getTime()) return false;
@@ -621,6 +645,30 @@ export async function getAdminHeroSlides(): Promise<HeroSlide[]> {
       };
     });
 
+    const hasPromo = slides.some((s) => s.placement === "promo");
+    if (!hasPromo) {
+      slides.push({
+        id: "default-promo-1",
+        image_url: DEFAULT_PROMO_BANNER.imageUrl,
+        media_url: DEFAULT_PROMO_BANNER.imageUrl,
+        image: DEFAULT_PROMO_BANNER.imageUrl,
+        link_url: DEFAULT_PROMO_BANNER.ctaLink,
+        cta_url: DEFAULT_PROMO_BANNER.ctaLink,
+        ctaHref: DEFAULT_PROMO_BANNER.ctaLink,
+        display_order: 1,
+        title: DEFAULT_PROMO_BANNER.title,
+        headline: DEFAULT_PROMO_BANNER.title,
+        subtitle: DEFAULT_PROMO_BANNER.subtitle,
+        subheadline: DEFAULT_PROMO_BANNER.subtitle,
+        description: DEFAULT_PROMO_BANNER.description ?? null,
+        cta_text: DEFAULT_PROMO_BANNER.ctaText,
+        is_active: true,
+        start_date: null,
+        end_date: null,
+        placement: "promo",
+      });
+    }
+
     return slides.sort((a, b) => (a.display_order ?? 0) - (b.display_order ?? 0));
   } catch {
     return DEFAULT_SLIDES;
@@ -673,13 +721,15 @@ export async function upsertHeroSlide(
       updated_at: new Date().toISOString(),
     };
 
-    if (slide.start_date) payload.start_date = new Date(slide.start_date).toISOString();
-    if (slide.end_date) {
+    payload.start_date = slide.start_date && slide.start_date.trim() ? new Date(slide.start_date).toISOString() : null;
+    if (slide.end_date && slide.end_date.trim()) {
       const end = new Date(slide.end_date);
       if (slide.end_date.length <= 10) {
         end.setUTCHours(23, 59, 59, 999);
       }
       payload.end_date = end.toISOString();
+    } else {
+      payload.end_date = null;
     }
 
     const isUuid =
@@ -771,13 +821,15 @@ export async function upsertHeroSlideWithUpload(formData: FormData) {
       updated_at: new Date().toISOString(),
     };
 
-    if (start_date) payload.start_date = new Date(start_date).toISOString();
-    if (end_date) {
+    payload.start_date = start_date && start_date.trim() ? new Date(start_date).toISOString() : null;
+    if (end_date && end_date.trim()) {
       const end = new Date(end_date);
       if (end_date.length <= 10) {
         end.setUTCHours(23, 59, 59, 999);
       }
       payload.end_date = end.toISOString();
+    } else {
+      payload.end_date = null;
     }
 
     const isExistingUuid =

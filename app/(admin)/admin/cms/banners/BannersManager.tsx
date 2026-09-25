@@ -136,8 +136,8 @@ export function BannersManager({
       data.append("display_order", String(formData.display_order));
       data.append("is_active", String(formData.is_active));
       data.append("placement", formData.placement);
-      if (formData.start_date) data.append("start_date", formData.start_date);
-      if (formData.end_date) data.append("end_date", formData.end_date);
+      data.append("start_date", formData.start_date || "");
+      data.append("end_date", formData.end_date || "");
       if (formData.image_url) data.append("image_url", formData.image_url);
       if (formData.file) data.append("file", formData.file);
 
