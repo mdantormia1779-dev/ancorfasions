@@ -52,6 +52,7 @@ export default async function AdminLayout({
 
   return (
     <div className="fixed inset-0 flex h-full w-full overflow-hidden bg-slate-50 dark:bg-background text-slate-900 dark:text-foreground">
+      <style>{`html, body { overflow: hidden !important; height: 100% !important; margin: 0 !important; padding: 0 !important; }`}</style>
       <AdminSidebar role={role} className="hidden md:flex shrink-0 h-full border-r border-border" />
       <div className="flex min-w-0 min-h-0 flex-1 flex-col h-full overflow-hidden">
         <AdminHeader user={sanitizedUser} role={role} className="shrink-0 z-30" />

@@ -62,7 +62,7 @@ export const ProductMediaSchema = z.object({
   id: z.string().uuid(),
   productId: z.string().uuid(),
   variantId: z.string().uuid().optional().nullable(),
-  url: z.string().url().max(1024),
+  url: z.string().min(1, "Image URL is required").max(1024),
   urlWebp: z.string().url().max(1024).optional().nullable(),
   altText: z.string().max(255).optional().nullable(),
   displayOrder: z.number().default(0),

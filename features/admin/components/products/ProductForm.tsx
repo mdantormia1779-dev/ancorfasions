@@ -119,6 +119,42 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
       toast.error(error.message || "Failed to upload image");
     } finally {
       setUploadingImage(null);
+      if (e.target) e.target.value = "";
+    }
+  };
+
+  const handleDirectUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      if (!e.target.files || e.target.files.length === 0) return;
+      const files = Array.from(e.target.files);
+      setUploadingImage(999);
+
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("bucket", "products");
+        formData.append("folder", "product-images");
+
+        const res = await uploadImageAction(formData);
+        if (res.success && res.url) {
+          appendMedia({
+            url: res.url,
+            altText: file.name.replace(/\.[^/.]+$/, ""),
+            displayOrder: mediaFields.length + i,
+            isPrimary: mediaFields.length === 0 && i === 0,
+            mediaType: "IMAGE",
+          });
+        } else {
+          toast.error(res.error || `Failed to upload ${file.name}`);
+        }
+      }
+      toast.success("Image(s) uploaded successfully");
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload image(s)");
+    } finally {
+      setUploadingImage(null);
+      if (e.target) e.target.value = "";
     }
   };
 
@@ -426,21 +462,24 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                     Upload photos. First image shown as thumbnail.
                   </p>
                 </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() =>
-                    appendMedia({
-                      url: "",
-                      displayOrder: mediaFields.length,
-                      isPrimary: mediaFields.length === 0,
-                      mediaType: "IMAGE",
-                    })
-                  }
-                >
-                  <ImagePlus className="mr-2 h-4 w-4" /> Add Image
-                </Button>
+                <label className="cursor-pointer">
+                  <div className="inline-flex items-center justify-center gap-1.5 rounded-md border border-input bg-background px-3 py-1.5 text-xs font-medium shadow-xs hover:bg-accent hover:text-accent-foreground transition-colors">
+                    {uploadingImage !== null ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin text-slate-500" />
+                    ) : (
+                      <ImagePlus className="h-3.5 w-3.5 text-slate-500" />
+                    )}
+                    <span>{uploadingImage !== null ? "Uploading..." : "Add Images"}</span>
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    className="hidden"
+                    onChange={handleDirectUpload}
+                    disabled={uploadingImage !== null}
+                  />
+                </label>
               </CardHeader>
               <CardContent className="space-y-4">
                 {mediaFields.map((field, index) => {
@@ -451,18 +490,17 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                         {/* Preview thumbnail */}
                         <div className="h-20 w-20 shrink-0 rounded-md border bg-white overflow-hidden flex items-center justify-center">
                           {currentUrl ? (
-                            <Image
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
                               src={currentUrl}
                               alt={form.watch(`media.${index}.altText`) || `Image ${index + 1}`}
-                              width={80}
-                              height={80}
                               className="h-full w-full object-cover"
-                              unoptimized
+                              loading="lazy"
                             />
                           ) : (
                             <div className="flex flex-col items-center text-slate-300">
                               <Upload className="h-6 w-6" />
-                              <span className="text-xs mt-1">No image</span>
+                              <span className="text-[10px] mt-1">No image</span>
                             </div>
                           )}
                         </div>
@@ -486,7 +524,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                               <input
                                 type="file"
                                 accept="image/*"
-                                className="sr-only"
+                                className="hidden"
                                 onChange={(e) => handleImageUpload(e, index)}
                                 disabled={uploadingImage !== null}
                               />
@@ -527,7 +565,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                             variant="ghost"
                             size="icon"
                             onClick={() => removeMedia(index)}
-                            className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50"
+                            className="h-8 w-8 text-red-400 hover:text-red-600 hover:bg-red-50 cursor-pointer"
                           >
                             <X className="h-4 w-4" />
                           </Button>
@@ -549,14 +587,29 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                   );
                 })}
                 {mediaFields.length === 0 && (
-                  <div
-                    className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 p-10 text-center hover:border-slate-300 hover:bg-slate-50/50 transition-colors"
-                    onClick={() => appendMedia({ url: "", displayOrder: 0, isPrimary: true, mediaType: "IMAGE" })}
-                  >
-                    <ImagePlus className="mb-3 h-8 w-8 text-slate-300" />
-                    <p className="text-sm font-medium text-slate-600">Add Product Images</p>
-                    <p className="mt-1 text-xs text-slate-400">Click to add. PNG, JPG, WEBP supported.</p>
-                  </div>
+                  <label className="flex cursor-pointer flex-col items-center justify-center rounded-lg border-2 border-dashed border-slate-200 p-10 text-center hover:border-slate-300 hover:bg-slate-50/50 transition-colors">
+                    {uploadingImage !== null ? (
+                      <>
+                        <Loader2 className="mb-3 h-8 w-8 animate-spin text-slate-400" />
+                        <p className="text-sm font-medium text-slate-600">Uploading image(s)...</p>
+                        <p className="mt-1 text-xs text-slate-400">Processing file, please wait.</p>
+                      </>
+                    ) : (
+                      <>
+                        <ImagePlus className="mb-3 h-8 w-8 text-slate-300" />
+                        <p className="text-sm font-medium text-slate-600">Add Product Images</p>
+                        <p className="mt-1 text-xs text-slate-400">Click to upload. PNG, JPG, WEBP supported.</p>
+                      </>
+                    )}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={handleDirectUpload}
+                      disabled={uploadingImage !== null}
+                    />
+                  </label>
                 )}
               </CardContent>
             </Card>
