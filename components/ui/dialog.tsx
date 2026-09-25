@@ -11,6 +11,49 @@ function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />;
 }
 
+function isReactElement(val: any): boolean {
+  if (!val || typeof val !== "object") return false;
+  const type = val.$$typeof;
+  return (
+    type === Symbol.for("react.element") ||
+    type === Symbol.for("react.transitional.element") ||
+    React.isValidElement(val)
+  );
+}
+
+function resolveEffectiveRender(
+  render: any,
+  asChild: boolean | undefined,
+  children: React.ReactNode
+) {
+  if (render !== undefined) {
+    if (typeof render === "function") return render;
+    if (isReactElement(render)) {
+      return (props: any) =>
+        React.cloneElement(
+          render,
+          {
+            ...props,
+            className: cn(render.props?.className, props.className),
+          },
+          !render.props?.children && children ? children : render.props?.children
+        );
+    }
+    return render;
+  }
+
+  if (asChild && isReactElement(children)) {
+    const child = children as React.ReactElement<any>;
+    return (props: any) =>
+      React.cloneElement(child, {
+        ...props,
+        className: cn(child.props?.className, props.className),
+      });
+  }
+
+  return undefined;
+}
+
 function DialogTrigger({
   children,
   render,
@@ -18,16 +61,7 @@ function DialogTrigger({
   nativeButton,
   ...props
 }: DialogPrimitive.Trigger.Props & { asChild?: boolean }) {
-  const effectiveRender =
-    render !== undefined
-      ? React.isValidElement(render) &&
-        !(render.props as { children?: React.ReactNode })?.children &&
-        children
-        ? React.cloneElement(render as React.ReactElement, {}, children)
-        : render
-      : asChild && React.isValidElement(children)
-        ? (children as React.ReactElement)
-        : undefined;
+  const effectiveRender = resolveEffectiveRender(render, asChild, children);
 
   return (
     <DialogPrimitive.Trigger
