@@ -31,9 +31,9 @@ export function WhyChooseUs() {
   ];
 
   return (
-    <section className="bg-white py-24">
+    <section className="bg-white py-12 sm:py-16 md:py-24">
       <div className="container mx-auto px-4 md:px-6">
-        <div className="grid grid-cols-1 items-center gap-16 lg:grid-cols-2 lg:gap-24">
+        <div className="grid grid-cols-1 items-center gap-10 sm:gap-14 lg:grid-cols-2 lg:gap-24">
           {/* Left Side: Brand Image / Ethos */}
           <div className="relative aspect-[3/4] h-auto w-full overflow-hidden md:h-[500px] md:aspect-auto lg:h-[700px]">
             <Image
@@ -44,16 +44,16 @@ export function WhyChooseUs() {
               className="object-cover"
             />
             <div className="absolute inset-0 bg-black/10" />
-            <div className="absolute bottom-4 left-4 right-4 bg-white/95 p-6 text-center backdrop-blur-sm sm:bottom-6 sm:left-6 sm:right-6 md:bottom-10 md:left-10 md:right-10 md:p-8">
-              <span className="mb-3 block text-[10px] font-bold uppercase tracking-[0.3em] text-[#C9A86A]">
+            <div className="absolute bottom-3 left-3 right-3 bg-white/95 p-4 text-center backdrop-blur-sm sm:bottom-6 sm:left-6 sm:right-6 sm:p-6 md:bottom-10 md:left-10 md:right-10 md:p-8">
+              <span className="mb-2 sm:mb-3 block text-[10px] font-bold uppercase tracking-[0.3em] text-[#C9A86A]">
                 Our Ethos
               </span>
               <h2
-                className={`${jost.className} mb-4 text-2xl font-light tracking-tight text-gray-900 md:text-3xl`}
+                className={`${jost.className} mb-2 sm:mb-4 text-xl sm:text-2xl font-light tracking-tight text-gray-900 md:text-3xl`}
               >
                 The Anchor Fashion Difference
               </h2>
-              <p className="text-sm leading-relaxed text-gray-500">
+              <p className="text-xs sm:text-sm leading-relaxed text-gray-500">
                 We don&apos;t just sell clothes; we provide an elevated
                 lifestyle experience. Discover why thousands of customers choose
                 us for their everyday elegance.

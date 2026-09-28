@@ -107,7 +107,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
               setIsLightboxOpen(true);
             }}
             aria-label="View Fullscreen"
-            className="absolute right-3.5 top-3.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-black shadow-sm backdrop-blur-md opacity-0 transition-all duration-200 hover:bg-black hover:text-white group-hover:opacity-100"
+            className="absolute right-3.5 top-3.5 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-black shadow-sm backdrop-blur-md opacity-100 md:opacity-0 transition-all duration-200 hover:bg-black hover:text-white md:group-hover:opacity-100"
           >
             <Maximize2 className="h-4 w-4" />
           </button>
@@ -119,7 +119,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
                 type="button"
                 onClick={handlePrev}
                 aria-label="Previous image"
-                className="absolute left-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-black shadow-md backdrop-blur-md opacity-0 transition-all duration-200 hover:bg-black hover:text-white group-hover:opacity-100"
+                className="absolute left-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-black shadow-md backdrop-blur-md opacity-100 md:opacity-0 transition-all duration-200 hover:bg-black hover:text-white md:group-hover:opacity-100 active:scale-90"
               >
                 <ChevronLeft className="h-5 w-5" />
               </button>
@@ -127,7 +127,7 @@ export function ProductGallery({ images }: ProductGalleryProps) {
                 type="button"
                 onClick={handleNext}
                 aria-label="Next image"
-                className="absolute right-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-black shadow-md backdrop-blur-md opacity-0 transition-all duration-200 hover:bg-black hover:text-white group-hover:opacity-100"
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white/80 text-black shadow-md backdrop-blur-md opacity-100 md:opacity-0 transition-all duration-200 hover:bg-black hover:text-white md:group-hover:opacity-100 active:scale-90"
               >
                 <ChevronRight className="h-5 w-5" />
               </button>

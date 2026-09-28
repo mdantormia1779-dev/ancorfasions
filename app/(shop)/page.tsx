@@ -74,11 +74,11 @@ export default async function HomePage() {
       {/* 2.5 Flash Deals Banner (Dynamic) */}
       {activeFlashSales && activeFlashSales.length > 0 && (
         <FadeIn delay={0.15} direction="up">
-          <div className="bg-red-600 text-white py-4 px-4 text-center shadow-lg relative z-20">
-            <Link href="/flash-deals" className="flex items-center justify-center gap-3 font-bold uppercase tracking-wider hover:scale-105 transition-transform">
-              <Clock className="w-5 h-5 animate-pulse" />
+          <div className="bg-red-600 text-white py-3 sm:py-4 px-3 sm:px-4 text-center shadow-lg relative z-20">
+            <Link href="/flash-deals" className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-xs sm:text-sm font-bold uppercase tracking-wider hover:scale-105 transition-transform">
+              <Clock className="w-4 h-4 sm:w-5 sm:h-5 animate-pulse shrink-0" />
               <span>Flash Sale Live! Shop limited time deals before they're gone</span>
-              <span className="bg-black/20 px-3 py-1 rounded text-xs">Shop Now</span>
+              <span className="bg-black/20 px-2.5 py-0.5 sm:px-3 sm:py-1 rounded text-[10px] sm:text-xs shrink-0">Shop Now</span>
             </Link>
           </div>
         </FadeIn>

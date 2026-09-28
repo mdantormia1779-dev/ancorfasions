@@ -58,8 +58,8 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
 
   return (
     <section className="relative w-full overflow-hidden bg-[#1A1A1A]">
-      {/* 85vh for an immersive, premium full-bleed feel on desktop, standard 16:9 or 4:3 banner on mobile */}
-      <div className="relative aspect-[4/3] sm:aspect-[16/9] w-full md:aspect-auto md:h-[85vh] md:min-h-[600px]">
+      {/* Flexible responsive height across all viewports: mobile, tablet, desktop */}
+      <div className="relative h-[65vh] min-h-[460px] max-h-[640px] sm:h-[70vh] sm:min-h-[520px] w-full md:h-[85vh] md:min-h-[600px] md:max-h-none">
         {slides.map((slide, index) => {
           const isActive = index === current;
           const imageUrl =
@@ -109,7 +109,7 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
               </div>
 
               {/* Text Content */}
-              <div className="container absolute inset-0 mx-auto flex flex-col items-center justify-end px-4 pb-12 text-center text-white md:pb-32">
+              <div className="container absolute inset-0 mx-auto flex flex-col items-center justify-end px-4 pb-16 text-center text-white sm:pb-20 md:pb-32">
                 {subheadline && (
                   <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-white/90 opacity-0 delay-300 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards md:mb-4 md:text-sm md:tracking-[0.3em] md:text-white/80">
                     {subheadline}
@@ -117,14 +117,14 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
                 )}
                 {headline && (
                   <h1
-                    className="mb-6 max-w-4xl text-3xl font-light leading-[1.15] tracking-tight opacity-0 drop-shadow-sm delay-500 duration-1000 animate-in fade-in slide-in-from-bottom-8 fill-mode-forwards sm:text-4xl md:mb-10 md:text-7xl md:font-extralight lg:text-8xl"
+                    className="mb-4 max-w-4xl text-2xl font-light leading-[1.2] tracking-tight opacity-0 drop-shadow-sm delay-500 duration-1000 animate-in fade-in slide-in-from-bottom-8 fill-mode-forwards sm:text-4xl md:mb-10 md:text-7xl md:font-extralight lg:text-8xl"
                   >
                     {headline}
                   </h1>
                 )}
                 <Link
                   href={ctaHref}
-                  className="group relative flex items-center justify-center gap-3 overflow-hidden border border-white bg-transparent px-8 py-3 text-white opacity-0 transition-all delay-700 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards hover:bg-white hover:text-black md:px-14 md:py-4"
+                  className="group relative flex items-center justify-center gap-2 sm:gap-3 overflow-hidden border border-white bg-transparent px-6 py-2.5 text-white opacity-0 transition-all delay-700 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards hover:bg-white hover:text-black sm:px-8 sm:py-3 md:px-14 md:py-4"
                 >
                   <span className="relative z-10 text-[10px] font-bold uppercase tracking-[0.2em] transition-colors md:text-xs md:tracking-[0.25em]">
                     {ctaText}
@@ -151,19 +151,19 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
 
       {/* Elegant Line Indicators (only when multiple slides) */}
       {slides.length > 1 && (
-        <div className="absolute bottom-8 left-1/2 z-20 flex -translate-x-1/2 items-center gap-3 md:bottom-12">
+        <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2.5 sm:bottom-6 md:bottom-12">
           {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => goTo(i)}
-              className="group relative flex items-center justify-center px-1 py-4"
+              className="group relative flex items-center justify-center px-1 py-2 sm:py-3 md:py-4"
               aria-label={`Go to slide ${i + 1}`}
             >
               <span
                 className={`block h-[2px] transition-all duration-700 ease-out ${
                   i === current
-                    ? "w-12 bg-[#C9A86A]"
-                    : "w-5 bg-white/30 group-hover:w-7 group-hover:bg-white/60"
+                    ? "w-8 sm:w-10 md:w-12 bg-[#C9A86A]"
+                    : "w-4 sm:w-5 bg-white/30 group-hover:w-6 group-hover:bg-white/60"
                 }`}
               />
             </button>
