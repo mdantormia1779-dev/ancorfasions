@@ -15,10 +15,6 @@ import { WhyChooseUs } from "@/components/home/why-choose-us";
 import { BrandedCollection } from "@/components/home/branded-collection";
 import { PromoBanner } from "@/components/home/promo-banner";
 import { TrendingProducts } from "@/components/home/trending-products";
-import { Testimonials } from "@/components/home/testimonials";
-
-import { RecentlyViewedHome } from "@/components/home/recently-viewed-home";
-import { PersonalizedSection } from "@/components/home/personalized-section";
 import { LatestBlogs } from "@/components/home/latest-blogs";
 import { FadeIn } from "@/components/ui/fade-in";
 import { FlashSaleService } from "@/lib/services/marketing/flash-sale.service";
@@ -102,11 +98,6 @@ export default async function HomePage() {
         {/* Mens Collection - MOVED DOWN */}
 
         {/* 6. Womens Collection - MOVED DOWN */}
-
-        {/* 6.5 Recently Viewed (Client Side Personalization) */}
-        <FadeIn>
-          <RecentlyViewedHome />
-        </FadeIn>
 
         {/* Kids and Accessories - MOVED DOWN */}
 
