@@ -58,8 +58,8 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
 
   return (
     <section className="relative w-full overflow-hidden bg-[#1A1A1A]">
-      {/* Flexible responsive height across all viewports: mobile, tablet, desktop */}
-      <div className="relative h-[65vh] min-h-[460px] max-h-[640px] sm:h-[70vh] sm:min-h-[520px] w-full md:h-[85vh] md:min-h-[600px] md:max-h-none">
+      {/* Responsive banner proportion: natural 4/3 aspect on mobile, 16/9 on tablet, and immersive full-bleed on desktop */}
+      <div className="relative aspect-[4/3] sm:aspect-[16/9] w-full md:aspect-auto md:h-[80vh] md:min-h-[560px]">
         {slides.map((slide, index) => {
           const isActive = index === current;
           const imageUrl =
@@ -85,8 +85,8 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
                     muted
                     playsInline
                     preload={index === 0 ? "auto" : "none"}
-                    className={`h-full w-full object-cover object-center transition-transform ease-out [transition-duration:20s] ${
-                      isActive ? "scale-110" : "scale-100"
+                    className={`h-full w-full object-cover object-center md:transition-transform md:ease-out md:[transition-duration:20s] ${
+                      isActive ? "scale-100 md:scale-105" : "scale-100"
                     }`}
                     poster="/images/home/hero-banner.png"
                   />
@@ -96,8 +96,8 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
                     alt={headline ?? `Banner ${index + 1}`}
                     fill
                     sizes="100vw"
-                    className={`object-cover object-center transition-transform ease-out [transition-duration:20s] ${
-                      isActive ? "scale-110" : "scale-100"
+                    className={`h-full w-full object-cover object-center md:transition-transform md:ease-out md:[transition-duration:20s] ${
+                      isActive ? "scale-100 md:scale-105" : "scale-100"
                     }`}
                     priority={index === 0}
                     loading={index === 0 ? "eager" : "lazy"}
@@ -109,28 +109,28 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
               </div>
 
               {/* Text Content */}
-              <div className="container absolute inset-0 mx-auto flex flex-col items-center justify-end px-4 pb-16 text-center text-white sm:pb-20 md:pb-32">
+              <div className="container absolute inset-0 mx-auto flex flex-col items-center justify-end px-4 pb-8 text-center text-white sm:pb-12 md:pb-28">
                 {subheadline && (
-                  <p className="mb-2 text-[10px] uppercase tracking-[0.2em] text-white/90 opacity-0 delay-300 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards md:mb-4 md:text-sm md:tracking-[0.3em] md:text-white/80">
+                  <p className="mb-1.5 text-[9px] uppercase tracking-[0.2em] text-white/90 opacity-0 delay-300 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards sm:mb-2 sm:text-[10px] md:mb-4 md:text-sm md:tracking-[0.3em] md:text-white/80">
                     {subheadline}
                   </p>
                 )}
                 {headline && (
                   <h1
-                    className="mb-4 max-w-4xl text-2xl font-light leading-[1.2] tracking-tight opacity-0 drop-shadow-sm delay-500 duration-1000 animate-in fade-in slide-in-from-bottom-8 fill-mode-forwards sm:text-4xl md:mb-10 md:text-7xl md:font-extralight lg:text-8xl"
+                    className="mb-2.5 max-w-4xl text-xl sm:text-3xl md:text-6xl lg:text-7xl font-light leading-tight tracking-tight opacity-0 drop-shadow-sm delay-500 duration-1000 animate-in fade-in slide-in-from-bottom-8 fill-mode-forwards md:mb-8 md:font-extralight"
                   >
                     {headline}
                   </h1>
                 )}
                 <Link
                   href={ctaHref}
-                  className="group relative flex items-center justify-center gap-2 sm:gap-3 overflow-hidden border border-white bg-transparent px-6 py-2.5 text-white opacity-0 transition-all delay-700 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards hover:bg-white hover:text-black sm:px-8 sm:py-3 md:px-14 md:py-4"
+                  className="group relative flex items-center justify-center gap-2 overflow-hidden border border-white bg-transparent px-5 py-2 text-white opacity-0 transition-all delay-700 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards hover:bg-white hover:text-black sm:px-8 sm:py-2.5 md:px-12 md:py-3.5"
                 >
-                  <span className="relative z-10 text-[10px] font-bold uppercase tracking-[0.2em] transition-colors md:text-xs md:tracking-[0.25em]">
+                  <span className="relative z-10 text-[9px] font-bold uppercase tracking-[0.18em] transition-colors sm:text-[10px] md:text-xs md:tracking-[0.25em]">
                     {ctaText}
                   </span>
                   <svg
-                    className="relative z-10 h-3.5 w-3.5 transition-transform duration-300 group-hover:translate-x-1 md:h-4 md:w-4"
+                    className="relative z-10 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -151,19 +151,19 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
 
       {/* Elegant Line Indicators (only when multiple slides) */}
       {slides.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2.5 sm:bottom-6 md:bottom-12">
+        <div className="absolute bottom-2.5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 sm:bottom-4 md:bottom-10">
           {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => goTo(i)}
-              className="group relative flex items-center justify-center px-1 py-2 sm:py-3 md:py-4"
+              className="group relative flex items-center justify-center px-1 py-1.5 sm:py-2 md:py-3"
               aria-label={`Go to slide ${i + 1}`}
             >
               <span
                 className={`block h-[2px] transition-all duration-700 ease-out ${
                   i === current
-                    ? "w-8 sm:w-10 md:w-12 bg-[#C9A86A]"
-                    : "w-4 sm:w-5 bg-white/30 group-hover:w-6 group-hover:bg-white/60"
+                    ? "w-7 sm:w-9 md:w-12 bg-[#C9A86A]"
+                    : "w-3.5 sm:w-4 md:w-5 bg-white/30 group-hover:w-5 group-hover:bg-white/60"
                 }`}
               />
             </button>
