@@ -6,9 +6,6 @@ export default function Loading() {
       <div className="w-[200px] animate-pulse sm:w-[260px]">
         <AnchorFashionLogo />
       </div>
-      <p className="mt-8 animate-pulse text-xs font-semibold uppercase tracking-[0.3em] text-[#1A1A1A]">
-        Loading Experience
-      </p>
     </div>
   );
 }
