@@ -58,8 +58,8 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
 
   return (
     <section className="relative w-full overflow-hidden bg-[#1A1A1A]">
-      {/* Responsive banner proportion: natural 4/3 aspect on mobile, 16/9 on tablet, and immersive full-bleed on desktop */}
-      <div className="relative aspect-[4/3] sm:aspect-[16/9] w-full md:aspect-auto md:h-[80vh] md:min-h-[560px]">
+      {/* Full-width responsive banner: exact uncropped aspect-[1896/830] on mobile/tablet, immersive full-bleed on desktop */}
+      <div className="relative aspect-[1896/830] sm:aspect-[1896/830] w-full md:aspect-auto md:h-[80vh] md:min-h-[560px]">
         {slides.map((slide, index) => {
           const isActive = index === current;
           const imageUrl =
@@ -76,6 +76,14 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
               className="absolute inset-0 h-full w-full transition-transform duration-1000 ease-in-out"
               style={{ transform: `translateX(${(index - current) * 100}%)` }}
             >
+              <Link
+                href={ctaHref}
+                className="absolute inset-0 z-10 block"
+                aria-label={headline || "View Promotion"}
+              >
+                <span className="sr-only">{headline || "View Promotion"}</span>
+              </Link>
+
               <div className="absolute inset-0 h-full w-full overflow-hidden bg-[#111]">
                 {isVideo ? (
                   <video
@@ -103,46 +111,48 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
                     loading={index === 0 ? "eager" : "lazy"}
                   />
                 )}
-                {/* Premium Gradient Overlay */}
-                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                <div className="pointer-events-none absolute inset-0 bg-black/10" />
+                {/* Desktop Gradient Overlay (hidden on mobile to keep banner art 100% bright & clear) */}
+                <div className="pointer-events-none absolute inset-0 hidden bg-gradient-to-t from-black/75 via-black/20 to-transparent md:block" />
+                <div className="pointer-events-none absolute inset-0 hidden bg-black/10 md:block" />
               </div>
 
-              {/* Text Content */}
-              <div className="container absolute inset-0 mx-auto flex flex-col items-center justify-end px-4 pb-8 text-center text-white sm:pb-12 md:pb-28">
+              {/* Text Content (visible on desktop for editorial slides, hidden on mobile so designed banners are fully readable) */}
+              <div className="container pointer-events-none absolute inset-0 mx-auto hidden flex-col items-center justify-end px-4 text-center text-white md:flex md:pb-28">
                 {subheadline && (
-                  <p className="mb-1.5 text-[9px] uppercase tracking-[0.2em] text-white/90 opacity-0 delay-300 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards sm:mb-2 sm:text-[10px] md:mb-4 md:text-sm md:tracking-[0.3em] md:text-white/80">
+                  <p className="mb-2 text-[10px] uppercase tracking-[0.3em] text-white/80 opacity-0 delay-300 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards md:mb-4 md:text-sm">
                     {subheadline}
                   </p>
                 )}
                 {headline && (
                   <h1
-                    className="mb-2.5 max-w-4xl text-xl sm:text-3xl md:text-6xl lg:text-7xl font-light leading-tight tracking-tight opacity-0 drop-shadow-sm delay-500 duration-1000 animate-in fade-in slide-in-from-bottom-8 fill-mode-forwards md:mb-8 md:font-extralight"
+                    className="mb-8 max-w-4xl text-5xl font-extralight leading-tight tracking-tight opacity-0 drop-shadow-sm delay-500 duration-1000 animate-in fade-in slide-in-from-bottom-8 fill-mode-forwards lg:text-7xl"
                   >
                     {headline}
                   </h1>
                 )}
-                <Link
-                  href={ctaHref}
-                  className="group relative flex items-center justify-center gap-2 overflow-hidden border border-white bg-transparent px-5 py-2 text-white opacity-0 transition-all delay-700 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards hover:bg-white hover:text-black sm:px-8 sm:py-2.5 md:px-12 md:py-3.5"
-                >
-                  <span className="relative z-10 text-[9px] font-bold uppercase tracking-[0.18em] transition-colors sm:text-[10px] md:text-xs md:tracking-[0.25em]">
-                    {ctaText}
-                  </span>
-                  <svg
-                    className="relative z-10 h-3 w-3 transition-transform duration-300 group-hover:translate-x-1 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                <div className="pointer-events-auto">
+                  <Link
+                    href={ctaHref}
+                    className="group relative flex items-center justify-center gap-3 overflow-hidden border border-white bg-transparent px-12 py-3.5 text-white opacity-0 transition-all delay-700 duration-1000 animate-in fade-in slide-in-from-bottom-4 fill-mode-forwards hover:bg-white hover:text-black"
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={1.5}
-                      d="M17 8l4 4m0 0l-4 4m4-4H3"
-                    />
-                  </svg>
-                </Link>
+                    <span className="relative z-10 text-xs font-bold uppercase tracking-[0.25em] transition-colors">
+                      {ctaText}
+                    </span>
+                    <svg
+                      className="relative z-10 h-4 w-4 transition-transform duration-300 group-hover:translate-x-1"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={1.5}
+                        d="M17 8l4 4m0 0l-4 4m4-4H3"
+                      />
+                    </svg>
+                  </Link>
+                </div>
               </div>
             </div>
           );
@@ -151,19 +161,19 @@ export function HomeHero({ slides: propSlides }: { slides?: HeroSlide[] }) {
 
       {/* Elegant Line Indicators (only when multiple slides) */}
       {slides.length > 1 && (
-        <div className="absolute bottom-2.5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 sm:bottom-4 md:bottom-10">
+        <div className="absolute bottom-1.5 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1.5 sm:bottom-3 md:bottom-10 md:gap-3">
           {slides.map((_, i) => (
             <button
               key={i}
               onClick={() => goTo(i)}
-              className="group relative flex items-center justify-center px-1 py-1.5 sm:py-2 md:py-3"
+              className="group relative flex items-center justify-center px-1 py-1 sm:py-2 md:py-3"
               aria-label={`Go to slide ${i + 1}`}
             >
               <span
                 className={`block h-[2px] transition-all duration-700 ease-out ${
                   i === current
-                    ? "w-7 sm:w-9 md:w-12 bg-[#C9A86A]"
-                    : "w-3.5 sm:w-4 md:w-5 bg-white/30 group-hover:w-5 group-hover:bg-white/60"
+                    ? "w-6 sm:w-8 md:w-12 bg-[#C9A86A]"
+                    : "w-3 sm:w-4 md:w-5 bg-white/40 group-hover:w-5 group-hover:bg-white/60"
                 }`}
               />
             </button>
