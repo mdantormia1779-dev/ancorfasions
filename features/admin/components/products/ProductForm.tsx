@@ -223,7 +223,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     stockQuantity: initialStock,
     sku: initialData?.sku || "",
     barcode: initialData?.barcode || "",
-    status: initialData?.status || "DRAFT",
+    status: initialData?.status || "ACTIVE",
     categoryId: initialData?.categoryId || "",
     brandId: initialData?.brandId || "",
     isFeatured: initialData?.isFeatured || false,
@@ -255,7 +255,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     name: "media",
   });
 
-  const submitWithStatus = async (status: "DRAFT" | "ACTIVE") => {
+  const submitWithStatus = async (statusOverride?: "DRAFT" | "ACTIVE" | "ARCHIVED") => {
     // If slug is empty, auto-generate from name
     const currentName = form.getValues("name")?.trim();
     const currentSlug = form.getValues("slug")?.trim();
@@ -280,6 +280,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
     }
 
     const rawValues = form.getValues();
+    const status = statusOverride || (rawValues.status as "DRAFT" | "ACTIVE" | "ARCHIVED") || "ACTIVE";
     const data = {
       ...rawValues,
       stockQuantity: Number(rawValues.stockQuantity ?? 0),
@@ -311,7 +312,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
       if (initialData) {
         const res = await updateAdminProductAction({ id: initialData.id, data });
         if (res.success) {
-          toast.success(status === "ACTIVE" ? "Product published!" : "Saved as draft");
+          toast.success(status === "ACTIVE" ? "Product published!" : status === "DRAFT" ? "Saved as draft" : "Product updated!");
           router.push(returnPath);
           router.refresh();
         } else {
@@ -320,7 +321,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
       } else {
         const res = await createAdminProductAction(data);
         if (res.success) {
-          toast.success(status === "ACTIVE" ? "Product published!" : "Product created as draft");
+          toast.success(status === "ACTIVE" ? "Product published!" : status === "DRAFT" ? "Product created as draft" : "Product created!");
           router.push(returnPath);
           router.refresh();
         } else {
@@ -334,7 +335,7 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
   };
 
   const onSubmit = async (data: ProductFormValues) => {
-    await submitWithStatus(data.status as "DRAFT" | "ACTIVE");
+    await submitWithStatus(data.status as "DRAFT" | "ACTIVE" | "ARCHIVED");
   };
 
   return (
@@ -970,10 +971,23 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                       <Select
                         onValueChange={field.onChange}
                         value={field.value}
+                        items={[
+                          { value: "DRAFT", label: "Draft" },
+                          { value: "ACTIVE", label: "Active" },
+                          { value: "ARCHIVED", label: "Archived" },
+                        ]}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a status" />
+                            <SelectValue placeholder="Select a status">
+                              {field.value === "ACTIVE"
+                                ? "Active"
+                                : field.value === "DRAFT"
+                                ? "Draft"
+                                : field.value === "ARCHIVED"
+                                ? "Archived"
+                                : undefined}
+                            </SelectValue>
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent>
@@ -1009,58 +1023,90 @@ export function ProductForm({ initialData, returnPath = "/admin/products" }: Pro
                 <FormField
                   control={form.control}
                   name="categoryId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category *</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value || ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a category" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {categories.map((cat) => (
-                            <SelectItem key={cat.id} value={cat.id}>
-                              {cat.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const selectedCategory = categories.find((cat) => cat.id === field.value);
+                    return (
+                      <FormItem>
+                        <FormLabel>Category *</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value || ""}
+                          items={categories.map((cat) => ({
+                            value: cat.id,
+                            label: cat.name,
+                          }))}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a category">
+                                {selectedCategory ? selectedCategory.name : undefined}
+                              </SelectValue>
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            {categories.map((cat) => (
+                              <SelectItem key={cat.id} value={cat.id}>
+                                {cat.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
 
                 <FormField
                   control={form.control}
                   name="brandId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Brand</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value || ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a brand" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="none">No Brand</SelectItem>
-                          {brands.map((brand) => (
-                            <SelectItem key={brand.id} value={brand.id}>
-                              {brand.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+                  render={({ field }) => {
+                    const selectedBrand = brands.find((brand) => brand.id === field.value);
+                    const brandDisplayValue =
+                      field.value === "none" || !field.value
+                        ? field.value === "none"
+                          ? "No Brand"
+                          : undefined
+                        : selectedBrand
+                        ? selectedBrand.name
+                        : undefined;
+
+                    return (
+                      <FormItem>
+                        <FormLabel>Brand</FormLabel>
+                        <Select
+                          onValueChange={(val) =>
+                            field.onChange(val === "none" ? "" : val)
+                          }
+                          value={field.value || "none"}
+                          items={[
+                            { value: "none", label: "No Brand" },
+                            ...brands.map((brand) => ({
+                              value: brand.id,
+                              label: brand.name,
+                            })),
+                          ]}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select a brand">
+                                {brandDisplayValue}
+                              </SelectValue>
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="none">No Brand</SelectItem>
+                            {brands.map((brand) => (
+                              <SelectItem key={brand.id} value={brand.id}>
+                                {brand.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    );
+                  }}
                 />
               </CardContent>
             </Card>
