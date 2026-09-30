@@ -51,6 +51,7 @@ export interface WishlistItem {
   id: string;
   wishlist_id: string;
   product_id: string;
+  variant_id?: string | null;
   created_at: string;
 
   // Joined fields

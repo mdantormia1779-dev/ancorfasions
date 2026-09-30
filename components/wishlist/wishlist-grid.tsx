@@ -4,15 +4,16 @@ import { useWishlistStore } from "@/stores/use-wishlist-store";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Trash2, Heart } from "lucide-react";
+import { ShoppingCart, Trash2, Heart, Loader2 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { useCartStore } from "@/stores/use-cart-store";
 
 export function WishlistGrid() {
   const { wishlist, fetchWishlist, removeItem, moveToCart, isLoading } =
     useWishlistStore();
+  const [movingItemId, setMovingItemId] = useState<string | null>(null);
 
   useEffect(() => {
     fetchWishlist();
@@ -23,14 +24,22 @@ export function WishlistGrid() {
     toast.success("Removed from wishlist");
   };
 
-  const handleMoveToCart = async (itemId: string, productId: string) => {
+  const handleMoveToCart = async (
+    itemId: string,
+    productId: string,
+    variantId?: string | null
+  ) => {
+    setMovingItemId(itemId);
     const toastId = toast.loading("Moving to cart...");
     try {
-      await moveToCart(itemId, productId);
+      await moveToCart(itemId, productId, variantId);
       await useCartStore.getState().fetchCart();
+      useCartStore.getState().setSheetOpen(true);
       toast.success("Moved to shopping cart!", { id: toastId });
-    } catch {
-      toast.error("Failed to move to cart", { id: toastId });
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to move to cart", { id: toastId });
+    } finally {
+      setMovingItemId(null);
     }
   };
 
@@ -125,10 +134,22 @@ export function WishlistGrid() {
 
             <Button
               className="w-full bg-[#1A1A1A] hover:bg-black text-white text-xs font-bold uppercase tracking-widest"
-              onClick={() => handleMoveToCart(item.id, item.product_id)}
+              disabled={movingItemId === item.id}
+              onClick={() =>
+                handleMoveToCart(item.id, item.product_id, item.variant_id)
+              }
             >
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Move to Cart
+              {movingItemId === item.id ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Moving...
+                </>
+              ) : (
+                <>
+                  <ShoppingCart className="mr-2 h-4 w-4" />
+                  Move to Cart
+                </>
+              )}
             </Button>
           </div>
         );

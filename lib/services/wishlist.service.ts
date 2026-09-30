@@ -1,6 +1,7 @@
 import { WishlistRepository } from "../repositories/wishlist.repository";
 import { Wishlist } from "@/types/checkout.types";
 import { CartService } from "./cart.service";
+import { createAdminClient } from "../supabase/server";
 
 export class WishlistService {
   /**
@@ -55,8 +56,23 @@ export class WishlistService {
     productId: string,
     variantId?: string | null
   ): Promise<void> {
+    let effectiveVariantId = variantId;
+
+    if (!effectiveVariantId) {
+      const supabase = await createAdminClient();
+      const { data: item } = await supabase
+        .from("wishlist_items")
+        .select("variant_id")
+        .eq("id", itemId)
+        .maybeSingle();
+
+      if (item?.variant_id) {
+        effectiveVariantId = item.variant_id;
+      }
+    }
+
     // Add to cart
-    await CartService.addItem(userId, null, productId, variantId || null, 1);
+    await CartService.addItem(userId, null, productId, effectiveVariantId || null, 1);
 
     // Remove from wishlist
     await WishlistRepository.removeItem(itemId);

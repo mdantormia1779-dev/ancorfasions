@@ -70,12 +70,13 @@ export class CartService {
     let effectiveVariantId: string;
 
     if (variants && variants.length > 0) {
-      if (!variantId) {
-        throw new Error("Please select a variant option before adding to cart.");
-      }
-      const matchedVariant = variants.find((v) => v.id === variantId);
+      let matchedVariant = variantId ? variants.find((v) => v.id === variantId) : null;
       if (!matchedVariant) {
-        throw new Error("Selected variant does not belong to this product.");
+        // Fallback to active variant or the first available variant (e.g. from wishlist or quick add)
+        matchedVariant = variants.find((v) => v.is_active) || variants[0];
+      }
+      if (!matchedVariant) {
+        throw new Error("No available variant for this product.");
       }
       if (!matchedVariant.is_active) {
         throw new Error("Selected variant is currently inactive.");

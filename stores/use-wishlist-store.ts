@@ -164,15 +164,54 @@ export const useWishlistStore = create<WishlistState>()(
 
       moveToCart: async (itemId, productId, variantId) => {
         set({ isLoading: true, error: null });
-        const res = await moveWishlistItemToCartAction(
-          itemId,
-          productId,
-          variantId
-        );
-        if (res.success) {
-          await get().fetchWishlist();
-        } else {
-          set({ error: res.error, isLoading: false });
+        const currentWishlist = get().wishlist;
+        const previousItems = currentWishlist?.items || [];
+
+        // Optimistically remove item from wishlist UI
+        if (currentWishlist) {
+          set({
+            wishlist: {
+              ...currentWishlist,
+              items: previousItems.filter((item) => item.id !== itemId),
+            },
+          });
+        }
+
+        try {
+          const res = await moveWishlistItemToCartAction(
+            itemId,
+            productId,
+            variantId
+          );
+          if (res.success) {
+            set({ isLoading: false });
+            await get().fetchWishlist();
+          } else {
+            // Revert on server error
+            if (currentWishlist) {
+              set({
+                wishlist: {
+                  ...currentWishlist,
+                  items: previousItems,
+                },
+                error: res.error,
+                isLoading: false,
+              });
+            }
+            throw new Error(res.error || "Failed to move item to cart");
+          }
+        } catch (err: any) {
+          if (currentWishlist) {
+            set({
+              wishlist: {
+                ...currentWishlist,
+                items: previousItems,
+              },
+              error: err?.message || "Failed to move item to cart",
+              isLoading: false,
+            });
+          }
+          throw err;
         }
       },
     }),
