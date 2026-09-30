@@ -35,11 +35,25 @@ const ACTIVE_STATUSES = [
 
 export default function AdminTrackingDashboard() {
   const syncTracking = useSyncTracking();
+  const [search, setSearch] = useState("");
 
-  const { data: allData, isLoading } = useShipments({ limit: 50, page: 1 });
-  const active = (allData?.data ?? []).filter((s: any) =>
+  const { data: allData, isLoading } = useShipments({ limit: 100, page: 1 });
+  const allShipments = allData?.data ?? [];
+  const active = allShipments.filter((s: any) =>
     ACTIVE_STATUSES.includes(s.status)
   );
+
+  const filtered = (search.trim() ? allShipments : active).filter((s: any) => {
+    if (!search.trim()) return true;
+    const q = search.toLowerCase();
+    return (
+      s.shipment_number?.toLowerCase().includes(q) ||
+      s.tracking_number?.toLowerCase().includes(q) ||
+      s.recipient_name?.toLowerCase().includes(q) ||
+      s.courier_provider_code?.toLowerCase().includes(q) ||
+      s.status?.toLowerCase().includes(q)
+    );
+  });
 
   const handleSyncAll = async () => {
     let synced = 0;
@@ -61,9 +75,36 @@ export default function AdminTrackingDashboard() {
     }
   };
 
+  const statCards = [
+    {
+      label: "Active Shipments",
+      value: active.length,
+      icon: Truck,
+      bgClass: "bg-blue-100 text-blue-600 dark:bg-blue-950 dark:text-blue-400",
+    },
+    {
+      label: "Out for Delivery",
+      value: active.filter((s: any) => s.status === "out_for_delivery").length,
+      icon: TrendingUp,
+      bgClass: "bg-purple-100 text-purple-600 dark:bg-purple-950 dark:text-purple-400",
+    },
+    {
+      label: "In Transit",
+      value: active.filter((s: any) => s.status === "in_transit").length,
+      icon: CheckCircle2,
+      bgClass: "bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-400",
+    },
+    {
+      label: "Pickup Pending",
+      value: active.filter((s: any) => s.status === "pickup_requested").length,
+      icon: AlertTriangle,
+      bgClass: "bg-orange-100 text-orange-600 dark:bg-orange-950 dark:text-orange-400",
+    },
+  ];
+
   return (
     <div className="space-y-6 p-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">
             Live Tracking Dashboard
@@ -80,7 +121,7 @@ export default function AdminTrackingDashboard() {
             disabled={syncTracking.isPending}
             className="flex items-center gap-1"
           >
-            <RefreshCcw className="h-4 w-4" /> Sync All
+            <RefreshCcw className={`h-4 w-4 ${syncTracking.isPending ? "animate-spin" : ""}`} /> Sync All
           </Button>
           <Link href="/admin/shipping">
             <Button variant="outline" size="sm">
@@ -92,39 +133,12 @@ export default function AdminTrackingDashboard() {
 
       {/* Summary */}
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-        {[
-          {
-            label: "Active Shipments",
-            value: active.length,
-            icon: Truck,
-            color: "blue",
-          },
-          {
-            label: "Out for Delivery",
-            value: active.filter((s: any) => s.status === "out_for_delivery")
-              .length,
-            icon: TrendingUp,
-            color: "purple",
-          },
-          {
-            label: "In Transit",
-            value: active.filter((s: any) => s.status === "in_transit").length,
-            icon: CheckCircle2,
-            color: "yellow",
-          },
-          {
-            label: "Pickup Pending",
-            value: active.filter((s: any) => s.status === "pickup_requested")
-              .length,
-            icon: AlertTriangle,
-            color: "orange",
-          },
-        ].map(({ label, value, icon: Icon, color }) => (
+        {statCards.map(({ label, value, icon: Icon, bgClass }) => (
           <Card key={label}>
             <CardContent className="pt-6">
               <div className="flex items-center gap-3">
-                <div className={`p-2 bg-${color}-100 rounded-lg`}>
-                  <Icon className={`h-5 w-5 text-${color}-600`} />
+                <div className={`p-2 rounded-lg ${bgClass}`}>
+                  <Icon className="h-5 w-5" />
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">{label}</p>
@@ -137,8 +151,22 @@ export default function AdminTrackingDashboard() {
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>In-Transit Shipments</CardTitle>
+        <CardHeader className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <CardTitle>{search ? "Matching Shipments" : "In-Transit Shipments"}</CardTitle>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {search ? `Showing results matching "${search}"` : "Showing active in-transit shipments"}
+            </p>
+          </div>
+          <div className="w-full sm:w-72">
+            <input
+              type="text"
+              placeholder="Search tracking, order, recipient..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-xs shadow-xs transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+            />
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -159,17 +187,17 @@ export default function AdminTrackingDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {active.length === 0 && (
+                {filtered.length === 0 && (
                   <TableRow>
                     <TableCell
                       colSpan={7}
                       className="py-8 text-center text-muted-foreground"
                     >
-                      No active shipments.
+                      {search ? `No shipments matching "${search}".` : "No active shipments."}
                     </TableCell>
                   </TableRow>
                 )}
-                {active.map((s: any) => (
+                {filtered.map((s: any) => (
                   <TableRow key={s.id}>
                     <TableCell className="font-mono text-sm">
                       <Link

@@ -65,7 +65,7 @@ export function CourierLogsModal({ courier, onClose }: Props) {
             size="sm"
             onClick={fetchLogs}
             disabled={loading}
-            className="h-8"
+            className="h-8 mr-8"
           >
             <RefreshCcw className={`mr-2 h-3.5 w-3.5 ${loading ? "animate-spin" : ""}`} />
             Refresh

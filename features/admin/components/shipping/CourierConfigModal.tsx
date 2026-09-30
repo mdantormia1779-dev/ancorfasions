@@ -49,13 +49,13 @@ export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
   const handleTestConnection = async () => {
     setTesting(true);
     try {
-      const res = await testCourierConnectionAction(courier.id);
+      const res = await testCourierConnectionAction(courier.id, credentials, isSandbox);
       if (res.success && res.data) {
         setTestResult(res.data);
         if (res.data.status === "healthy") {
           toast.success(`Connected ✓ Response time: ${res.data.responseTime}ms`);
         } else if (res.data.status === "not_configured") {
-          toast.info("Courier is not configured. Please save credentials first.");
+          toast.info("Courier is not configured. Please fill in credentials first.");
         } else {
           toast.error(`Connection failed: ${res.data.message}`);
         }

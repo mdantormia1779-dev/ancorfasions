@@ -9,6 +9,7 @@ import { CourierFactory } from "@/lib/couriers/courier.factory";
 import { HealthCheckResult } from "@/lib/couriers/types";
 import {
   encryptCredentialsObject,
+  decryptCredentialsObject,
   maskCredentialsObject,
   isEncryptedValue,
 } from "@/utils/encryption.util";
@@ -121,10 +122,47 @@ export async function updateCourierProviderAction(
  * Performs a live health check on a courier provider
  */
 export async function testCourierConnectionAction(
-  courierId: string
+  courierId: string,
+  credentialsToTest?: Record<string, any>,
+  isSandbox?: boolean
 ): Promise<ActionResponse<HealthCheckResult>> {
   try {
-    const { provider } = await CourierFactory.getProviderFromDatabase(courierId);
+    const { provider: dbProvider, record } = await CourierFactory.getProviderFromDatabase(courierId);
+
+    let provider = dbProvider;
+    if (credentialsToTest && Object.keys(credentialsToTest).length > 0) {
+      // Merge with existing decrypted DB credentials in case some fields are masked (e.g. ••••••••)
+      const existingDecrypted = decryptCredentialsObject(record.credentials || {});
+      const merged: Record<string, any> = { ...existingDecrypted };
+
+      for (const [key, val] of Object.entries(credentialsToTest)) {
+        if (typeof val === "string") {
+          if (!val.startsWith("••••••••") && val.trim() !== "") {
+            merged[key] = val;
+          }
+        } else if (val !== undefined && val !== null) {
+          merged[key] = val;
+        }
+      }
+
+      provider = CourierFactory.getProvider(
+        record.code as any,
+        merged,
+        {
+          environment:
+            isSandbox !== undefined
+              ? isSandbox
+                ? "sandbox"
+                : "production"
+              : record.is_sandbox
+              ? "sandbox"
+              : "production",
+          storeId: merged.storeId || merged.store_id || record.settings?.storeId,
+          webhookSecret: record.webhook_secret,
+        }
+      );
+    }
+
     const health = await provider.healthCheck();
     return { success: true, data: health };
   } catch (err: any) {

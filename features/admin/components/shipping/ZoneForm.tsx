@@ -53,10 +53,13 @@ export function ZoneForm({ initialData }: Props) {
       if (initialData) {
         await updateMutation.mutateAsync({ zoneId: initialData.id, data });
         toast.success("Zone updated successfully");
+        router.push("/admin/shipping/zones");
+        router.refresh();
       } else {
         await createMutation.mutateAsync(data);
         toast.success("Zone created successfully");
         router.push("/admin/shipping/zones");
+        router.refresh();
       }
     } catch (err: any) {
       toast.error(err.message || "Failed to save zone");

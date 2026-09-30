@@ -9,13 +9,16 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Map, Check, X } from "lucide-react";
+import Link from "next/link";
+import { Map, Check, X, Plus } from "lucide-react";
 import { getZonesAction } from "@/app/actions/manager/shipping.actions";
 import { Badge } from "@/components/ui/badge";
 
 export const metadata: Metadata = {
   title: "Delivery Zones | Admin Dashboard",
 };
+
+export const dynamic = "force-dynamic";
 
 export default async function ZonesPage() {
   const { data: zones } = await getZonesAction();
@@ -29,6 +32,12 @@ export default async function ZonesPage() {
             Configure geographic zones, shipping rates, and delivery times.
           </p>
         </div>
+        <Button asChild>
+          <Link href="/admin/shipping/zones/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Add Delivery Zone
+          </Link>
+        </Button>
       </div>
 
       <Card>
@@ -92,8 +101,10 @@ export default async function ZonesPage() {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button variant="outline" size="sm">
-                        Edit Rates
+                      <Button variant="outline" size="sm" asChild>
+                        <Link href={`/admin/shipping/zones/${zone.id}`}>
+                          Edit Zone
+                        </Link>
                       </Button>
                     </TableCell>
                   </TableRow>
