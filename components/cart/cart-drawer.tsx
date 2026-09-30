@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CartItem } from "./cart-item";
 import { useRouter } from "next/navigation";
-import { ShoppingBag, Loader2, ArrowRight } from "lucide-react";
+import { ShoppingBag, Loader2, ArrowRight, Heart } from "lucide-react";
 import Image from "next/image";
 import { ProductCard } from "@/components/product/product-card";
 import { usePersonalizationStore } from "@/stores/use-personalization-store";
@@ -69,17 +69,41 @@ export function CartDrawer() {
 
         <div className="mt-4 flex-1 overflow-hidden">
           {!cart || !cart.items || cart.items.length === 0 ? (
-            <div className="flex h-full flex-col items-center justify-center space-y-6 text-center px-4">
-              <div className="relative h-40 w-40 opacity-80 mix-blend-multiply">
-                <Image src="https://images.unsplash.com/photo-1555529771-835f59bfc50c?w=400&q=80" alt="Empty Cart" fill sizes="160px" className="object-cover rounded-full grayscale" />
+            <div className="flex h-full flex-col items-center justify-center space-y-6 text-center px-4 py-8">
+              <div className="relative flex h-24 w-24 items-center justify-center rounded-full bg-neutral-100/90 border border-neutral-200/80 shadow-sm">
+                <ShoppingBag className="h-10 w-10 text-neutral-600 stroke-[1.5]" />
               </div>
-              <div>
-                <h3 className="text-xl font-light text-[#1A1A1A]">Your cart is empty</h3>
-                <p className="mt-2 text-sm text-gray-500">Discover our latest arrivals and elevate your wardrobe.</p>
+              <div className="space-y-2 max-w-[280px]">
+                <h3 className="text-xl font-medium tracking-tight text-neutral-900">
+                  Your cart is empty
+                </h3>
+                <p className="text-xs text-neutral-500 leading-relaxed">
+                  Looks like you haven&apos;t added anything to your cart yet. Discover our latest arrivals and elevate your wardrobe.
+                </p>
               </div>
-              <Button onClick={() => setSheetOpen(false)} className="mt-4 bg-[#1A1A1A] px-10 py-6 text-xs font-bold uppercase tracking-widest text-white hover:bg-black">
-                Continue Shopping
-              </Button>
+              <div className="flex flex-col gap-2.5 w-full max-w-[240px] pt-1">
+                <Button
+                  onClick={() => {
+                    setSheetOpen(false);
+                    router.push("/products");
+                  }}
+                  className="h-11 w-full bg-[#1A1A1A] text-xs font-bold uppercase tracking-widest text-white shadow-sm hover:bg-black transition-all"
+                >
+                  Start Shopping
+                  <ArrowRight className="ml-2 h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSheetOpen(false);
+                    router.push("/account/wishlist");
+                  }}
+                  className="h-10 w-full text-xs font-semibold uppercase tracking-wider text-neutral-600 hover:text-black border-neutral-200 hover:bg-neutral-50"
+                >
+                  <Heart className="mr-2 h-3.5 w-3.5 text-rose-500 fill-rose-500/20" />
+                  View Wishlist
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="flex h-full flex-col">
@@ -135,7 +159,7 @@ export function CartDrawer() {
           <div className="mt-auto space-y-4 border-t pt-4 bg-white z-10 relative">
             <div className="flex items-center justify-between font-medium text-[#1A1A1A]">
               <span>Subtotal</span>
-              <span>BDT {subtotal.toLocaleString()}</span>
+              <span>৳{subtotal.toLocaleString()}</span>
             </div>
             <p className="text-xs text-gray-500">
               Shipping & taxes calculated at checkout.
