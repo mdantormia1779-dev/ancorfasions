@@ -9,7 +9,7 @@ import { useWishlistStore } from "@/stores/use-wishlist-store";
 import { useCartStore } from "@/stores/use-cart-store";
 import { useSession } from "@/hooks/use-session";
 import { createClient } from "@/lib/supabase/client";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { cn, formatCurrency } from "@/lib/utils";
 import { toast } from "sonner";
 import { ProductQuickView } from "./product-quick-view";
@@ -22,6 +22,7 @@ interface ProductCardProps {
 
 export function ProductCard({ product, className }: ProductCardProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const { user } = useSession();
   const { wishlist, addItem: addWishlistItem, removeItemByProductId } = useWishlistStore();
   const { addItem: addCartItem } = useCartStore();
@@ -73,7 +74,23 @@ export function ProductCard({ product, className }: ProductCardProps) {
     e.preventDefault();
     e.stopPropagation();
 
-    const role = user?.user_metadata?.role || user?.app_metadata?.role || "CUSTOMER";
+    let currentUser = user;
+    if (!currentUser) {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      currentUser = data?.user ?? null;
+    }
+
+    if (!currentUser) {
+      toast.info("Please log in to add items to your wishlist.");
+      const redirectUrl = product.slug
+        ? `/product/${product.slug}`
+        : pathname || "/";
+      router.push(`/auth/login?next=${encodeURIComponent(redirectUrl)}`);
+      return;
+    }
+
+    const role = currentUser?.user_metadata?.role || currentUser?.app_metadata?.role || "CUSTOMER";
     if (ADMIN_ROLES.includes(role)) {
       toast.error("Admin accounts cannot perform customer shopping actions.");
       return;

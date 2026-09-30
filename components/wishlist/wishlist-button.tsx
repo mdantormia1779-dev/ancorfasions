@@ -38,12 +38,8 @@ export function WishlistButton({
 
     // Auth gate: redirect to login if not authenticated
     if (!user) {
-      toast.info("Please sign in to save items to your wishlist.", {
-        action: {
-          label: "Sign In",
-          onClick: () => router.push(`/auth/login?next=${encodeURIComponent(pathname)}`),
-        },
-      });
+      toast.info("Please log in to add items to your wishlist.");
+      router.push(`/auth/login?next=${encodeURIComponent(pathname)}`);
       return;
     }
 
@@ -68,7 +64,7 @@ export function WishlistButton({
       <Heart
         className={cn(
           "h-5 w-5 transition-transform hover:scale-110",
-          isWishlisted && "fill-destructive text-destructive"
+          isWishlisted && "fill-red-600 text-red-600"
         )}
       />
     </Button>

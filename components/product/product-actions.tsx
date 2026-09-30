@@ -155,7 +155,20 @@ export function ProductActions({
   };
 
   const handleToggleWishlist = async () => {
-    const role = user?.user_metadata?.role || user?.app_metadata?.role || "CUSTOMER";
+    let currentUser = user;
+    if (!currentUser) {
+      const supabase = createClient();
+      const { data } = await supabase.auth.getUser();
+      currentUser = data?.user ?? null;
+    }
+
+    if (!currentUser) {
+      toast.info("Please log in to add items to your wishlist.");
+      router.push(`/auth/login?next=${encodeURIComponent(pathname)}`);
+      return;
+    }
+
+    const role = currentUser?.user_metadata?.role || currentUser?.app_metadata?.role || "CUSTOMER";
     if (ADMIN_ROLES.includes(role)) {
       toast.error("Admin accounts cannot perform customer shopping actions. Please use the Admin Panel.");
       return;
