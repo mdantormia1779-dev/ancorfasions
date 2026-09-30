@@ -11,27 +11,6 @@ export const metadata: Metadata = {
 
 export const revalidate = 60;
 
-// Curated high-res editorial imagery map for each category
-const categoryImageMap: Record<string, string> = {
-  dresses: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
-  tops: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800&q=80",
-  jeans: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80",
-  "coats-jackets": "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=800&q=80",
-  jumpsuits: "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80",
-  playsuits: "https://images.unsplash.com/photo-1496747611176-843222e1e57c?w=800&q=80",
-  trousers: "https://images.unsplash.com/photo-1509631179647-0177331693ae?w=800&q=80",
-  men: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=800&q=80",
-  mens: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=800&q=80",
-  women: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80",
-  womens: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80",
-  kids: "https://images.unsplash.com/photo-1519689680058-324335c77eba?w=800&q=80",
-  accessories: "https://images.unsplash.com/photo-1576053139778-7e32f2ae3cfd?w=800&q=80",
-  bags: "https://images.unsplash.com/photo-1584917865442-de89df76afd3?w=800&q=80",
-  jewellery: "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=800&q=80",
-  sale: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=800&q=80",
-  ethnic: "https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=800&q=80",
-};
-
 export default async function CategoriesPage() {
   const dbCategories: any[] = (await CatalogRepository.getCategories()) || [];
 
@@ -69,24 +48,29 @@ export default async function CategoriesPage() {
         ) : (
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 md:gap-8">
             {validCategories.map((category) => {
-              const image =
-                category.icon_url ||
-                categoryImageMap[category.slug] ||
-                "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80";
-
               return (
                 <Link
                   href={`/categories/${category.slug}`}
                   key={category.id}
                   className="group relative flex aspect-[3/4] w-full flex-col overflow-hidden rounded-2xl bg-neutral-900 shadow-sm transition-all duration-500 hover:shadow-xl"
                 >
-                  <Image
-                    src={image}
-                    alt={category.name}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    className="object-cover transition-transform duration-700 ease-out group-hover:scale-108 opacity-90"
-                  />
+                  {category.icon_url ? (
+                    <Image
+                      src={category.icon_url}
+                      alt={category.name}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-cover transition-transform duration-700 ease-out group-hover:scale-108 opacity-90"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950 flex flex-col items-center justify-center p-4">
+                      <div className="h-16 w-16 rounded-full bg-white/5 border border-[#C9A86A]/20 flex items-center justify-center mb-3">
+                        <span className="text-xl font-light text-[#C9A86A] uppercase tracking-widest">
+                          {category.name ? category.name.slice(0, 2) : "AF"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Dark Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent transition-opacity duration-300 group-hover:from-black/95" />

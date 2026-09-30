@@ -231,8 +231,8 @@ export function BrandsClientPage({ initialBrands }: BrandsClientPageProps) {
 
       {/* Create / Edit Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md">
-          <SheetHeader>
+        <SheetContent side="right" className="w-full sm:max-w-md flex flex-col h-full p-0 gap-0">
+          <SheetHeader className="p-6 pb-4 border-b shrink-0 text-left">
             <SheetTitle>{editTarget ? "Edit Brand" : "Add Brand"}</SheetTitle>
             <SheetDescription>
               {editTarget
@@ -240,7 +240,7 @@ export function BrandsClientPage({ initialBrands }: BrandsClientPageProps) {
                 : "Create a new brand for your catalog."}
             </SheetDescription>
           </SheetHeader>
-          <div className="flex flex-col gap-4 px-4 py-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="brand-name">Name</Label>
               <Input
@@ -287,7 +287,7 @@ export function BrandsClientPage({ initialBrands }: BrandsClientPageProps) {
               />
             </div>
           </div>
-          <SheetFooter className="px-4">
+          <SheetFooter className="p-6 pt-4 border-t bg-background shrink-0 flex flex-row items-center justify-end gap-2">
             <Button variant="outline" onClick={() => setSheetOpen(false)}>
               Cancel
             </Button>

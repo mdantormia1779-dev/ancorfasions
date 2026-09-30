@@ -570,8 +570,8 @@ export function CategoriesClientPage({
 
       {/* Create / Edit Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-full sm:max-w-md">
-          <SheetHeader>
+        <SheetContent side="right" className="w-full sm:max-w-md flex flex-col h-full p-0 gap-0">
+          <SheetHeader className="p-6 pb-4 border-b shrink-0 text-left">
             <SheetTitle>{editTarget ? "Edit Category" : "Add Category"}</SheetTitle>
             <SheetDescription>
               {editTarget
@@ -579,7 +579,7 @@ export function CategoriesClientPage({
                 : "Create a new category for your catalog."}
             </SheetDescription>
           </SheetHeader>
-          <div className="flex flex-col gap-4 px-4 py-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-4">
             {/* Category Image */}
             <div className="space-y-2">
               <Label>Category Image</Label>
@@ -595,7 +595,7 @@ export function CategoriesClientPage({
                     <button
                       type="button"
                       onClick={() => setForm((f) => ({ ...f, icon_url: "" }))}
-                      className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white hover:bg-black/90 transition-colors"
+                      className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white hover:bg-black/90 transition-colors cursor-pointer"
                       title="Remove image"
                     >
                       <X className="h-3 w-3" />
@@ -624,7 +624,7 @@ export function CategoriesClientPage({
                       onClick={() =>
                         document.getElementById("category-image-input")?.click()
                       }
-                      className="w-full gap-2"
+                      className="w-full gap-2 cursor-pointer"
                     >
                       {isUploading ? (
                         <>
@@ -704,7 +704,7 @@ export function CategoriesClientPage({
               />
             </div>
           </div>
-          <SheetFooter className="px-4">
+          <SheetFooter className="p-6 pt-4 border-t bg-background shrink-0 flex flex-row items-center justify-end gap-2">
             <Button variant="outline" onClick={() => setSheetOpen(false)}>
               Cancel
             </Button>

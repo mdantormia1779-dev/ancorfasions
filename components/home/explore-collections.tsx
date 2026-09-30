@@ -22,13 +22,6 @@ export function ExploreCollections({
     return null;
   }
 
-  const fashionImagery = [
-    "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80",
-    "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80",
-    "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80",
-    "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80",
-  ];
-
   const displayItems = activeCollections;
 
   return (
@@ -61,24 +54,32 @@ export function ExploreCollections({
 
         {/* Collections Grid */}
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 md:gap-8">
-          {displayItems.slice(0, 4).map((item: any, index: number) => {
+          {displayItems.slice(0, 4).map((item: any) => {
             const linkHref = `/collections/${item.slug}`;
-            const imageSrc =
-              item.banner_url || fashionImagery[index % fashionImagery.length];
 
             return (
               <div key={item.id} className="group relative flex flex-col">
                 <Link
                   href={linkHref}
-                  className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-zinc-100 shadow-sm transition-all duration-500 group-hover:shadow-2xl"
+                  className="relative aspect-[3/4] w-full overflow-hidden rounded-2xl bg-neutral-900 shadow-sm transition-all duration-500 group-hover:shadow-2xl"
                 >
-                  <Image
-                    src={imageSrc}
-                    alt={item.name}
-                    fill
-                    sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                    className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
-                  />
+                  {item.banner_url ? (
+                    <Image
+                      src={item.banner_url}
+                      alt={item.name}
+                      fill
+                      sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
+                      className="object-cover object-center transition-transform duration-700 ease-out group-hover:scale-105"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950 flex flex-col items-center justify-center p-4">
+                      <div className="h-16 w-16 rounded-full bg-white/5 border border-[#C9A86A]/20 flex items-center justify-center mb-3">
+                        <span className="text-xl font-light text-[#C9A86A] uppercase tracking-widest">
+                          {item.name ? item.name.slice(0, 2) : "CL"}
+                        </span>
+                      </div>
+                    </div>
+                  )}
                   {/* Luxury Gradient Overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/30 to-transparent transition-opacity duration-300 group-hover:opacity-95" />
 

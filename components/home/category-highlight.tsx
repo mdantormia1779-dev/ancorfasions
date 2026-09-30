@@ -8,31 +8,33 @@ interface CategoryHighlightProps {
   categories?: Category[];
 }
 
-const categoryImageMap: Record<string, string> = {
-  mens: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=800&q=80",
-  men: "https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=800&q=80",
-  womens: "https://images.unsplash.com/photo-1490578474895-699cd4e2cf59?w=800&q=80",
-  women: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80",
-  kids: "https://images.unsplash.com/photo-1519689680058-324335c77eba?w=800&q=80",
-  accessories: "https://images.unsplash.com/photo-1509319117193-57bab727e09d?w=800&q=80",
-  dresses: "https://images.unsplash.com/photo-1595777457583-95e059d581b8?w=800&q=80",
-  tops: "https://images.unsplash.com/photo-1503342217505-b0a15ec3261c?w=800&q=80",
-  jeans: "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80",
-};
+function CategoryCardMedia({
+  category,
+  sizes,
+}: {
+  category: Category;
+  sizes: string;
+}) {
+  if (category?.icon_url) {
+    return (
+      <Image
+        src={category.icon_url}
+        alt={category.name}
+        fill
+        sizes={sizes}
+        className="object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
+      />
+    );
+  }
 
-const fashionFallbackImages = [
-  "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&q=80",
-  "https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=800&q=80",
-  "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=800&q=80",
-  "https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=800&q=80",
-];
-
-function getCategoryImg(cat: any, idx: number) {
   return (
-    cat.icon_url ||
-    categoryImageMap[cat.slug?.toLowerCase()] ||
-    categoryImageMap[cat.name?.toLowerCase()] ||
-    fashionFallbackImages[idx % fashionFallbackImages.length]
+    <div className="absolute inset-0 bg-gradient-to-br from-neutral-900 via-neutral-800 to-neutral-950 flex flex-col items-center justify-center p-4">
+      <div className="h-16 w-16 rounded-full bg-white/5 border border-[#C9A86A]/20 flex items-center justify-center mb-3">
+        <span className="text-xl font-light text-[#C9A86A] uppercase tracking-widest">
+          {category?.name ? category.name.slice(0, 2) : "AF"}
+        </span>
+      </div>
+    </div>
   );
 }
 
@@ -78,13 +80,7 @@ export function CategoryHighlight({ categories = [] }: CategoryHighlightProps) {
               href={`/categories/${activeCategories[0].slug}`}
               className="group relative block aspect-[16/9] md:h-[450px] w-full overflow-hidden rounded-2xl bg-neutral-900 shadow-md transition-all duration-500 hover:shadow-2xl"
             >
-              <Image
-                src={getCategoryImg(activeCategories[0], 0)}
-                alt={activeCategories[0].name}
-                fill
-                sizes="100vw"
-                className="object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
-              />
+              <CategoryCardMedia category={activeCategories[0]} sizes="100vw" />
               <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
               <div className="absolute bottom-8 left-8 right-8 flex items-end justify-between text-white">
                 <div>
@@ -106,19 +102,13 @@ export function CategoryHighlight({ categories = [] }: CategoryHighlightProps) {
         {/* 2 Categories: 2-Column Split */}
         {activeCategories.length === 2 && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {activeCategories.map((cat, idx) => (
+            {activeCategories.map((cat) => (
               <Link
                 key={cat.id}
                 href={`/categories/${cat.slug}`}
                 className="group relative block aspect-[4/5] md:h-[450px] w-full overflow-hidden rounded-2xl bg-neutral-900 shadow-md transition-all duration-500 hover:shadow-2xl"
               >
-                <Image
-                  src={getCategoryImg(cat, idx)}
-                  alt={cat.name}
-                  fill
-                  sizes="(max-width: 768px) 100vw, 50vw"
-                  className="object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
-                />
+                <CategoryCardMedia category={cat} sizes="(max-width: 768px) 100vw, 50vw" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
                 <div className="absolute bottom-8 left-8 right-8 flex items-end justify-between text-white">
                   <div>
@@ -141,19 +131,13 @@ export function CategoryHighlight({ categories = [] }: CategoryHighlightProps) {
         {/* 3 Categories: 3-Column Grid */}
         {activeCategories.length === 3 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {activeCategories.map((cat, idx) => (
+            {activeCategories.map((cat) => (
               <Link
                 key={cat.id}
                 href={`/categories/${cat.slug}`}
                 className="group relative block aspect-[3/4] md:h-[450px] w-full overflow-hidden rounded-2xl bg-neutral-900 shadow-md transition-all duration-500 hover:shadow-2xl"
               >
-                <Image
-                  src={getCategoryImg(cat, idx)}
-                  alt={cat.name}
-                  fill
-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-                  className="object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
-                />
+                <CategoryCardMedia category={cat} sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/25 to-transparent" />
                 <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between text-white">
                   <div>
@@ -182,13 +166,7 @@ export function CategoryHighlight({ categories = [] }: CategoryHighlightProps) {
                 href={`/categories/${activeCategories[0].slug}`}
                 className="group relative block aspect-[4/5] w-full overflow-hidden bg-gray-50 md:aspect-auto md:h-[500px]"
               >
-                <Image
-                  src={getCategoryImg(activeCategories[0], 0)}
-                  alt={activeCategories[0].name}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
-                />
+                <CategoryCardMedia category={activeCategories[0]} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-80 transition-opacity group-hover:opacity-100" />
                 <div className="absolute bottom-8 left-8 right-8 flex items-end justify-between">
                   <div className="text-white">
@@ -210,13 +188,7 @@ export function CategoryHighlight({ categories = [] }: CategoryHighlightProps) {
                   href={`/categories/${activeCategories[2].slug}`}
                   className="group relative block aspect-square w-full overflow-hidden bg-gray-50 md:aspect-auto md:h-[300px]"
                 >
-                  <Image
-                    src={getCategoryImg(activeCategories[2], 2)}
-                    alt={activeCategories[2].name}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
-                  />
+                  <CategoryCardMedia category={activeCategories[2]} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-80 transition-opacity group-hover:opacity-100" />
                   <div className="absolute bottom-6 left-6 text-white">
                     <h3 className={`${jost.className} mb-1 text-xl font-medium`}>
@@ -231,13 +203,7 @@ export function CategoryHighlight({ categories = [] }: CategoryHighlightProps) {
                   href={`/categories/${activeCategories[3].slug}`}
                   className="group relative block aspect-square w-full overflow-hidden bg-gray-50 md:aspect-auto md:h-[300px]"
                 >
-                  <Image
-                    src={getCategoryImg(activeCategories[3], 3)}
-                    alt={activeCategories[3].name}
-                    fill
-                    sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                    className="object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
-                  />
+                  <CategoryCardMedia category={activeCategories[3]} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-80 transition-opacity group-hover:opacity-100" />
                   <div className="absolute bottom-6 left-6 text-white">
                     <h3 className={`${jost.className} mb-1 text-xl font-medium`}>
@@ -257,13 +223,7 @@ export function CategoryHighlight({ categories = [] }: CategoryHighlightProps) {
                 href={`/categories/${activeCategories[1].slug}`}
                 className="group relative block h-full w-full overflow-hidden bg-gray-50"
               >
-                <Image
-                  src={getCategoryImg(activeCategories[1], 1)}
-                  alt={activeCategories[1].name}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover transition-transform duration-1000 ease-out group-hover:scale-105"
-                />
+                <CategoryCardMedia category={activeCategories[1]} sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent opacity-80 transition-opacity group-hover:opacity-100" />
                 <div className="absolute bottom-8 left-8 right-8 flex items-end justify-between">
                   <div className="text-white">
