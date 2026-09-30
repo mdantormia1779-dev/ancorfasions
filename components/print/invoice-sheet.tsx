@@ -1,6 +1,8 @@
+"use client";
+
 import React from "react";
-import { CheckCircle2, AlertCircle, ShieldCheck } from "lucide-react";
 import { ClientBarcode } from "@/components/ui/ClientBarcode";
+import { ClientQRCode } from "@/components/ui/ClientQRCode";
 
 export interface InvoiceItem {
   id?: string;
@@ -17,7 +19,10 @@ export interface InvoiceData {
   invoiceNumber: string;
   orderNumber: string;
   orderDate: string;
-  printDate: string;
+  orderTime?: string;
+  printDate?: string;
+  barcodeValue?: string;
+  qrCodeUrl?: string;
   customer: {
     name: string;
     phone: string;
@@ -36,303 +41,344 @@ export interface InvoiceData {
     discountTotal: number;
     taxTotal?: number;
     grandTotal: number;
+    servedBy?: string;
+    cashier?: string;
+    branchName?: string;
+    branchAddress?: string;
   };
   items: InvoiceItem[];
 }
 
-function formatBDT(amount: number | string | null | undefined): string {
-  const num = Number(amount || 0);
-  return `${num.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 2 })} BDT`;
-}
-
 export function InvoiceSheet({ data }: { data: InvoiceData }) {
-  const { invoiceNumber, orderNumber, orderDate, printDate, customer, order, items } = data;
+  const {
+    invoiceNumber,
+    orderNumber,
+    orderDate,
+    orderTime = "12:00:00",
+    customer,
+    order,
+    items,
+    barcodeValue: customBarcode,
+    qrCodeUrl: customQrUrl,
+  } = data;
 
-  const totalQuantity = items.reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
+  // Compute item counts & amounts
+  const totalQuantity = items.reduce(
+    (acc, it) => acc + (Number(it.quantity) || 1),
+    0
+  );
+
+  // Total gross MRP before item or order discounts
+  const totalMRP = items.reduce((acc, it) => {
+    const qty = Math.max(1, Number(it.quantity) || 1);
+    const unitP = Number(it.unit_price) || 0;
+    const lineTot = Number(it.line_total ?? it.total_price ?? unitP * qty);
+    const effectiveUnit = unitP > 0 ? unitP : (qty > 0 ? lineTot / qty : 0);
+    return acc + effectiveUnit * qty;
+  }, 0);
+
+  // Line items subtotal (sum of all line totals)
+  const lineItemsSubtotal = items.reduce((acc, it) => {
+    const qty = Math.max(1, Number(it.quantity) || 1);
+    const unitP = Number(it.unit_price) || 0;
+    return acc + Number(it.line_total ?? it.total_price ?? unitP * qty);
+  }, 0);
+
+  const discountAmount = Math.max(
+    0,
+    Number(order.discountTotal || 0) > 0
+      ? Number(order.discountTotal)
+      : Math.round(totalMRP - lineItemsSubtotal)
+  );
+
+  const discountPercent =
+    totalMRP > 0 ? Math.round((discountAmount / totalMRP) * 100) : 0;
+
+  const netAmount = Math.round(Number(order.grandTotal ?? order.subtotal ?? lineItemsSubtotal));
+
+  // Inclusive VAT (10%) as per NBR retail standard (Net * 10 / 110)
+  const vatAmount =
+    Number(order.taxTotal || 0) > 0
+      ? Number(order.taxTotal).toFixed(2)
+      : ((netAmount * 10) / 110).toFixed(2);
+
+  const paidAmount = order.isPaid ? netAmount : 0;
+  const changeAmount = 0;
+
+  // Barcode string: use provided barcode or numeric/order number
+  const barcodeToUse =
+    customBarcode ||
+    orderNumber.replace(/[^A-Za-z0-9]/g, "") ||
+    invoiceNumber.replace(/[^A-Za-z0-9]/g, "") ||
+    "2608052500467877";
+
+  // QR Code URL: fallback to website or tracking URL
+  const qrToUse =
+    customQrUrl ||
+    (typeof window !== "undefined"
+      ? window.location.href
+      : "https://anchorfashion.com");
+
+  // Payment text matching reference image (e.g. MFS - Bangla QR: 4842 or COD - Cash on Delivery: 4842)
+  const paymentMethodLabel = order.isPaid
+    ? `${order.paymentMethod || "Online Payment"}: ${netAmount}`
+    : `COD - Cash on Delivery: ${netAmount}`;
 
   return (
-    <div className="relative w-full max-w-[800px] mx-auto bg-white border border-slate-200 print:border-none shadow-sm print:shadow-none p-6 sm:p-8 print:p-0 print:max-w-none print:w-full text-slate-900 font-sans text-xs print:text-[11px] leading-normal print:leading-tight break-inside-avoid print:break-inside-avoid" style={{ pageBreakInside: "avoid" }}>
-      
-      {/* 1. Header: Business Details & Invoice Reference */}
-      <div className="flex flex-row justify-between items-start gap-4 pb-3">
-        {/* Left: Brand Logo & Business Information */}
-        <div className="space-y-1 max-w-[50%]">
-          {/* Official Brand Logo */}
-          <div className="flex items-center">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src="/logo.png"
-              alt="Anchor Fashion"
-              className="h-11 sm:h-12 w-auto object-contain block"
-            />
-          </div>
-          <p className="text-[11px] font-semibold text-slate-700 pt-0.5">
-            Anchor Fashion Lifestyle & Apparel
+    <div
+      className="relative w-full max-w-[480px] mx-auto bg-white border border-gray-300 print:border-none shadow-sm print:shadow-none p-5 sm:p-7 print:p-0 print:max-w-none text-black font-sans text-xs print:text-[11px] leading-tight break-inside-avoid print:break-inside-avoid"
+      style={{ pageBreakInside: "avoid" }}
+    >
+      {/* 1. Top Right: Mushak-6.3 */}
+      <div className="text-right font-bold text-xs sm:text-[13px] tracking-wide mb-1 text-black">
+        Mushak-6.3
+      </div>
+
+      {/* 2. Official Header (Centered) */}
+      <div className="text-center space-y-0.5 text-black">
+        <p className="text-[10px] sm:text-[11px] text-gray-800">
+          Government of the people&apos;s Republic of Bangladesh
+        </p>
+        <p className="text-[9.5px] sm:text-[10px] text-gray-700">
+          National Board of Revenue
+        </p>
+        <h1 className="text-sm sm:text-base font-bold tracking-tight text-black pt-0.5">
+          Anchor Fashion Ltd
+        </h1>
+        <p className="text-[9.5px] sm:text-[10px] text-gray-800">
+          Central BIN : 001168309-0101
+        </p>
+        <p className="text-[9px] sm:text-[9.5px] text-gray-700">
+          Central Address : Plot No# 01, Section #07, Mirpur - 1216, Dhaka
+        </p>
+        <p className="text-[10.5px] font-bold text-black pt-0.5">
+          {order.branchName || "Online Store Branch"}
+        </p>
+        <p className="text-[9px] sm:text-[9.5px] text-gray-700">
+          Branch Address : {order.branchAddress || "Banani, Road #11, Block #D, Dhaka - 1213"}
+        </p>
+      </div>
+
+      {/* Under Header Divider */}
+      <div className="w-full border-t border-black my-2" />
+
+      {/* 3. Order & Customer Info (Left) + Date (Right) */}
+      <div className="flex justify-between items-start text-[11px] leading-[1.35] mb-2 text-black">
+        <div className="space-y-0.5 pr-2">
+          <p className="font-mono font-bold tracking-wider">{barcodeToUse}</p>
+          <p>
+            <span className="font-normal text-gray-800">Name:</span>{" "}
+            <span className="font-semibold">{customer.name}</span>
           </p>
-          <div className="text-[10px] text-slate-500 space-y-0.5 leading-tight">
-            <p>123 Fashion Avenue, Dhaka 1212, Bangladesh</p>
-            <p>
-              Hotline: <span className="font-semibold text-slate-700">+880 1234 567890</span> · Email: <span className="font-semibold text-slate-700">support@anchorfashion.com</span>
-            </p>
-            <p>Website: <span className="font-semibold text-slate-700">www.anchorfashion.com</span></p>
-          </div>
+          <p>
+            <span className="font-normal text-gray-800">Address:</span>{" "}
+            <span>{customer.address}</span>
+          </p>
+          <p>
+            <span className="font-normal text-gray-800">Phone:</span>{" "}
+            <span className="font-mono font-medium">{customer.phone}</span>
+          </p>
+          <p>
+            <span className="font-normal text-gray-800">Served by:</span>{" "}
+            <span>{order.servedBy || "Online Store"}</span>
+          </p>
+          <p>
+            <span className="font-normal text-gray-800">Time:</span>{" "}
+            <span className="font-mono">{orderTime}</span>
+          </p>
+          <p>
+            <span className="font-normal text-gray-800">Cashier:</span>{" "}
+            <span>{order.cashier || "Web"}</span>
+          </p>
         </div>
-
-        {/* Right: Document Identification & Status */}
-        <div className="text-right space-y-1">
-          <h1 className="text-2xl font-black tracking-wider text-[#122B59] uppercase leading-none">
-            INVOICE
-          </h1>
-          <div className="pt-0.5 space-y-0.5">
-            <p className="font-mono font-bold text-slate-900 text-sm">{invoiceNumber}</p>
-            <p className="text-[10px] text-slate-500">
-              Order Ref: <span className="font-mono font-semibold text-slate-800">{orderNumber}</span>
-            </p>
-            <p className="text-[10px] text-slate-500">
-              Date: <span className="font-medium text-slate-700">{orderDate}</span>
-            </p>
-          </div>
-
-          <div className="pt-1">
-            {order.isPaid ? (
-              <span className="inline-flex items-center gap-1 bg-emerald-600 text-white font-bold text-[10px] px-2.5 py-0.5 rounded shadow-xs uppercase tracking-wider">
-                <CheckCircle2 className="w-3 h-3" />
-                PAID IN FULL
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1 bg-amber-600 text-white font-bold text-[10px] px-2.5 py-0.5 rounded shadow-xs uppercase tracking-wider">
-                <AlertCircle className="w-3 h-3" />
-                CASH ON DELIVERY (COD)
-              </span>
-            )}
-          </div>
+        <div className="text-right font-mono text-[11px] text-black shrink-0 font-medium pt-0.5">
+          {orderDate}
         </div>
       </div>
 
-      {/* Corporate Accent Stripe: Navy Blue & Gold */}
-      <div className="w-full h-1 bg-[#122B59] rounded-t-xs relative mb-3">
-        <div className="absolute inset-x-0 bottom-0 h-[1.5px] bg-[#C9A86A]"></div>
-      </div>
+      {/* Horizontal Divider */}
+      <div className="w-full border-t-2 border-dashed border-black my-2" />
 
-      {/* 2. Customer & Order Details Grid */}
-      <div className="grid grid-cols-2 gap-3 mb-3">
-        {/* Customer Information */}
-        <div className="p-2.5 rounded border border-slate-200 bg-slate-50/70 space-y-1">
-          <div className="flex items-center justify-between border-b border-slate-200/80 pb-1 mb-1">
-            <span className="font-bold text-[#122B59] uppercase tracking-wider text-[10px]">
-              Customer Details (Bill & Ship To)
-            </span>
-          </div>
-          <p className="font-bold text-slate-900 text-xs">{customer.name}</p>
-          <p className="text-slate-700 font-mono text-[11px]">
-            <span className="text-slate-500 font-sans">Phone:</span> {customer.phone}
-          </p>
-          {customer.email && customer.email !== "N/A" && (
-            <p className="text-slate-600 text-[11px] truncate">
-              <span className="text-slate-500">Email:</span> {customer.email}
-            </p>
-          )}
-          <p className="text-slate-700 text-[11px] leading-snug pt-0.5">
-            <span className="text-slate-500">Address:</span> {customer.address}
-          </p>
-        </div>
-
-        {/* Order & Delivery Summary */}
-        <div className="p-2.5 rounded border border-slate-200 bg-slate-50/70 space-y-1">
-          <div className="flex items-center justify-between border-b border-slate-200/80 pb-1 mb-1">
-            <span className="font-bold text-[#122B59] uppercase tracking-wider text-[10px]">
-              Order & Shipping Details
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[11px]">
-            <div>
-              <span className="text-slate-500 text-[10px] block">Payment Method</span>
-              <span className="font-semibold text-slate-800">{order.paymentMethod}</span>
-            </div>
-            <div>
-              <span className="text-slate-500 text-[10px] block">Payment Status</span>
-              <span className={`font-bold ${order.isPaid ? "text-emerald-700" : "text-amber-700"}`}>
-                {order.isPaid ? "Paid Online" : "COD Pending"}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-500 text-[10px] block">Courier Partner</span>
-              <span className="font-semibold text-slate-800">{order.courierName}</span>
-            </div>
-            <div>
-              <span className="text-slate-500 text-[10px] block">Tracking No.</span>
-              <span className="font-mono font-semibold text-slate-800">{order.trackingNumber || "Assigned at Dispatch"}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. Items Table */}
-      <div className="rounded border border-slate-200 overflow-hidden mb-3">
-        <table className="w-full text-left text-[11px] border-collapse">
+      {/* 4. Items Table */}
+      <div className="w-full mb-1">
+        <table className="w-full text-left text-[11px] border-collapse text-black">
           <thead>
-            <tr className="bg-[#122B59] text-white uppercase text-[9.5px] tracking-wider font-semibold">
-              <th className="py-1.5 px-2.5 text-center w-8">#</th>
-              <th className="py-1.5 px-2.5">Item Description</th>
-              <th className="py-1.5 px-2.5 w-24">SKU</th>
-              <th className="py-1.5 px-2.5 text-center w-12">Qty</th>
-              <th className="py-1.5 px-2.5 text-right w-24">Unit Price</th>
-              <th className="py-1.5 px-2.5 text-right w-28">Total</th>
+            <tr className="border-b border-black text-[10px] font-bold">
+              <th className="py-1 text-left">Description</th>
+              <th className="py-1 text-center w-8">Qty</th>
+              <th className="py-1 text-right w-12">MRP</th>
+              <th className="py-1 text-right w-10">Dis%</th>
+              <th className="py-1 text-right w-14">Amount</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-200">
+          <tbody className="divide-y divide-gray-200">
             {items.map((item, idx) => {
-              const unitPrice = Number(item.unit_price) || 0;
-              const qty = Number(item.quantity) || 1;
-              const lineTotal = Number(item.line_total ?? item.total_price ?? (unitPrice * qty));
+              const qty = Math.max(1, Number(item.quantity) || 1);
+              const lineTotal = Number(
+                item.line_total ??
+                  item.total_price ??
+                  Number(item.unit_price) * qty
+              );
+              const mrp =
+                Number(item.unit_price) ||
+                (qty > 0 ? Math.round(lineTotal / qty) : 0);
+              const originalTotal = mrp * qty;
+              const disPercent =
+                originalTotal > lineTotal && originalTotal > 0
+                  ? Math.round(
+                      ((originalTotal - lineTotal) / originalTotal) * 100
+                    )
+                  : 0;
+
+              // Format clean product description
+              const descriptionParts = [
+                item.sku ? `${item.sku}` : "",
+                item.product_name,
+                item.variant_name ? `| ${item.variant_name}` : "",
+              ].filter(Boolean);
+
+              const description = descriptionParts.join(" ");
 
               return (
-                <tr key={item.id || idx} className={idx % 2 === 1 ? "bg-slate-50/50" : "bg-white"}>
-                  <td className="py-1.5 px-2.5 text-center font-mono text-slate-500 font-medium">
-                    {idx + 1}
-                  </td>
-                  <td className="py-1.5 px-2.5">
-                    <span className="font-bold text-slate-900 leading-tight block">
-                      {item.product_name}
+                <tr key={item.id || idx} className="align-top">
+                  <td className="py-1 pr-1.5 leading-tight">
+                    <span className="text-[10.5px] font-normal break-words">
+                      {description}
                     </span>
-                    {item.variant_name && (
-                      <span className="inline-block mt-0.5 text-[9.5px] font-medium text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded border border-slate-200">
-                        {item.variant_name}
-                      </span>
-                    )}
                   </td>
-                  <td className="py-1.5 px-2.5 font-mono text-slate-500 text-[10px]">
-                    {item.sku || "—"}
+                  <td className="py-1 text-center font-mono text-[11px]">{qty}</td>
+                  <td className="py-1 text-right font-mono text-[11px]">{mrp}</td>
+                  <td className="py-1 text-right font-mono text-[11px]">
+                    {disPercent}
                   </td>
-                  <td className="py-1.5 px-2.5 text-center font-bold text-slate-900">
-                    {qty}
-                  </td>
-                  <td className="py-1.5 px-2.5 text-right font-medium text-slate-700">
-                    {formatBDT(unitPrice)}
-                  </td>
-                  <td className="py-1.5 px-2.5 text-right font-bold text-slate-950">
-                    {formatBDT(lineTotal)}
+                  <td className="py-1 text-right font-mono text-[11px]">
+                    {lineTotal}
                   </td>
                 </tr>
               );
             })}
           </tbody>
         </table>
+
+        {/* Sub Total Row */}
+        <div className="w-full border-t border-black my-1" />
+        <div className="flex justify-between items-center text-[11px] font-bold py-0.5">
+          <div className="w-1/2">Sub Total</div>
+          <div className="w-8 text-center font-mono">{totalQuantity}</div>
+          <div className="flex-1 text-right font-mono">{lineItemsSubtotal}</div>
+        </div>
       </div>
 
-      {/* 4. Settlement & Financial Breakdown */}
-      <div className="grid grid-cols-2 gap-4 items-start mb-4">
-        {/* Left: Settlement Note, Exchange Policy & Barcode */}
-        <div className="space-y-2">
-          {/* Payment Note */}
-          {order.isPaid ? (
-            <div className="p-2 rounded border border-emerald-200 bg-emerald-50/70 text-emerald-950 text-[10.5px]">
-              <div className="flex items-center gap-1.5 font-bold text-emerald-900">
-                <ShieldCheck className="h-3.5 w-3.5 text-emerald-700" />
-                Payment Confirmed Online
-              </div>
-              <p className="text-[10px] text-emerald-800 mt-0.5">
-                Full amount paid online. No collection needed upon parcel delivery.
-              </p>
-            </div>
-          ) : (
-            <div className="p-2 rounded border border-amber-300 bg-amber-50/80 text-amber-950 text-[10.5px]">
-              <div className="flex items-center gap-1.5 font-bold text-amber-900">
-                <AlertCircle className="h-3.5 w-3.5 text-amber-700" />
-                COD Payable: {formatBDT(order.grandTotal)}
-              </div>
-              <p className="text-[10px] text-amber-800 mt-0.5">
-                Please keep exact cash ready for courier handover.
-              </p>
-            </div>
-          )}
+      {/* Horizontal Divider */}
+      <div className="w-full border-t border-dashed border-black my-2" />
 
-          {/* Return & Support Note */}
-          <div className="p-2 rounded border border-slate-200 bg-slate-50/60 text-[10px] text-slate-600 space-y-0.5">
-            <p className="font-semibold text-slate-700 uppercase tracking-wide text-[9.5px]">
-              Customer Support & Return Policy:
-            </p>
-            <p>• 7-day exchange warranty with original unworn condition & attached tags.</p>
-            <p>• For inquiries, call <strong>+880 1234 567890</strong> or email <strong>support@anchorfashion.com</strong>.</p>
+      {/* 5. Summary Section (Right Aligned) */}
+      <div className="flex justify-end my-2">
+        <div className="w-56 sm:w-64 text-[11px] space-y-0.5 text-black">
+          <div className="flex justify-between">
+            <span>Total Amount:</span>
+            <span className="font-mono">{totalMRP}</span>
           </div>
-
-          {/* Compact Barcode */}
-          <div className="flex flex-col items-start pt-0.5">
-            <ClientBarcode
-              value={orderNumber}
-              format="CODE128"
-              width={1.3}
-              height={24}
-              fontSize={10}
-              margin={0}
-              background="transparent"
-            />
+          <div className="flex justify-between">
+            <span>Discount:</span>
+            <span className="font-mono">{discountAmount}</span>
           </div>
-        </div>
-
-        {/* Right: Financial Cost Breakdown */}
-        <div className="rounded border border-slate-200 overflow-hidden bg-white text-[11px]">
-          <div className="bg-[#122B59]/5 px-3 py-1.5 border-b border-slate-200 font-bold text-[#122B59] uppercase tracking-wider text-[9.5px]">
-            Statement Summary ({items.length} {items.length === 1 ? "Item" : "Items"} · {totalQuantity} Pcs)
+          <div className="flex justify-between">
+            <span>Discount(%):</span>
+            <span className="font-mono">{discountPercent}</span>
           </div>
-          <div className="p-2.5 space-y-1.5">
-            <div className="flex justify-between items-center text-slate-600">
-              <span>Subtotal:</span>
-              <span className="font-semibold text-slate-900">{formatBDT(order.subtotal)}</span>
-            </div>
-
-            <div className="flex justify-between items-center text-slate-600">
-              <span>Delivery / Shipping Fee:</span>
-              <span className="font-semibold text-slate-900">{formatBDT(order.shippingTotal)}</span>
-            </div>
-
-            {Number(order.discountTotal || 0) > 0 && (
-              <div className="flex justify-between items-center text-emerald-700 font-medium">
-                <span>Promotional Discount:</span>
-                <span>-{formatBDT(order.discountTotal)}</span>
-              </div>
-            )}
-
-            {Number(order.taxTotal || 0) > 0 && (
-              <div className="flex justify-between items-center text-slate-600">
-                <span>VAT / Tax (Included):</span>
-                <span className="font-semibold text-slate-900">{formatBDT(order.taxTotal)}</span>
-              </div>
-            )}
-
-            {/* Net Total Highlight Box */}
-            <div className="border-t border-slate-200 pt-1.5 mt-1">
-              <div className="flex justify-between items-center bg-[#122B59] text-white px-3 py-2 rounded shadow-xs">
-                <span className="font-bold text-xs tracking-wider uppercase">
-                  TOTAL AMOUNT:
-                </span>
-                <span className="font-black text-sm tracking-tight text-[#C9A86A]">
-                  {formatBDT(order.grandTotal)}
-                </span>
-              </div>
-            </div>
+          <div className="flex justify-between">
+            <span>Bag Discount:</span>
+            <span className="font-mono">0</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Including VAT(10%) VAT:</span>
+            <span className="font-mono">{vatAmount}</span>
+          </div>
+          <div className="flex justify-between font-bold">
+            <span>Net Amount:</span>
+            <span className="font-mono font-bold">{netAmount}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Paid Amount:</span>
+            <span className="font-mono">{paidAmount}</span>
+          </div>
+          <div className="flex justify-between">
+            <span>Change Amount:</span>
+            <span className="font-mono">{changeAmount}</span>
           </div>
         </div>
       </div>
 
-      {/* 5. Official Signatures & Footer Close */}
-      <div className="pt-4 border-t border-slate-200 grid grid-cols-2 gap-8 text-[10px] text-slate-600">
-        <div className="text-center">
-          <div className="border-b border-slate-400 w-36 mx-auto mb-1"></div>
-          <p className="font-bold text-slate-800">Authorized Signature</p>
-          <p className="text-slate-400">Anchor Fashion Dispatch</p>
-        </div>
-        <div className="text-center">
-          <div className="border-b border-slate-400 w-36 mx-auto mb-1"></div>
-          <p className="font-bold text-slate-800">Customer Signature</p>
-          <p className="text-slate-400">Received In Good Condition</p>
-        </div>
+      {/* Horizontal Divider */}
+      <div className="w-full border-t border-dashed border-black my-2" />
+
+      {/* 6. Payment Info */}
+      <div className="text-[11px] my-2 text-black leading-tight">
+        <p className="font-semibold mb-0.5">Payment Info:</p>
+        <p className="font-mono text-[10.5px]">{paymentMethodLabel}</p>
       </div>
 
-      <div className="pt-3 text-center text-[9.5px] text-slate-400 border-t border-slate-100 mt-3 flex justify-between items-center">
-        <span>Anchor Fashion ERP · Official Invoice</span>
-        <span>Printed on {printDate}</span>
-        <span>Thank you for shopping with us!</span>
+      {/* Horizontal Divider */}
+      <div className="w-full border-t border-dashed border-black my-2" />
+
+      {/* 7. Instructions */}
+      <div className="text-[9.5px] sm:text-[10px] leading-tight my-2 text-black space-y-0.5">
+        <p className="font-semibold">Instructions:</p>
+        <p className="text-gray-800 leading-snug">
+          We accept the exchange of unworn and unaltered garments within 15 days
+          of purchase provided that the original invoice, tags, and packaging are
+          carefully preserved. Exchange is allowed only once for a product of an
+          invoice.
+        </p>
+      </div>
+
+      {/* 8. Contact & Approval Details (Centered) */}
+      <div className="text-center text-[10px] leading-[1.3] space-y-0.5 my-3 text-black">
+        <p>
+          <span className="font-semibold">Web Address :</span> anchorfashion.com
+        </p>
+        <p>
+          <span className="font-semibold">Customer Care :</span> +8801885598889
+        </p>
+        <p>
+          <span className="font-semibold">Shop Concern :</span> +8801885813370
+        </p>
+        <p>
+          <span className="font-semibold">Email :</span> info@anchorfashion.com
+        </p>
+        <p className="pt-0.5">
+          <span className="font-semibold">System by:</span> Anchor Fashion Ltd.
+        </p>
+        <p className="font-semibold pt-0.5">
+          Approved by: National Board of Revenue
+        </p>
+        <p className="font-semibold">(NBR)</p>
+      </div>
+
+      {/* 9. Barcode (Centered) */}
+      <div className="flex flex-col items-center justify-center my-3">
+        <ClientBarcode
+          value={barcodeToUse}
+          format="CODE128"
+          width={1.6}
+          height={38}
+          fontSize={11}
+          margin={0}
+          displayValue={true}
+          background="transparent"
+        />
+      </div>
+
+      {/* Horizontal Divider */}
+      <div className="w-full border-t border-dotted border-black my-3" />
+
+      {/* 10. QR Code (Centered) */}
+      <div className="flex flex-col items-center justify-center my-3 space-y-1.5">
+        <ClientQRCode value={qrToUse} size={110} level="M" />
+        <p className="text-[11px] font-semibold text-black tracking-wide">
+          Scan to Download Our App
+        </p>
       </div>
     </div>
   );

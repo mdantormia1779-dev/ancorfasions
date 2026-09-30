@@ -66,19 +66,21 @@ export default async function AdminPrintInvoicePage(props: { params: Promise<{ i
   const invoiceNumber = order.invoice_number || (order.order_number ? order.order_number.replace(/^ORD-/, "INV-") : "INV-ADMIN");
   const orderNumber = order.order_number || order.id?.slice(0, 8).toUpperCase() || "ORD-0000";
 
-  const orderDate = new Date(order.created_at || Date.now()).toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  });
+  const orderDateObj = new Date(order.created_at || Date.now());
+  const day = String(orderDateObj.getDate()).padStart(2, "0");
+  const month = String(orderDateObj.getMonth() + 1).padStart(2, "0");
+  const year = orderDateObj.getFullYear();
+  const orderDate = `${day}-${month}-${year}`;
 
-  const printDate = new Date().toLocaleDateString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const hours = String(orderDateObj.getHours()).padStart(2, "0");
+  const minutes = String(orderDateObj.getMinutes()).padStart(2, "0");
+  const seconds = String(orderDateObj.getSeconds()).padStart(2, "0");
+  const orderTime = `${hours}:${minutes}:${seconds}`;
+
+  const cleanNumericDigits = (order.id || "").replace(/\D/g, "").slice(0, 10);
+  const barcodeValue = `${year.toString().slice(-2)}${month}${day}${cleanNumericDigits.padEnd(10, "0")}`;
+
+  const printDate = `${day}-${month}-${year} ${orderTime}`;
 
   const customerName =
     order.customer?.full_name ||
@@ -127,7 +129,9 @@ export default async function AdminPrintInvoicePage(props: { params: Promise<{ i
     invoiceNumber,
     orderNumber,
     orderDate,
+    orderTime,
     printDate,
+    barcodeValue,
     customer: {
       name: recipientName,
       phone: recipientPhone,
@@ -135,7 +139,7 @@ export default async function AdminPrintInvoicePage(props: { params: Promise<{ i
       address: deliveryAddress,
     },
     order: {
-      paymentMethod: order.payment_intent_id ? "Online (bKash/Card)" : isCod ? "Cash on Delivery (COD)" : (order.payment_method || "Prepaid"),
+      paymentMethod: order.payment_intent_id ? "MFS - Online Payment" : isCod ? "COD - Cash on Delivery" : (order.payment_method || "Prepaid"),
       paymentStatus: isPaid ? "Paid Online" : "COD Pending",
       isPaid,
       isCod,
@@ -146,6 +150,10 @@ export default async function AdminPrintInvoicePage(props: { params: Promise<{ i
       discountTotal: Number(order.discount_total || 0),
       taxTotal: Number(order.tax_total || 0),
       grandTotal,
+      servedBy: "Shojol Mia",
+      cashier: "Web",
+      branchName: "Dhaka Branch",
+      branchAddress: "H-271, Station road, Jahaj company mor, Rangpur , 5400",
     },
     items: items.map((it: any) => ({
       id: it.id,
