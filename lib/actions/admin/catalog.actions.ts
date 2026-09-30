@@ -26,7 +26,7 @@ const CategorySchema = z.object({
   name: z.string().min(1, "Name is required").max(255),
   slug: z.string().min(1, "Slug is required").max(255),
   parent_id: z.string().uuid().nullable().optional().or(z.literal("").transform(() => null)),
-  icon_url: z.string().url().nullable().optional().or(z.literal("").transform(() => null)),
+  icon_url: z.string().nullable().optional().or(z.literal("").transform(() => null)),
   is_active: z.boolean().optional().default(true),
   display_order: z.number().int().optional().default(0),
 });

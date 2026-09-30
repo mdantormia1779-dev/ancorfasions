@@ -28,7 +28,11 @@ export function invalidateCategoryCache() {
     revalidateTag(CACHE_TAGS.CATEGORIES, "max");
     revalidateTag(CACHE_TAGS.CATALOG, "max");
     revalidateTag(CACHE_TAGS.HOMEPAGE, "max");
+    revalidatePath("/", "page");
+    revalidatePath("/", "layout");
     revalidatePath("/(shop)", "layout");
+    revalidatePath("/(shop)", "page");
+    revalidatePath("/categories");
   } catch (error) {
     console.warn("Failed to invalidate category cache tags:", error);
   }

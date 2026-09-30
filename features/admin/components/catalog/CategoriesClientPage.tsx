@@ -31,7 +31,20 @@ import {
   deleteCategoryAction,
 } from "@/lib/actions/admin/catalog.actions";
 import { Category } from "@/types/catalog.types";
-import { Pencil, Trash2, Check, ChevronDown, Search, X } from "lucide-react";
+import {
+  Pencil,
+  Trash2,
+  Check,
+  ChevronDown,
+  Search,
+  X,
+  Upload,
+  Loader2,
+  ImageIcon,
+} from "lucide-react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { uploadImageAction } from "@/lib/actions/upload.actions";
 import { cn } from "@/lib/utils";
 
 interface CategoriesClientPageProps {
@@ -297,11 +310,13 @@ function ParentCategorySelect({
 export function CategoriesClientPage({
   initialCategories,
 }: CategoriesClientPageProps) {
+  const router = useRouter();
   const [categories, setCategories] = useState(initialCategories);
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Category | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
@@ -311,12 +326,14 @@ export function CategoriesClientPage({
     name: string;
     slug: string;
     parent_id: string | null;
+    icon_url: string;
     is_active: boolean;
     display_order: number;
   }>({
     name: "",
     slug: "",
     parent_id: "",
+    icon_url: "",
     is_active: true,
     display_order: 0,
   });
@@ -333,7 +350,14 @@ export function CategoriesClientPage({
 
   const openAdd = () => {
     setEditTarget(null);
-    setForm({ name: "", slug: "", parent_id: "", is_active: true, display_order: 0 });
+    setForm({
+      name: "",
+      slug: "",
+      parent_id: "",
+      icon_url: "",
+      is_active: true,
+      display_order: 0,
+    });
     setSheetOpen(true);
   };
 
@@ -343,6 +367,7 @@ export function CategoriesClientPage({
       name: category.name,
       slug: category.slug,
       parent_id: category.parent_id ?? "",
+      icon_url: category.icon_url ?? "",
       is_active: category.is_active,
       display_order: category.display_order,
     });
@@ -357,6 +382,33 @@ export function CategoriesClientPage({
     }));
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      if (!e.target.files || e.target.files.length === 0) return;
+      const file = e.target.files[0];
+      setIsUploading(true);
+
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("bucket", "products");
+      formData.append("folder", "categories");
+
+      const res = await uploadImageAction(formData);
+      if (res.success && res.url) {
+        const uploadedUrl = res.url;
+        setForm((f) => ({ ...f, icon_url: uploadedUrl }));
+        toast.success("Category image uploaded successfully");
+      } else {
+        toast.error(res.error || "Failed to upload image");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to upload image");
+    } finally {
+      setIsUploading(false);
+      if (e.target) e.target.value = "";
+    }
+  };
+
   const handleSave = async () => {
     setIsSaving(true);
     const payload = {
@@ -367,6 +419,10 @@ export function CategoriesClientPage({
         form.parent_id !== "none" &&
         form.parent_id.trim() !== ""
           ? form.parent_id
+          : null,
+      icon_url:
+        form.icon_url && form.icon_url.trim() !== ""
+          ? form.icon_url.trim()
           : null,
       is_active: form.is_active,
       display_order: form.display_order,
@@ -380,6 +436,7 @@ export function CategoriesClientPage({
           prev.map((c) => (c.id === editTarget.id ? (res.data as Category) : c))
         );
         setSheetOpen(false);
+        router.refresh();
       } else {
         toast.error(res.error || "Failed to update category");
       }
@@ -389,6 +446,7 @@ export function CategoriesClientPage({
         toast.success("Category created");
         setCategories((prev) => [res.data as Category, ...prev]);
         setSheetOpen(false);
+        router.refresh();
       } else {
         toast.error(res.error || "Failed to create category");
       }
@@ -431,6 +489,7 @@ export function CategoriesClientPage({
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead className="w-16">Image</TableHead>
                 <TableHead>Category Name</TableHead>
                 <TableHead>Slug</TableHead>
                 <TableHead>Parent</TableHead>
@@ -442,13 +501,30 @@ export function CategoriesClientPage({
             <TableBody>
               {filtered.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                  <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
                     {search ? `No categories matching "${search}".` : "No categories found."}
                   </TableCell>
                 </TableRow>
               ) : (
                 filtered.map((category) => (
                   <TableRow key={category.id}>
+                    <TableCell>
+                      {category.icon_url ? (
+                        <div className="relative h-10 w-10 overflow-hidden rounded-md border bg-muted">
+                          <Image
+                            src={category.icon_url}
+                            alt={category.name}
+                            fill
+                            className="object-cover"
+                            sizes="40px"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex h-10 w-10 items-center justify-center rounded-md border bg-muted/50 text-muted-foreground">
+                          <ImageIcon className="h-5 w-5 opacity-40" />
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium">{category.name}</TableCell>
                     <TableCell className="text-xs text-muted-foreground">
                       {category.slug}
@@ -504,6 +580,77 @@ export function CategoriesClientPage({
             </SheetDescription>
           </SheetHeader>
           <div className="flex flex-col gap-4 px-4 py-6">
+            {/* Category Image */}
+            <div className="space-y-2">
+              <Label>Category Image</Label>
+              <div className="flex items-center gap-4">
+                {form.icon_url ? (
+                  <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg border bg-muted">
+                    <Image
+                      src={form.icon_url}
+                      alt="Category Preview"
+                      fill
+                      className="object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, icon_url: "" }))}
+                      className="absolute right-1 top-1 rounded-full bg-black/70 p-1 text-white hover:bg-black/90 transition-colors"
+                      title="Remove image"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center rounded-lg border border-dashed bg-muted/30 text-muted-foreground">
+                    <ImageIcon className="h-8 w-8 opacity-40" />
+                  </div>
+                )}
+                <div className="flex-1 space-y-2">
+                  <div>
+                    <input
+                      type="file"
+                      id="category-image-input"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={isUploading}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={isUploading}
+                      onClick={() =>
+                        document.getElementById("category-image-input")?.click()
+                      }
+                      className="w-full gap-2"
+                    >
+                      {isUploading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Uploading...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4" />
+                          Upload Image
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <Input
+                    placeholder="Or paste image URL..."
+                    value={form.icon_url}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, icon_url: e.target.value }))
+                    }
+                    className="text-xs h-8"
+                  />
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="cat-name">Name</Label>
               <Input
