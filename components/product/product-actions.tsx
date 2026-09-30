@@ -6,6 +6,7 @@ import { useCartStore } from "@/stores/use-cart-store";
 import { useWishlistStore } from "@/stores/use-wishlist-store";
 import { useSession } from "@/hooks/use-session";
 import { createClient } from "@/lib/supabase/client";
+import { ADMIN_ROLES } from "@/lib/constants/auth";
 import { useRouter, usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Image from "next/image";
@@ -56,6 +57,12 @@ export function ProductActions({
     wishlist?.items?.some((item) => item.product_id === productId) || false;
 
   const handleAddToCart = async () => {
+    const role = user?.user_metadata?.role || user?.app_metadata?.role || "CUSTOMER";
+    if (ADMIN_ROLES.includes(role)) {
+      toast.error("Admin accounts cannot perform customer shopping actions. Please use the Admin Panel.");
+      return;
+    }
+
     let currentUser = user;
     if (!currentUser) {
       const supabase = createClient();
@@ -97,6 +104,12 @@ export function ProductActions({
   };
 
   const handleBuyNow = async () => {
+    const role = user?.user_metadata?.role || user?.app_metadata?.role || "CUSTOMER";
+    if (ADMIN_ROLES.includes(role)) {
+      toast.error("Admin accounts cannot place customer orders. Please use the Admin Panel.");
+      return;
+    }
+
     let currentUser = user;
     if (!currentUser) {
       const supabase = createClient();
@@ -142,21 +155,9 @@ export function ProductActions({
   };
 
   const handleToggleWishlist = async () => {
-    let currentUser = user;
-    if (!currentUser) {
-      const supabase = createClient();
-      const { data } = await supabase.auth.getUser();
-      currentUser = data?.user ?? null;
-    }
-
-    if (!currentUser) {
-      toast.info("Please sign in to save items to your wishlist.", {
-        action: {
-          label: "Sign In",
-          onClick: () =>
-            router.push(`/auth/login?next=${encodeURIComponent(pathname)}`),
-        },
-      });
+    const role = user?.user_metadata?.role || user?.app_metadata?.role || "CUSTOMER";
+    if (ADMIN_ROLES.includes(role)) {
+      toast.error("Admin accounts cannot perform customer shopping actions. Please use the Admin Panel.");
       return;
     }
 
@@ -260,8 +261,8 @@ export function ProductActions({
           >
             <Heart
               className={cn(
-                "h-5 w-5 transition-transform hover:scale-110 text-black",
-                isWished && "fill-[#1A1A1A] text-[#1A1A1A]"
+                "h-5 w-5 transition-transform hover:scale-110",
+                isWished ? "fill-red-600 text-red-600" : "text-black hover:text-red-600"
               )}
               strokeWidth={1.5}
             />

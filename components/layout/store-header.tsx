@@ -31,6 +31,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ADMIN_ROLES, MANAGER_ROLES } from "@/lib/constants/auth";
 import { useCartStore } from "@/stores/use-cart-store";
 import { useWishlistStore } from "@/stores/use-wishlist-store";
+import { cn } from "@/lib/utils";
 
 
 
@@ -633,16 +634,24 @@ export function StoreHeader({
             {/* Account (hidden on tiny screens, fully accessible in bottom-nav and drawer) */}
             <Link
               href={accountHref}
-              className="hidden sm:flex rounded-full p-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-black active:scale-95"
-              aria-label="My Account"
+              className="hidden sm:flex items-center gap-1.5 rounded-full p-1.5 text-gray-700 transition-colors hover:bg-gray-100 hover:text-black active:scale-95"
+              aria-label={isAdmin ? "Admin Panel" : isManager ? "Manager Portal" : "My Account"}
+              title={isAdmin ? "Admin Panel" : isManager ? "Manager Portal" : "My Account"}
             >
               {user ? (
-                <Avatar className="h-6 w-6">
-                  <AvatarImage src={user.user_metadata?.avatar_url} />
-                  <AvatarFallback className="bg-[#0D1B2A] text-[9px] font-bold text-white">
-                    {userInitials}
-                  </AvatarFallback>
-                </Avatar>
+                <>
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={user.user_metadata?.avatar_url} />
+                    <AvatarFallback className="bg-[#0D1B2A] text-[9px] font-bold text-white">
+                      {userInitials}
+                    </AvatarFallback>
+                  </Avatar>
+                  {isAdmin && (
+                    <span className="hidden md:inline-flex items-center gap-0.5 rounded bg-[#0D1B2A] px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-wider text-white">
+                      <ShieldCheck className="h-2.5 w-2.5 text-blue-400" /> Admin
+                    </span>
+                  )}
+                </>
               ) : (
                 <User className="h-5 w-5" strokeWidth={1.75} />
               )}
@@ -650,13 +659,19 @@ export function StoreHeader({
 
             {/* Wishlist */}
             <Link
-              href="/account/wishlist"
+              href={isAdmin ? "/admin" : "/account/wishlist"}
               className="relative rounded-full p-2 text-gray-700 transition-colors hover:bg-gray-100 hover:text-black active:scale-95"
-              aria-label="Wishlist"
+              aria-label={isAdmin ? "Admin Panel" : "Wishlist"}
             >
-              <Heart className="h-5 w-5" strokeWidth={1.75} />
+              <Heart
+                className={cn(
+                  "h-5 w-5 transition-colors",
+                  mounted && wishlistItemCount > 0 && "text-red-600 fill-red-600"
+                )}
+                strokeWidth={1.75}
+              />
               {mounted && wishlistItemCount > 0 && (
-                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-[#C9A86A] px-1 text-[9px] font-bold text-white shadow-sm animate-in zoom-in-50">
+                <span className="absolute -top-0.5 -right-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold text-white shadow-sm animate-in zoom-in-50">
                   {wishlistItemCount > 99 ? "99+" : wishlistItemCount}
                 </span>
               )}

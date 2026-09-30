@@ -17,6 +17,7 @@ import { useSession } from "@/hooks/use-session";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { ADMIN_ROLES } from "@/lib/constants/auth";
 import {
   Heart,
   ShoppingBag,
@@ -99,36 +100,32 @@ export function ProductQuickView({
     wishlist?.items?.some((item) => item.product_id === product.id) || false;
 
   const handleToggleWishlist = async () => {
-    let currentUser = user;
-    if (!currentUser) {
-      const supabase = createClient();
-      const { data } = await supabase.auth.getUser();
-      currentUser = data?.user ?? null;
-    }
-
-    if (!currentUser) {
-      toast.info("Please sign in to save items to your wishlist.", {
-        action: {
-          label: "Sign In",
-          onClick: () => {
-            onClose();
-            router.push(`/auth/login?next=${encodeURIComponent(`/product/${product.slug}`)}`);
-          },
-        },
-      });
+    const role = user?.user_metadata?.role || user?.app_metadata?.role || "CUSTOMER";
+    if (ADMIN_ROLES.includes(role)) {
+      toast.error("Admin accounts cannot perform customer shopping actions. Please use the Admin Panel.");
       return;
     }
 
-    if (isWished) {
-      await removeItemByProductId(product.id);
-      toast.success("Removed from wishlist");
-    } else {
-      await addWishlistItem(product.id);
-      toast.success("Added to wishlist ❤️");
+    try {
+      if (isWished) {
+        await removeItemByProductId(product.id);
+        toast.success("Removed from wishlist");
+      } else {
+        await addWishlistItem(product.id);
+        toast.success("Added to wishlist ❤️");
+      }
+    } catch {
+      toast.error("Failed to update wishlist");
     }
   };
 
   const handleAddToCart = async () => {
+    const role = user?.user_metadata?.role || user?.app_metadata?.role || "CUSTOMER";
+    if (ADMIN_ROLES.includes(role)) {
+      toast.error("Admin accounts cannot place customer orders. Please use the Admin Panel.");
+      return;
+    }
+
     let currentUser = user;
     if (!currentUser) {
       const supabase = createClient();
@@ -212,7 +209,7 @@ export function ProductQuickView({
               >
                 <Heart
                   className={`h-4 w-4 transition-colors ${
-                    isWished ? "fill-rose-500 text-rose-500" : "text-zinc-700"
+                    isWished ? "fill-red-600 text-red-600" : "text-zinc-700 hover:text-red-600"
                   }`}
                   strokeWidth={2}
                 />

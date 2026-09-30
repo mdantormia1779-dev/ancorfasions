@@ -7,6 +7,32 @@ import { OrderSummary } from "@/components/checkout/order-summary";
 import { CheckoutStoreInitializer } from "./initializer";
 
 export default async function CheckoutPage() {
+  const { createClient } = await import("@/lib/supabase/server");
+  const { ADMIN_ROLES } = await import("@/lib/constants/auth");
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (user) {
+    let role = user.user_metadata?.role || user.app_metadata?.role;
+    if (!role) {
+      try {
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("roles(name)")
+          .eq("id", user.id)
+          .single();
+        role = (profile?.roles as any)?.name;
+      } catch {
+        role = "CUSTOMER";
+      }
+    }
+    if (ADMIN_ROLES.includes(role)) {
+      redirect("/admin");
+    }
+  }
+
   const cartRes = await getCart();
 
   if (!cartRes.success || !cartRes.cart || cartRes.cart.items?.length === 0) {

@@ -11,7 +11,7 @@ export class WishlistRepository {
     const { data, error } = await supabase
       .from("wishlists")
       .select(
-        "*, items:wishlist_items(*, product:products(id, name, slug, base_price, compare_at_price, product_media(url, is_primary)))"
+        "*, items:wishlist_items(*, product:products(id, name, slug, base_price, sale_price, product_media(url, is_primary)))"
       )
       .eq("user_id", userId)
       .order("created_at", { ascending: false })
@@ -42,7 +42,8 @@ export class WishlistRepository {
       .maybeSingle();
 
     if (existing) {
-      return { ...existing, items: [] } as Wishlist;
+      const full = await this.getWishlist(userId);
+      return full || ({ ...existing, items: [] } as Wishlist);
     }
 
     const { data, error } = await supabase

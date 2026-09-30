@@ -23,6 +23,26 @@ export default async function AccountLayout({
     redirect("/auth/login");
   }
 
+  let role = user.user_metadata?.role || user.app_metadata?.role;
+  if (!role) {
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("roles(name)")
+        .eq("id", user.id)
+        .single();
+      role = (profile?.roles as any)?.name;
+    } catch {
+      role = "CUSTOMER";
+    }
+  }
+  if (!role) role = "CUSTOMER";
+
+  const { ADMIN_ROLES } = await import("@/lib/constants/auth");
+  if (ADMIN_ROLES.includes(role)) {
+    redirect("/admin");
+  }
+
   return (
     <div className="container mx-auto max-w-7xl px-4 py-8">
       <div className="flex flex-col gap-8 md:flex-row">

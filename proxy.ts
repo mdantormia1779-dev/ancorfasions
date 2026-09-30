@@ -159,6 +159,26 @@ export async function proxy(request: NextRequest) {
 
   if (!role) role = "CUSTOMER";
 
+  // Restrict Admin users from customer-only operations / user pages:
+  // "admin shudhu admin ei access korba user hisaba ba user er kaj jate admin na korta para"
+  const isCustomerAccountPath =
+    pathname.startsWith("/account") ||
+    pathname.startsWith("/customer") ||
+    pathname.startsWith("/checkout");
+
+  if (user && ADMIN_ROLES.includes(role) && isCustomerAccountPath) {
+    if (pathname.startsWith("/api/")) {
+      return applyCookies(
+        NextResponse.json({ error: "Forbidden: Admin accounts cannot perform customer operations" }, { status: 403 }),
+        supabaseResponse
+      );
+    }
+    return applyCookies(
+      NextResponse.redirect(new URL("/admin", request.url)),
+      supabaseResponse
+    );
+  }
+
   // Restricted Admin-only subroutes (sensitive financial, user management, and system settings)
   const isAdminRestrictedPath =
     pathname.startsWith("/admin/finance") ||

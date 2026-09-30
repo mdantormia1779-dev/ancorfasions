@@ -162,6 +162,20 @@ export async function processCheckoutAction(
       throw new Error("No valid session found for checkout.");
     }
 
+    if (userId) {
+      const supabase = await createClient();
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("roles(name)")
+        .eq("id", userId)
+        .single();
+      const roleName = (profile?.roles as any)?.name;
+      const { ADMIN_ROLES } = await import("@/lib/constants/auth");
+      if (ADMIN_ROLES.includes(roleName)) {
+        throw new Error("Admin accounts cannot place customer orders. Please use a customer account.");
+      }
+    }
+
     const guestEmail = parsedData.information.email;
 
     // 2. Compute authoritative server-side order summary

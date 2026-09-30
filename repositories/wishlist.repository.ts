@@ -14,7 +14,7 @@ export class WishlistRepository {
         *,
         items:wishlist_items(
           *,
-          product:products(id, title, slug, price, sale_price, main_image_url, stock_quantity)
+          product:products(id, name, slug, base_price, sale_price, product_media(url, is_primary))
         )
       `
       )

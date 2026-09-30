@@ -41,7 +41,7 @@ export function MobileBottomNav({ user }: { user: any }) {
   const navItems = [
     { label: "Home", href: "/", icon: Home },
     { label: "Search", href: "/search", icon: Search },
-    { label: "Wishlist", href: "/account/wishlist", icon: Heart },
+    { label: "Wishlist", href: ADMIN_ROLES.includes(role) ? "/admin" : "/account/wishlist", icon: Heart },
     { label: "Cart", href: "/cart", icon: ShoppingCart },
   ];
 
@@ -65,7 +65,7 @@ export function MobileBottomNav({ user }: { user: any }) {
                 <item.icon
                   className={`mb-1.5 h-6 w-6 transition-transform duration-300 ${
                     isActive ? "text-[#1A1A1A] scale-110" : ""
-                  }`}
+                  } ${isWishlist && mounted && wishlistItemCount > 0 ? "text-red-600 fill-red-600" : ""}`}
                   strokeWidth={isActive ? 2 : 1.5}
                 />
                 {isCart && mounted && cartItemCount > 0 && (
@@ -74,7 +74,7 @@ export function MobileBottomNav({ user }: { user: any }) {
                   </span>
                 )}
                 {isWishlist && mounted && wishlistItemCount > 0 && (
-                  <span className="absolute -top-1 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-[#C9A86A] text-[8px] font-bold text-white">
+                  <span className="absolute -top-1 -right-2 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-red-600 text-[8px] font-bold text-white">
                     {wishlistItemCount > 99 ? "99+" : wishlistItemCount}
                   </span>
                 )}
