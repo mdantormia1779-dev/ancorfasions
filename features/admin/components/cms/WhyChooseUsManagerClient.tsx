@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   ShieldCheck,
@@ -82,6 +83,7 @@ export function WhyChooseUsManagerClient({
 }: {
   initialData: WhyChooseUsSettings;
 }) {
+  const router = useRouter();
   const [data, setData] = useState<WhyChooseUsSettings>(initialData);
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -164,6 +166,7 @@ export function WhyChooseUsManagerClient({
       const res = await updateWhyChooseUsSettings(data);
       if (res.success) {
         toast.success("Brand Ethos & 'Why Choose Us' updated successfully!");
+        router.refresh();
       } else {
         toast.error(res.error || "Failed to save settings");
       }
@@ -184,6 +187,7 @@ export function WhyChooseUsManagerClient({
       if (res.success) {
         setData(res.data);
         toast.success("Reset to defaults successfully");
+        router.refresh();
       } else {
         toast.error(res.error || "Failed to reset");
       }

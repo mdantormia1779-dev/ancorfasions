@@ -203,7 +203,7 @@ export const getCachedWhyChooseUs = unstable_cache(
   },
   ["homepage-why-choose-us"],
   {
-    tags: [CACHE_TAGS.HOMEPAGE, CACHE_TAGS.CATALOG],
+    tags: [CACHE_TAGS.HOMEPAGE, CACHE_TAGS.CATALOG, "homepage-why-choose-us"],
     revalidate: CACHE_TTL.STANDARD,
   }
 );

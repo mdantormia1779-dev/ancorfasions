@@ -1,9 +1,9 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin-client";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { invalidateHomepageCache } from "@/lib/cache/invalidate-catalog";
+import { CACHE_TAGS } from "@/lib/cache/catalog-cache";
 import {
   WhyChooseUsSettings,
   DEFAULT_WHY_CHOOSE_US,
@@ -13,11 +13,12 @@ const SETTINGS_KEY = "why_choose_us_settings";
 
 /**
  * Fetches the Why Choose Us / Brand Ethos settings from Supabase.
+ * Uses createAdminClient to remain static/cache-safe (no cookies).
  * Falls back to DEFAULT_WHY_CHOOSE_US if not yet stored or on error.
  */
 export async function getWhyChooseUsSettings(): Promise<WhyChooseUsSettings> {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("settings")
       .select("value")
@@ -92,7 +93,14 @@ export async function updateWhyChooseUsSettings(
 
     // Instantly invalidate public homepage and catalog caches
     invalidateHomepageCache();
-    revalidatePath("/");
+    try {
+      revalidateTag(CACHE_TAGS.HOMEPAGE, "max");
+      revalidateTag(CACHE_TAGS.CATALOG, "max");
+      revalidateTag("homepage-why-choose-us", "max");
+    } catch {}
+    revalidatePath("/", "page");
+    revalidatePath("/", "layout");
+    revalidatePath("/(shop)", "page");
     revalidatePath("/(shop)", "layout");
     revalidatePath("/admin/cms/why-choose-us");
     revalidatePath("/manager/cms/why-choose-us");
