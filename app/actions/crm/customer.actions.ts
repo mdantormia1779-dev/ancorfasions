@@ -76,7 +76,7 @@ export async function fetchCustomerDetailsAction(id: string) {
         // Mocking some CRM specific data for the UI
         tier: "Gold",
         points: 5400,
-        ltv: "$3,200.00",
+        ltv: "৳3,200.00",
         segments: ["Active", "Summer Campaign"],
       },
     };

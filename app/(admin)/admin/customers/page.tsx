@@ -102,11 +102,13 @@ export default async function CRMDashboardPage({
             <CardTitle className="text-sm font-medium">
               Avg Lifetime Value
             </CardTitle>
-            <Activity className="h-4 w-4 text-muted-foreground" />
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800 text-xs font-bold text-muted-foreground" title="BDT (৳)">
+              ৳
+            </span>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              ${summary.avgLifetimeValue.toLocaleString()}
+              ৳{summary.avgLifetimeValue.toLocaleString()}
             </div>
             <p className="mt-1 flex items-center text-xs text-muted-foreground">
               Estimated Value

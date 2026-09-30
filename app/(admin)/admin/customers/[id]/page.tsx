@@ -178,7 +178,7 @@ export default async function CustomerProfilePage({
                       </time>
                     </div>
                     <div className="text-sm text-muted-foreground">
-                      Purchased 3 items for $450.00. Points earned: 1,350.
+                      Purchased 3 items for ৳450.00. Points earned: 1,350.
                     </div>
                   </div>
                 </div>
