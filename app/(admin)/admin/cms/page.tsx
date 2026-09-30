@@ -17,6 +17,7 @@ import {
   Layout,
   Activity,
   HelpCircle,
+  Sparkles,
 } from "lucide-react";
 
 export const metadata: Metadata = {
@@ -58,6 +59,13 @@ const cmsModules = [
     icon: Layout,
     description: "Manage site-wide promotional banners",
     href: "/admin/cms/banners",
+  },
+  {
+    id: "why-choose-us",
+    name: "Brand Ethos & Features",
+    icon: Sparkles,
+    description: "Manage 'The Anchor Fashion Difference' section, badge, image & benefits",
+    href: "/admin/cms/why-choose-us",
   },
 ];
 

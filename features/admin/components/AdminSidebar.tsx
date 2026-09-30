@@ -85,6 +85,8 @@ const navigation: NavCategory[] = [
         icon: FileText,
         allowedRoles: ["SUPERADMIN", "ADMIN", "MANAGER", "MARKETING_MANAGER", "MARKETING"],
         items: [
+          { name: "Banners", href: "/admin/cms/banners" },
+          { name: "Brand Ethos (Why Us)", href: "/admin/cms/why-choose-us" },
           { name: "Blog", href: "/admin/cms/blogs" },
           { name: "Media Library", href: "/admin/cms/media" },
         ],

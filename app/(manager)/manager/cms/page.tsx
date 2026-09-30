@@ -49,10 +49,15 @@ export default function CMSPage() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="flex gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <Button variant="outline" className="w-full" asChild>
                 <Link href="/manager/cms/banners">
                   Banners & Hero
+                </Link>
+              </Button>
+              <Button variant="outline" className="w-full" asChild>
+                <Link href="/manager/cms/why-choose-us">
+                  Brand Ethos
                 </Link>
               </Button>
               <Button variant="outline" className="w-full" asChild>

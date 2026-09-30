@@ -193,3 +193,18 @@ export const getCachedFeaturedPromoBanner = unstable_cache(
   }
 );
 
+/**
+ * Cached Why Choose Us / Brand Ethos Settings Fetcher
+ */
+export const getCachedWhyChooseUs = unstable_cache(
+  async () => {
+    const { getWhyChooseUsSettings } = await import("@/actions/why-choose-us.actions");
+    return getWhyChooseUsSettings();
+  },
+  ["homepage-why-choose-us"],
+  {
+    tags: [CACHE_TAGS.HOMEPAGE, CACHE_TAGS.CATALOG],
+    revalidate: CACHE_TTL.STANDARD,
+  }
+);
+

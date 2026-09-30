@@ -5,6 +5,7 @@ import {
   getCachedFeaturedProducts,
   getCachedHeroSlides,
   getCachedFeaturedPromoBanner,
+  getCachedWhyChooseUs,
 } from "@/lib/cache/catalog-cache";
 import { HomeHero } from "@/components/home/home-hero";
 import { CategoryHighlight } from "@/components/home/category-highlight";
@@ -47,6 +48,7 @@ export default async function HomePage() {
     heroSlides,
     activeFlashSales,
     featuredPromoBanner,
+    whyChooseUsData,
   ] = await Promise.all([
     getCachedCategories(),
     getCachedCollections(),
@@ -59,6 +61,7 @@ export default async function HomePage() {
     getCachedHeroSlides(),
     FlashSaleService.getActiveFlashSales(),
     getCachedFeaturedPromoBanner(),
+    getCachedWhyChooseUs(),
   ]);
 
   return (
@@ -120,7 +123,7 @@ export default async function HomePage() {
 
         {/* 9. Brand Ethos / Story */}
         <FadeIn direction="right">
-          <WhyChooseUs />
+          <WhyChooseUs data={whyChooseUsData} />
         </FadeIn>
 
         {/* 10. Featured Products (New Arrivals) */}
