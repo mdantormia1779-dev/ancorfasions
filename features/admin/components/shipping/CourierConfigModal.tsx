@@ -20,7 +20,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
-import { Activity, CheckCircle, AlertCircle, RefreshCcw } from "lucide-react";
+import { Activity, CheckCircle, AlertCircle, RefreshCcw, Trash2 } from "lucide-react";
 import { HealthCheckResult } from "@/lib/couriers/types";
 
 interface Props {
@@ -46,6 +46,15 @@ export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
 
   if (!courier) return null;
 
+  const hasCredentials =
+    (courier.credentials &&
+      Object.values(courier.credentials).some(
+        (v) => typeof v === "string" && v.trim() !== ""
+      )) ||
+    Object.values(credentials).some(
+      (v) => typeof v === "string" && v.trim() !== ""
+    );
+
   const handleTestConnection = async () => {
     setTesting(true);
     try {
@@ -69,18 +78,55 @@ export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
     }
   };
 
-  const handleSave = async () => {
+  const handleRemoveCredentials = async () => {
+    const confirmed = window.confirm(
+      `Are you sure you want to remove all API credentials for ${courier.display_name}? This will disconnect the courier.`
+    );
+    if (!confirmed) return;
+
     setLoading(true);
     try {
       const res = await updateCourierProviderAction(courier.id, {
-        credentials,
+        credentials: {},
+        is_active: false,
+      });
+
+      if (!res.success) throw new Error(res.error);
+
+      setCredentials({});
+      setTestResult({
+        status: "not_configured",
+        responseTime: 0,
+        lastCheckedAt: new Date().toISOString(),
+        message: "Credentials removed. Courier is not configured.",
+      });
+
+      toast.success(`${courier.display_name} credentials removed.`);
+      onSaved({ ...courier, credentials: {}, is_active: false });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to remove credentials");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    setLoading(true);
+    try {
+      const isAllEmpty = Object.values(credentials).every(
+        (v) => !v || (typeof v === "string" && v.trim() === "")
+      );
+      const payloadCreds = isAllEmpty ? {} : credentials;
+
+      const res = await updateCourierProviderAction(courier.id, {
+        credentials: payloadCreds,
         is_sandbox: isSandbox,
       });
 
       if (!res.success) throw new Error(res.error);
 
       toast.success(`${courier.display_name} configuration saved.`);
-      onSaved({ ...courier, credentials, is_sandbox: isSandbox });
+      onSaved({ ...courier, credentials: payloadCreds, is_sandbox: isSandbox });
     } catch (err: any) {
       toast.error(err.message || "Failed to save configuration");
     } finally {
@@ -257,16 +303,30 @@ export function CourierConfigModal({ courier, onClose, onSaved }: Props) {
         </div>
 
         <DialogFooter className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-t pt-4">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={handleTestConnection}
-            disabled={testing || loading}
-            className="sm:mr-auto"
-          >
-            <Activity className={`mr-2 h-4 w-4 ${testing ? "animate-spin" : ""}`} />
-            {testing ? "Testing Connection..." : "Test Connection"}
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleTestConnection}
+              disabled={testing || loading}
+            >
+              <Activity className={`mr-2 h-4 w-4 ${testing ? "animate-spin" : ""}`} />
+              {testing ? "Testing Connection..." : "Test Connection"}
+            </Button>
+
+            {hasCredentials && (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={handleRemoveCredentials}
+                disabled={testing || loading}
+                className="text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Remove Credentials
+              </Button>
+            )}
+          </div>
 
           <div className="flex items-center gap-2">
             <Button variant="ghost" onClick={onClose} disabled={loading}>

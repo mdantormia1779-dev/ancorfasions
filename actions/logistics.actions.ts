@@ -33,7 +33,7 @@ export async function getCourierProvidersAction(): Promise<
   ActionResponse<CourierProviderRecord[]>
 > {
   try {
-    const supabase = await createClient();
+    const supabase = createAdminClient();
     const { data, error } = await supabase
       .from("courier_providers")
       .select("*")
@@ -61,7 +61,6 @@ export async function updateCourierProviderAction(
   updates: Partial<CourierProviderRecord>
 ): Promise<ActionResponse<void>> {
   try {
-    const supabase = await createClient();
     const adminSupabase = createAdminClient();
 
     // Prevent overwriting code or id
@@ -71,36 +70,55 @@ export async function updateCourierProviderAction(
     const dbPayload: Record<string, any> = { ...allowedUpdates };
 
     // If updating credentials, merge with existing and encrypt
-    if (credentials && typeof credentials === "object") {
-      const { data: existing } = await adminSupabase
-        .from("courier_providers")
-        .select("credentials")
-        .eq("id", id)
-        .maybeSingle();
+    if (credentials !== undefined && typeof credentials === "object") {
+      const credEntries = Object.entries(credentials);
+      const isExplicitEmpty = credEntries.length === 0;
+      const allValuesEmpty = credEntries.every(
+        ([_, val]) => typeof val === "string" && val.trim() === ""
+      );
 
-      const existingCreds = existing?.credentials || {};
-      const mergedCreds: Record<string, any> = { ...existingCreds };
+      if (isExplicitEmpty || allValuesEmpty) {
+        // Explicitly clear all credentials
+        dbPayload.credentials = {};
+      } else {
+        const { data: existing } = await adminSupabase
+          .from("courier_providers")
+          .select("credentials")
+          .eq("id", id)
+          .maybeSingle();
 
-      for (const [key, val] of Object.entries(credentials)) {
-        if (typeof val === "string") {
-          // If value is masked (e.g. "••••••••9X21" or "••••••••"), leave existing unchanged
-          if (val.startsWith("••••••••")) {
-            continue;
-          }
-          if (val.trim() === "") {
+        const existingCreds = existing?.credentials || {};
+        const mergedCreds: Record<string, any> = { ...existingCreds };
+
+        for (const [key, val] of credEntries) {
+          if (typeof val === "string") {
+            // If value is masked (e.g. "••••••••9X21" or "••••••••"), leave existing unchanged
+            if (val.startsWith("••••••••")) {
+              continue;
+            }
+            if (val.trim() === "") {
+              delete mergedCreds[key];
+            } else {
+              mergedCreds[key] = val;
+            }
+          } else if (val === null || val === undefined) {
             delete mergedCreds[key];
           } else {
             mergedCreds[key] = val;
           }
-        } else {
-          mergedCreds[key] = val;
         }
-      }
 
-      dbPayload.credentials = encryptCredentialsObject(mergedCreds);
+        const hasRemainingValues = Object.values(mergedCreds).some(
+          (v) => typeof v === "string" && v.trim() !== ""
+        );
+
+        dbPayload.credentials = hasRemainingValues
+          ? encryptCredentialsObject(mergedCreds)
+          : {};
+      }
     }
 
-    const { error } = await supabase
+    const { error } = await adminSupabase
       .from("courier_providers")
       .update(dbPayload)
       .eq("id", id);
@@ -130,37 +148,69 @@ export async function testCourierConnectionAction(
     const { provider: dbProvider, record } = await CourierFactory.getProviderFromDatabase(courierId);
 
     let provider = dbProvider;
-    if (credentialsToTest && Object.keys(credentialsToTest).length > 0) {
-      // Merge with existing decrypted DB credentials in case some fields are masked (e.g. ••••••••)
-      const existingDecrypted = decryptCredentialsObject(record.credentials || {});
-      const merged: Record<string, any> = { ...existingDecrypted };
+    if (credentialsToTest !== undefined) {
+      const credEntries = Object.entries(credentialsToTest);
+      const isExplicitEmpty = credEntries.length === 0;
+      const allValuesEmpty = credEntries.every(
+        ([_, val]) => typeof val === "string" && val.trim() === ""
+      );
 
-      for (const [key, val] of Object.entries(credentialsToTest)) {
-        if (typeof val === "string") {
-          if (!val.startsWith("••••••••") && val.trim() !== "") {
+      if (isExplicitEmpty || allValuesEmpty) {
+        provider = CourierFactory.getProvider(
+          record.code as any,
+          {},
+          {
+            environment:
+              isSandbox !== undefined
+                ? isSandbox
+                  ? "sandbox"
+                  : "production"
+                : record.is_sandbox
+                ? "sandbox"
+                : "production",
+            storeId: "",
+            webhookSecret: record.webhook_secret,
+          }
+        );
+      } else {
+        // Merge with existing decrypted DB credentials in case some fields are masked (e.g. ••••••••)
+        const existingDecrypted = decryptCredentialsObject(record.credentials || {});
+        const merged: Record<string, any> = { ...existingDecrypted };
+
+        for (const [key, val] of credEntries) {
+          if (typeof val === "string") {
+            if (val.startsWith("••••••••")) {
+              continue;
+            }
+            if (val.trim() === "") {
+              delete merged[key];
+            } else {
+              merged[key] = val;
+            }
+          } else if (val === null || val === undefined) {
+            delete merged[key];
+          } else {
             merged[key] = val;
           }
-        } else if (val !== undefined && val !== null) {
-          merged[key] = val;
         }
-      }
 
-      provider = CourierFactory.getProvider(
-        record.code as any,
-        merged,
-        {
-          environment:
-            isSandbox !== undefined
-              ? isSandbox
+        provider = CourierFactory.getProvider(
+          record.code as any,
+          merged,
+          {
+            environment:
+              isSandbox !== undefined
+                ? isSandbox
+                  ? "sandbox"
+                  : "production"
+                : record.is_sandbox
                 ? "sandbox"
-                : "production"
-              : record.is_sandbox
-              ? "sandbox"
-              : "production",
-          storeId: merged.storeId || merged.store_id || record.settings?.storeId,
-          webhookSecret: record.webhook_secret,
-        }
-      );
+                : "production",
+            storeId: merged.storeId || merged.store_id || record.settings?.storeId,
+            webhookSecret: record.webhook_secret,
+          }
+        );
+      }
     }
 
     const health = await provider.healthCheck();

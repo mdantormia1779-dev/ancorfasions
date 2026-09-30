@@ -45,7 +45,7 @@ export function CourierListClient({ initialCouriers }: Props) {
   const [syncing, setSyncing] = useState(false);
   const [healthMap, setHealthMap] = useState<Record<string, { status: string; latency?: number }>>({});
 
-  const loadMetricsAndHealth = async () => {
+  const loadMetricsAndHealth = async (currentCouriers?: CourierProviderRecord[]) => {
     setSyncing(true);
     try {
       const res = await getCourierMetricsAction();
@@ -53,9 +53,11 @@ export function CourierListClient({ initialCouriers }: Props) {
         setMetrics(res.data);
       }
 
+      const couriersToEvaluate = currentCouriers || couriers;
+
       // Check health for active couriers
       const newHealthMap: Record<string, { status: string; latency?: number }> = {};
-      for (const courier of couriers) {
+      for (const courier of couriersToEvaluate) {
         if (!courier.is_active) {
           newHealthMap[courier.id] = { status: "offline" };
           continue;
@@ -107,20 +109,20 @@ export function CourierListClient({ initialCouriers }: Props) {
       if (!confirmed) return;
     }
 
+    const nextCouriers = couriers.map((c) =>
+      c.id === id ? { ...c, is_active: checked } : c
+    );
+    setCouriers(nextCouriers);
+
     try {
-      setCouriers((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, is_active: checked } : c))
-      );
       const res = await updateCourierProviderAction(id, { is_active: checked });
       if (!res.success) throw new Error(res.error);
       toast.success(checked ? "Courier activated" : "Courier deactivated");
-      loadMetricsAndHealth();
+      loadMetricsAndHealth(nextCouriers);
     } catch (err: any) {
       toast.error(err.message);
       // Revert
-      setCouriers((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, is_active: !checked } : c))
-      );
+      setCouriers(couriers);
     }
   };
 
@@ -188,7 +190,7 @@ export function CourierListClient({ initialCouriers }: Props) {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={loadMetricsAndHealth}
+              onClick={() => loadMetricsAndHealth()}
               disabled={syncing}
             >
               <RefreshCcw className={`mr-2 h-4 w-4 ${syncing ? "animate-spin" : ""}`} />
@@ -318,11 +320,12 @@ export function CourierListClient({ initialCouriers }: Props) {
         courier={selectedCourier}
         onClose={() => setSelectedCourier(null)}
         onSaved={(updated) => {
-          setCouriers((prev) =>
-            prev.map((c) => (c.id === updated.id ? { ...c, ...updated } : c))
+          const next = couriers.map((c) =>
+            c.id === updated.id ? { ...c, ...updated } : c
           );
+          setCouriers(next);
           setSelectedCourier(null);
-          loadMetricsAndHealth();
+          loadMetricsAndHealth(next);
         }}
       />
 
