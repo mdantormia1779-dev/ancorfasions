@@ -71,7 +71,7 @@ export function RecentOrders({ data = [] }: { data?: any[] }) {
             <thead className="bg-muted/50 text-xs font-semibold text-muted-foreground border-b border-border">
               <tr>
 
-                <th className="px-6 py-4">Recent Orders</th>
+                <th className="px-6 py-4">Customer</th>
                 <th className="px-6 py-4">Order Date</th>
                 <th className="px-6 py-4">Price</th>
                 <th className="px-6 py-4">Status</th>
@@ -89,7 +89,7 @@ export function RecentOrders({ data = [] }: { data?: any[] }) {
                         <AvatarImage src={order.customer_avatar} />
                         <AvatarFallback className="bg-muted text-muted-foreground"><User className="h-4 w-4"/></AvatarFallback>
                       </Avatar>
-                      <span className="font-medium text-foreground/90">{order.customer_name}</span>
+                      <span className="font-medium text-foreground/90">{order.customer_name || "Customer"}</span>
                     </div>
                   </td>
                   <td className="px-6 py-4">{format(new Date(order.created_at), "MMM dd - hh.mm a")}</td>

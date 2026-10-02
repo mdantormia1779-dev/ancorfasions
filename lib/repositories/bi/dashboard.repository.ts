@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 
 export class DashboardRepository {
   async getDailyRevenue(days = 7) {
@@ -308,15 +309,18 @@ export class DashboardRepository {
             .getUserById(cust.user_id)
             .catch(() => ({ data: null }));
 
+          const meta = authData?.user?.user_metadata;
           const authName =
-            authData?.user?.user_metadata?.full_name ||
+            meta?.full_name ||
+            [meta?.first_name, meta?.last_name].filter(Boolean).join(" ").trim() ||
+            meta?.name ||
             authData?.user?.email?.split("@")[0] ||
             "Customer";
 
           return {
             ...cust,
             full_name: authName,
-            avatar_url: cust.avatar_url || authData?.user?.user_metadata?.avatar_url || null,
+            avatar_url: cust.avatar_url || meta?.avatar_url || null,
           };
         })
       );
@@ -417,6 +421,56 @@ export class DashboardRepository {
   }
 
   async getRecentOrders() {
+    // 1. Attempt Prisma Neon PostgreSQL fetch first
+    try {
+      const prismaOrders = await prisma.order.findMany({
+        take: 5,
+        orderBy: { createdAt: "desc" },
+        include: {
+          customer: true,
+          profile: true,
+        },
+      });
+
+      if (prismaOrders && prismaOrders.length > 0) {
+        return prismaOrders.map((o) => {
+          let customerName = "";
+          const customerAvatar: string | null = o.profile?.avatarUrl || null;
+
+          if (o.profile?.firstName || o.profile?.lastName) {
+            customerName = [o.profile.firstName, o.profile.lastName].filter(Boolean).join(" ").trim();
+          } else if (o.customer?.name) {
+            customerName = o.customer.name;
+          } else if (o.shippingAddress && typeof o.shippingAddress === "object") {
+            const addr = o.shippingAddress as Record<string, any>;
+            customerName = [addr.first_name || addr.firstName, addr.last_name || addr.lastName]
+              .filter(Boolean)
+              .join(" ")
+              .trim();
+          }
+
+          if (!customerName && o.profile?.email) {
+            customerName = o.profile.email.split("@")[0];
+          } else if (!customerName && o.customer?.email) {
+            customerName = o.customer.email.split("@")[0];
+          }
+
+          return {
+            id: o.id,
+            order_number: o.orderNumber,
+            customer_name: customerName || "Customer",
+            customer_avatar: customerAvatar,
+            grand_total: Number(o.totalAmount || 0),
+            status: o.status,
+            created_at: o.createdAt.toISOString(),
+          };
+        });
+      }
+    } catch (e) {
+      console.warn("Prisma getRecentOrders fallback to Supabase:", e);
+    }
+
+    // 2. Authoritative Supabase fallback for existing orders
     const adminSupabase = await createAdminClient();
 
     const { data, error } = await adminSupabase
@@ -425,21 +479,75 @@ export class DashboardRepository {
       .order("created_at", { ascending: false })
       .limit(5);
 
-    if (error) {
-      console.error("Error fetching recent orders:", error.message, error.details, error.hint);
+    if (error || !data || data.length === 0) {
+      if (error) console.error("Error fetching recent orders:", error.message, error.details, error.hint);
       return [];
     }
 
+    const orderIds = data.map((o) => o.id);
+    const customerIds = data.map((o) => o.customer_id).filter(Boolean) as string[];
+
+    const [addrsRes, profilesRes] = await Promise.all([
+      adminSupabase
+        .from("order_addresses")
+        .select("order_id, first_name, last_name, address_type")
+        .in("order_id", orderIds),
+      customerIds.length > 0
+        ? adminSupabase
+            .from("profiles")
+            .select("id, first_name, last_name, avatar_url")
+            .in("id", customerIds)
+        : Promise.resolve({ data: [] }),
+    ]);
+
+    const addressMap = new Map<string, string>();
+    (addrsRes.data || []).forEach((a: any) => {
+      const name = [a.first_name, a.last_name].filter(Boolean).join(" ").trim();
+      if (name && (!addressMap.has(a.order_id) || a.address_type === "SHIPPING")) {
+        addressMap.set(a.order_id, name);
+      }
+    });
+
+    const profileMap = new Map<string, { name: string; avatar: string | null }>();
+    (profilesRes.data || []).forEach((p: any) => {
+      const name = [p.first_name, p.last_name].filter(Boolean).join(" ").trim();
+      profileMap.set(p.id, { name, avatar: p.avatar_url });
+    });
+
     // Map customer details for these orders
-    const enrichedData = await Promise.all(data.map(async (order) => {
-        if (!order.customer_id) return { ...order, customer_name: "Guest", customer_avatar: null };
-        const { data: userData } = await adminSupabase.auth.admin.getUserById(order.customer_id).catch(() => ({ data: null }));
-        return {
-            ...order,
-            customer_name: userData?.user?.user_metadata?.full_name || "Guest",
-            customer_avatar: userData?.user?.user_metadata?.avatar_url || null
+    const enrichedData = await Promise.all(
+      data.map(async (order) => {
+        const addrName = addressMap.get(order.id);
+        const prof = order.customer_id ? profileMap.get(order.customer_id) : null;
+
+        let authName: string | null = null;
+        let authAvatar: string | null = null;
+
+        if (order.customer_id && (!prof?.name || !prof?.avatar)) {
+          const { data: userData } = await adminSupabase.auth.admin
+            .getUserById(order.customer_id)
+            .catch(() => ({ data: null }));
+          const m = userData?.user?.user_metadata;
+          authName =
+            m?.full_name ||
+            [m?.first_name, m?.last_name].filter(Boolean).join(" ").trim() ||
+            m?.name ||
+            userData?.user?.email?.split("@")[0] ||
+            null;
+          authAvatar = m?.avatar_url || null;
         }
-    }));
+
+        const customerName =
+          prof?.name || addrName || authName || "Customer";
+        const customerAvatar = prof?.avatar || authAvatar || null;
+
+        return {
+          ...order,
+          customer_name: customerName,
+          customer_avatar: customerAvatar,
+        };
+      })
+    );
 
     return enrichedData;
   }
