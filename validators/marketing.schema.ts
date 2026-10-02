@@ -38,6 +38,11 @@ export const promotionSchema = z
     start_date: z.string().min(1, "Start date is required"),
     end_date: z.string().min(1, "End date is required"),
     is_active: z.boolean().default(true),
+    banner_url: z.string().optional().default(""),
+    banner_link: z.string().optional().default(""),
+    show_popup: z.boolean().default(true),
+    popup_delay: z.coerce.number().min(1).max(60).default(5),
+    description: z.string().optional().default(""),
   })
   .refine(
     (data) => {

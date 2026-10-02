@@ -100,6 +100,8 @@ export async function createPromotionAction(
     const validated = promotionSchema.parse(data);
     const promo = await PromotionRepository.createPromotion(validated);
     revalidatePath("/admin/marketing/promotions");
+    revalidatePath("/");
+    revalidatePath("/products");
     return { success: true, data: promo };
   } catch (error: any) {
     console.error("[createPromotionAction] Error:", error);
@@ -115,6 +117,8 @@ export async function updatePromotionAction(
     if (!id) return { success: false, error: "Promotion ID is required" };
     const promo = await PromotionRepository.updatePromotion(id, data);
     revalidatePath("/admin/marketing/promotions");
+    revalidatePath("/");
+    revalidatePath("/products");
     return { success: true, data: promo };
   } catch (error: any) {
     console.error("[updatePromotionAction] Error:", error);
@@ -129,6 +133,8 @@ export async function deletePromotionAction(
     if (!id) return { success: false, error: "Promotion ID is required" };
     await PromotionRepository.deletePromotion(id);
     revalidatePath("/admin/marketing/promotions");
+    revalidatePath("/");
+    revalidatePath("/products");
     return { success: true };
   } catch (error: any) {
     console.error("[deletePromotionAction] Error:", error);
@@ -144,10 +150,26 @@ export async function togglePromotionStatusAction(
     if (!id) return { success: false, error: "Promotion ID is required" };
     const promo = await PromotionRepository.togglePromotionStatus(id, is_active);
     revalidatePath("/admin/marketing/promotions");
+    revalidatePath("/");
+    revalidatePath("/products");
     return { success: true, data: promo };
   } catch (error: any) {
     console.error("[togglePromotionStatusAction] Error:", error);
     return { success: false, error: error.message || "Failed to toggle promotion status" };
+  }
+}
+
+export async function getActivePromotionAction(): Promise<{
+  success: boolean;
+  data?: PromotionRecord | null;
+  error?: string;
+}> {
+  try {
+    const promo = await PromotionRepository.getBestActivePromotion();
+    return { success: true, data: promo };
+  } catch (error: any) {
+    console.error("[getActivePromotionAction] Error:", error);
+    return { success: false, error: error.message || "Failed to fetch active promotion" };
   }
 }
 

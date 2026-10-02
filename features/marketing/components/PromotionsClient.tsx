@@ -261,6 +261,7 @@ export function PromotionsClient({ initialPromotions }: PromotionsClientProps) {
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[80px]">Photo</TableHead>
               <TableHead className="min-w-[200px]">Promotion Name</TableHead>
               <TableHead className="text-right w-[120px]">Discount Tier</TableHead>
               <TableHead className="w-[140px]">Start Date</TableHead>
@@ -272,7 +273,7 @@ export function PromotionsClient({ initialPromotions }: PromotionsClientProps) {
           <TableBody>
             {filtered.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-44 text-center text-muted-foreground">
+                <TableCell colSpan={7} className="h-44 text-center text-muted-foreground">
                   <div className="flex flex-col items-center justify-center">
                     <Sparkles className="h-10 w-10 text-muted-foreground/30 mb-2" />
                     <p className="font-semibold text-foreground">No promotions found</p>
@@ -301,8 +302,36 @@ export function PromotionsClient({ initialPromotions }: PromotionsClientProps) {
 
                 return (
                   <TableRow key={promo.id} className="group">
+                    <TableCell>
+                      {promo.banner_url ? (
+                        <div className="relative h-11 w-16 overflow-hidden rounded-md border border-border bg-muted/40">
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={promo.banner_url}
+                            alt={promo.name}
+                            className="h-full w-full object-cover"
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex h-11 w-16 items-center justify-center rounded-md border border-dashed border-border bg-muted/20 text-muted-foreground text-[10px]">
+                          No Photo
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-medium text-foreground">
-                      {promo.name}
+                      <div>
+                        <span>{promo.name}</span>
+                        {promo.banner_link && (
+                          <div className="text-[11px] text-muted-foreground truncate max-w-xs mt-0.5">
+                            Link: <span className="text-primary font-mono">{promo.banner_link}</span>
+                          </div>
+                        )}
+                        {promo.show_popup && (
+                          <div className="text-[10px] text-emerald-600 font-medium">
+                            Popup active ({promo.popup_delay || 5}s delay)
+                          </div>
+                        )}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right font-semibold text-foreground">
                       <Badge variant="secondary" className="font-bold text-xs">
@@ -349,7 +378,7 @@ export function PromotionsClient({ initialPromotions }: PromotionsClientProps) {
                       <DropdownMenu>
                         <DropdownMenuTrigger
                           render={
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <Button variant="ghost" className="h-8 w-8 p-0">
                               <MoreHorizontal className="h-4 w-4" />
                             </Button>
                           }

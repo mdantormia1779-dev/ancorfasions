@@ -39,9 +39,34 @@ export class CartRepository {
 
     if (!data) return null;
 
+    let activePromoDiscount: number | null = null;
+    try {
+      const { PromotionRepository } = await import("@/lib/repositories/marketing/promotion.repository");
+      const bestPromo = await PromotionRepository.getBestActivePromotion();
+      if (bestPromo && bestPromo.discount_percentage > 0) {
+        activePromoDiscount = bestPromo.discount_percentage;
+      }
+    } catch {
+      activePromoDiscount = null;
+    }
+
     if (data.items) {
       data.items = data.items.map((item: any) => {
         const prod = item.variant?.product;
+        const prodBasePrice = Number(prod?.base_price ?? 0);
+        let prodSalePrice = prod?.sale_price ? Number(prod.sale_price) : null;
+        let variantSalePrice = item.variant?.sale_price ? Number(item.variant.sale_price) : null;
+
+        if (activePromoDiscount && activePromoDiscount > 0) {
+          const promoDiscountedPrice = Math.round(prodBasePrice * (1 - activePromoDiscount / 100));
+          if (prodSalePrice === null || promoDiscountedPrice < prodSalePrice) {
+            prodSalePrice = promoDiscountedPrice;
+          }
+          if (variantSalePrice === null || promoDiscountedPrice < variantSalePrice) {
+            variantSalePrice = promoDiscountedPrice;
+          }
+        }
+
         return {
           ...item,
           product_id: prod?.id || null,
@@ -49,7 +74,8 @@ export class CartRepository {
             ? {
                 ...prod,
                 title: prod.name,
-                price: prod.base_price,
+                price: prodBasePrice,
+                sale_price: prodSalePrice,
                 main_image_url:
                   prod.product_media?.find((m: any) => m.is_primary)?.url ||
                   prod.product_media?.[0]?.url ||
@@ -59,8 +85,8 @@ export class CartRepository {
           variant: item.variant
             ? {
                 ...item.variant,
-                price: item.variant.price_override ?? prod?.base_price ?? 0,
-                sale_price: item.variant.sale_price ?? null,
+                price: item.variant.price_override ?? prodBasePrice,
+                sale_price: variantSalePrice,
               }
             : undefined,
         };

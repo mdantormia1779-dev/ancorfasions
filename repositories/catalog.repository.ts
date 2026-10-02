@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { PromotionRepository } from "@/lib/repositories/marketing/promotion.repository";
 
 export interface ProductListParams {
   category?: string;
@@ -11,7 +12,7 @@ export interface ProductListParams {
   offset?: number;
 }
 
-function mapProductToStorefront(p: any) {
+function mapProductToStorefront(p: any, activePromoDiscount?: number | null) {
   if (!p) return null;
 
   const variants = p.variants || [];
@@ -38,6 +39,17 @@ function mapProductToStorefront(p: any) {
 
   const primaryMedia = mediaList.find((m: any) => m.is_primary) || mediaList[0] || null;
 
+  const basePriceNum = Number(p.basePrice);
+  let salePriceNum = p.salePrice ? Number(p.salePrice) : null;
+
+  // If there is an active promotion and no lower custom sale price, apply the promotional discount percentage!
+  if (activePromoDiscount && activePromoDiscount > 0) {
+    const promoDiscountedPrice = Math.round(basePriceNum * (1 - activePromoDiscount / 100));
+    if (salePriceNum === null || promoDiscountedPrice < salePriceNum) {
+      salePriceNum = promoDiscountedPrice;
+    }
+  }
+
   return {
     id: p.id,
     name: p.name,
@@ -45,10 +57,10 @@ function mapProductToStorefront(p: any) {
     description: p.description,
     short_description: p.shortDescription,
     shortDescription: p.shortDescription,
-    base_price: Number(p.basePrice),
-    basePrice: Number(p.basePrice),
-    sale_price: p.salePrice ? Number(p.salePrice) : null,
-    salePrice: p.salePrice ? Number(p.salePrice) : null,
+    base_price: basePriceNum,
+    basePrice: basePriceNum,
+    sale_price: salePriceNum,
+    salePrice: salePriceNum,
     cost_price: p.costPrice ? Number(p.costPrice) : null,
     sku: p.sku,
     barcode: p.barcode,
@@ -131,25 +143,34 @@ export const CatalogRepository = {
   /**
    * Fetch featured products from Neon PostgreSQL
    */
+  /**
+   * Fetch featured products from Neon PostgreSQL
+   */
   async getFeaturedProducts(limit = 4) {
     try {
-      const products = await prisma.product.findMany({
-        where: {
-          status: "ACTIVE",
-          isFeatured: true,
-          deletedAt: null,
-        },
-        include: {
-          category: { select: { id: true, name: true, slug: true } },
-          brand: { select: { id: true, name: true, slug: true } },
-          media: { orderBy: { displayOrder: "asc" } },
-          variants: { include: { inventoryLevels: true } },
-        },
-        orderBy: { createdAt: "desc" },
-        take: limit,
-      });
+      const [products, bestPromo] = await Promise.all([
+        prisma.product.findMany({
+          where: {
+            status: "ACTIVE",
+            isFeatured: true,
+            deletedAt: null,
+          },
+          include: {
+            category: { select: { id: true, name: true, slug: true } },
+            brand: { select: { id: true, name: true, slug: true } },
+            media: { orderBy: { displayOrder: "asc" } },
+            variants: { include: { inventoryLevels: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        }),
+        PromotionRepository.getBestActivePromotion().catch(() => null),
+      ]);
 
-      return products.map(mapProductToStorefront).filter((p): p is NonNullable<typeof p> => p !== null) as any;
+      const promoDiscount = bestPromo?.discount_percentage ?? null;
+      return products
+        .map((p) => mapProductToStorefront(p, promoDiscount))
+        .filter((p): p is NonNullable<typeof p> => p !== null) as any;
     } catch (e) {
       console.error("Error fetching featured products from Neon:", e);
       return [];
@@ -161,22 +182,28 @@ export const CatalogRepository = {
    */
   async getNewArrivals(limit = 4) {
     try {
-      const products = await prisma.product.findMany({
-        where: {
-          status: "ACTIVE",
-          deletedAt: null,
-        },
-        include: {
-          category: { select: { id: true, name: true, slug: true } },
-          brand: { select: { id: true, name: true, slug: true } },
-          media: { orderBy: { displayOrder: "asc" } },
-          variants: { include: { inventoryLevels: true } },
-        },
-        orderBy: { createdAt: "desc" },
-        take: limit,
-      });
+      const [products, bestPromo] = await Promise.all([
+        prisma.product.findMany({
+          where: {
+            status: "ACTIVE",
+            deletedAt: null,
+          },
+          include: {
+            category: { select: { id: true, name: true, slug: true } },
+            brand: { select: { id: true, name: true, slug: true } },
+            media: { orderBy: { displayOrder: "asc" } },
+            variants: { include: { inventoryLevels: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+        }),
+        PromotionRepository.getBestActivePromotion().catch(() => null),
+      ]);
 
-      return products.map(mapProductToStorefront).filter((p): p is NonNullable<typeof p> => p !== null) as any;
+      const promoDiscount = bestPromo?.discount_percentage ?? null;
+      return products
+        .map((p) => mapProductToStorefront(p, promoDiscount))
+        .filter((p): p is NonNullable<typeof p> => p !== null) as any;
     } catch (e) {
       console.error("Error fetching new arrivals from Neon:", e);
       return [];
@@ -228,7 +255,7 @@ export const CatalogRepository = {
       const limit = params.limit || 12;
       const offset = params.offset || 0;
 
-      const [products, total] = await Promise.all([
+      const [products, total, bestPromo] = await Promise.all([
         prisma.product.findMany({
           where,
           include: {
@@ -242,10 +269,13 @@ export const CatalogRepository = {
           skip: offset,
         }),
         prisma.product.count({ where }),
+        PromotionRepository.getBestActivePromotion().catch(() => null),
       ]);
 
+      const promoDiscount = bestPromo?.discount_percentage ?? null;
+
       return {
-        data: products.map(mapProductToStorefront),
+        data: products.map((p) => mapProductToStorefront(p, promoDiscount)),
         count: total,
       };
     } catch (error) {
@@ -259,31 +289,35 @@ export const CatalogRepository = {
    */
   async getProductBySlug(slug: string): Promise<any> {
     try {
-      const product = await prisma.product.findFirst({
-        where: {
-          slug,
-          deletedAt: null,
-        },
-        include: {
-          category: { select: { id: true, name: true, slug: true } },
-          brand: { select: { id: true, name: true, slug: true } },
-          media: { orderBy: { displayOrder: "asc" } },
-          variants: {
-            include: {
-              inventoryLevels: true,
+      const [product, bestPromo] = await Promise.all([
+        prisma.product.findFirst({
+          where: {
+            slug,
+            deletedAt: null,
+          },
+          include: {
+            category: { select: { id: true, name: true, slug: true } },
+            brand: { select: { id: true, name: true, slug: true } },
+            media: { orderBy: { displayOrder: "asc" } },
+            variants: {
+              include: {
+                inventoryLevels: true,
+              },
+            },
+            seo: true,
+            reviews: {
+              where: { isApproved: true },
+              orderBy: { createdAt: "desc" },
+              take: 20,
             },
           },
-          seo: true,
-          reviews: {
-            where: { isApproved: true },
-            orderBy: { createdAt: "desc" },
-            take: 20,
-          },
-        },
-      });
+        }),
+        PromotionRepository.getBestActivePromotion().catch(() => null),
+      ]);
 
       if (!product) return null;
-      return mapProductToStorefront(product);
+      const promoDiscount = bestPromo?.discount_percentage ?? null;
+      return mapProductToStorefront(product, promoDiscount);
     } catch (error) {
       console.error("Error fetching product by slug from Neon:", error);
       return null;

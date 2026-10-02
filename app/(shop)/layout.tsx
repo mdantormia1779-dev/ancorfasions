@@ -5,7 +5,9 @@ import { getStoreInfo } from "@/lib/actions/settings.actions";
 import { createClient } from "@/lib/supabase/server";
 import { MobileBottomNav } from "@/components/layout/mobile-bottom-nav";
 import { FloatingPromotion } from "@/components/marketing/floating-promotion";
+import { PromotionPopupBanner } from "@/components/marketing/PromotionPopupBanner";
 import { CartDrawer } from "@/components/cart/cart-drawer";
+import { PromotionRepository } from "@/lib/repositories/marketing/promotion.repository";
 
 export default async function ShopLayout({
   children,
@@ -17,9 +19,10 @@ export default async function ShopLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  const [categories, storeInfo] = await Promise.all([
+  const [categories, storeInfo, activePromotion] = await Promise.all([
     CatalogRepository.getCategories(),
     getStoreInfo(),
+    PromotionRepository.getBestActivePromotion().catch(() => null),
   ]);
 
   const orgJsonLd = {
@@ -52,6 +55,7 @@ export default async function ShopLayout({
       <StoreFooter />
       <MobileBottomNav user={user} />
       <FloatingPromotion />
+      <PromotionPopupBanner initialPromotion={activePromotion} />
       <CartDrawer />
     </div>
   );
