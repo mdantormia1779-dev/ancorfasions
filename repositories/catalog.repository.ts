@@ -1,4 +1,4 @@
-import { getPublicSupabaseClient } from "@/lib/supabase/public";
+import { prisma } from "@/lib/prisma";
 
 export interface ProductListParams {
   category?: string;
@@ -11,227 +11,282 @@ export interface ProductListParams {
   offset?: number;
 }
 
-export const CatalogRepository = {
-  async getCategories() {
-    const supabase = getPublicSupabaseClient();
-    try {
-      const { data, error } = await supabase
-        .from("categories")
-        .select("*")
-        .eq("is_active", true)
-        .order("display_order", { ascending: true });
+function mapProductToStorefront(p: any) {
+  if (!p) return null;
 
-      if (error) {
-        console.error(
-          "Error fetching categories — code:",
-          error.code,
-          "| message:",
-          error.message,
-          "| details:",
-          error.details,
-          "| hint:",
-          error.hint
-        );
-        return [];
-      }
-      return data ?? [];
-    } catch (e) {
-      console.error("Network or unexpected error fetching categories:", e);
-      return [];
-    }
-  },
-
-  async getFeaturedProducts(limit = 4) {
-    const supabase = getPublicSupabaseClient();
-    try {
-      const { data, error } = await supabase
-        .from("products")
-        .select(
-          `
-          *,
-          categories (name, slug),
-          brands (name),
-          product_media (url, alt_text, is_primary)
-        `
-        )
-        .eq("status", "ACTIVE")
-        .eq("is_featured", true)
-        .order("created_at", { ascending: false })
-        .limit(limit);
-
-      if (error) {
-        console.error("Error fetching featured products:", error);
-        return [];
-      }
-      return data;
-    } catch (e) {
-      console.error(
-        "Network or unexpected error fetching featured products:",
-        e
+  const variants = p.variants || [];
+  const totalAvailable = variants.reduce(
+    (sum: number, variant: any) => {
+      const variantStock = (variant.inventoryLevels || []).reduce(
+        (vSum: number, level: any) => vSum + (level.quantityAvailable || 0),
+        0
       );
+      return sum + variantStock;
+    },
+    0
+  );
+
+  const mediaList = (p.media || []).map((m: any) => ({
+    id: m.id,
+    url: m.url,
+    url_webp: m.urlWebp,
+    alt_text: m.altText,
+    is_primary: m.isPrimary,
+    display_order: m.displayOrder,
+    media_type: m.mediaType,
+  }));
+
+  const primaryMedia = mediaList.find((m: any) => m.is_primary) || mediaList[0] || null;
+
+  return {
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    description: p.description,
+    short_description: p.shortDescription,
+    shortDescription: p.shortDescription,
+    base_price: Number(p.basePrice),
+    basePrice: Number(p.basePrice),
+    sale_price: p.salePrice ? Number(p.salePrice) : null,
+    salePrice: p.salePrice ? Number(p.salePrice) : null,
+    cost_price: p.costPrice ? Number(p.costPrice) : null,
+    sku: p.sku,
+    barcode: p.barcode,
+    status: p.status,
+    gender: p.gender,
+    season: p.season,
+    care_instructions: p.careInstructions,
+    country_of_origin: p.countryOfOrigin,
+    is_featured: p.isFeatured,
+    isFeatured: p.isFeatured,
+    average_rating: Number(p.rating || 0),
+    rating: Number(p.rating || 0),
+    review_count: p.reviewCount || 0,
+    created_at: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+    updated_at: p.updatedAt ? new Date(p.updatedAt).toISOString() : new Date().toISOString(),
+    category_id: p.categoryId,
+    brand_id: p.brandId,
+    category: p.category ? { id: p.category.id, name: p.category.name, slug: p.category.slug } : null,
+    categories: p.category ? { id: p.category.id, name: p.category.name, slug: p.category.slug } : null,
+    brand: p.brand ? { id: p.brand.id, name: p.brand.name, slug: p.brand.slug } : null,
+    brands: p.brand ? { id: p.brand.id, name: p.brand.name, slug: p.brand.slug } : null,
+    product_media: mediaList,
+    media: mediaList,
+    primary_image_url: primaryMedia ? primaryMedia.url : p.imageUrl || "/placeholder.png",
+    variants: variants.map((v: any) => ({
+      id: v.id,
+      sku: v.sku,
+      barcode: v.barcode,
+      price_override: v.priceOverride ? Number(v.priceOverride) : null,
+      sale_price: v.salePrice ? Number(v.salePrice) : null,
+      weight: v.weight ? Number(v.weight) : null,
+      attributes: v.attributes,
+      is_active: v.isActive,
+      inventory_levels: (v.inventoryLevels || []).map((il: any) => ({
+        id: il.id,
+        warehouse_id: il.warehouseId,
+        quantity_available: il.quantityAvailable,
+        quantity_reserved: il.quantityReserved,
+        reorder_point: il.reorderPoint,
+      })),
+    })),
+    is_in_stock: totalAvailable > 0 || (variants.length === 0 && p.status === "ACTIVE"),
+    total_available_stock: totalAvailable,
+    stockQuantity: totalAvailable,
+  };
+}
+
+export const CatalogRepository = {
+  /**
+   * Fetch active categories from Neon PostgreSQL
+   */
+  async getCategories() {
+    try {
+      const categories = await prisma.category.findMany({
+        where: { isActive: true },
+        orderBy: { displayOrder: "asc" },
+      });
+      return categories.map((c) => ({
+        id: c.id,
+        name: c.name,
+        slug: c.slug,
+        description: c.description ?? "",
+        image_url: c.imageUrl ?? null,
+        image: c.imageUrl ?? "",
+        parent_id: c.parentId ?? null,
+        icon_url: c.imageUrl ?? null,
+        display_order: c.displayOrder,
+        sortOrder: c.displayOrder,
+        is_active: c.isActive,
+        isActive: c.isActive,
+        created_at: c.createdAt ? new Date(c.createdAt).toISOString() : new Date().toISOString(),
+        updated_at: c.updatedAt ? new Date(c.updatedAt).toISOString() : new Date().toISOString(),
+      }));
+    } catch (e) {
+      console.error("Error fetching categories from Neon:", e);
       return [];
     }
   },
 
+  /**
+   * Fetch featured products from Neon PostgreSQL
+   */
+  async getFeaturedProducts(limit = 4) {
+    try {
+      const products = await prisma.product.findMany({
+        where: {
+          status: "ACTIVE",
+          isFeatured: true,
+          deletedAt: null,
+        },
+        include: {
+          category: { select: { id: true, name: true, slug: true } },
+          brand: { select: { id: true, name: true, slug: true } },
+          media: { orderBy: { displayOrder: "asc" } },
+          variants: { include: { inventoryLevels: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      });
+
+      return products.map(mapProductToStorefront).filter((p): p is NonNullable<typeof p> => p !== null) as any;
+    } catch (e) {
+      console.error("Error fetching featured products from Neon:", e);
+      return [];
+    }
+  },
+
+  /**
+   * Fetch new arrival products from Neon PostgreSQL
+   */
   async getNewArrivals(limit = 4) {
-    const supabase = getPublicSupabaseClient();
-    const { data, error } = await supabase
-      .from("products")
-      .select(
-        `
-        *,
-        categories (name, slug),
-        brands (name),
-        product_media (url, alt_text, is_primary)
-      `
-      )
-      .eq("status", "ACTIVE")
-      .order("created_at", { ascending: false })
-      .limit(limit);
+    try {
+      const products = await prisma.product.findMany({
+        where: {
+          status: "ACTIVE",
+          deletedAt: null,
+        },
+        include: {
+          category: { select: { id: true, name: true, slug: true } },
+          brand: { select: { id: true, name: true, slug: true } },
+          media: { orderBy: { displayOrder: "asc" } },
+          variants: { include: { inventoryLevels: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: limit,
+      });
 
-    if (error) {
-      console.error("Error fetching new arrivals:", error);
+      return products.map(mapProductToStorefront).filter((p): p is NonNullable<typeof p> => p !== null) as any;
+    } catch (e) {
+      console.error("Error fetching new arrivals from Neon:", e);
       return [];
     }
-    return data;
   },
 
+  /**
+   * Fetch filtered & paginated products from Neon PostgreSQL
+   */
   async getProducts(params: ProductListParams) {
-    const supabase = getPublicSupabaseClient();
-    const catSelect = params.category
-      ? "categories!inner (name, slug)"
-      : "categories (name, slug)";
-    const brandSelect = params.brand
-      ? "brands!inner (name, slug)"
-      : "brands (name, slug)";
+    try {
+      const where: any = {
+        status: "ACTIVE",
+        deletedAt: null,
+      };
 
-    let query = supabase
-      .from("products")
-      .select(
-        `
-        *,
-        ${catSelect},
-        ${brandSelect},
-        product_media (url, alt_text, is_primary)
-      `,
-        { count: "exact" }
-      )
-      .eq("status", "ACTIVE");
-
-    if (params.category) {
-      query = query.eq("categories.slug", params.category);
-    }
-    if (params.brand) {
-      query = query.eq("brands.slug", params.brand);
-    }
-    if (params.minPrice !== undefined) {
-      query = query.gte("base_price", params.minPrice);
-    }
-    if (params.maxPrice !== undefined) {
-      query = query.lte("base_price", params.maxPrice);
-    }
-    if (params.search && params.search.trim()) {
-      // Use ILIKE for partial, case-insensitive matching across name, description, and sku
-      const cleanTerm = params.search.trim().replace(/["',\\]/g, "");
-      if (cleanTerm) {
-        query = (query as any).or(
-          `name.ilike."%${cleanTerm}%",description.ilike."%${cleanTerm}%",short_description.ilike."%${cleanTerm}%",sku.ilike."%${cleanTerm}%"`
-        );
+      if (params.category) {
+        where.category = { slug: params.category };
       }
-    }
-
-    if (params.sortBy) {
-      switch (params.sortBy) {
-        case "price_asc":
-          query = query.order("base_price", { ascending: true });
-          break;
-        case "price_desc":
-          query = query.order("base_price", { ascending: false });
-          break;
-        case "newest":
-          query = query.order("created_at", { ascending: false });
-          break;
-        case "rating":
-          query = query.order("average_rating", { ascending: false });
-          break;
-        default:
-          query = query.order("created_at", { ascending: false });
+      if (params.brand) {
+        where.brand = { slug: params.brand };
       }
-    } else {
-      query = query.order("created_at", { ascending: false });
-    }
+      if (params.minPrice !== undefined || params.maxPrice !== undefined) {
+        where.basePrice = {};
+        if (params.minPrice !== undefined) where.basePrice.gte = params.minPrice;
+        if (params.maxPrice !== undefined) where.basePrice.lte = params.maxPrice;
+      }
+      if (params.search && params.search.trim()) {
+        const term = params.search.trim();
+        where.OR = [
+          { name: { contains: term, mode: "insensitive" } },
+          { description: { contains: term, mode: "insensitive" } },
+          { shortDescription: { contains: term, mode: "insensitive" } },
+          { sku: { contains: term, mode: "insensitive" } },
+        ];
+      }
 
-    const limit = params.limit || 12;
-    const offset = params.offset || 0;
+      let orderBy: any = { createdAt: "desc" };
+      if (params.sortBy === "price_asc") {
+        orderBy = { basePrice: "asc" };
+      } else if (params.sortBy === "price_desc") {
+        orderBy = { basePrice: "desc" };
+      } else if (params.sortBy === "rating") {
+        orderBy = { rating: "desc" };
+      } else {
+        orderBy = { createdAt: "desc" };
+      }
 
-    query = query.range(offset, offset + limit - 1);
+      const limit = params.limit || 12;
+      const offset = params.offset || 0;
 
-    const { data, error, count } = await query;
+      const [products, total] = await Promise.all([
+        prisma.product.findMany({
+          where,
+          include: {
+            category: { select: { id: true, name: true, slug: true } },
+            brand: { select: { id: true, name: true, slug: true } },
+            media: { orderBy: { displayOrder: "asc" } },
+            variants: { include: { inventoryLevels: true } },
+          },
+          orderBy,
+          take: limit,
+          skip: offset,
+        }),
+        prisma.product.count({ where }),
+      ]);
 
-    if (error) {
-      console.error("Error fetching products:", error);
+      return {
+        data: products.map(mapProductToStorefront),
+        count: total,
+      };
+    } catch (error) {
+      console.error("Error fetching products from Neon:", error);
       return { data: [], count: 0 };
     }
-    return { data, count };
   },
 
+  /**
+   * Fetch single product by slug from Neon PostgreSQL
+   */
   async getProductBySlug(slug: string): Promise<any> {
-    const supabase = getPublicSupabaseClient();
-    const { data, error } = await (supabase.from("products") as any)
-      .select(
-        `
-        *,
-        categories (id, name, slug),
-        brands (id, name, slug),
-        product_media (*),
-        variants (
-          *,
-          inventory_levels (quantity_available, reorder_point),
-          variant_attribute_values (
-            attribute_values (
-              id, value,
-              attributes (id, name)
-            )
-          )
-        ),
-        size_charts (*)
-      `
-      )
-      .eq("slug", slug)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    try {
+      const product = await prisma.product.findFirst({
+        where: {
+          slug,
+          deletedAt: null,
+        },
+        include: {
+          category: { select: { id: true, name: true, slug: true } },
+          brand: { select: { id: true, name: true, slug: true } },
+          media: { orderBy: { displayOrder: "asc" } },
+          variants: {
+            include: {
+              inventoryLevels: true,
+            },
+          },
+          seo: true,
+          reviews: {
+            where: { isApproved: true },
+            orderBy: { createdAt: "desc" },
+            take: 20,
+          },
+        },
+      });
 
-    if (error) {
-      console.error("Error fetching product by slug:", error);
+      if (!product) return null;
+      return mapProductToStorefront(product);
+    } catch (error) {
+      console.error("Error fetching product by slug from Neon:", error);
       return null;
     }
-
-    if (data) {
-      const variants = (data as any).variants || [];
-      const hasVariants = variants.length > 0;
-      if (hasVariants) {
-        // Compute total available stock across all variants and warehouses
-        const totalAvailable = variants.reduce(
-          (sum: number, variant: any) => {
-            const variantStock = (variant.inventory_levels || []).reduce(
-              (vSum: number, level: any) =>
-                vSum + (level.quantity_available || 0),
-              0
-            );
-            return sum + variantStock;
-          },
-          0
-        );
-        (data as any).is_in_stock = totalAvailable > 0;
-        (data as any).total_available_stock = totalAvailable;
-      } else {
-        // Product without variants
-        (data as any).is_in_stock = false;
-        (data as any).total_available_stock = 0;
-      }
-    }
-
-    return data;
   },
 };

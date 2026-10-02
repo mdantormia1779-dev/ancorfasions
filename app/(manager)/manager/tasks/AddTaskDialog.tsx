@@ -197,65 +197,103 @@ export function AddTaskDialog({ onTaskCreated, trigger }: AddTaskDialogProps) {
               <FormField
                 control={form.control}
                 name="priority"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Priority <span className="text-destructive">*</span>
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger
-                          className={
-                            form.formState.errors.priority
-                              ? "border-destructive focus-visible:ring-destructive"
-                              : ""
-                          }
-                        >
-                          <SelectValue placeholder="Select priority" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="low">Low</SelectItem>
-                        <SelectItem value="medium">Medium</SelectItem>
-                        <SelectItem value="high">High</SelectItem>
-                        <SelectItem value="urgent">Urgent</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-xs text-destructive font-medium" />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const priorityLabels: Record<string, string> = {
+                    low: "Low",
+                    medium: "Medium",
+                    high: "High",
+                    urgent: "Urgent",
+                  };
+                  return (
+                    <FormItem>
+                      <FormLabel>
+                        Priority <span className="text-destructive">*</span>
+                      </FormLabel>
+                      <Select
+                        items={[
+                          { value: "low", label: "Low" },
+                          { value: "medium", label: "Medium" },
+                          { value: "high", label: "High" },
+                          { value: "urgent", label: "Urgent" },
+                        ]}
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger
+                            className={
+                              form.formState.errors.priority
+                                ? "border-destructive focus-visible:ring-destructive"
+                                : ""
+                            }
+                          >
+                            <SelectValue placeholder="Select priority">
+                              {field.value ? priorityLabels[field.value] || field.value : undefined}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="low" label="Low">Low</SelectItem>
+                          <SelectItem value="medium" label="Medium">Medium</SelectItem>
+                          <SelectItem value="high" label="High">High</SelectItem>
+                          <SelectItem value="urgent" label="Urgent">Urgent</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-xs text-destructive font-medium" />
+                    </FormItem>
+                  );
+                }}
               />
 
               <FormField
                 control={form.control}
                 name="status"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Status <span className="text-destructive">*</span>
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger
-                          className={
-                            form.formState.errors.status
-                              ? "border-destructive focus-visible:ring-destructive"
-                              : ""
-                          }
-                        >
-                          <SelectValue placeholder="Select status" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="completed">Completed</SelectItem>
-                        <SelectItem value="archived">Archived</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-xs text-destructive font-medium" />
-                  </FormItem>
-                )}
+                render={({ field }) => {
+                  const statusLabels: Record<string, string> = {
+                    pending: "Pending",
+                    in_progress: "In Progress",
+                    completed: "Completed",
+                    archived: "Archived",
+                  };
+                  return (
+                    <FormItem>
+                      <FormLabel>
+                        Status <span className="text-destructive">*</span>
+                      </FormLabel>
+                      <Select
+                        items={[
+                          { value: "pending", label: "Pending" },
+                          { value: "in_progress", label: "In Progress" },
+                          { value: "completed", label: "Completed" },
+                          { value: "archived", label: "Archived" },
+                        ]}
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger
+                            className={
+                              form.formState.errors.status
+                                ? "border-destructive focus-visible:ring-destructive"
+                                : ""
+                            }
+                          >
+                            <SelectValue placeholder="Select status">
+                              {field.value ? statusLabels[field.value] || field.value : undefined}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          <SelectItem value="pending" label="Pending">Pending</SelectItem>
+                          <SelectItem value="in_progress" label="In Progress">In Progress</SelectItem>
+                          <SelectItem value="completed" label="Completed">Completed</SelectItem>
+                          <SelectItem value="archived" label="Archived">Archived</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-xs text-destructive font-medium" />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 
@@ -287,45 +325,54 @@ export function AddTaskDialog({ onTaskCreated, trigger }: AddTaskDialogProps) {
               <FormField
                 control={form.control}
                 name="assigned_to"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>
-                      Assignee <span className="text-destructive">*</span>
-                    </FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value || undefined}>
-                      <FormControl>
-                        <SelectTrigger
-                          className={
-                            form.formState.errors.assigned_to
-                              ? "border-destructive focus-visible:ring-destructive"
-                              : ""
-                          }
-                        >
-                          <SelectValue placeholder="Select staff member" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {staff.length > 0 ? (
-                          staff.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>
-                              <div className="flex items-center justify-between gap-3 w-full">
-                                <span>{s.name}</span>
-                                <span className="text-[10px] text-muted-foreground uppercase px-1.5 py-0.5 rounded bg-muted">
-                                  {s.role}
-                                </span>
-                              </div>
+                render={({ field }) => {
+                  const selectedStaff = staff.find((s) => s.id === field.value);
+                  return (
+                    <FormItem>
+                      <FormLabel>
+                        Assignee <span className="text-destructive">*</span>
+                      </FormLabel>
+                      <Select
+                        items={staff.map((s) => ({ value: s.id, label: s.name }))}
+                        onValueChange={(val) => field.onChange(val || "")}
+                        value={field.value || ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger
+                            className={
+                              form.formState.errors.assigned_to
+                                ? "border-destructive focus-visible:ring-destructive"
+                                : ""
+                            }
+                          >
+                            <SelectValue placeholder="Select staff member">
+                              {selectedStaff ? selectedStaff.name : undefined}
+                            </SelectValue>
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {staff.length > 0 ? (
+                            staff.map((s) => (
+                              <SelectItem key={s.id} value={s.id} label={s.name}>
+                                <div className="flex items-center justify-between gap-3 w-full">
+                                  <span>{s.name}</span>
+                                  <span className="text-[10px] text-muted-foreground uppercase px-1.5 py-0.5 rounded bg-muted">
+                                    {s.role}
+                                  </span>
+                                </div>
+                              </SelectItem>
+                            ))
+                          ) : (
+                            <SelectItem value="unassigned" disabled>
+                              Loading team members...
                             </SelectItem>
-                          ))
-                        ) : (
-                          <SelectItem value="unassigned" disabled>
-                            Loading team members...
-                          </SelectItem>
-                        )}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage className="text-xs text-destructive font-medium" />
-                  </FormItem>
-                )}
+                          )}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage className="text-xs text-destructive font-medium" />
+                    </FormItem>
+                  );
+                }}
               />
             </div>
 

@@ -323,28 +323,57 @@ export function TasksManagerClient({ initialTasks = [] }: TasksManagerClientProp
           />
         </div>
         <div className="flex items-center gap-2 w-full sm:w-auto">
-          <Select value={priorityFilter} onValueChange={(val) => setPriorityFilter(val || "all")}>
+          <Select
+            items={[
+              { value: "all", label: "All Priorities" },
+              { value: "urgent", label: "Urgent" },
+              { value: "high", label: "High" },
+              { value: "medium", label: "Medium" },
+              { value: "low", label: "Low" },
+            ]}
+            value={priorityFilter}
+            onValueChange={(val) => setPriorityFilter(val || "all")}
+          >
             <SelectTrigger className="w-full sm:w-36 h-9">
-              <SelectValue placeholder="Priority" />
+              <SelectValue placeholder="Priority">
+                {priorityFilter === "all"
+                  ? "All Priorities"
+                  : priorityFilter.charAt(0).toUpperCase() + priorityFilter.slice(1)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Priorities</SelectItem>
-              <SelectItem value="urgent">Urgent</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
+              <SelectItem value="all" label="All Priorities">All Priorities</SelectItem>
+              <SelectItem value="urgent" label="Urgent">Urgent</SelectItem>
+              <SelectItem value="high" label="High">High</SelectItem>
+              <SelectItem value="medium" label="Medium">Medium</SelectItem>
+              <SelectItem value="low" label="Low">Low</SelectItem>
             </SelectContent>
           </Select>
 
-          <Select value={statusFilter} onValueChange={(val) => setStatusFilter(val || "all")}>
+          <Select
+            items={[
+              { value: "all", label: "All Statuses" },
+              { value: "pending", label: "Pending" },
+              { value: "in_progress", label: "In Progress" },
+              { value: "completed", label: "Completed" },
+            ]}
+            value={statusFilter}
+            onValueChange={(val) => setStatusFilter(val || "all")}
+          >
             <SelectTrigger className="w-full sm:w-36 h-9">
-              <SelectValue placeholder="Status" />
+              <SelectValue placeholder="Status">
+                {statusFilter === "all"
+                  ? "All Statuses"
+                  : statusFilter === "in_progress"
+                  ? "In Progress"
+                  : statusFilter.charAt(0).toUpperCase() + statusFilter.slice(1)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">All Statuses</SelectItem>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="all" label="All Statuses">All Statuses</SelectItem>
+              <SelectItem value="pending" label="Pending">Pending</SelectItem>
+              <SelectItem value="in_progress" label="In Progress">In Progress</SelectItem>
+              <SelectItem value="completed" label="Completed">Completed</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -508,29 +537,55 @@ export function TasksManagerClient({ initialTasks = [] }: TasksManagerClientProp
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Priority</Label>
-                <Select value={editPriority} onValueChange={(val: any) => setEditPriority(val)}>
+                <Select
+                  items={[
+                    { value: "low", label: "Low" },
+                    { value: "medium", label: "Medium" },
+                    { value: "high", label: "High" },
+                    { value: "urgent", label: "Urgent" },
+                  ]}
+                  value={editPriority}
+                  onValueChange={(val: any) => setEditPriority(val)}
+                >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {editPriority ? editPriority.charAt(0).toUpperCase() + editPriority.slice(1) : undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="low">Low</SelectItem>
-                    <SelectItem value="medium">Medium</SelectItem>
-                    <SelectItem value="high">High</SelectItem>
-                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="low" label="Low">Low</SelectItem>
+                    <SelectItem value="medium" label="Medium">Medium</SelectItem>
+                    <SelectItem value="high" label="High">High</SelectItem>
+                    <SelectItem value="urgent" label="Urgent">Urgent</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label>Status</Label>
-                <Select value={editStatus} onValueChange={(val: any) => setEditStatus(val)}>
+                <Select
+                  items={[
+                    { value: "pending", label: "Pending" },
+                    { value: "in_progress", label: "In Progress" },
+                    { value: "completed", label: "Completed" },
+                    { value: "archived", label: "Archived" },
+                  ]}
+                  value={editStatus}
+                  onValueChange={(val: any) => setEditStatus(val)}
+                >
                   <SelectTrigger>
-                    <SelectValue />
+                    <SelectValue>
+                      {editStatus === "in_progress"
+                        ? "In Progress"
+                        : editStatus
+                        ? editStatus.charAt(0).toUpperCase() + editStatus.slice(1)
+                        : undefined}
+                    </SelectValue>
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="in_progress">In Progress</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="archived">Archived</SelectItem>
+                    <SelectItem value="pending" label="Pending">Pending</SelectItem>
+                    <SelectItem value="in_progress" label="In Progress">In Progress</SelectItem>
+                    <SelectItem value="completed" label="Completed">Completed</SelectItem>
+                    <SelectItem value="archived" label="Archived">Archived</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

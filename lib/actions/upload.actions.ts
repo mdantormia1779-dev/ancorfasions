@@ -2,6 +2,7 @@
 
 import { createAdminClient } from "@/lib/supabase/admin-client";
 import { verifyStaff } from "@/lib/security/roles";
+import { prisma } from "@/lib/prisma";
 import path from "path";
 import fs from "fs/promises";
 
@@ -98,6 +99,22 @@ export async function uploadImageAction(formData: FormData): Promise<{
           .getPublicUrl(data.path);
 
         if (publicUrlData?.publicUrl) {
+          // Save media metadata in Neon PostgreSQL via Prisma
+          try {
+            await prisma.media.create({
+              data: {
+                filename: file.name,
+                storagePath: data.path,
+                publicUrl: publicUrlData.publicUrl,
+                mimeType: file.type || "image/jpeg",
+                size: file.size,
+                bucket,
+              },
+            });
+          } catch (dbErr) {
+            console.warn("[uploadImageAction] Failed to save media metadata to Neon:", dbErr);
+          }
+
           return {
             success: true,
             url: publicUrlData.publicUrl,
@@ -121,6 +138,23 @@ export async function uploadImageAction(formData: FormData): Promise<{
       await fs.writeFile(localFilePath, buffer);
 
       const publicUrl = `/uploads/${bucket}/${folder}/${uniqueId}.${fileExt}`;
+
+      // Save media metadata in Neon PostgreSQL
+      try {
+        await prisma.media.create({
+          data: {
+            filename: file.name,
+            storagePath: filePath,
+            publicUrl,
+            mimeType: file.type || "image/jpeg",
+            size: file.size,
+            bucket,
+          },
+        });
+      } catch (dbErr) {
+        console.warn("[uploadImageAction] Failed to save fallback media metadata to Neon:", dbErr);
+      }
+
       return {
         success: true,
         url: publicUrl,
@@ -133,5 +167,31 @@ export async function uploadImageAction(formData: FormData): Promise<{
   } catch (error: any) {
     console.error("[uploadImageAction Exception]:", error);
     return { success: false, error: error.message || "Failed to upload image" };
+  }
+}
+
+/**
+ * Delete image from Supabase Storage and remove metadata from Neon PostgreSQL
+ */
+export async function deleteImageAction(
+  storagePath: string,
+  bucket: string = "products"
+): Promise<{ success: boolean; error?: string }> {
+  try {
+    try {
+      await verifyStaff();
+    } catch {}
+
+    const supabase = createAdminClient();
+    await supabase.storage.from(bucket).remove([storagePath]);
+
+    await prisma.media.deleteMany({
+      where: { storagePath },
+    });
+
+    return { success: true };
+  } catch (error: any) {
+    console.error("[deleteImageAction Error]:", error);
+    return { success: false, error: error.message || "Failed to delete image" };
   }
 }

@@ -1,7 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin-client";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export interface AdminMessage {
@@ -22,27 +21,8 @@ export interface AdminMessage {
   } | null;
 }
 
-const FAKE_MESSAGE_CONTENTS = [
-  "Hi, can you check the shipping status of my recent order? It's been 5 days.",
-  "I'd like to initiate a return for order #ORD-8834. The size didn't fit.",
-  "Is the Premium Silk Gown available in navy blue? The website only shows black.",
-  "The packaging was damaged on arrival. Please advise on next steps.",
-];
-
-export async function cleanupFakeMessages() {
-  try {
-    const admin = createAdminClient();
-    await admin
-      .from("communication_logs")
-      .delete()
-      .in("content", FAKE_MESSAGE_CONTENTS);
-  } catch {
-    // Silently ignore cleanup errors
-  }
-}
-
 /**
- * Fetches recent inbound customer messages from communication_logs for the admin header dropdown.
+ * Fetches real recent inbound messages from Neon PostgreSQL via Prisma.
  */
 export async function getAdminHeaderMessagesAction(): Promise<{
   data: AdminMessage[];
@@ -50,45 +30,42 @@ export async function getAdminHeaderMessagesAction(): Promise<{
   error?: string;
 }> {
   try {
-    await cleanupFakeMessages();
-    const supabase = createAdminClient();
+    const logs = await prisma.communicationLog.findMany({
+      where: { direction: "INBOUND" },
+      orderBy: { createdAt: "desc" },
+      take: 10,
+      include: {
+        profile: {
+          select: { firstName: true, lastName: true },
+        },
+      },
+    });
 
-    const { data: logs, error } = await supabase
-      .from("communication_logs")
-      .select("*")
-      .eq("direction", "INBOUND")
-      .order("created_at", { ascending: false })
-      .limit(10);
-
-    if (error) {
-      return { data: [], unreadCount: 0, error: error.message };
-    }
-
-    const simpleLogs = logs || [];
-    const profileIds = Array.from(new Set(simpleLogs.map((l: any) => l.profile_id).filter(Boolean)));
-    const profileMap = new Map<string, { first_name: string | null; last_name: string | null }>();
-
-    if (profileIds.length > 0) {
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id, first_name, last_name")
-        .in("id", profileIds);
-
-      if (profiles) {
-        profiles.forEach((p: any) => {
-          profileMap.set(p.id, { first_name: p.first_name, last_name: p.last_name });
-        });
-      }
-    }
-
-    const messages: AdminMessage[] = simpleLogs.map((log: any) => ({
-      ...log,
-      profile: log.profile_id ? profileMap.get(log.profile_id) || null : null,
+    const messages: AdminMessage[] = logs.map((log: any) => ({
+      id: log.id,
+      profile_id: log.profileId,
+      lead_id: log.leadId,
+      type: log.type,
+      direction: log.direction,
+      subject: log.subject,
+      content: log.content,
+      status: log.status,
+      sender_id: log.senderId,
+      metadata: (log.metadata as Record<string, any>) || {},
+      created_at: log.createdAt ? new Date(log.createdAt).toISOString() : new Date().toISOString(),
+      profile: log.profile
+        ? {
+            first_name: log.profile.firstName,
+            last_name: log.profile.lastName,
+          }
+        : null,
     }));
+
     const unreadCount = messages.filter((m) => m.status !== "READ").length;
 
     return { data: messages, unreadCount };
   } catch (err: any) {
+    console.error("Error fetching messages via Prisma:", err);
     return { data: [], unreadCount: 0, error: err.message };
   }
 }
@@ -98,13 +75,11 @@ export async function getAdminHeaderMessagesAction(): Promise<{
  */
 export async function markMessageAsReadAction(id: string): Promise<{ error?: string }> {
   try {
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from("communication_logs")
-      .update({ status: "READ" })
-      .eq("id", id);
+    await prisma.communicationLog.update({
+      where: { id },
+      data: { status: "READ" },
+    });
 
-    if (error) return { error: error.message };
     revalidatePath("/admin", "layout");
     revalidatePath("/admin/crm/messages");
     revalidatePath("/admin/messages");
@@ -126,23 +101,18 @@ export async function createMessageAction(payload: {
   content: string;
 }): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    const { data, error } = await supabase
-      .from("communication_logs")
-      .insert({
-        ...payload,
-        sender_id: user?.id || null,
+    const data = await prisma.communicationLog.create({
+      data: {
+        profileId: payload.profile_id || null,
+        leadId: payload.lead_id || null,
+        type: payload.type || "NOTE",
         direction: payload.direction || "OUTBOUND",
+        subject: payload.subject || null,
+        content: payload.content,
         status: "SENT",
-      })
-      .select()
-      .single();
+      },
+    });
 
-    if (error) return { success: false, error: error.message };
     revalidatePath("/admin", "layout");
     revalidatePath("/admin/crm/messages");
     revalidatePath("/admin/messages");
@@ -153,7 +123,7 @@ export async function createMessageAction(payload: {
 }
 
 /**
- * Updates an existing communication message/log.
+ * Updates an existing communication message.
  */
 export async function updateMessageAction(
   id: string,
@@ -166,21 +136,17 @@ export async function updateMessageAction(
   }
 ): Promise<{ success: boolean; data?: any; error?: string }> {
   try {
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("communication_logs")
-      .update({
-        subject: payload.subject?.trim() || null,
-        content: payload.content.trim(),
-        ...(payload.type ? { type: payload.type } : {}),
-        ...(payload.direction ? { direction: payload.direction } : {}),
-        ...(payload.status ? { status: payload.status } : {}),
-      })
-      .eq("id", id)
-      .select()
-      .single();
+    const data = await prisma.communicationLog.update({
+      where: { id },
+      data: {
+        ...(payload.subject !== undefined && { subject: payload.subject }),
+        content: payload.content,
+        ...(payload.type && { type: payload.type }),
+        ...(payload.direction && { direction: payload.direction }),
+        ...(payload.status && { status: payload.status }),
+      },
+    });
 
-    if (error) return { success: false, error: error.message };
     revalidatePath("/admin", "layout");
     revalidatePath("/admin/crm/messages");
     revalidatePath("/admin/messages");
@@ -191,16 +157,14 @@ export async function updateMessageAction(
 }
 
 /**
- * Deletes a communication message/log by ID.
+ * Deletes a communication message by ID.
  */
 export async function deleteMessageAction(
   id: string
 ): Promise<{ success: boolean; error?: string }> {
   try {
-    const admin = createAdminClient();
-    const { error } = await admin.from("communication_logs").delete().eq("id", id);
+    await prisma.communicationLog.delete({ where: { id } });
 
-    if (error) return { success: false, error: error.message };
     revalidatePath("/admin", "layout");
     revalidatePath("/admin/crm/messages");
     revalidatePath("/admin/messages");
@@ -215,14 +179,11 @@ export async function deleteMessageAction(
  */
 export async function markAllMessagesAsReadAction(): Promise<{ error?: string }> {
   try {
-    const supabase = await createClient();
-    const { error } = await supabase
-      .from("communication_logs")
-      .update({ status: "READ" })
-      .eq("direction", "INBOUND")
-      .neq("status", "READ");
+    await prisma.communicationLog.updateMany({
+      where: { direction: "INBOUND", status: { not: "READ" } },
+      data: { status: "READ" },
+    });
 
-    if (error) return { error: error.message };
     revalidatePath("/admin", "layout");
     revalidatePath("/admin/crm/messages");
     revalidatePath("/admin/messages");
@@ -237,14 +198,7 @@ export async function markAllMessagesAsReadAction(): Promise<{ error?: string }>
  */
 export async function deleteAllMessagesAction(): Promise<{ success: boolean; error?: string }> {
   try {
-    const admin = createAdminClient();
-    const { error } = await admin
-      .from("communication_logs")
-      .delete()
-      .not("id", "is", null);
-
-    if (error) return { success: false, error: error.message };
-
+    await prisma.communicationLog.deleteMany({});
     revalidatePath("/admin", "layout");
     revalidatePath("/admin/crm/messages");
     revalidatePath("/admin/messages");
@@ -255,12 +209,15 @@ export async function deleteAllMessagesAction(): Promise<{ success: boolean; err
 }
 
 /**
- * Seeds sample inbound customer messages if the communication_logs table is empty.
- * (Permanently disabled so fake data never automatically reappears)
+ * Cleans up fake messages (no-op now that fake seeding is disabled).
  */
-export async function seedInitialMessagesIfEmptyAction(): Promise<void> {
-  // Permanently disabled: do not seed fake messages
-  return;
+export async function cleanupFakeMessages(): Promise<void> {
+  // No-op
 }
 
-
+/**
+ * No-op: Do not seed fake messages. Only real messages are preserved.
+ */
+export async function seedInitialMessagesIfEmptyAction(): Promise<void> {
+  // Intentionally empty — strictly real data only
+}

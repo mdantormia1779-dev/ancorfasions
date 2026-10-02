@@ -1,75 +1,75 @@
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { getPublicSupabaseClient } from "@/lib/supabase/public";
+import { prisma } from "@/lib/prisma";
 import { Brand, CreateBrandInput, UpdateBrandInput } from "@/types/catalog.types";
+
+function toBrand(b: any): Brand {
+  return {
+    id: b.id,
+    name: b.name,
+    slug: b.slug,
+    logo_url: b.logoUrl ?? null,
+    is_active: b.isActive ?? true,
+    created_at: b.createdAt ? new Date(b.createdAt).toISOString() : new Date().toISOString(),
+    updated_at: b.updatedAt ? new Date(b.updatedAt).toISOString() : new Date().toISOString(),
+  };
+}
 
 export class BrandRepository {
   /**
-   * Retrieves all brands with optional active-only filter.
+   * Retrieves all brands with optional active-only filter via Prisma.
    */
   static async getBrands(activeOnly: boolean = true): Promise<Brand[]> {
     try {
-      const supabase = getPublicSupabaseClient();
-      let query = supabase
-        .from("brands")
-        .select("*")
-        .order("name", { ascending: true });
-
-      if (activeOnly) {
-        query = query.eq("is_active", true);
-      }
-
-      const { data, error } = await query;
-      if (error) {
-        console.error("Error fetching brands:", error);
-        return [];
-      }
-      return (data as Brand[]) || [];
+      const records = await prisma.brand.findMany({
+        where: activeOnly ? { isActive: true } : undefined,
+        orderBy: { name: "asc" },
+      });
+      return records.map(toBrand);
     } catch (err) {
-      console.error("Unexpected error in getBrands:", err);
+      console.error("Error fetching brands via Prisma:", err);
       return [];
     }
   }
 
   /**
-   * Creates a new brand.
+   * Creates a new brand via Prisma.
    */
   static async createBrand(input: CreateBrandInput): Promise<Brand> {
-    const supabase = await createAdminClient();
-    const { data, error } = await supabase
-      .from("brands")
-      .insert(input)
-      .select("*")
-      .single();
-    if (error) throw error;
-    return data as Brand;
+    const created = await prisma.brand.create({
+      data: {
+        name: input.name,
+        slug: input.slug,
+        logoUrl: input.logo_url,
+        description: input.description,
+        isActive: input.is_active ?? true,
+      },
+    });
+    return toBrand(created);
   }
 
   /**
-   * Updates an existing brand by ID.
+   * Updates an existing brand by ID via Prisma.
    */
   static async updateBrand(id: string, input: UpdateBrandInput): Promise<Brand> {
-    const supabase = await createAdminClient();
-    const { data, error } = await supabase
-      .from("brands")
-      .update(input)
-      .eq("id", id)
-      .select("*")
-      .single();
-    if (error) throw error;
-    return data as Brand;
+    const updated = await prisma.brand.update({
+      where: { id },
+      data: {
+        ...(input.name !== undefined && { name: input.name }),
+        ...(input.slug !== undefined && { slug: input.slug }),
+        ...(input.logo_url !== undefined && { logoUrl: input.logo_url }),
+        ...(input.description !== undefined && { description: input.description }),
+        ...(input.is_active !== undefined && { isActive: input.is_active }),
+      },
+    });
+    return toBrand(updated);
   }
 
   /**
-   * Soft-deletes a brand by setting is_active=false.
-   * Preserves referential integrity with products that reference this brand.
+   * Soft-deletes a brand by setting is_active=false via Prisma.
    */
   static async deleteBrand(id: string): Promise<void> {
-    const supabase = await createAdminClient();
-    const { error } = await supabase
-      .from("brands")
-      .update({ is_active: false })
-      .eq("id", id);
-    if (error) throw error;
+    await prisma.brand.update({
+      where: { id },
+      data: { isActive: false },
+    });
   }
 }

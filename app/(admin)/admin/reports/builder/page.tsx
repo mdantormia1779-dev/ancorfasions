@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { exportToCsv } from "@/lib/analytics/export-utils";
+import { exportToCsv, exportToPdf } from "@/lib/analytics/export-utils";
 import {
   Download,
   Save,
@@ -28,6 +28,7 @@ import {
   AlertCircle,
   BarChart2,
   RefreshCw,
+  FileText,
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +75,7 @@ export default function ReportBuilderPage() {
   const [summary, setSummary] = useState<Record<string, number>>({});
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -164,6 +166,46 @@ export default function ReportBuilderPage() {
 
     exportToCsv(previewData, filename);
     toast.success(`Exported ${previewData.length} row(s) to ${filename}`);
+  };
+
+  // Export PDF
+  const handleExportPdf = () => {
+    if (previewData.length === 0) {
+      toast.error("No data available to export. Run a query first.");
+      return;
+    }
+
+    try {
+      setIsExportingPdf(true);
+      const filename = reportName.trim()
+        ? `${reportName.replace(/\s+/g, "_").toLowerCase()}_report.pdf`
+        : "custom_report.pdf";
+
+      exportToPdf({
+        reportName,
+        description,
+        dimensions,
+        metrics: metrics.map((m) => {
+          const def = METRICS.find((d) => d.id === m);
+          return {
+            id: m,
+            label: def?.label || m,
+            isCurrency: def?.isCurrency,
+          };
+        }),
+        dateRange,
+        data: previewData,
+        summary,
+        filename,
+      });
+
+      toast.success(`Exported PDF: ${filename}`);
+    } catch (err: any) {
+      console.error("PDF export error:", err);
+      toast.error(err?.message || "Failed to generate PDF");
+    } finally {
+      setIsExportingPdf(false);
+    }
   };
 
   // Save Report Configuration
@@ -440,12 +482,27 @@ export default function ReportBuilderPage() {
               </Button>
 
               <Button
+                variant="outline"
                 size="sm"
                 onClick={handleExport}
                 disabled={previewData.length === 0}
               >
                 <Download className="mr-1.5 h-4 w-4" />
                 Export CSV
+              </Button>
+
+              <Button
+                size="sm"
+                onClick={handleExportPdf}
+                disabled={previewData.length === 0 || isExportingPdf}
+                className="bg-primary hover:bg-primary/90 text-primary-foreground font-medium"
+              >
+                {isExportingPdf ? (
+                  <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+                ) : (
+                  <FileText className="mr-1.5 h-4 w-4" />
+                )}
+                Export PDF
               </Button>
             </div>
           </CardHeader>

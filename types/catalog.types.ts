@@ -198,6 +198,8 @@ export type Category = {
   id: string;
   name: string;
   slug: string;
+  description?: string | null;
+  image_url?: string | null;
   parent_id: string | null;
   icon_url: string | null;
   is_active: boolean;
@@ -292,6 +294,8 @@ export type CreateCategoryInput = {
   slug: string;
   parent_id?: string | null;
   icon_url?: string | null;
+  image_url?: string | null;
+  description?: string | null;
   is_active?: boolean;
   display_order?: number;
 };
@@ -301,6 +305,7 @@ export type CreateBrandInput = {
   name: string;
   slug: string;
   logo_url?: string | null;
+  description?: string | null;
   is_active?: boolean;
 };
 export type UpdateBrandInput = Partial<CreateBrandInput>;

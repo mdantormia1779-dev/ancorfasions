@@ -1,434 +1,403 @@
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
+import { prisma } from "@/lib/prisma";
 import { CreateProductInput, Product } from "@/types/catalog.types";
 import { cache } from "react";
+
+function mapToAdminProduct(p: any): Product {
+  const variants = p.variants || [];
+  let totalStock = 0;
+
+  const mappedVariants = variants.map((v: any) => {
+    const vStock = (v.inventoryLevels || []).reduce(
+      (sum: number, lvl: any) => sum + (lvl.quantityAvailable || 0),
+      0
+    );
+    totalStock += vStock;
+
+    return {
+      id: v.id,
+      productId: v.productId,
+      sku: v.sku,
+      barcode: v.barcode,
+      priceOverride: v.priceOverride ? Number(v.priceOverride) : null,
+      salePrice: v.salePrice ? Number(v.salePrice) : null,
+      costPrice: v.costPrice ? Number(v.costPrice) : null,
+      weight: v.weight ? Number(v.weight) : null,
+      attributes: v.attributes,
+      isActive: v.isActive,
+      stockQuantity: vStock,
+      inventory_levels: (v.inventoryLevels || []).map((il: any) => ({
+        id: il.id,
+        variant_id: il.variantId,
+        warehouse_id: il.warehouseId,
+        quantity_available: il.quantityAvailable,
+        quantity_reserved: il.quantityReserved,
+        reorder_point: il.reorderPoint,
+      })),
+    };
+  });
+
+  const mediaList = (p.media || []).map((m: any) => ({
+    id: m.id,
+    productId: m.productId,
+    variantId: m.variantId,
+    url: m.url,
+    urlWebp: m.urlWebp,
+    altText: m.altText,
+    displayOrder: m.displayOrder,
+    isPrimary: m.isPrimary,
+    mediaType: m.mediaType,
+  }));
+
+  const primaryImage = mediaList.find((m: any) => m.isPrimary)?.url || mediaList[0]?.url || p.imageUrl || null;
+
+  return {
+    id: p.id,
+    name: p.name,
+    slug: p.slug,
+    shortDescription: p.shortDescription ?? null,
+    short_description: p.shortDescription ?? null,
+    description: p.description ?? null,
+    categoryId: p.categoryId,
+    category_id: p.categoryId,
+    brandId: p.brandId ?? null,
+    brand_id: p.brandId ?? null,
+    basePrice: Number(p.basePrice),
+    base_price: Number(p.basePrice),
+    costPrice: p.costPrice ? Number(p.costPrice) : null,
+    cost_price: p.costPrice ? Number(p.costPrice) : null,
+    salePrice: p.salePrice ? Number(p.salePrice) : null,
+    sale_price: p.salePrice ? Number(p.salePrice) : null,
+    sku: p.sku ?? null,
+    barcode: p.barcode ?? null,
+    status: p.status,
+    gender: p.gender ?? null,
+    season: p.season ?? null,
+    careInstructions: p.careInstructions ?? null,
+    countryOfOrigin: p.countryOfOrigin ?? null,
+    isFeatured: p.isFeatured,
+    is_featured: p.isFeatured,
+    isNewArrival: p.isNewArrival,
+    rating: Number(p.rating || 0),
+    reviewCount: p.reviewCount || 0,
+    imageUrl: primaryImage,
+    createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+    created_at: p.createdAt ? new Date(p.createdAt).toISOString() : new Date().toISOString(),
+    updatedAt: p.updatedAt ? new Date(p.updatedAt).toISOString() : new Date().toISOString(),
+    updated_at: p.updatedAt ? new Date(p.updatedAt).toISOString() : new Date().toISOString(),
+    category: p.category ? { id: p.category.id, name: p.category.name, slug: p.category.slug } : null,
+    brand: p.brand ? { id: p.brand.id, name: p.brand.name, slug: p.brand.slug } : null,
+    variants: mappedVariants,
+    media: mediaList,
+    seo: p.seo
+      ? {
+          id: p.seo.id,
+          productId: p.seo.productId,
+          metaTitle: p.seo.metaTitle,
+          metaDescription: p.seo.metaDescription,
+          canonicalUrl: p.seo.canonicalUrl,
+          ogTitle: p.seo.ogTitle,
+          ogDescription: p.seo.ogDescription,
+          ogImageUrl: p.seo.ogImageUrl,
+          twitterCardType: p.seo.twitterCardType,
+          structuredData: p.seo.structuredData,
+          keywords: p.seo.keywords,
+        }
+      : null,
+    tags: (p.productTags || []).map((pt: any) => pt.tag).filter(Boolean),
+    stockQuantity: totalStock,
+  } as unknown as Product;
+}
 
 export class ProductRepository {
   /**
    * Helper to ensure an active warehouse exists and return its ID
    */
-  static async getDefaultWarehouseId(supabase: any): Promise<string> {
-    const { data: warehouse } = await supabase
-      .from("warehouses")
-      .select("id")
-      .eq("is_active", true)
-      .limit(1)
-      .maybeSingle();
+  static async getDefaultWarehouseId(): Promise<string> {
+    const existing = await prisma.warehouse.findFirst({
+      where: { isActive: true },
+      select: { id: true },
+    });
+    if (existing?.id) return existing.id;
 
-    if (warehouse?.id) {
-      return warehouse.id;
-    }
+    const anyWh = await prisma.warehouse.findFirst({
+      select: { id: true },
+    });
+    if (anyWh?.id) return anyWh.id;
 
-    const { data: anyWarehouse } = await supabase
-      .from("warehouses")
-      .select("id")
-      .limit(1)
-      .maybeSingle();
-
-    if (anyWarehouse?.id) {
-      return anyWarehouse.id;
-    }
-
-    const { data: newWarehouse, error } = await supabase
-      .from("warehouses")
-      .insert({
+    const created = await prisma.warehouse.create({
+      data: {
         name: "Main Central Warehouse",
-        warehouse_code: "WH-MAIN-01",
-        type: "WAREHOUSE",
-        is_active: true,
-        status: "active",
-      })
-      .select("id")
-      .single();
-
-    if (error || !newWarehouse?.id) {
-      console.error("Failed to create default warehouse:", error);
-      throw new Error(`Failed to ensure default warehouse: ${error?.message || "Unknown error"}`);
-    }
-
-    return newWarehouse.id;
+        code: "WH-MAIN-01",
+        address: "Dhaka, Bangladesh",
+        city: "Dhaka",
+        country: "BD",
+        isActive: true,
+      },
+      select: { id: true },
+    });
+    return created.id;
   }
 
   /**
    * Retrieves a paginated list of products with optional filtering.
    */
-  static getProducts = cache(async ({
-    page = 1,
-    limit = 20,
-    search,
-    categoryId,
-    brandId,
-    status,
-  }: {
-    page?: number;
-    limit?: number;
-    search?: string;
-    categoryId?: string;
-    brandId?: string;
-    status?: string;
-  }) => {
-    const supabase = await createClient();
-    const offset = (page - 1) * limit;
+  static getProducts = cache(
+    async ({
+      page = 1,
+      limit = 20,
+      search,
+      categoryId,
+      brandId,
+      status,
+    }: {
+      page?: number;
+      limit?: number;
+      search?: string;
+      categoryId?: string;
+      brandId?: string;
+      status?: string;
+    }) => {
+      const offset = (page - 1) * limit;
+      const where: any = {
+        deletedAt: null,
+      };
 
-    let query = supabase.from("products").select(
-      `
-        *,
-        category:categories(id, name),
-        brand:brands(id, name),
-        variants:variants(*, inventory_levels(quantity_available)),
-        media:product_media(*),
-        seo:product_seo(*),
-        tags:product_tags(tag:tags(*))
-      `,
-      { count: "exact" }
-    );
+      if (search && search.trim()) {
+        const term = search.trim();
+        where.OR = [
+          { name: { contains: term, mode: "insensitive" } },
+          { sku: { contains: term, mode: "insensitive" } },
+          { barcode: { contains: term, mode: "insensitive" } },
+        ];
+      }
 
-    // Only return active, non-deleted products
-    query = query.is("deleted_at", null);
+      if (categoryId) {
+        where.categoryId = categoryId;
+      }
+      if (brandId) {
+        where.brandId = brandId;
+      }
+      if (status && status !== "ALL") {
+        where.status = status;
+      }
 
-    if (search) {
-      query = query.or(
-        `name.ilike.%${search}%,sku.ilike.%${search}%,barcode.ilike.%${search}%`
-      );
-    }
-    if (categoryId) {
-      query = query.eq("category_id", categoryId);
-    }
-    if (brandId) {
-      query = query.eq("brand_id", brandId);
-    }
-    if (status) {
-      query = query.eq("status", status);
-    }
-
-    const { data, count, error } = await query
-      .order("created_at", { ascending: false })
-      .range(offset, offset + limit - 1);
-
-    if (error) throw error;
-
-    const mappedProducts = data?.map((p: any) => {
-      let totalStock = 0;
-      const variants = (p.variants || []).map((v: any) => {
-        const vStock = (v.inventory_levels || []).reduce(
-          (sum: number, lvl: any) => sum + (lvl.quantity_available || 0),
-          0
-        );
-        totalStock += vStock;
-        return {
-          ...v,
-          stockQuantity: vStock,
-        };
-      });
+      const [records, total] = await Promise.all([
+        prisma.product.findMany({
+          where,
+          include: {
+            category: { select: { id: true, name: true, slug: true } },
+            brand: { select: { id: true, name: true, slug: true } },
+            variants: {
+              include: {
+                inventoryLevels: true,
+              },
+            },
+            media: { orderBy: { displayOrder: "asc" } },
+            seo: true,
+            productTags: { include: { tag: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: limit,
+          skip: offset,
+        }),
+        prisma.product.count({ where }),
+      ]);
 
       return {
-        ...p,
-        basePrice: p.base_price,
-        costPrice: p.cost_price,
-        salePrice: p.sale_price,
-        shortDescription: p.short_description,
-        categoryId: p.category_id,
-        brandId: p.brand_id,
-        isFeatured: p.is_featured,
-        createdAt: p.created_at,
-        updatedAt: p.updated_at,
-        variants,
-        stockQuantity: totalStock,
+        products: records.map(mapToAdminProduct),
+        total,
+        page,
+        limit,
       };
-    }) || [];
-
-    return {
-      products: mappedProducts as unknown as Product[],
-      total: count || 0,
-      page,
-      limit,
-    };
-  });
+    }
+  );
 
   /**
    * Retrieves a single product by ID with all relationships.
    */
   static getProductById = cache(async (id: string): Promise<Product | null> => {
-    const supabase = await createClient();
+    try {
+      const record = await prisma.product.findFirst({
+        where: { id, deletedAt: null },
+        include: {
+          category: { select: { id: true, name: true, slug: true } },
+          brand: { select: { id: true, name: true, slug: true } },
+          variants: {
+            include: {
+              inventoryLevels: true,
+            },
+          },
+          media: { orderBy: { displayOrder: "asc" } },
+          seo: true,
+          productTags: { include: { tag: true } },
+        },
+      });
 
-    const { data, error } = await supabase
-      .from("products")
-      .select(
-        `
-        *,
-        variants(*, inventory_levels(quantity_available, warehouse_id)),
-        media:product_media(*),
-        seo:product_seo(*),
-        tags:product_tags(tag:tags(*))
-      `
-      )
-      .eq("id", id)
-      .is("deleted_at", null)
-      .single();
-
-    if (error) {
-      if (error.code === "PGRST116") return null; // not found
-      throw error;
+      if (!record) return null;
+      return mapToAdminProduct(record);
+    } catch (err) {
+      console.error("Error fetching product by ID via Prisma:", err);
+      return null;
     }
-
-    // Calculate variant stock & overall stock
-    let totalStock = 0;
-    const variantsWithStock = (data.variants || []).map((v: any) => {
-      const stock = (v.inventory_levels || []).reduce(
-        (acc: number, lvl: any) => acc + (lvl.quantity_available || 0),
-        0
-      );
-      totalStock += stock;
-      return {
-        ...v,
-        stockQuantity: stock,
-      };
-    });
-
-    // Normalize data
-    const product = { 
-      ...data,
-      basePrice: data.base_price,
-      costPrice: data.cost_price,
-      salePrice: data.sale_price,
-      shortDescription: data.short_description,
-      categoryId: data.category_id,
-      brandId: data.brand_id,
-      isFeatured: data.is_featured,
-      createdAt: data.created_at,
-      updatedAt: data.updated_at,
-      stockQuantity: totalStock,
-      variants: variantsWithStock,
-    };
-    if (product.seo && Array.isArray(product.seo)) {
-      product.seo = product.seo[0] || null;
-    }
-    if (product.tags && Array.isArray(product.tags)) {
-      product.tags = product.tags.map((t: any) => t.tag).filter(Boolean);
-    }
-
-    return product as unknown as Product;
   });
 
   /**
-   * Creates a new product along with SEO and tags.
+   * Creates a new product along with variants, media, SEO, and inventory.
    */
   static async createProduct(input: CreateProductInput) {
-    const supabase = createAdminClient();
-
     const { seo, tags, media, variants, ...productData } = input;
 
-    // Check duplicate main SKU
-    if (productData.sku) {
-      const { data: existingSku } = await supabase
-        .from("products")
-        .select("id")
-        .ilike("sku", productData.sku.trim())
-        .maybeSingle();
-
+    // Check duplicate SKU
+    if (productData.sku?.trim()) {
+      const existingSku = await prisma.product.findFirst({
+        where: { sku: productData.sku.trim(), deletedAt: null },
+        select: { id: true },
+      });
       if (existingSku) {
         throw new Error(`A product with SKU "${productData.sku}" already exists.`);
       }
     }
 
     // Check duplicate slug
-    if (productData.slug) {
-      const { data: existingSlug } = await supabase
-        .from("products")
-        .select("id")
-        .eq("slug", productData.slug.trim())
-        .maybeSingle();
-
+    if (productData.slug?.trim()) {
+      const existingSlug = await prisma.product.findFirst({
+        where: { slug: productData.slug.trim(), deletedAt: null },
+        select: { id: true },
+      });
       if (existingSlug) {
         throw new Error(`A product with URL slug "${productData.slug}" already exists.`);
       }
     }
 
-    // Check duplicate variant SKUs
-    if (variants && variants.length > 0) {
-      const variantSkus = variants.map((v) => v.sku?.trim()).filter(Boolean);
-      const duplicates = variantSkus.filter((item, idx) => variantSkus.indexOf(item) !== idx);
-      if (duplicates.length > 0) {
-        throw new Error(`Duplicate variant SKU found in form: "${duplicates[0]}"`);
-      }
-    }
+    const defaultWarehouseId = await ProductRepository.getDefaultWarehouseId();
 
-    // 1. Create Product
-    const { data: newProduct, error: productError } = await supabase
-      .from("products")
-      .insert({
+    // Primary image from media
+    const primaryMediaUrl = media?.find((m: any) => m.isPrimary)?.url || media?.[0]?.url || null;
+
+    // Create the product in Neon
+    const createdProduct = await prisma.product.create({
+      data: {
         name: productData.name,
         slug: productData.slug,
-        short_description: productData.shortDescription,
+        shortDescription: productData.shortDescription,
         description: productData.description,
-        category_id: productData.categoryId,
-        brand_id: productData.brandId,
-        base_price: productData.basePrice,
-        cost_price: productData.costPrice ?? null,
-        sale_price: productData.salePrice ?? null,
+        categoryId: productData.categoryId,
+        brandId: productData.brandId || null,
+        basePrice: productData.basePrice,
+        costPrice: productData.costPrice ?? null,
+        salePrice: productData.salePrice ?? null,
         sku: productData.sku && productData.sku.trim() ? productData.sku.trim() : null,
         barcode: productData.barcode && productData.barcode.trim() ? productData.barcode.trim() : null,
-        status: productData.status,
-        gender: productData.gender,
-        season: productData.season,
-        care_instructions: productData.careInstructions,
-        country_of_origin: productData.countryOfOrigin,
-        warranty: productData.warranty,
-        material: productData.material,
-        is_featured: productData.isFeatured,
-      })
-      .select()
-      .single();
+        status: productData.status || "DRAFT",
+        gender: productData.gender || null,
+        season: productData.season || null,
+        careInstructions: productData.careInstructions || null,
+        countryOfOrigin: productData.countryOfOrigin || null,
+        isFeatured: productData.isFeatured || false,
+        imageUrl: primaryMediaUrl,
+        galleryUrls: media?.map((m: any) => m.url) || [],
+      },
+    });
 
-    if (productError) throw productError;
-    const productId = newProduct.id;
+    const productId = createdProduct.id;
 
-    // 2. Create SEO
+    // Create SEO
     if (seo) {
-      const { error: seoError } = await supabase.from("product_seo").insert({
-        product_id: productId,
-        meta_title: seo.metaTitle,
-        meta_description: seo.metaDescription,
-        canonical_url: seo.canonicalUrl,
-        og_title: seo.ogTitle,
-        og_description: seo.ogDescription,
-        og_image_url: seo.ogImageUrl,
-        twitter_card_type: seo.twitterCardType,
-        structured_data: seo.structuredData,
-        keywords: seo.keywords,
+      await prisma.productSeo.create({
+        data: {
+          productId,
+          metaTitle: seo.metaTitle,
+          metaDescription: seo.metaDescription,
+          canonicalUrl: seo.canonicalUrl,
+          ogTitle: seo.ogTitle,
+          ogDescription: seo.ogDescription,
+          ogImageUrl: seo.ogImageUrl,
+          twitterCardType: seo.twitterCardType,
+          structuredData: seo.structuredData || {},
+          keywords: seo.keywords || [],
+        },
       });
-      if (seoError) throw new Error(`Failed to create product SEO: ${seoError.message}`);
     }
 
-    // 3. Link Tags
+    // Link Tags
     if (tags && tags.length > 0) {
-      const tagInserts = tags.map((tagId) => ({
-        product_id: productId,
-        tag_id: tagId,
-      }));
-      const { error: tagsError } = await supabase.from("product_tags").insert(tagInserts);
-      if (tagsError) throw new Error(`Failed to link product tags: ${tagsError.message}`);
+      await prisma.productTag.createMany({
+        data: tags.map((tagId) => ({
+          productId,
+          tagId,
+        })),
+        skipDuplicates: true,
+      });
     }
 
-    // 4. Create Media
+    // Create Media
     if (media && media.length > 0) {
-      const mediaInserts = media.map((m) => ({
-        product_id: productId,
-        url: m.url,
-        url_webp: m.urlWebp,
-        alt_text: m.altText,
-        display_order: m.displayOrder,
-        is_primary: m.isPrimary,
-        media_type: m.mediaType,
-      }));
-      const { error: mediaError } = await supabase.from("product_media").insert(mediaInserts);
-      if (mediaError) throw new Error(`Failed to create product media: ${mediaError.message}`);
+      await prisma.productMedia.createMany({
+        data: media.map((m: any, idx: number) => ({
+          productId,
+          url: m.url,
+          urlWebp: m.urlWebp || null,
+          altText: m.altText || null,
+          displayOrder: m.displayOrder ?? idx,
+          isPrimary: m.isPrimary ?? idx === 0,
+          mediaType: m.mediaType || "IMAGE",
+        })),
+      });
     }
 
-    // 5. Create Variants & Inventory Levels
-    const defaultWarehouseId = await ProductRepository.getDefaultWarehouseId(supabase);
-
+    // Create Variants & Inventory
     if (variants && variants.length > 0) {
-      const productSlugPrefix = (productData.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
-      const baseSkuPrefix = (productData.sku?.trim() || productSlugPrefix).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+      for (const [idx, v] of variants.entries()) {
+        const sku = v.sku?.trim() || `${createdProduct.slug.toUpperCase()}-V${idx + 1}`;
+        const createdVariant = await prisma.variant.create({
+          data: {
+            productId,
+            sku,
+            barcode: v.barcode && v.barcode.trim() ? v.barcode.trim() : null,
+            priceOverride: v.priceOverride ?? null,
+            salePrice: v.salePrice ?? null,
+            weight: v.weight ?? null,
+            attributes: v.attributes || {},
+            isActive: v.isActive ?? true,
+          },
+        });
 
-      const candidateSkus = variants.map((v, idx) => {
-        let sku = v.sku?.trim();
-        if (!sku) {
-          const attrVal = v.attributes ? Object.values(v.attributes)[0] : null;
-          const attrClean = attrVal ? String(attrVal).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6) : `V${idx + 1}`;
-          sku = `${baseSkuPrefix}-${attrClean}`;
+        if (defaultWarehouseId) {
+          await prisma.inventoryLevel.create({
+            data: {
+              variantId: createdVariant.id,
+              warehouseId: defaultWarehouseId,
+              quantityAvailable: Number(v.stockQuantity ?? 0),
+              quantityReserved: 0,
+              reorderPoint: 10,
+            },
+          });
         }
-        return sku;
-      });
-
-      // Check against existing SKUs in DB
-      const { data: existingDbVariants } = await supabase
-        .from("variants")
-        .select("sku")
-        .in("sku", candidateSkus);
-      const existingSet = new Set((existingDbVariants || []).map((r: any) => r.sku));
-
-      const usedInBatch = new Set<string>();
-      const finalVariants = variants.map((v, idx) => {
-        let sku = candidateSkus[idx];
-        let disambiguator = 1;
-        while (usedInBatch.has(sku) || existingSet.has(sku)) {
-          sku = `${candidateSkus[idx]}-${Date.now().toString().slice(-3)}${disambiguator++}`;
-        }
-        usedInBatch.add(sku);
-
-        return {
-          product_id: productId,
-          sku,
-          barcode: v.barcode && v.barcode.trim() ? v.barcode.trim() : null,
-          price_override: v.priceOverride,
-          sale_price: v.salePrice,
-          weight: v.weight,
-          dimensions: v.dimensions,
-          is_active: v.isActive,
-          attributes: v.attributes,
-        };
-      });
-
-      const { data: createdVariants, error: variantsError } = await supabase
-        .from("variants")
-        .insert(finalVariants)
-        .select("id, sku");
-
-      if (variantsError) {
-        await supabase.from("products").update({ deleted_at: new Date().toISOString(), status: "ARCHIVED" }).eq("id", productId);
-        throw new Error(`Failed to create product variants: ${variantsError.message}`);
-      }
-
-      if (createdVariants && createdVariants.length > 0 && defaultWarehouseId) {
-        const inventoryInserts = createdVariants.map((cv, idx) => ({
-          variant_id: cv.id,
-          warehouse_id: defaultWarehouseId,
-          quantity_available: Number(variants[idx]?.stockQuantity ?? 0),
-          quantity_reserved: 0,
-          reorder_point: 10,
-        }));
-        await supabase.from("inventory_levels").insert(inventoryInserts);
       }
     } else {
-      // Simple product without variants: create a default variant linked to inventory_levels
-      const productSlugPrefix = (productData.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
-      let defaultSku = productData.sku?.trim()
-        ? `${productData.sku.trim().toUpperCase()}-DEF`
-        : `${productSlugPrefix}-DEF-${Date.now().toString().slice(-4)}`;
-
-      const { data: existingDef } = await supabase.from("variants").select("id").eq("sku", defaultSku).maybeSingle();
-      if (existingDef) {
-        defaultSku = `${defaultSku}-${Date.now().toString().slice(-3)}`;
-      }
-
-      const { data: defaultVariant, error: defaultVariantErr } = await supabase
-        .from("variants")
-        .insert({
-          product_id: productId,
+      // Single default variant
+      const defaultSku = productData.sku?.trim() || `${createdProduct.slug.toUpperCase()}-DEF`;
+      const createdVariant = await prisma.variant.create({
+        data: {
+          productId,
           sku: defaultSku,
           barcode: productData.barcode && productData.barcode.trim() ? productData.barcode.trim() : null,
-          price_override: productData.basePrice,
-          sale_price: productData.salePrice ?? null,
-          is_active: true,
+          priceOverride: productData.basePrice,
+          salePrice: productData.salePrice ?? null,
           attributes: { Standard: "Default" },
-        })
-        .select("id")
-        .single();
+          isActive: true,
+        },
+      });
 
-      if (defaultVariantErr) {
-        await supabase.from("products").update({ deleted_at: new Date().toISOString(), status: "ARCHIVED" }).eq("id", productId);
-        throw new Error(`Failed to initialize default variant: ${defaultVariantErr.message}`);
-      }
-
-      if (defaultVariant && defaultWarehouseId) {
-        await supabase.from("inventory_levels").insert({
-          variant_id: defaultVariant.id,
-          warehouse_id: defaultWarehouseId,
-          quantity_available: Number(productData.stockQuantity ?? 0),
-          quantity_reserved: 0,
-          reorder_point: 10,
+      if (defaultWarehouseId) {
+        await prisma.inventoryLevel.create({
+          data: {
+            variantId: createdVariant.id,
+            warehouseId: defaultWarehouseId,
+            quantityAvailable: Number(productData.stockQuantity ?? 0),
+            quantityReserved: 0,
+            reorderPoint: 10,
+          },
         });
       }
     }
@@ -437,297 +406,161 @@ export class ProductRepository {
   }
 
   /**
-   * Updates a product
+   * Updates an existing product.
    */
   static async updateProduct(id: string, input: Partial<CreateProductInput>) {
-    const supabase = createAdminClient();
     const { seo, tags, media, variants, ...productData } = input;
 
-    // 1. Update Product — strip undefined so we don't NULL-out existing columns
-    if (Object.keys(productData).length > 0) {
-      const rawUpdate = {
-        name: productData.name,
-        slug: productData.slug,
-        short_description: productData.shortDescription,
-        description: productData.description,
-        category_id: productData.categoryId,
-        brand_id: productData.brandId,
-        base_price: productData.basePrice,
-        cost_price: productData.costPrice,
-        sale_price: productData.salePrice,
-        sku:
-          productData.sku !== undefined
-            ? productData.sku && productData.sku.trim()
-              ? productData.sku.trim()
-              : null
-            : undefined,
-        barcode:
-          productData.barcode !== undefined
-            ? productData.barcode && productData.barcode.trim()
-              ? productData.barcode.trim()
-              : null
-            : undefined,
-        status: productData.status,
-        gender: productData.gender,
-        season: productData.season,
-        care_instructions: productData.careInstructions,
-        country_of_origin: productData.countryOfOrigin,
-        warranty: productData.warranty,
-        material: productData.material,
-        is_featured: productData.isFeatured,
-      };
+    const primaryMediaUrl = media?.find((m: any) => m.isPrimary)?.url || media?.[0]?.url || undefined;
 
-      // Remove keys whose value is undefined — Supabase would overwrite with NULL otherwise
-      const cleanUpdate = Object.fromEntries(
-        Object.entries(rawUpdate).filter(([, v]) => v !== undefined)
-      );
+    // 1. Update core product fields
+    await prisma.product.update({
+      where: { id },
+      data: {
+        ...(productData.name !== undefined && { name: productData.name }),
+        ...(productData.slug !== undefined && { slug: productData.slug }),
+        ...(productData.shortDescription !== undefined && { shortDescription: productData.shortDescription }),
+        ...(productData.description !== undefined && { description: productData.description }),
+        ...(productData.categoryId !== undefined && { categoryId: productData.categoryId }),
+        ...(productData.brandId !== undefined && { brandId: productData.brandId || null }),
+        ...(productData.basePrice !== undefined && { basePrice: productData.basePrice }),
+        ...(productData.costPrice !== undefined && { costPrice: productData.costPrice }),
+        ...(productData.salePrice !== undefined && { salePrice: productData.salePrice }),
+        ...(productData.sku !== undefined && { sku: productData.sku && productData.sku.trim() ? productData.sku.trim() : null }),
+        ...(productData.barcode !== undefined && { barcode: productData.barcode && productData.barcode.trim() ? productData.barcode.trim() : null }),
+        ...(productData.status !== undefined && { status: productData.status }),
+        ...(productData.gender !== undefined && { gender: productData.gender }),
+        ...(productData.season !== undefined && { season: productData.season }),
+        ...(productData.careInstructions !== undefined && { careInstructions: productData.careInstructions }),
+        ...(productData.countryOfOrigin !== undefined && { countryOfOrigin: productData.countryOfOrigin }),
+        ...(productData.isFeatured !== undefined && { isFeatured: productData.isFeatured }),
+        ...(primaryMediaUrl !== undefined && { imageUrl: primaryMediaUrl }),
+        ...(media !== undefined && { galleryUrls: media.map((m: any) => m.url) }),
+      },
+    });
 
-      if (Object.keys(cleanUpdate).length > 0) {
-        const { error } = await supabase
-          .from("products")
-          .update(cleanUpdate)
-          .eq("id", id);
-        if (error) throw error;
-      }
-    }
-
-    // 2. Update SEO (Upsert)
+    // 2. Update SEO
     if (seo) {
-      const { data: existingSeo, error: existingSeoError } = await supabase
-        .from("product_seo")
-        .select("id")
-        .eq("product_id", id)
-        .single();
-        
-      if (existingSeoError && existingSeoError.code !== "PGRST116") {
-        throw new Error(`Failed to check existing SEO: ${existingSeoError.message}`);
-      }
-
-      if (existingSeo) {
-        const { error: seoUpdateError } = await supabase
-          .from("product_seo")
-          .update({
-            meta_title: seo.metaTitle,
-            meta_description: seo.metaDescription,
-            canonical_url: seo.canonicalUrl,
-            og_title: seo.ogTitle,
-            og_description: seo.ogDescription,
-            og_image_url: seo.ogImageUrl,
-            twitter_card_type: seo.twitterCardType,
-            structured_data: seo.structuredData,
-            keywords: seo.keywords,
-          })
-          .eq("product_id", id);
-        if (seoUpdateError) throw new Error(`Failed to update product SEO: ${seoUpdateError.message}`);
-      } else {
-        const { error: seoInsertError } = await supabase.from("product_seo").insert({
-          product_id: id,
-          meta_title: seo.metaTitle,
-          meta_description: seo.metaDescription,
-          canonical_url: seo.canonicalUrl,
-          og_title: seo.ogTitle,
-          og_description: seo.ogDescription,
-          og_image_url: seo.ogImageUrl,
-          twitter_card_type: seo.twitterCardType,
-          structured_data: seo.structuredData,
-          keywords: seo.keywords,
-        });
-        if (seoInsertError) throw new Error(`Failed to insert product SEO: ${seoInsertError.message}`);
-      }
+      await prisma.productSeo.upsert({
+        where: { productId: id },
+        update: {
+          metaTitle: seo.metaTitle,
+          metaDescription: seo.metaDescription,
+          canonicalUrl: seo.canonicalUrl,
+          ogTitle: seo.ogTitle,
+          ogDescription: seo.ogDescription,
+          ogImageUrl: seo.ogImageUrl,
+          twitterCardType: seo.twitterCardType,
+          structuredData: seo.structuredData || {},
+          keywords: seo.keywords || [],
+        },
+        create: {
+          productId: id,
+          metaTitle: seo.metaTitle,
+          metaDescription: seo.metaDescription,
+          canonicalUrl: seo.canonicalUrl,
+          ogTitle: seo.ogTitle,
+          ogDescription: seo.ogDescription,
+          ogImageUrl: seo.ogImageUrl,
+          twitterCardType: seo.twitterCardType,
+          structuredData: seo.structuredData || {},
+          keywords: seo.keywords || [],
+        },
+      });
     }
 
     // 3. Update Tags
     if (tags !== undefined) {
-      // Simple strategy: delete existing and re-insert
-      const { error: deleteTagsError } = await supabase.from("product_tags").delete().eq("product_id", id);
-      if (deleteTagsError) throw new Error(`Failed to delete old product tags: ${deleteTagsError.message}`);
+      await prisma.productTag.deleteMany({ where: { productId: id } });
       if (tags.length > 0) {
-        const tagInserts = tags.map((tagId) => ({
-          product_id: id,
-          tag_id: tagId,
-        }));
-        const { error: insertTagsError } = await supabase.from("product_tags").insert(tagInserts);
-        if (insertTagsError) throw new Error(`Failed to insert new product tags: ${insertTagsError.message}`);
+        await prisma.productTag.createMany({
+          data: tags.map((tagId) => ({
+            productId: id,
+            tagId,
+          })),
+          skipDuplicates: true,
+        });
       }
     }
 
     // 4. Update Media
     if (media !== undefined) {
-      const { error: deleteMediaError } = await supabase.from("product_media").delete().eq("product_id", id);
-      if (deleteMediaError) throw new Error(`Failed to delete old product media: ${deleteMediaError.message}`);
+      await prisma.productMedia.deleteMany({ where: { productId: id } });
       if (media.length > 0) {
-        const mediaInserts = media.map((m) => ({
-          product_id: id,
-          url: m.url,
-          url_webp: m.urlWebp,
-          alt_text: m.altText,
-          display_order: m.displayOrder,
-          is_primary: m.isPrimary,
-          media_type: m.mediaType,
-        }));
-        const { error: insertMediaError } = await supabase.from("product_media").insert(mediaInserts);
-        if (insertMediaError) throw new Error(`Failed to insert new product media: ${insertMediaError.message}`);
+        await prisma.productMedia.createMany({
+          data: media.map((m: any, idx: number) => ({
+            productId: id,
+            url: m.url,
+            urlWebp: m.urlWebp || null,
+            altText: m.altText || null,
+            displayOrder: m.displayOrder ?? idx,
+            isPrimary: m.isPrimary ?? idx === 0,
+            mediaType: m.mediaType || "IMAGE",
+          })),
+        });
       }
     }
 
-    // 5. Update Variants & Inventory Levels
+    // 5. Update Variants
     if (variants !== undefined || productData.stockQuantity !== undefined) {
-      const defaultWarehouseId = await ProductRepository.getDefaultWarehouseId(supabase);
-
-      const { data: currentProduct } = await supabase
-        .from("products")
-        .select("sku, slug, base_price, sale_price, barcode")
-        .eq("id", id)
-        .single();
-
-      // Check existing variants for this product
-      const { data: oldVariants } = await supabase
-        .from("variants")
-        .select("id, sku, attributes")
-        .eq("product_id", id);
+      const defaultWarehouseId = await ProductRepository.getDefaultWarehouseId();
 
       if (variants && variants.length > 0) {
-        // Multi-variant product: replace with new variants
-        if (oldVariants && oldVariants.length > 0) {
-          const oldIds = oldVariants.map((v) => v.id);
-          await supabase.from("inventory_levels").delete().in("variant_id", oldIds);
-          await supabase.from("variants").delete().eq("product_id", id);
-        }
+        await prisma.variant.deleteMany({ where: { productId: id } });
 
-        const productSlugPrefix = (productData.slug || currentProduct?.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
-        const baseSkuPrefix = (productData.sku?.trim() || currentProduct?.sku || productSlugPrefix).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
+        for (const [idx, v] of variants.entries()) {
+          const sku = v.sku?.trim() || `${id.slice(0, 8).toUpperCase()}-V${idx + 1}`;
+          const createdVariant = await prisma.variant.create({
+            data: {
+              productId: id,
+              sku,
+              barcode: v.barcode && v.barcode.trim() ? v.barcode.trim() : null,
+              priceOverride: v.priceOverride ?? null,
+              salePrice: v.salePrice ?? null,
+              weight: v.weight ?? null,
+              attributes: v.attributes || {},
+              isActive: v.isActive ?? true,
+            },
+          });
 
-        const candidateSkus = variants.map((v, idx) => {
-          let sku = v.sku?.trim();
-          if (!sku) {
-            const attrVal = v.attributes ? Object.values(v.attributes)[0] : null;
-            const attrClean = attrVal ? String(attrVal).toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 6) : `V${idx + 1}`;
-            sku = `${baseSkuPrefix}-${attrClean}`;
+          if (defaultWarehouseId) {
+            await prisma.inventoryLevel.create({
+              data: {
+                variantId: createdVariant.id,
+                warehouseId: defaultWarehouseId,
+                quantityAvailable: Number(v.stockQuantity ?? 0),
+                quantityReserved: 0,
+                reorderPoint: 10,
+              },
+            });
           }
-          return sku;
+        }
+      } else if (productData.stockQuantity !== undefined) {
+        const existingVariants = await prisma.variant.findMany({
+          where: { productId: id },
+          take: 1,
         });
 
-        // Check against existing SKUs in DB
-        const { data: existingDbVariants } = await supabase
-          .from("variants")
-          .select("sku")
-          .in("sku", candidateSkus);
-        const existingSet = new Set((existingDbVariants || []).map((r: any) => r.sku));
-
-        const usedInBatch = new Set<string>();
-        const finalVariants = variants.map((v, idx) => {
-          let sku = candidateSkus[idx];
-          let disambiguator = 1;
-          while (usedInBatch.has(sku) || existingSet.has(sku)) {
-            sku = `${candidateSkus[idx]}-${Date.now().toString().slice(-3)}${disambiguator++}`;
-          }
-          usedInBatch.add(sku);
-
-          return {
-            product_id: id,
-            sku,
-            barcode: v.barcode && v.barcode.trim() ? v.barcode.trim() : null,
-            price_override: v.priceOverride,
-            sale_price: v.salePrice,
-            weight: v.weight,
-            dimensions: v.dimensions,
-            is_active: v.isActive,
-            attributes: v.attributes,
-          };
-        });
-
-        const { data: createdVariants, error: insertVariantsError } = await supabase
-          .from("variants")
-          .insert(finalVariants)
-          .select("id, sku");
-        if (insertVariantsError) throw new Error(`Failed to insert new product variants: ${insertVariantsError.message}`);
-
-        if (createdVariants && createdVariants.length > 0) {
-          const inventoryInserts = createdVariants.map((cv, idx) => ({
-            variant_id: cv.id,
-            warehouse_id: defaultWarehouseId,
-            quantity_available: Number(variants[idx]?.stockQuantity ?? 0),
-            quantity_reserved: 0,
-            reorder_point: 10,
-          }));
-          await supabase.from("inventory_levels").insert(inventoryInserts);
-        }
-      } else if (productData.stockQuantity !== undefined || variants !== undefined) {
-        // Simple product: ensure default variant exists with updated stockQuantity
-        let targetVariantId: string | null = null;
-        if (oldVariants && oldVariants.length === 1) {
-          targetVariantId = oldVariants[0].id;
-          await supabase
-            .from("variants")
-            .update({
-              price_override: productData.basePrice ?? currentProduct?.base_price ?? 0,
-              sale_price: productData.salePrice ?? currentProduct?.sale_price ?? null,
-              barcode: productData.barcode ?? currentProduct?.barcode ?? null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq("id", targetVariantId);
-        } else {
-          if (oldVariants && oldVariants.length > 0) {
-            const oldIds = oldVariants.map((v) => v.id);
-            await supabase.from("inventory_levels").delete().in("variant_id", oldIds);
-            await supabase.from("variants").delete().eq("product_id", id);
-          }
-
-          const productSlugPrefix = (productData.slug || currentProduct?.slug || "PROD").toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 10);
-          let defaultSku = productData.sku?.trim()
-            ? `${productData.sku.trim().toUpperCase()}-DEF`
-            : currentProduct?.sku
-              ? `${currentProduct.sku.trim().toUpperCase()}-DEF`
-              : `${productSlugPrefix}-DEF-${Date.now().toString().slice(-4)}`;
-
-          const { data: existingDef } = await supabase.from("variants").select("id").eq("sku", defaultSku).maybeSingle();
-          if (existingDef) {
-            defaultSku = `${defaultSku}-${Date.now().toString().slice(-3)}`;
-          }
-
-          const { data: defaultVariant, error: defaultVariantErr } = await supabase
-            .from("variants")
-            .insert({
-              product_id: id,
-              sku: defaultSku,
-              barcode: productData.barcode ?? currentProduct?.barcode ?? null,
-              price_override: productData.basePrice ?? currentProduct?.base_price ?? 0,
-              sale_price: productData.salePrice ?? currentProduct?.sale_price ?? null,
-              is_active: true,
-              attributes: { Standard: "Default" },
-            })
-            .select("id")
-            .single();
-
-          if (defaultVariantErr) {
-            throw new Error(`Failed to initialize default variant on update: ${defaultVariantErr.message}`);
-          }
-          targetVariantId = defaultVariant.id;
-        }
-
-        if (targetVariantId) {
-          const { data: existingInv } = await supabase
-            .from("inventory_levels")
-            .select("id")
-            .eq("variant_id", targetVariantId)
-            .eq("warehouse_id", defaultWarehouseId)
-            .maybeSingle();
-
-          if (existingInv) {
-            await supabase
-              .from("inventory_levels")
-              .update({
-                quantity_available: Number(productData.stockQuantity ?? 0),
-                updated_at: new Date().toISOString(),
-              })
-              .eq("id", existingInv.id);
-          } else {
-            await supabase.from("inventory_levels").insert({
-              variant_id: targetVariantId,
-              warehouse_id: defaultWarehouseId,
-              quantity_available: Number(productData.stockQuantity ?? 0),
-              quantity_reserved: 0,
-              reorder_point: 10,
+        if (existingVariants.length > 0) {
+          const varId = existingVariants[0].id;
+          if (defaultWarehouseId) {
+            await prisma.inventoryLevel.upsert({
+              where: {
+                variantId_warehouseId: {
+                  variantId: varId,
+                  warehouseId: defaultWarehouseId,
+                },
+              },
+              update: {
+                quantityAvailable: Number(productData.stockQuantity ?? 0),
+              },
+              create: {
+                variantId: varId,
+                warehouseId: defaultWarehouseId,
+                quantityAvailable: Number(productData.stockQuantity ?? 0),
+                quantityReserved: 0,
+                reorderPoint: 10,
+              },
             });
           }
         }
@@ -738,69 +571,72 @@ export class ProductRepository {
   }
 
   /**
-   * Soft deletes a product
+   * Soft deletes a product in Neon.
    */
   static async deleteProduct(id: string) {
-    const supabase = createAdminClient();
-    const { error } = await supabase
-      .from("products")
-      .update({ deleted_at: new Date().toISOString(), status: "ARCHIVED" })
-      .eq("id", id);
-
-    if (error) throw error;
+    await prisma.product.update({
+      where: { id },
+      data: {
+        deletedAt: new Date(),
+        status: "ARCHIVED",
+      },
+    });
     return true;
   }
 
   /**
-   * Bulk update the status of multiple products in a single DB query.
+   * Bulk update status of multiple products in Neon.
    */
   static async bulkUpdateStatus(
     ids: string[],
     status: "DRAFT" | "ACTIVE" | "ARCHIVED"
   ): Promise<number> {
-    const supabase = createAdminClient();
-    const { error, count } = await supabase
-      .from("products")
-      .update({ status })
-      .in("id", ids);
-    if (error) throw error;
-    return count ?? ids.length;
+    const result = await prisma.product.updateMany({
+      where: { id: { in: ids } },
+      data: { status },
+    });
+    return result.count;
   }
 
   /**
-   * Bulk soft-delete multiple products in a single DB query.
+   * Bulk soft-delete multiple products in Neon.
    */
   static async bulkDelete(ids: string[]): Promise<number> {
-    const supabase = createAdminClient();
-    const { error, count } = await supabase
-      .from("products")
-      .update({ deleted_at: new Date().toISOString(), status: "ARCHIVED" })
-      .in("id", ids);
-    if (error) throw error;
-    return count ?? ids.length;
+    const result = await prisma.product.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        deletedAt: new Date(),
+        status: "ARCHIVED",
+      },
+    });
+    return result.count;
   }
 
   /**
-   * Bulk soft-delete all products matching optional filter criteria, or all non-deleted products.
+   * Bulk delete all products in Neon matching criteria.
    */
   static async deleteAllProducts(filters?: { status?: string; search?: string }): Promise<number> {
-    const supabase = createAdminClient();
-    let query = supabase
-      .from("products")
-      .update({ deleted_at: new Date().toISOString(), status: "ARCHIVED" })
-      .is("deleted_at", null);
+    const where: any = { deletedAt: null };
 
     if (filters?.status && filters.status !== "ALL") {
-      query = query.eq("status", filters.status);
+      where.status = filters.status;
     }
-    if (filters?.search) {
-      query = query.or(
-        `name.ilike.%${filters.search}%,sku.ilike.%${filters.search}%,barcode.ilike.%${filters.search}%`
-      );
+    if (filters?.search && filters.search.trim()) {
+      const term = filters.search.trim();
+      where.OR = [
+        { name: { contains: term, mode: "insensitive" } },
+        { sku: { contains: term, mode: "insensitive" } },
+        { barcode: { contains: term, mode: "insensitive" } },
+      ];
     }
 
-    const { error, count } = await query;
-    if (error) throw error;
-    return count ?? 0;
+    const result = await prisma.product.updateMany({
+      where,
+      data: {
+        deletedAt: new Date(),
+        status: "ARCHIVED",
+      },
+    });
+    return result.count;
   }
 }

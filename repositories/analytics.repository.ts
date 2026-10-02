@@ -525,54 +525,99 @@ export class AnalyticsRepository {
   static async getProductAnalytics() {
     const supabase = await createAdminClient();
 
-    // Inventory
-    const { data: inventory } = await supabase
-      .from("inventory_levels")
-      .select("variant_id, quantity_available, reorder_point");
-    const { data: products } = await supabase
-      .from("products")
-      .select("id, name, views");
-    const { data: orderItems } = await supabase
-      .from("order_items")
-      .select("product_id, quantity, unit_price");
+    // Query inventory, products, orders, and order items concurrently
+    const [invRes, productsRes, itemsRes, ordersRes] = await Promise.all([
+      supabase
+        .from("inventory_levels")
+        .select("variant_id, quantity_available, reorder_point"),
+      supabase
+        .from("products")
+        .select("id, name, created_at"),
+      supabase
+        .from("order_items")
+        .select("id, order_id, product_id, product_name, quantity, unit_price, line_total"),
+      supabase
+        .from("orders")
+        .select("id, status"),
+    ]);
+
+    const inventory = invRes.data || [];
+    const products = productsRes.data || [];
+    const orderItems = itemsRes.data || [];
+    const orders = ordersRes.data || [];
 
     let outOfStock = 0;
     let lowStock = 0;
     let inStock = 0;
 
-    inventory?.forEach((item) => {
-      if (item.quantity_available <= 0) outOfStock++;
-      else if (item.quantity_available <= (item.reorder_point || 5)) lowStock++;
+    inventory.forEach((item) => {
+      if ((item.quantity_available || 0) <= 0) outOfStock++;
+      else if ((item.quantity_available || 0) <= (item.reorder_point || 5)) lowStock++;
       else inStock++;
     });
 
-    // Best Sellers & Worst Sellers
-    const productSales: Record<string, { qty: number; rev: number }> = {};
-    orderItems?.forEach((item) => {
-      if (item.product_id) {
-        if (!productSales[item.product_id])
-          productSales[item.product_id] = { qty: 0, rev: 0 };
-        productSales[item.product_id].qty += item.quantity || 1;
-        productSales[item.product_id].rev +=
-          (item.quantity || 1) * (item.unit_price || 0);
+    // Valid non-cancelled orders filter
+    const validOrderIds = new Set(
+      orders
+        .filter((o) => {
+          const s = (o.status || "").toLowerCase();
+          return s !== "cancelled" && s !== "returned";
+        })
+        .map((o) => o.id)
+    );
+
+    const productMap = new Map(products.map((prod) => [prod.id, prod.name]));
+
+    // Aggregate Best Sellers & Sales by Product
+    const productSales: Record<
+      string,
+      { id: string; name: string; quantitySold: number; revenue: number }
+    > = {};
+
+    orderItems.forEach((item) => {
+      // If order_id exists, only include non-cancelled orders
+      if (item.order_id && !validOrderIds.has(item.order_id)) return;
+
+      const key = item.product_id || item.product_name || item.id;
+      const name =
+        (item.product_id && productMap.get(item.product_id)) ||
+        item.product_name ||
+        "Product";
+
+      if (!productSales[key]) {
+        productSales[key] = {
+          id: key,
+          name,
+          quantitySold: 0,
+          revenue: 0,
+        };
       }
+
+      const qty = Number(item.quantity) || 1;
+      const rev =
+        Number(item.line_total) ||
+        qty * (Number(item.unit_price) || 0);
+
+      productSales[key].quantitySold += qty;
+      productSales[key].revenue += rev;
     });
 
-    const salesArray = Object.keys(productSales)
-      .map((pid) => {
-        const p = products?.find((prod) => prod.id === pid);
-        return {
-          id: pid,
-          name: p ? p.name : "Unknown Product",
-          quantitySold: productSales[pid].qty,
-          revenue: productSales[pid].rev,
-        };
-      })
-      .sort((a, b) => b.quantitySold - a.quantitySold);
+    // Best Sellers sorted primarily by Revenue (Highest revenue generating products), then Qty Sold
+    const salesArray = Object.values(productSales).sort(
+      (a, b) => b.revenue - a.revenue || b.quantitySold - a.quantitySold
+    );
 
-    const mostViewed = [...(products || [])]
-      .sort((a, b) => (b.views || 0) - (a.views || 0))
-      .slice(0, 10);
+    // Worst Sellers (products with lowest sales)
+    const worstSellers = [...salesArray].reverse().slice(0, 10);
+
+    // Most active products (or newly added products as traffic proxy)
+    const mostViewed = products
+      .slice(0, 10)
+      .map((p) => ({
+        id: p.id,
+        name: p.name,
+        views: 0,
+      }));
 
     return {
       stockLevels: [
@@ -582,9 +627,9 @@ export class AnalyticsRepository {
       ],
       lowStockProducts: lowStock,
       outOfStockProducts: outOfStock,
-      totalItems: inventory?.length || 0,
+      totalItems: inventory.length || 0,
       bestSellers: salesArray.slice(0, 10),
-      worstSellers: salesArray.slice(-10).reverse(),
+      worstSellers: worstSellers,
       mostViewedProducts: mostViewed,
     };
   }

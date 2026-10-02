@@ -1,14 +1,15 @@
-import { createClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 
 export class TagRepository {
   static async getTags() {
-    const supabase = await createClient();
-    const { data, error } = await supabase
-      .from("tags")
-      .select("*")
-      .order("name", { ascending: true });
-
-    if (error) throw error;
-    return data;
+    try {
+      const tags = await prisma.tag.findMany({
+        orderBy: { name: "asc" },
+      });
+      return tags;
+    } catch (err) {
+      console.error("Error fetching tags via Prisma:", err);
+      return [];
+    }
   }
 }

@@ -1,7 +1,6 @@
 "use server";
 
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin-client";
+import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export interface AdminNotification {
@@ -14,26 +13,8 @@ export interface AdminNotification {
   created_at: string;
 }
 
-const FAKE_NOTIFICATION_MESSAGES = [
-  "Order #ORD-8921 has been placed by Sarah Johnson for ৳4,250.",
-  'Product "Premium Silk Evening Gown" (SKU: SEG-001) is running low — only 3 units left.',
-  "Ahmed Raza just signed up. Total customers: 1,247.",
-  "Order #ORD-8920 payment failed. Customer notified automatically.",
-  "Scheduled maintenance tonight at 12:00 AM BDT. Expected downtime: 30 minutes.",
-  '"Eid Special" campaign achieved 320% ROI. 1,450 clicks, 143 conversions.',
-];
-
-async function cleanupFakeNotifications() {
-  try {
-    const admin = createAdminClient();
-    await admin.from("notifications").delete().in("message", FAKE_NOTIFICATION_MESSAGES);
-  } catch {
-    // Silently ignore cleanup error
-  }
-}
-
 /**
- * Fetches the most recent notifications for display in the admin header dropdown.
+ * Fetches the most recent notifications for display in the admin header dropdown from Neon via Prisma.
  */
 export async function getAdminHeaderNotificationsAction(): Promise<{
   data: AdminNotification[];
@@ -41,53 +22,31 @@ export async function getAdminHeaderNotificationsAction(): Promise<{
   error?: string;
 }> {
   try {
-    await cleanupFakeNotifications();
-    const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const list = await prisma.notification.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 10,
+    });
 
-    let query = supabase
-      .from("notifications")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(10);
+    const notifications: AdminNotification[] = list.map((n: any) => ({
+      id: n.id,
+      user_id: n.userId,
+      title: n.title,
+      message: n.message,
+      type: n.type,
+      read_at: n.readAt ? new Date(n.readAt).toISOString() : null,
+      created_at: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
+    }));
 
-    if (user) {
-      query = query.or(`user_id.is.null,user_id.eq.${user.id}`);
-    } else {
-      query = query.is("user_id", null);
-    }
-
-    const { data, error } = await query;
-
-    if (error) {
-      const admin = createAdminClient();
-      const { data: adminData } = await admin
-        .from("notifications")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(10);
-
-      if (adminData) {
-        const notifications: AdminNotification[] = adminData;
-        const unreadCount = notifications.filter((n) => !n.read_at).length;
-        return { data: notifications, unreadCount };
-      }
-      return { data: [], unreadCount: 0, error: error.message };
-    }
-
-    const notifications: AdminNotification[] = data || [];
     const unreadCount = notifications.filter((n) => !n.read_at).length;
-
     return { data: notifications, unreadCount };
   } catch (err: any) {
+    console.error("Error fetching notifications via Prisma:", err);
     return { data: [], unreadCount: 0, error: err.message };
   }
 }
 
 /**
- * Fetches all notifications with optional search and type filtering for the Notifications management page.
+ * Fetches all notifications for the Notifications management page.
  */
 export async function getAllAdminNotificationsAction(filters?: {
   search?: string;
@@ -100,41 +59,42 @@ export async function getAllAdminNotificationsAction(filters?: {
   error?: string;
 }> {
   try {
-    await cleanupFakeNotifications();
-    const admin = createAdminClient();
-    let query = admin
-      .from("notifications")
-      .select("*", { count: "exact" })
-      .order("created_at", { ascending: false });
-
+    const where: any = {};
     if (filters?.type && filters.type !== "all") {
-      query = query.eq("type", filters.type.toLowerCase());
+      where.type = filters.type.toLowerCase();
     }
-
     if (filters?.search && filters.search.trim()) {
       const q = filters.search.trim();
-      query = query.or(`title.ilike.%${q}%,message.ilike.%${q}%`);
+      where.OR = [
+        { title: { contains: q, mode: "insensitive" } },
+        { message: { contains: q, mode: "insensitive" } },
+      ];
     }
 
-    if (filters?.limit) {
-      query = query.limit(filters.limit);
-    } else {
-      query = query.limit(100);
-    }
+    const [list, total, unread] = await Promise.all([
+      prisma.notification.findMany({
+        where,
+        orderBy: { createdAt: "desc" },
+        take: filters?.limit || 100,
+      }),
+      prisma.notification.count({ where }),
+      prisma.notification.count({ where: { ...where, readAt: null } }),
+    ]);
 
-    const { data, count, error } = await query;
-
-    if (error) {
-      return { data: [], total: 0, unreadCount: 0, error: error.message };
-    }
-
-    const notifications: AdminNotification[] = data || [];
-    const unreadCount = notifications.filter((n) => !n.read_at).length;
+    const notifications: AdminNotification[] = list.map((n: any) => ({
+      id: n.id,
+      user_id: n.userId,
+      title: n.title,
+      message: n.message,
+      type: n.type,
+      read_at: n.readAt ? new Date(n.readAt).toISOString() : null,
+      created_at: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
+    }));
 
     return {
       data: notifications,
-      total: count ?? notifications.length,
-      unreadCount,
+      total,
+      unreadCount: unread,
     };
   } catch (err: any) {
     return { data: [], total: 0, unreadCount: 0, error: err.message };
@@ -142,7 +102,7 @@ export async function getAllAdminNotificationsAction(filters?: {
 }
 
 /**
- * Creates a new notification (broadcast to all users or specific user).
+ * Creates a new notification in Neon.
  */
 export async function createAdminNotificationAction(payload: {
   title: string;
@@ -155,24 +115,30 @@ export async function createAdminNotificationAction(payload: {
       return { success: false, error: "Title and message are required" };
     }
 
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("notifications")
-      .insert({
+    const data = await prisma.notification.create({
+      data: {
         title: payload.title.trim(),
         message: payload.message.trim(),
         type: (payload.type || "system").toLowerCase(),
-        user_id: payload.user_id || null,
-        read_at: null,
-      })
-      .select()
-      .single();
-
-    if (error) return { success: false, error: error.message };
+        userId: payload.user_id || null,
+        readAt: null,
+      },
+    });
 
     revalidatePath("/admin/notifications");
     revalidatePath("/admin", "layout");
-    return { success: true, data };
+    return {
+      success: true,
+      data: {
+        id: data.id,
+        user_id: data.userId,
+        title: data.title,
+        message: data.message,
+        type: data.type,
+        read_at: null,
+        created_at: data.createdAt.toISOString(),
+      },
+    };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
@@ -195,23 +161,29 @@ export async function updateAdminNotificationAction(
       return { success: false, error: "Title and message cannot be empty" };
     }
 
-    const admin = createAdminClient();
-    const { data, error } = await admin
-      .from("notifications")
-      .update({
+    const data = await prisma.notification.update({
+      where: { id },
+      data: {
         title: payload.title.trim(),
         message: payload.message.trim(),
         type: (payload.type || "system").toLowerCase(),
-      })
-      .eq("id", id)
-      .select()
-      .single();
-
-    if (error) return { success: false, error: error.message };
+      },
+    });
 
     revalidatePath("/admin/notifications");
     revalidatePath("/admin", "layout");
-    return { success: true, data };
+    return {
+      success: true,
+      data: {
+        id: data.id,
+        user_id: data.userId,
+        title: data.title,
+        message: data.message,
+        type: data.type,
+        read_at: data.readAt ? data.readAt.toISOString() : null,
+        created_at: data.createdAt.toISOString(),
+      },
+    };
   } catch (err: any) {
     return { success: false, error: err.message };
   }
@@ -225,11 +197,7 @@ export async function deleteAdminNotificationAction(
 ): Promise<{ success: boolean; error?: string }> {
   try {
     if (!id) return { success: false, error: "Notification ID is required" };
-
-    const admin = createAdminClient();
-    const { error } = await admin.from("notifications").delete().eq("id", id);
-
-    if (error) return { success: false, error: error.message };
+    await prisma.notification.delete({ where: { id } });
 
     revalidatePath("/admin/notifications");
     revalidatePath("/admin", "layout");
@@ -240,43 +208,15 @@ export async function deleteAdminNotificationAction(
 }
 
 /**
- * Toggles a notification between read and unread.
- */
-export async function toggleNotificationStatusAction(
-  id: string,
-  currentlyRead: boolean
-): Promise<{ success: boolean; error?: string }> {
-  try {
-    const admin = createAdminClient();
-    const { error } = await admin
-      .from("notifications")
-      .update({
-        read_at: currentlyRead ? null : new Date().toISOString(),
-      })
-      .eq("id", id);
-
-    if (error) return { success: false, error: error.message };
-
-    revalidatePath("/admin/notifications");
-    revalidatePath("/admin", "layout");
-    return { success: true };
-  } catch (err: any) {
-    return { success: false, error: err.message };
-  }
-}
-
-/**
- * Marks a single notification as read by setting read_at to NOW().
+ * Marks a single notification as read.
  */
 export async function markNotificationAsReadAction(id: string): Promise<{ error?: string }> {
   try {
-    const admin = createAdminClient();
-    const { error } = await admin
-      .from("notifications")
-      .update({ read_at: new Date().toISOString() })
-      .eq("id", id);
+    await prisma.notification.update({
+      where: { id },
+      data: { readAt: new Date() },
+    });
 
-    if (error) return { error: error.message };
     revalidatePath("/admin", "layout");
     return {};
   } catch (err: any) {
@@ -289,13 +229,11 @@ export async function markNotificationAsReadAction(id: string): Promise<{ error?
  */
 export async function markAllNotificationsAsReadAction(): Promise<{ error?: string }> {
   try {
-    const admin = createAdminClient();
-    const { error } = await admin
-      .from("notifications")
-      .update({ read_at: new Date().toISOString() })
-      .is("read_at", null);
+    await prisma.notification.updateMany({
+      where: { readAt: null },
+      data: { readAt: new Date() },
+    });
 
-    if (error) return { error: error.message };
     revalidatePath("/admin", "layout");
     return {};
   } catch (err: any) {
@@ -304,18 +242,17 @@ export async function markAllNotificationsAsReadAction(): Promise<{ error?: stri
 }
 
 /**
- * Deletes all notifications.
+ * Toggles a notification's read status.
  */
-export async function deleteAllAdminNotificationsAction(): Promise<{ success: boolean; error?: string }> {
+export async function toggleNotificationStatusAction(
+  id: string,
+  currentlyRead: boolean
+): Promise<{ success: boolean; error?: string }> {
   try {
-    const admin = createAdminClient();
-    const { error } = await admin
-      .from("notifications")
-      .delete()
-      .not("id", "is", null);
-
-    if (error) return { success: false, error: error.message };
-
+    await prisma.notification.update({
+      where: { id },
+      data: { readAt: currentlyRead ? null : new Date() },
+    });
     revalidatePath("/admin/notifications");
     revalidatePath("/admin", "layout");
     return { success: true };
@@ -325,11 +262,25 @@ export async function deleteAllAdminNotificationsAction(): Promise<{ success: bo
 }
 
 /**
- * Seeds realistic operational notifications if the table is empty.
- * (Permanently disabled so fake data never automatically reappears)
+ * Deletes all notifications.
  */
-export async function seedInitialNotificationsIfEmptyAction(): Promise<void> {
-  // Permanently disabled: do not seed fake notifications
-  return;
+export async function deleteAllAdminNotificationsAction(): Promise<{
+  success: boolean;
+  error?: string;
+}> {
+  try {
+    await prisma.notification.deleteMany({});
+    revalidatePath("/admin/notifications");
+    revalidatePath("/admin", "layout");
+    return { success: true };
+  } catch (err: any) {
+    return { success: false, error: err.message };
+  }
 }
 
+/**
+ * No-op: Do not seed fake notifications. Only real system/user notifications are shown.
+ */
+export async function seedInitialNotificationsIfEmptyAction(): Promise<void> {
+  // Intentionally empty — strictly real notifications only
+}
