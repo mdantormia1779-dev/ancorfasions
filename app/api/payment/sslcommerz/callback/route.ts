@@ -382,6 +382,21 @@ async function handleSSLCommerzCallback(req: NextRequest) {
         created_by: order.customer_id || order.user_id || null,
       });
 
+      // Authoritative Admin Notification for captured payment
+      try {
+        const { createOrderNotificationAction } = await import("@/actions/admin/notification.actions");
+        await createOrderNotificationAction({
+          orderId: order.id,
+          orderNumber: order.order_number,
+          customerName: (order as any).customer_name || "Online Customer",
+          amount: order.total_amount ?? order.grand_total,
+          paymentMethod: "SSLCOMMERZ (PAID)",
+          status: "confirmed",
+        });
+      } catch (notifErr) {
+        console.warn("[SSLCommerz Callback] Error creating payment notification:", notifErr);
+      }
+
       // Clear customer cart (Prompt 7 integration)
       try {
         let cartIdToClear: string | null = null;

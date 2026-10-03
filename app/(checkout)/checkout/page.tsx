@@ -63,6 +63,7 @@ export default async function CheckoutPage() {
         <div className="lg:col-span-7">
           <CheckoutForm
             checkoutSessionId={sessionRes.session.id}
+            cartId={cartRes.cart.id}
             paymentConfigs={paymentConfigs}
           />
         </div>

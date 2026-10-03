@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState, useEffect, useCallback, useTransition } from "react";
+import { useState, useEffect, useCallback, useTransition, useRef } from "react";
 import {
   Bell,
   Search,
@@ -26,7 +26,10 @@ import {
   MessageCircle,
   Loader2,
   Trash2,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
+import { playOrderNotificationSound, unlockAudioContext } from "@/lib/utils/notification-sound";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Input } from "@/components/ui/input";
@@ -154,6 +157,9 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
   const [notifications, setNotifications] = useState<AdminNotification[]>([]);
   const [notifUnread, setNotifUnread] = useState(0);
   const [notifLoading, setNotifLoading] = useState(true);
+  const [soundEnabled, setSoundEnabled] = useState(true);
+  const isInitialNotifMountRef = useRef(true);
+  const seenNotifIdsRef = useRef<Set<string>>(new Set());
 
   // Messages
   const [messages, setMessages] = useState<AdminMessage[]>([]);
@@ -173,26 +179,95 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
   // ── Breadcrumb ──────────────────────────────────────────────────────────────
   const paths = pathname.split("/").filter(Boolean);
 
-  // ── Mount ──────────────────────────────────────────────────────────────────
+  // ── Mount & Audio Context ──────────────────────────────────────────────────
   useEffect(() => {
     setMounted(true);
+
+    try {
+      const saved = localStorage.getItem("af_admin_notif_sound");
+      if (saved !== null) {
+        setSoundEnabled(saved === "true");
+      }
+    } catch {}
+
+    const handleInteraction = () => {
+      unlockAudioContext();
+      window.removeEventListener("click", handleInteraction);
+      window.removeEventListener("keydown", handleInteraction);
+    };
+    window.addEventListener("click", handleInteraction, { once: true });
+    window.addEventListener("keydown", handleInteraction, { once: true });
+    return () => {
+      window.removeEventListener("click", handleInteraction);
+      window.removeEventListener("keydown", handleInteraction);
+    };
   }, []);
 
-  // ── Data fetching ──────────────────────────────────────────────────────────
-  const fetchNotifications = useCallback(async () => {
-    setNotifLoading(true);
-    try {
-      const result = await getAdminHeaderNotificationsAction();
-      if (!result.error) {
-        setNotifications(result.data);
-        setNotifUnread(result.unreadCount);
+  const toggleSound = () => {
+    setSoundEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem("af_admin_notif_sound", String(next));
+      } catch {}
+      if (next) {
+        playOrderNotificationSound();
+        toast.success("🔊 Notification sound enabled");
+      } else {
+        toast.info("🔇 Notification sound muted");
       }
-    } catch (e) {
-      console.warn("Error fetching admin notifications:", e);
-    } finally {
-      setNotifLoading(false);
-    }
-  }, []);
+      return next;
+    });
+  };
+
+  // ── Data fetching with real-time audio chime ───────────────────────────────
+  const fetchNotifications = useCallback(
+    async (isPolling = false) => {
+      if (!isPolling) setNotifLoading(true);
+      try {
+        const result = await getAdminHeaderNotificationsAction();
+        if (!result.error && result.data) {
+          // If this is a subsequent polling check, detect newly arrived notifications
+          if (!isInitialNotifMountRef.current) {
+            const incoming = result.data.filter(
+              (n) => !n.read_at && !seenNotifIdsRef.current.has(n.id)
+            );
+
+            if (incoming.length > 0) {
+              const hasOrder = incoming.some(
+                (n) => n.type?.toLowerCase() === "order"
+              );
+
+              if (soundEnabled) {
+                playOrderNotificationSound();
+              }
+
+              const latest = incoming[0];
+              toast(hasOrder ? "🛍️ New Order Received!" : "🔔 New Notification", {
+                description: latest.message || latest.title,
+                action: {
+                  label: "View Orders",
+                  onClick: () => router.push(latest.link_url || "/admin/orders"),
+                },
+                duration: 8000,
+              });
+            }
+          }
+
+          // Record all current notification IDs
+          result.data.forEach((n) => seenNotifIdsRef.current.add(n.id));
+          isInitialNotifMountRef.current = false;
+
+          setNotifications(result.data);
+          setNotifUnread(result.unreadCount);
+        }
+      } catch (e) {
+        console.warn("Error fetching admin notifications:", e);
+      } finally {
+        if (!isPolling) setNotifLoading(false);
+      }
+    },
+    [soundEnabled, router]
+  );
 
   const fetchMessages = useCallback(async () => {
     setMsgLoading(true);
@@ -210,9 +285,46 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
   }, []);
 
   useEffect(() => {
-    fetchNotifications();
+    fetchNotifications(false);
     fetchMessages();
-  }, [fetchNotifications, fetchMessages]);
+
+    // 1. Polling interval every 8 seconds for real-time notification sync
+    const interval = setInterval(() => {
+      fetchNotifications(true);
+    }, 8000);
+
+    // 2. Supabase Realtime channel for instant push updates
+    const channel = supabase
+      .channel("admin-notif-realtime")
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "notifications" },
+        (payload) => {
+          const n = payload.new as any;
+          if (n && n.id && !seenNotifIdsRef.current.has(n.id)) {
+            seenNotifIdsRef.current.add(n.id);
+            if (soundEnabled) {
+              playOrderNotificationSound();
+            }
+            toast(n.type === "order" ? "🛍️ New Order Received!" : "🔔 New Notification", {
+              description: n.message || n.title,
+              action: {
+                label: "View Orders",
+                onClick: () => router.push("/admin/orders"),
+              },
+              duration: 8000,
+            });
+            fetchNotifications(true);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(channel);
+    };
+  }, [fetchNotifications, fetchMessages, soundEnabled, supabase]);
 
   // ── Search ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -440,8 +552,8 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
                 )}
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-[340px] mt-2 rounded-xl p-0 border border-border bg-popover shadow-xl">
-              <DropdownMenuLabel className="px-4 py-3 flex justify-between items-center">
+            <DropdownMenuContent align="end" className="w-[360px] mt-2 rounded-xl p-0 border border-border bg-popover shadow-xl">
+              <DropdownMenuLabel className="px-4 py-3 flex justify-between items-center bg-slate-50/50 dark:bg-muted/30">
                 <div className="flex items-center gap-2">
                   <Bell className="h-4 w-4 text-[#00A1FF]" />
                   <span className="font-bold text-sm text-foreground">Notifications</span>
@@ -451,19 +563,48 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
                     </span>
                   )}
                 </div>
-                {notifUnread > 0 && (
+                <div className="flex items-center gap-1.5">
                   <button
-                    onClick={handleMarkAllNotifsRead}
-                    disabled={isPending}
-                    className="flex items-center gap-1 text-xs font-normal text-[#00A1FF] hover:underline disabled:opacity-50"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      toggleSound();
+                    }}
+                    className="p-1 rounded-md text-slate-500 hover:text-foreground hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
+                    title={soundEnabled ? "Mute notification sound" : "Enable notification sound"}
                   >
-                    <CheckCheck className="h-3 w-3" />
-                    Mark all read
+                    {soundEnabled ? (
+                      <Volume2 className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <VolumeX className="h-4 w-4 text-slate-400" />
+                    )}
                   </button>
-                )}
+                  <button
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      playOrderNotificationSound();
+                      toast.success("🔊 Notification sound test played!");
+                    }}
+                    className="px-2 py-0.5 rounded text-[11px] font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors"
+                    title="Click to test order alert sound"
+                  >
+                    Test Sound
+                  </button>
+                  {notifUnread > 0 && (
+                    <button
+                      onClick={handleMarkAllNotifsRead}
+                      disabled={isPending}
+                      className="flex items-center gap-1 text-xs font-normal text-[#00A1FF] hover:underline disabled:opacity-50 ml-1"
+                    >
+                      <CheckCheck className="h-3 w-3" />
+                      Mark all
+                    </button>
+                  )}
+                </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator className="m-0" />
-              <div className="max-h-[340px] overflow-y-auto">
+              <div className="max-h-[360px] overflow-y-auto">
                 {notifLoading ? (
                   <div className="flex items-center justify-center py-8">
                     <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
@@ -477,7 +618,14 @@ export const AdminHeader = ({ user, role, className }: AdminHeaderProps) => {
                   notifications.map((n) => (
                     <button
                       key={n.id}
-                      onClick={() => !n.read_at && handleMarkNotifRead(n.id)}
+                      onClick={() => {
+                        if (!n.read_at) handleMarkNotifRead(n.id);
+                        if (n.link_url) {
+                          router.push(n.link_url);
+                        } else if (n.type?.toLowerCase() === "order") {
+                          router.push("/admin/orders");
+                        }
+                      }}
                       className={cn(
                         "w-full flex items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted/60 border-b border-border/50 last:border-0",
                         !n.read_at && "bg-blue-500/5 dark:bg-blue-500/10"

@@ -1,4 +1,4 @@
-import { createAdminClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import { Cart, CartItem } from "@/types/checkout.types";
 
 export class CartRepository {
@@ -10,52 +10,94 @@ export class CartRepository {
     sessionId?: string | null,
     cartId?: string | null
   ): Promise<Cart | null> {
-    const supabase = await createAdminClient();
-
-    let query = supabase
-      .from("carts")
-      .select(
-        "*, items:cart_items(*, variant:variants(id, sku, price_override, sale_price, attributes, is_active, product:products(id, name, slug, base_price, sale_price, product_media(url, is_primary, display_order, variant_id))))"
-      );
-
-    if (cartId) {
-      query = query.eq("id", cartId);
-    } else if (userId) {
-      query = query.eq("user_id", userId);
-    } else if (sessionId) {
-      query = query.eq("session_id", sessionId);
-    } else {
+    if (!userId && !sessionId && !cartId) {
       return null;
     }
 
-    const { data, error } = await query
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (error) {
-      throw new Error(`Failed to fetch cart: ${error.message}`);
-    }
-
-    if (!data) return null;
-
-    let activePromoDiscount: number | null = null;
     try {
-      const { PromotionRepository } = await import("@/lib/repositories/marketing/promotion.repository");
-      const bestPromo = await PromotionRepository.getBestActivePromotion();
-      if (bestPromo && bestPromo.discount_percentage > 0) {
-        activePromoDiscount = bestPromo.discount_percentage;
-      }
-    } catch {
-      activePromoDiscount = null;
-    }
+      const includeClause = {
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                basePrice: true,
+                salePrice: true,
+                sku: true,
+                imageUrl: true,
+                media: {
+                  select: {
+                    url: true,
+                    isPrimary: true,
+                    displayOrder: true,
+                  },
+                  orderBy: { displayOrder: "asc" as const },
+                },
+              },
+            },
+            variant: {
+              select: {
+                id: true,
+                sku: true,
+                priceOverride: true,
+                salePrice: true,
+                attributes: true,
+                isActive: true,
+                inventoryLevels: {
+                  select: {
+                    quantityAvailable: true,
+                  },
+                },
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" as const },
+        },
+      };
 
-    if (data.items) {
-      data.items = data.items.map((item: any) => {
-        const prod = item.variant?.product;
-        const prodBasePrice = Number(prod?.base_price ?? 0);
-        let prodSalePrice = prod?.sale_price ? Number(prod.sale_price) : null;
-        let variantSalePrice = item.variant?.sale_price ? Number(item.variant.sale_price) : null;
+      let cart = null;
+      if (cartId) {
+        cart = await prisma.cart.findUnique({
+          where: { id: cartId },
+          include: includeClause,
+        });
+      } else if (userId) {
+        cart = await prisma.cart.findUnique({
+          where: { userId },
+          include: includeClause,
+        });
+      } else if (sessionId) {
+        cart = await prisma.cart.findFirst({
+          where: { sessionId },
+          orderBy: { updatedAt: "desc" },
+          include: includeClause,
+        });
+      }
+
+      if (!cart) return null;
+
+      let activePromoDiscount: number | null = null;
+      try {
+        const { PromotionRepository } = await import(
+          "@/lib/repositories/marketing/promotion.repository"
+        );
+        const bestPromo = await PromotionRepository.getBestActivePromotion();
+        if (bestPromo && bestPromo.discount_percentage > 0) {
+          activePromoDiscount = bestPromo.discount_percentage;
+        }
+      } catch {
+        activePromoDiscount = null;
+      }
+
+      const items: CartItem[] = (cart.items || []).map((item) => {
+        const prod = item.product;
+        const variant = item.variant;
+        const prodBasePrice = prod ? Number(prod.basePrice) : 0;
+        let prodSalePrice = prod?.salePrice ? Number(prod.salePrice) : null;
+        let variantPrice = variant?.priceOverride ? Number(variant.priceOverride) : prodBasePrice;
+        let variantSalePrice = variant?.salePrice ? Number(variant.salePrice) : null;
 
         if (activePromoDiscount && activePromoDiscount > 0) {
           const promoDiscountedPrice = Math.round(prodBasePrice * (1 - activePromoDiscount / 100));
@@ -67,33 +109,67 @@ export class CartRepository {
           }
         }
 
+        const mainImageUrl =
+          prod?.media?.find((m) => m.isPrimary)?.url ||
+          prod?.media?.[0]?.url ||
+          prod?.imageUrl ||
+          null;
+
+        const stockQuantity = (variant?.inventoryLevels || []).reduce(
+          (sum, lvl) => sum + (lvl.quantityAvailable || 0),
+          0
+        );
+
         return {
-          ...item,
-          product_id: prod?.id || null,
+          id: item.id,
+          cart_id: item.cartId,
+          product_id: item.productId,
+          variant_id: item.variantId,
+          quantity: item.quantity,
+          created_at: item.createdAt.toISOString(),
+          updated_at: item.updatedAt.toISOString(),
           product: prod
             ? {
-                ...prod,
+                id: prod.id,
                 title: prod.name,
+                name: prod.name,
+                slug: prod.slug,
                 price: prodBasePrice,
+                base_price: prodBasePrice,
                 sale_price: prodSalePrice,
-                main_image_url:
-                  prod.product_media?.find((m: any) => m.is_primary)?.url ||
-                  prod.product_media?.[0]?.url ||
-                  null,
+                main_image_url: mainImageUrl,
+                imageUrl: mainImageUrl,
+                stock_quantity: stockQuantity,
+                sku: prod.sku,
               }
             : undefined,
-          variant: item.variant
+          variant: variant
             ? {
-                ...item.variant,
-                price: item.variant.price_override ?? prodBasePrice,
+                id: variant.id,
+                sku: variant.sku,
+                price: variantPrice,
+                price_override: variant.priceOverride ? Number(variant.priceOverride) : null,
                 sale_price: variantSalePrice,
+                stock_quantity: stockQuantity,
+                attributes: (variant.attributes as Record<string, string>) || {},
+                is_active: variant.isActive,
               }
             : undefined,
         };
       });
-    }
 
-    return data as Cart;
+      return {
+        id: cart.id,
+        user_id: cart.userId,
+        session_id: cart.sessionId,
+        created_at: cart.createdAt.toISOString(),
+        updated_at: cart.updatedAt.toISOString(),
+        items,
+      } as Cart;
+    } catch (error: any) {
+      console.error("CartRepository.getCart error:", error);
+      throw new Error(`Failed to fetch cart: ${error.message}`);
+    }
   }
 
   /**
@@ -110,167 +186,128 @@ export class CartRepository {
     userId?: string | null,
     sessionId?: string | null
   ): Promise<Cart> {
-    const supabase = await createAdminClient();
+    try {
+      if (userId) {
+        const existing = await this.getCart(userId);
+        if (existing) return existing;
+      } else if (sessionId) {
+        const existing = await this.getCart(null, sessionId);
+        if (existing) return existing;
+      }
 
-    const payload: any = {};
-    if (userId) payload.user_id = userId;
-    if (sessionId) payload.session_id = sessionId;
+      const newCart = await prisma.cart.create({
+        data: {
+          userId: userId || null,
+          sessionId: sessionId || null,
+        },
+      });
 
-    const { data, error } = await supabase
-      .from("carts")
-      .insert(payload)
-      .select("*")
-      .single();
-
-    if (error) {
-      throw new Error(`Failed to create cart: ${error.message}`);
+      return {
+        id: newCart.id,
+        user_id: newCart.userId,
+        session_id: newCart.sessionId,
+        created_at: newCart.createdAt.toISOString(),
+        updated_at: newCart.updatedAt.toISOString(),
+        items: [],
+      } as Cart;
+    } catch (err: any) {
+      if (userId) {
+        const existing = await this.getCart(userId);
+        if (existing) return existing;
+      }
+      throw new Error(`Failed to create cart: ${err.message}`);
     }
-
-    return { ...data, items: [] } as Cart;
   }
 
   /**
-   * Merge guest cart into user cart.
-   * Backed by PostgreSQL RPC `merge_guest_cart` with an authoritative TypeScript fallback.
-   * Completely idempotent: repeated calls with the same sessionId are safe no-ops.
+   * Merge guest cart into user cart
    */
   static async mergeCart(sessionId: string, userId: string): Promise<void> {
     if (!sessionId || !userId) return;
 
-    const supabase = await createAdminClient();
-
-    // 1. Attempt PostgreSQL RPC for atomic database-level merge
     try {
-      const { data: rpcResult, error: rpcError } = await supabase.rpc(
-        "merge_guest_cart",
-        {
-          p_session_id: sessionId,
-          p_user_id: userId,
+      const guestCart = await prisma.cart.findFirst({
+        where: { sessionId },
+        include: { items: true },
+      });
+
+      if (!guestCart || !guestCart.items || guestCart.items.length === 0) {
+        if (guestCart?.id) {
+          await prisma.cart.delete({ where: { id: guestCart.id } }).catch(() => {});
         }
-      );
-
-      if (!rpcError && rpcResult) {
-        return; // RPC succeeded atomically
-      }
-    } catch {
-      // Fall through to TypeScript fallback if RPC does not exist in the current environment
-    }
-
-    // 2. TypeScript Server-Side Fallback Implementation
-    const guestCart = await this.getCart(null, sessionId);
-    if (!guestCart || !guestCart.items || guestCart.items.length === 0) {
-      // If empty guest cart exists, remove it
-      if (guestCart?.id) {
-        await supabase.from("carts").delete().eq("id", guestCart.id);
-      }
-      return;
-    }
-
-    // Check if user already has an existing cart
-    let userCart = await this.getCart(userId);
-
-    // Fast path: if user has no cart, directly reassign guest cart to user
-    if (!userCart) {
-      const { error: reassignErr } = await supabase
-        .from("carts")
-        .update({
-          user_id: userId,
-          session_id: null,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", guestCart.id);
-
-      if (reassignErr) {
-        throw new Error(`Failed to reassign guest cart: ${reassignErr.message}`);
-      }
-      // Clean up any other carts for this session
-      await supabase.from("carts").delete().eq("session_id", sessionId);
-      return;
-    }
-
-    // User already has a cart: merge guest items into user cart
-    for (const item of guestCart.items) {
-      if (!item.variant_id) continue;
-
-      // Check variant status
-      const { data: variantData } = await supabase
-        .from("variants")
-        .select("is_active")
-        .eq("id", item.variant_id)
-        .maybeSingle();
-
-      if (variantData && !variantData.is_active) {
-        continue; // Skip inactive variants
+        return;
       }
 
-      // Check available inventory
-      const { data: inventoryLevels } = await supabase
-        .from("inventory_levels")
-        .select("quantity_available")
-        .eq("variant_id", item.variant_id);
+      let userCart = await prisma.cart.findUnique({
+        where: { userId },
+        include: { items: true },
+      });
 
-      let totalAvailable = 999;
-      if (inventoryLevels && inventoryLevels.length > 0) {
-        totalAvailable = inventoryLevels.reduce(
-          (sum: number, lvl: any) => sum + (lvl.quantity_available || 0),
+      if (!userCart) {
+        await prisma.cart.update({
+          where: { id: guestCart.id },
+          data: {
+            userId,
+            sessionId: null,
+          },
+        });
+        return;
+      }
+
+      for (const item of guestCart.items) {
+        if (!item.variantId) continue;
+
+        const variant = await prisma.variant.findUnique({
+          where: { id: item.variantId },
+          select: {
+            isActive: true,
+            inventoryLevels: { select: { quantityAvailable: true } },
+          },
+        });
+
+        if (!variant || !variant.isActive) continue;
+
+        const totalAvailable = (variant.inventoryLevels || []).reduce(
+          (sum, lvl) => sum + (lvl.quantityAvailable || 0),
           0
         );
-      }
 
-      if (totalAvailable <= 0) {
-        continue; // Out of stock, skip
-      }
+        if (totalAvailable <= 0) continue;
 
-      // Check if user cart already has this variant
-      const existingItem = userCart.items?.find(
-        (i) => i.variant_id === item.variant_id
-      );
-
-      let targetQuantity = item.quantity;
-      if (existingItem) {
-        targetQuantity += existingItem.quantity;
-      }
-
-      // Cap at total available stock
-      targetQuantity = Math.min(targetQuantity, totalAvailable);
-      if (targetQuantity <= 0) continue;
-
-      if (existingItem) {
-        const { error: updateErr } = await supabase
-          .from("cart_items")
-          .update({
-            quantity: targetQuantity,
-            updated_at: new Date().toISOString(),
-          })
-          .eq("id", existingItem.id);
-
-        if (updateErr) {
-          throw new Error(`Failed to update cart item: ${updateErr.message}`);
+        const existingItem = userCart.items?.find((i) => i.variantId === item.variantId);
+        let targetQuantity = item.quantity;
+        if (existingItem) {
+          targetQuantity += existingItem.quantity;
         }
-      } else {
-        const { error: insertErr } = await supabase
-          .from("cart_items")
-          .insert({
-            cart_id: userCart.id,
-            variant_id: item.variant_id,
-            quantity: targetQuantity,
+        targetQuantity = Math.min(targetQuantity, totalAvailable);
+        if (targetQuantity <= 0) continue;
+
+        if (existingItem) {
+          await prisma.cartItem.update({
+            where: { id: existingItem.id },
+            data: { quantity: targetQuantity },
           });
-
-        if (insertErr) {
-          throw new Error(`Failed to add cart item: ${insertErr.message}`);
+        } else {
+          await prisma.cartItem.create({
+            data: {
+              cartId: userCart.id,
+              productId: item.productId,
+              variantId: item.variantId,
+              quantity: targetQuantity,
+            },
+          });
         }
       }
+
+      await prisma.cart.update({
+        where: { id: userCart.id },
+        data: { updatedAt: new Date() },
+      }).catch(() => {});
+
+      await prisma.cart.delete({ where: { id: guestCart.id } }).catch(() => {});
+    } catch (err) {
+      console.error("CartRepository.mergeCart error:", err);
     }
-
-    // Touch user cart updated_at timestamp
-    await supabase
-      .from("carts")
-      .update({ updated_at: new Date().toISOString() })
-      .eq("id", userCart.id);
-
-    // Delete guest cart and remove session identifier
-    await supabase.from("carts").delete().eq("id", guestCart.id);
-    await supabase.from("carts").delete().eq("session_id", sessionId);
   }
 
   /**
@@ -282,46 +319,39 @@ export class CartRepository {
     variantId: string | null,
     quantity: number
   ): Promise<void> {
-    const supabase = await createAdminClient();
-
     if (!variantId) {
       throw new Error("A valid variant ID is required to add an item to the cart.");
     }
 
-    // Check if variant already exists in this cart
-    const { data: existingItem, error: fetchError } = await supabase
-      .from("cart_items")
-      .select("id, quantity")
-      .eq("cart_id", cartId)
-      .eq("variant_id", variantId)
-      .maybeSingle();
-
-    if (fetchError) {
-      throw new Error(`Failed to fetch cart item: ${fetchError.message}`);
-    }
+    const existingItem = await prisma.cartItem.findFirst({
+      where: {
+        cartId,
+        variantId,
+      },
+    });
 
     if (existingItem) {
-      // Update quantity
-      const { error } = await supabase
-        .from("cart_items")
-        .update({ quantity: existingItem.quantity + quantity })
-        .eq("id", existingItem.id);
-
-      if (error) {
-        throw new Error(`Failed to update cart item: ${error.message}`);
-      }
-    } else {
-      // Insert new cart item
-      const { error } = await supabase.from("cart_items").insert({
-        cart_id: cartId,
-        variant_id: variantId,
-        quantity,
+      await prisma.cartItem.update({
+        where: { id: existingItem.id },
+        data: {
+          quantity: existingItem.quantity + quantity,
+        },
       });
-
-      if (error) {
-        throw new Error(`Failed to add cart item: ${error.message}`);
-      }
+    } else {
+      await prisma.cartItem.create({
+        data: {
+          cartId,
+          productId,
+          variantId,
+          quantity,
+        },
+      });
     }
+
+    await prisma.cart.update({
+      where: { id: cartId },
+      data: { updatedAt: new Date() },
+    }).catch(() => {});
   }
 
   /**
@@ -331,44 +361,32 @@ export class CartRepository {
     itemId: string,
     quantity: number
   ): Promise<void> {
-    const supabase = await createAdminClient();
-
     if (quantity <= 0) {
       await this.removeItem(itemId);
       return;
     }
 
-    const { error } = await supabase
-      .from("cart_items")
-      .update({ quantity })
-      .eq("id", itemId);
-
-    if (error) throw new Error(`Failed to update quantity: ${error.message}`);
+    await prisma.cartItem.update({
+      where: { id: itemId },
+      data: { quantity },
+    });
   }
 
   /**
    * Remove item from cart
    */
   static async removeItem(itemId: string): Promise<void> {
-    const supabase = await createAdminClient();
-    const { error } = await supabase
-      .from("cart_items")
-      .delete()
-      .eq("id", itemId);
-
-    if (error) throw new Error(`Failed to remove item: ${error.message}`);
+    await prisma.cartItem.delete({
+      where: { id: itemId },
+    }).catch(() => {});
   }
 
   /**
    * Clear cart
    */
   static async clearCart(cartId: string): Promise<void> {
-    const supabase = await createAdminClient();
-    const { error } = await supabase
-      .from("cart_items")
-      .delete()
-      .eq("cart_id", cartId);
-
-    if (error) throw new Error(`Failed to clear cart: ${error.message}`);
+    await prisma.cartItem.deleteMany({
+      where: { cartId },
+    }).catch(() => {});
   }
 }

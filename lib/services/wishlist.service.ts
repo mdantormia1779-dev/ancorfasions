@@ -1,7 +1,7 @@
 import { WishlistRepository } from "../repositories/wishlist.repository";
 import { Wishlist } from "@/types/checkout.types";
 import { CartService } from "./cart.service";
-import { createAdminClient } from "../supabase/server";
+import { prisma } from "@/lib/prisma";
 
 export class WishlistService {
   /**
@@ -59,15 +59,12 @@ export class WishlistService {
     let effectiveVariantId = variantId;
 
     if (!effectiveVariantId) {
-      const supabase = await createAdminClient();
-      const { data: item } = await supabase
-        .from("wishlist_items")
-        .select("variant_id")
-        .eq("id", itemId)
-        .maybeSingle();
-
-      if (item?.variant_id) {
-        effectiveVariantId = item.variant_id;
+      const firstVariant = await prisma.variant.findFirst({
+        where: { productId, isActive: true },
+        select: { id: true },
+      });
+      if (firstVariant) {
+        effectiveVariantId = firstVariant.id;
       }
     }
 

@@ -287,6 +287,21 @@ async function handleCallback(req: NextRequest) {
         created_by: order.customer_id || order.user_id || null,
       });
 
+      // Authoritative Admin Notification for captured bKash payment
+      try {
+        const { createOrderNotificationAction } = await import("@/actions/admin/notification.actions");
+        await createOrderNotificationAction({
+          orderId: order.id,
+          orderNumber: order.order_number,
+          customerName: (order as any).customer_name || "Online Customer",
+          amount: order.total_amount ?? order.grand_total,
+          paymentMethod: "BKASH (PAID)",
+          status: "confirmed",
+        });
+      } catch (notifErr) {
+        console.warn("[bKash Callback] Error creating payment notification:", notifErr);
+      }
+
       // Clear customer cart (Prompt 7 integration)
       try {
         let cartIdToClear: string | null = null;

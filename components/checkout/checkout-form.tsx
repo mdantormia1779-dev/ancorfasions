@@ -38,9 +38,11 @@ import { ManualPaymentFields } from "@/components/checkout/manual-payment-fields
 export function CheckoutForm({
   checkoutSessionId,
   paymentConfigs,
+  cartId,
 }: {
   checkoutSessionId: string;
   paymentConfigs?: AllPaymentConfigs;
+  cartId?: string;
 }) {
   const router = useRouter();
   const { cart } = useCartStore();
@@ -113,6 +115,47 @@ export function CheckoutForm({
   );
   const activeStep = currentStep === "COMPLETED" ? "REVIEW" : currentStep;
 
+  // Sync form with external store when loaded/hydrated
+  useEffect(() => {
+    if (formData.information?.email && !form.getValues("information.email")) {
+      form.reset({
+        information: {
+          email: formData.information?.email || "",
+          shipping_address: {
+            first_name: formData.information?.shipping_address?.first_name || "",
+            last_name: formData.information?.shipping_address?.last_name || "",
+            phone: formData.information?.shipping_address?.phone || "",
+            address_line_1: formData.information?.shipping_address?.address_line_1 || "",
+            address_line_2: formData.information?.shipping_address?.address_line_2 || "",
+            city: formData.information?.shipping_address?.city || "",
+            postal_code: formData.information?.shipping_address?.postal_code || "",
+            country: formData.information?.shipping_address?.country || "Bangladesh",
+          },
+          save_information: false,
+          create_account: false,
+          password: "",
+        },
+        shipping: {
+          shipping_method: formData.shipping?.shipping_method || "home_delivery",
+        },
+        payment: {
+          payment_method: formData.payment?.payment_method || "COD",
+          billing_address_same_as_shipping:
+            formData.payment?.billing_address_same_as_shipping ?? true,
+          manual_payment: {
+            sender_number: "",
+            transaction_id: "",
+            bank_name: "",
+            branch_name: "",
+            account_holder_name: "",
+            notes: "",
+          },
+        },
+        notes: formData.notes || "",
+      });
+    }
+  }, [formData, form]);
+
   const handleNextStep = async (
     step: "INFORMATION" | "SHIPPING" | "PAYMENT" | "REVIEW"
   ) => {
@@ -177,12 +220,58 @@ export function CheckoutForm({
     }
   };
 
+  const activeCartId = cartId || cart?.id;
+
+  const onInvalid = (errors: any) => {
+    console.error("Checkout form validation errors:", errors);
+
+    if (errors.information) {
+      const firstKey = Object.keys(errors.information)[0];
+      const infoErr = errors.information[firstKey];
+      let msg = "Please complete all required contact & shipping address details.";
+      if (typeof infoErr?.message === "string") {
+        msg = infoErr.message;
+      } else if (errors.information.shipping_address) {
+        const subKey = Object.keys(errors.information.shipping_address)[0];
+        if (errors.information.shipping_address[subKey]?.message) {
+          msg = errors.information.shipping_address[subKey].message;
+        }
+      }
+      toast.error(msg);
+      updateStep("INFORMATION");
+      return;
+    }
+
+    if (errors.shipping) {
+      toast.error(errors.shipping.shipping_method?.message || "Please select a shipping method.");
+      updateStep("SHIPPING");
+      return;
+    }
+
+    if (errors.payment) {
+      const payErr =
+        errors.payment.payment_method?.message ||
+        errors.payment.manual_payment?.sender_number?.message ||
+        errors.payment.manual_payment?.transaction_id?.message ||
+        errors.payment.billing_address?.message ||
+        "Please complete all required payment details.";
+      toast.error(payErr);
+      return;
+    }
+
+    toast.error("Please fill in all required fields before completing your order.");
+  };
+
   const onSubmit = async (data: CheckoutFormValues) => {
-    if (!cart?.id) return;
+    const finalCartId = activeCartId;
+    if (!finalCartId) {
+      toast.error("Cart not found or session expired. Please refresh the page.");
+      return;
+    }
 
     setIsSubmitting(true);
     try {
-      const res = await processCheckoutAction(cart.id, checkoutSessionId, data);
+      const res = await processCheckoutAction(finalCartId, checkoutSessionId, data);
 
       // Check if server-side COD Fraud Shield requires OTP verification
       if (res.verificationRequired) {
@@ -215,13 +304,14 @@ export function CheckoutForm({
   };
 
   const handleVerifyOtp = async (otp: string) => {
-    if (!cart?.id) return;
+    const finalCartId = activeCartId;
+    if (!finalCartId) return;
     setIsVerifyingOtp(true);
     setOtpError(null);
     try {
       const currentData = form.getValues();
       const res = await processCheckoutAction(
-        cart.id,
+        finalCartId,
         checkoutSessionId,
         currentData,
         otp
@@ -265,7 +355,7 @@ export function CheckoutForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(onSubmit, onInvalid)} className="space-y-8">
         {/* Step 1: Information */}
         <div
           className={`space-y-6 ${activeStep !== "INFORMATION" && "hidden"}`}

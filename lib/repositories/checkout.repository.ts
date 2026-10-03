@@ -1,5 +1,24 @@
-import { createAdminClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import { CheckoutSession, CheckoutStep } from "@/types/checkout.types";
+import { AddressFormValues } from "@/schemas/checkout.schema";
+
+function mapToCheckoutSession(record: any): CheckoutSession {
+  return {
+    id: record.id,
+    user_id: record.userId,
+    guest_email: record.guestEmail,
+    cart_id: record.cartId,
+    current_step: record.currentStep as CheckoutStep,
+    shipping_address_snapshot: (record.shippingAddressSnapshot as AddressFormValues) || null,
+    billing_address_snapshot: (record.billingAddressSnapshot as AddressFormValues) || null,
+    shipping_method: record.shippingMethod || null,
+    payment_method: record.paymentMethod || null,
+    coupon_code: record.couponCode || null,
+    expires_at: record.expiresAt ? new Date(record.expiresAt).toISOString() : new Date().toISOString(),
+    created_at: record.createdAt ? new Date(record.createdAt).toISOString() : new Date().toISOString(),
+    updated_at: record.updatedAt ? new Date(record.updatedAt).toISOString() : new Date().toISOString(),
+  };
+}
 
 export class CheckoutRepository {
   /**
@@ -9,29 +28,21 @@ export class CheckoutRepository {
     cartId: string,
     userId?: string | null
   ): Promise<CheckoutSession | null> {
-    const supabase = await createAdminClient();
+    try {
+      const record = await prisma.checkoutSession.findFirst({
+        where: {
+          cartId,
+          ...(userId ? { userId } : { userId: null }),
+        },
+        orderBy: { createdAt: "desc" },
+      });
 
-    let query = supabase
-      .from("checkout_sessions")
-      .select("*")
-      .eq("cart_id", cartId);
-
-    if (userId) {
-      query = query.eq("user_id", userId);
-    } else {
-      query = query.is("user_id", null);
+      if (!record) return null;
+      return mapToCheckoutSession(record);
+    } catch (error: any) {
+      console.error("CheckoutRepository.getSession error:", error);
+      return null;
     }
-
-    const { data, error } = await query
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .single();
-
-    if (error && error.code !== "PGRST116") {
-      throw new Error(`Failed to fetch checkout session: ${error.message}`);
-    }
-
-    return data as CheckoutSession | null;
   }
 
   /**
@@ -42,30 +53,29 @@ export class CheckoutRepository {
     userId?: string | null,
     guestEmail?: string | null
   ): Promise<CheckoutSession> {
-    const supabase = await createAdminClient();
+    try {
+      // First delete any existing session for this cart
+      await prisma.checkoutSession.deleteMany({
+        where: { cartId },
+      }).catch(() => {});
 
-    // First delete any existing session for this cart
-    await supabase.from("checkout_sessions").delete().eq("cart_id", cartId);
+      const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
 
-    const payload: any = {
-      cart_id: cartId,
-      current_step: "INFORMATION",
-    };
+      const record = await prisma.checkoutSession.create({
+        data: {
+          cartId,
+          userId: userId || null,
+          guestEmail: guestEmail || null,
+          currentStep: "INFORMATION",
+          expiresAt,
+        },
+      });
 
-    if (userId) payload.user_id = userId;
-    if (guestEmail) payload.guest_email = guestEmail;
-
-    const { data, error } = await supabase
-      .from("checkout_sessions")
-      .insert(payload)
-      .select("*")
-      .single();
-
-    if (error) {
+      return mapToCheckoutSession(record);
+    } catch (error: any) {
+      console.error("CheckoutRepository.createSession error:", error);
       throw new Error(`Failed to create checkout session: ${error.message}`);
     }
-
-    return data as CheckoutSession;
   }
 
   /**
@@ -75,34 +85,39 @@ export class CheckoutRepository {
     sessionId: string,
     updates: Partial<CheckoutSession>
   ): Promise<CheckoutSession> {
-    const supabase = await createAdminClient();
+    try {
+      const data: any = {};
+      if (updates.current_step !== undefined) data.currentStep = updates.current_step;
+      if (updates.shipping_address_snapshot !== undefined) {
+        data.shippingAddressSnapshot = updates.shipping_address_snapshot as any;
+      }
+      if (updates.billing_address_snapshot !== undefined) {
+        data.billingAddressSnapshot = updates.billing_address_snapshot as any;
+      }
+      if (updates.shipping_method !== undefined) data.shippingMethod = updates.shipping_method;
+      if (updates.payment_method !== undefined) data.paymentMethod = updates.payment_method;
+      if (updates.coupon_code !== undefined) data.couponCode = updates.coupon_code;
+      if (updates.guest_email !== undefined) data.guestEmail = updates.guest_email;
+      if (updates.user_id !== undefined) data.userId = updates.user_id;
 
-    const { data, error } = await supabase
-      .from("checkout_sessions")
-      .update(updates)
-      .eq("id", sessionId)
-      .select("*")
-      .single();
+      const record = await prisma.checkoutSession.update({
+        where: { id: sessionId },
+        data,
+      });
 
-    if (error) {
+      return mapToCheckoutSession(record);
+    } catch (error: any) {
+      console.error("CheckoutRepository.updateSession error:", error);
       throw new Error(`Failed to update checkout session: ${error.message}`);
     }
-
-    return data as CheckoutSession;
   }
 
   /**
    * Delete session
    */
   static async deleteSession(sessionId: string): Promise<void> {
-    const supabase = await createAdminClient();
-    const { error } = await supabase
-      .from("checkout_sessions")
-      .delete()
-      .eq("id", sessionId);
-
-    if (error) {
-      throw new Error(`Failed to delete checkout session: ${error.message}`);
-    }
+    await prisma.checkoutSession.delete({
+      where: { id: sessionId },
+    }).catch(() => {});
   }
 }

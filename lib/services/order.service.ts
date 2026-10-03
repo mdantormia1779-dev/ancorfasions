@@ -6,6 +6,7 @@ import { Order, OrderItem, PaymentPayload, OrderStatus, RiskLevel } from "@/type
 import { InventoryService, ReservationItem } from "@/services/inventory.service";
 import { WarehouseService } from "@/services/warehouse.service";
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { prisma } from "@/lib/prisma";
 
 export class OrderService {
   /**
@@ -172,8 +173,6 @@ export class OrderService {
       const fallbackWarehouseId =
         defaultWarehouse?.id || "85bf6ad1-be55-47b2-ab31-07b05c43bcfc";
 
-      const adminClient = createAdminClient();
-
       const reservationItems: ReservationItem[] = [];
       for (const item of (cart.items as any[])) {
         const variantId = (item.variant_id || item.product_id) as string;
@@ -181,28 +180,24 @@ export class OrderService {
 
         let itemWarehouseId = fallbackWarehouseId;
         try {
-          const { data: level } = await adminClient
-            .from("inventory_levels")
-            .select("warehouse_id, quantity_available")
-            .eq("variant_id", variantId)
-            .gte("quantity_available", item.quantity)
-            .order("quantity_available", { ascending: false })
-            .limit(1)
-            .maybeSingle();
+          const level = await prisma.inventoryLevel.findFirst({
+            where: {
+              variantId: variantId,
+              quantityAvailable: { gte: item.quantity },
+            },
+            orderBy: { quantityAvailable: "desc" },
+          });
 
-          if (level?.warehouse_id) {
-            itemWarehouseId = level.warehouse_id;
+          if (level?.warehouseId) {
+            itemWarehouseId = level.warehouseId;
           } else {
-            const { data: anyLevel } = await adminClient
-              .from("inventory_levels")
-              .select("warehouse_id, quantity_available")
-              .eq("variant_id", variantId)
-              .order("quantity_available", { ascending: false })
-              .limit(1)
-              .maybeSingle();
+            const anyLevel = await prisma.inventoryLevel.findFirst({
+              where: { variantId: variantId },
+              orderBy: { quantityAvailable: "desc" },
+            });
 
-            if (anyLevel?.warehouse_id) {
-              itemWarehouseId = anyLevel.warehouse_id;
+            if (anyLevel?.warehouseId) {
+              itemWarehouseId = anyLevel.warehouseId;
             }
           }
         } catch (_) {}

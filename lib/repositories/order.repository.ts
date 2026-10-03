@@ -1,9 +1,53 @@
+import { prisma } from "@/lib/prisma";
 import { createAdminClient } from "@/lib/supabase/server";
-import { Order, OrderAddress, OrderItem } from "@/types/checkout.types";
+import { Order, OrderAddress, OrderItem, OrderStatus } from "@/types/checkout.types";
+
+function mapPrismaOrderToCheckoutOrder(record: any): Order {
+  const shippingAddr = record.shippingAddress as Record<string, any> | null;
+  const billingAddr = record.billingAddress as Record<string, any> | null;
+
+  return {
+    id: record.id,
+    user_id: record.profileId || record.customerId,
+    order_number: record.orderNumber,
+    status: (record.status || "confirmed") as OrderStatus,
+    subtotal: Number(record.subtotal || 0),
+    shipping_fee: Number(record.shippingFee || 0),
+    discount_amount: Number(record.discount || 0),
+    total_amount: Number(record.totalAmount || 0),
+    grand_total: Number(record.totalAmount || 0),
+    shipping_total: Number(record.shippingFee || 0),
+    discount_total: Number(record.discount || 0),
+    currency: "BDT",
+    payment_method: record.paymentMethod || "COD",
+    payment_status: record.paymentStatus || "UNPAID",
+    notes: record.notes,
+    risk_level: "LOW",
+    created_at: record.createdAt ? new Date(record.createdAt).toISOString() : new Date().toISOString(),
+    updated_at: record.updatedAt ? new Date(record.updatedAt).toISOString() : new Date().toISOString(),
+    items: (record.items || []).map((item: any) => ({
+      id: item.id,
+      order_id: item.orderId,
+      product_id: item.productId,
+      variant_id: item.variantId,
+      sku: item.sku,
+      product_name: item.productName,
+      variant_name: item.variantName,
+      quantity: item.quantity,
+      unit_price: Number(item.unitPrice || 0),
+      line_total: Number(item.totalPrice || 0),
+      total_price: Number(item.totalPrice || 0),
+      created_at: item.createdAt ? new Date(item.createdAt).toISOString() : new Date().toISOString(),
+    })),
+    shipping_address: shippingAddr ? (shippingAddr as any) : undefined,
+    billing_address: billingAddr ? (billingAddr as any) : undefined,
+  };
+}
 
 export class OrderRepository {
   /**
-   * Create an order with items and addresses in a transaction-like way using Supabase Admin
+   * Create an order with items and addresses authoritative in Neon PostgreSQL via Prisma,
+   * with background fallback sync to legacy tables.
    */
   static async createOrder(
     orderData: Partial<Order>,
@@ -11,111 +55,181 @@ export class OrderRepository {
     shippingAddress: Partial<OrderAddress>,
     billingAddress?: Partial<OrderAddress>
   ): Promise<Order> {
-    const supabase = await createAdminClient();
-
-    // 1. Create Order with schema compatibility
     const customerId = orderData.user_id ?? (orderData as any).customer_id ?? null;
     const customerNote = orderData.notes;
+    const orderNumber = orderData.order_number || `AF-${Date.now()}`;
+    const statusNote = customerNote
+      ? `Order placed. Customer Note: ${customerNote.trim()}`
+      : "Order placed successfully";
 
-    const finalOrderData: any = {
-      ...orderData,
-      currency: orderData.currency || "BDT",
-      customer_id: customerId,
-      grand_total: orderData.total_amount ?? orderData.grand_total ?? 0,
-      shipping_total: orderData.shipping_fee ?? orderData.shipping_total ?? 0,
-      discount_total: orderData.discount_amount ?? orderData.discount_total ?? 0,
-    };
+    // 0. Resolve valid profileId in Neon PostgreSQL to satisfy orders_profile_id_fkey
+    let validProfileId: string | null = null;
+    const candidateEmail =
+      (shippingAddress as any)?.email ||
+      (orderData as any)?.guest_email ||
+      (orderData as any)?.email ||
+      null;
 
-    // Strip fields not present in Supabase 'orders' table schema cache
-    delete finalOrderData.user_id;
-    delete finalOrderData.session_id;
-    delete finalOrderData.notes;
-    delete finalOrderData.total_amount;
-    delete finalOrderData.shipping_fee;
-    delete finalOrderData.discount_amount;
-    delete finalOrderData.items;
-    delete finalOrderData.shipping_address;
-    delete finalOrderData.billing_address;
-
-    let { data: order, error: orderError } = await supabase
-      .from("orders")
-      .insert(finalOrderData)
-      .select("*")
-      .single();
-
-    // Fallback if migration or schema cache reports any missing columns
-    if (orderError && orderError.message && orderError.message.includes("column")) {
-      const sanitized = { ...finalOrderData };
-      const colMatch = orderError.message.match(/'([^']+)' column/);
-      if (colMatch && colMatch[1]) {
-        delete sanitized[colMatch[1]];
-      }
-      const retryRes = await supabase
-        .from("orders")
-        .insert(sanitized)
-        .select("*")
-        .single();
-      order = retryRes.data;
-      orderError = retryRes.error;
-    }
-
-    if (orderError)
-      throw new Error(`Failed to create order: ${orderError.message}`);
-
-    // If customer provided a note during checkout, save it in the order_notes audit table
-    if (customerNote && customerNote.trim()) {
+    if (customerId) {
       try {
-        await supabase.from("order_notes").insert({
-          order_id: order.id,
-          author_id: customerId,
-          note: customerNote.trim(),
-          is_customer_visible: true,
+        const existingProfile = await prisma.profile.findUnique({
+          where: { id: customerId },
+          select: { id: true },
         });
-      } catch (err: any) {
-        console.error("Error saving customer note to order_notes:", err);
+
+        if (existingProfile) {
+          validProfileId = existingProfile.id;
+        } else if (candidateEmail) {
+          const profileByEmail = await prisma.profile.findUnique({
+            where: { email: candidateEmail },
+            select: { id: true },
+          });
+
+          if (profileByEmail) {
+            validProfileId = profileByEmail.id;
+          } else {
+            // Auto-create customer profile in Neon
+            const newProfile = await prisma.profile.create({
+              data: {
+                id: customerId,
+                email: candidateEmail,
+                firstName:
+                  (shippingAddress as any)?.first_name ||
+                  (shippingAddress as any)?.firstName ||
+                  null,
+                lastName:
+                  (shippingAddress as any)?.last_name ||
+                  (shippingAddress as any)?.lastName ||
+                  null,
+                phone: (shippingAddress as any)?.phone || null,
+              },
+              select: { id: true },
+            });
+            validProfileId = newProfile.id;
+          }
+        }
+      } catch (profileErr) {
+        console.warn("Could not link/create profile for customerId in Neon, setting null:", profileErr);
+        validProfileId = null;
+      }
+    } else if (candidateEmail) {
+      try {
+        const profileByEmail = await prisma.profile.findUnique({
+          where: { email: candidateEmail },
+          select: { id: true },
+        });
+        if (profileByEmail) {
+          validProfileId = profileByEmail.id;
+        }
+      } catch {
+        validProfileId = null;
       }
     }
 
-    // 2. Create Shipping Address
-    const { error: shippingError } = await supabase
-      .from("order_addresses")
-      .insert({
-        ...shippingAddress,
-        order_id: order.id,
-        address_type: "SHIPPING",
+    // 0.1 Validate foreign key IDs for Products and Variants in Neon
+    const productIds = items.map((i) => i.product_id).filter(Boolean) as string[];
+    const variantIds = items.map((i) => i.variant_id).filter(Boolean) as string[];
+
+    const [existingProducts, existingVariants] = await Promise.all([
+      productIds.length > 0
+        ? prisma.product.findMany({
+            where: { id: { in: productIds } },
+            select: { id: true },
+          })
+        : [],
+      variantIds.length > 0
+        ? prisma.variant.findMany({
+            where: { id: { in: variantIds } },
+            select: { id: true },
+          })
+        : [],
+    ]);
+
+    const validProductIds = new Set(existingProducts.map((p) => p.id));
+    const validVariantIds = new Set(existingVariants.map((v) => v.id));
+
+    // 1. Authoritative Create in Neon PostgreSQL via Prisma
+    let createdPrismaOrder = null;
+    try {
+      createdPrismaOrder = await prisma.order.create({
+        data: {
+          orderNumber,
+          profileId: validProfileId,
+          status: (orderData.status || "confirmed").toUpperCase(),
+          paymentStatus: orderData.payment_method === "COD" ? "UNPAID" : "PAID",
+          paymentMethod: orderData.payment_method || "COD",
+          subtotal: orderData.subtotal ?? 0,
+          discount: orderData.discount_amount ?? 0,
+          shippingFee: orderData.shipping_fee ?? 0,
+          totalAmount: orderData.total_amount ?? 0,
+          notes: customerNote || null,
+          shippingAddress: shippingAddress as any,
+          billingAddress: billingAddress ? (billingAddress as any) : undefined,
+          items: {
+            create: items.map((item) => ({
+              productId: item.product_id && validProductIds.has(item.product_id) ? item.product_id : null,
+              variantId: item.variant_id && validVariantIds.has(item.variant_id) ? item.variant_id : null,
+              productName: item.product_name || "Product",
+              variantName: item.variant_name || null,
+              sku: item.sku || "N/A",
+              quantity: Number(item.quantity) || 1,
+              unitPrice: Number(item.unit_price) || 0,
+              totalPrice: Number(item.line_total || item.total_price || 0),
+            })),
+          },
+          statusHistory: {
+            create: {
+              status: (orderData.status || "confirmed").toUpperCase(),
+              notes: statusNote,
+              changedBy: validProfileId,
+            },
+          },
+        },
+        include: {
+          items: true,
+          statusHistory: true,
+        },
       });
+    } catch (prismaErr) {
+      console.error("Prisma order creation error:", prismaErr);
+      throw prismaErr;
+    }
 
-    if (shippingError)
-      throw new Error(
-        `Failed to create shipping address: ${shippingError.message}`
-      );
+    // 2. Best-effort sync to Supabase (safe fallback, errors will not block checkout)
+    try {
+      const supabase = await createAdminClient();
+      const finalOrderData: any = {
+        id: createdPrismaOrder.id,
+        order_number: orderNumber,
+        currency: orderData.currency || "BDT",
+        customer_id: customerId,
+        status: orderData.status || "confirmed",
+        payment_method: orderData.payment_method || "COD",
+        grand_total: orderData.total_amount ?? 0,
+        shipping_total: orderData.shipping_fee ?? 0,
+        discount_total: orderData.discount_amount ?? 0,
+      };
 
-    // 3. Create Billing Address
-    if (billingAddress) {
-      const { error: billingError } = await supabase
-        .from("order_addresses")
-        .insert({
+      await supabase.from("orders").insert(finalOrderData);
+
+      if (shippingAddress) {
+        await supabase.from("order_addresses").insert({
+          ...shippingAddress,
+          order_id: createdPrismaOrder.id,
+          address_type: "SHIPPING",
+        });
+      }
+
+      if (billingAddress) {
+        await supabase.from("order_addresses").insert({
           ...billingAddress,
-          order_id: order.id,
+          order_id: createdPrismaOrder.id,
           address_type: "BILLING",
         });
+      }
 
-      if (billingError)
-        throw new Error(
-          `Failed to create billing address: ${billingError.message}`
-        );
-    }
-
-    // 4. Create Order Items
-    const itemsData = items.map((item: any) => {
-      const lineTotal = Number(
-        item.line_total ??
-          item.total_price ??
-          Number(item.quantity || 1) * Number(item.unit_price || 0)
-      );
-
-      const sanitized: Record<string, any> = {
-        order_id: order.id,
+      const itemsData = items.map((item: any) => ({
+        order_id: createdPrismaOrder.id,
         product_id: item.product_id || null,
         variant_id: item.variant_id || null,
         sku: item.sku || "N/A",
@@ -123,152 +237,124 @@ export class OrderRepository {
         variant_name: item.variant_name || null,
         unit_price: Number(item.unit_price) || 0,
         quantity: Number(item.quantity) || 1,
-        discount: Number(item.discount) || 0,
-        tax: Number(item.tax) || 0,
-        line_total: lineTotal,
-        inventory_reserved: Boolean(item.inventory_reserved ?? false),
-      };
+        line_total: Number(item.line_total ?? item.total_price ?? 0),
+      }));
 
-      if (item.allocated_warehouse_id) {
-        sanitized.allocated_warehouse_id = item.allocated_warehouse_id;
-      }
+      await supabase.from("order_items").insert(itemsData);
 
-      return sanitized;
-    });
+      await supabase.from("order_status_history").insert({
+        order_id: createdPrismaOrder.id,
+        status: createdPrismaOrder.status,
+        notes: statusNote,
+        created_by: customerId,
+      });
+    } catch (syncErr: any) {
+      console.warn("Supabase order sync warning (non-fatal):", syncErr.message);
+    }
 
-    const { error: itemsError } = await supabase
-      .from("order_items")
-      .insert(itemsData);
-
-    if (itemsError)
-      throw new Error(`Failed to create order items: ${itemsError.message}`);
-
-    // 5. Create Order Status History
-    const statusNote = customerNote
-      ? `Order placed. Customer Note: ${customerNote.trim()}`
-      : orderData.risk_level
-      ? `Order placed successfully (COD Risk: ${orderData.risk_level}, Verification: ${orderData.verification_status || "EXEMPT"})`
-      : "Order placed successfully";
-
-    await supabase.from("order_status_history").insert({
-      order_id: order.id,
-      status: order.status,
-      notes: statusNote,
-      created_by: customerId,
-    });
-
-    // 6. Fetch complete order
-    return (await this.getOrderById(order.id)) as Order;
+    return mapPrismaOrderToCheckoutOrder(createdPrismaOrder);
   }
 
   /**
    * Get an order by ID
    */
   static async getOrderById(orderId: string): Promise<Order | null> {
-    const supabase = await createAdminClient();
-    const { data, error } = await supabase
-      .from("orders")
-      .select(
-        `
-        *,
-        items:order_items(*)
-      `
-      )
-      .eq("id", orderId)
-      .single();
+    try {
+      const prismaRecord = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { items: true, statusHistory: true },
+      });
 
-    if (error && error.code !== "PGRST116") {
-      throw new Error(`Failed to fetch order: ${error.message}`);
-    }
-
-    if (data) {
-      const { data: addresses } = await supabase
-        .from("order_addresses")
-        .select("*")
-        .eq("order_id", orderId);
-
-      data.total_amount = data.total_amount ?? data.grand_total ?? 0;
-      data.shipping_fee = data.shipping_fee ?? data.shipping_total ?? 0;
-      data.discount_amount = data.discount_amount ?? data.discount_total ?? 0;
-      data.user_id = data.user_id ?? data.customer_id;
-      // Map addresses to shipping and billing
-      data.shipping_address = addresses?.find(
-        (a: any) => a.address_type === "SHIPPING"
-      );
-      data.billing_address = addresses?.find(
-        (a: any) => a.address_type === "BILLING"
-      );
-
-      // Populate notes from order_notes if not on order record
-      if (!data.notes) {
-        const { data: noteRows } = await supabase
-          .from("order_notes")
-          .select("note")
-          .eq("order_id", orderId)
-          .eq("is_customer_visible", true)
-          .order("created_at", { ascending: false })
-          .limit(1);
-        if (noteRows && noteRows.length > 0) {
-          data.notes = noteRows[0].note;
-        }
+      if (prismaRecord) {
+        return mapPrismaOrderToCheckoutOrder(prismaRecord);
       }
+    } catch (e) {
+      console.warn("Prisma getOrderById error, attempting fallback:", e);
     }
 
-    return data as Order | null;
+    // Fallback to Supabase
+    try {
+      const supabase = await createAdminClient();
+      const { data, error } = await supabase
+        .from("orders")
+        .select(`*, items:order_items(*)`)
+        .eq("id", orderId)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        throw new Error(`Failed to fetch order: ${error.message}`);
+      }
+
+      if (data) {
+        const { data: addresses } = await supabase
+          .from("order_addresses")
+          .select("*")
+          .eq("order_id", orderId);
+
+        data.total_amount = data.total_amount ?? data.grand_total ?? 0;
+        data.shipping_fee = data.shipping_fee ?? data.shipping_total ?? 0;
+        data.discount_amount = data.discount_amount ?? data.discount_total ?? 0;
+        data.user_id = data.user_id ?? data.customer_id;
+        data.shipping_address = addresses?.find((a: any) => a.address_type === "SHIPPING");
+        data.billing_address = addresses?.find((a: any) => a.address_type === "BILLING");
+        return data as Order;
+      }
+    } catch (err: any) {
+      console.error("Supabase fallback getOrderById error:", err);
+    }
+
+    return null;
   }
 
   /**
    * Get an order by Order Number
    */
   static async getOrderByNumber(orderNumber: string): Promise<Order | null> {
-    const supabase = await createAdminClient();
-    const { data, error } = await supabase
-      .from("orders")
-      .select(
-        `
-        *,
-        items:order_items(*)
-      `
-      )
-      .eq("order_number", orderNumber)
-      .single();
+    try {
+      const prismaRecord = await prisma.order.findUnique({
+        where: { orderNumber },
+        include: { items: true, statusHistory: true },
+      });
 
-    if (error && error.code !== "PGRST116") {
-      throw new Error(`Failed to fetch order: ${error.message}`);
-    }
-
-    if (data) {
-      const { data: addresses } = await supabase
-        .from("order_addresses")
-        .select("*")
-        .eq("order_id", data.id);
-
-      data.total_amount = data.total_amount ?? data.grand_total ?? 0;
-      data.shipping_fee = data.shipping_fee ?? data.shipping_total ?? 0;
-      data.discount_amount = data.discount_amount ?? data.discount_total ?? 0;
-      data.user_id = data.user_id ?? data.customer_id;
-      data.shipping_address = addresses?.find(
-        (a: any) => a.address_type === "SHIPPING"
-      );
-      data.billing_address = addresses?.find(
-        (a: any) => a.address_type === "BILLING"
-      );
-
-      if (!data.notes) {
-        const { data: noteRows } = await supabase
-          .from("order_notes")
-          .select("note")
-          .eq("order_id", data.id)
-          .eq("is_customer_visible", true)
-          .order("created_at", { ascending: false })
-          .limit(1);
-        if (noteRows && noteRows.length > 0) {
-          data.notes = noteRows[0].note;
-        }
+      if (prismaRecord) {
+        return mapPrismaOrderToCheckoutOrder(prismaRecord);
       }
+    } catch (e) {
+      console.warn("Prisma getOrderByNumber error, attempting fallback:", e);
     }
 
-    return data as Order | null;
+    // Fallback to Supabase
+    try {
+      const supabase = await createAdminClient();
+      const { data, error } = await supabase
+        .from("orders")
+        .select(`*, items:order_items(*)`)
+        .eq("order_number", orderNumber)
+        .single();
+
+      if (error && error.code !== "PGRST116") {
+        throw new Error(`Failed to fetch order: ${error.message}`);
+      }
+
+      if (data) {
+        const { data: addresses } = await supabase
+          .from("order_addresses")
+          .select("*")
+          .eq("order_id", data.id);
+
+        data.total_amount = data.total_amount ?? data.grand_total ?? 0;
+        data.shipping_fee = data.shipping_fee ?? data.shipping_total ?? 0;
+        data.discount_amount = data.discount_amount ?? data.discount_total ?? 0;
+        data.user_id = data.user_id ?? data.customer_id;
+        data.shipping_address = addresses?.find((a: any) => a.address_type === "SHIPPING");
+        data.billing_address = addresses?.find((a: any) => a.address_type === "BILLING");
+        return data as Order;
+      }
+    } catch (err: any) {
+      console.error("Supabase fallback getOrderByNumber error:", err);
+    }
+
+    return null;
   }
 
   /**
@@ -279,12 +365,33 @@ export class OrderRepository {
     status: string,
     notes?: string
   ): Promise<void> {
-    const supabase = await createAdminClient();
-    await supabase.from("orders").update({ status }).eq("id", orderId);
-    await supabase.from("order_status_history").insert({
-      order_id: orderId,
-      status,
-      notes: notes || `Order status updated to ${status}`,
-    });
+    try {
+      await prisma.order.update({
+        where: { id: orderId },
+        data: {
+          status: status.toUpperCase(),
+          statusHistory: {
+            create: {
+              status: status.toUpperCase(),
+              notes: notes || `Order status updated to ${status}`,
+            },
+          },
+        },
+      });
+    } catch (prismaErr) {
+      console.warn("Prisma updateOrderStatus warning:", prismaErr);
+    }
+
+    try {
+      const supabase = await createAdminClient();
+      await supabase.from("orders").update({ status }).eq("id", orderId);
+      await supabase.from("order_status_history").insert({
+        order_id: orderId,
+        status,
+        notes: notes || `Order status updated to ${status}`,
+      });
+    } catch (supabaseErr) {
+      console.warn("Supabase updateOrderStatus warning:", supabaseErr);
+    }
   }
 }

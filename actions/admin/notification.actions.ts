@@ -3,12 +3,22 @@
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
+function safeRevalidate() {
+  try {
+    revalidatePath("/admin/notifications");
+    revalidatePath("/admin", "layout");
+  } catch (_) {
+    // Safe no-op when invoked in background or outside active HTTP request context
+  }
+}
+
 export interface AdminNotification {
   id: string;
   user_id: string | null;
   title: string;
   message: string;
   type: string;
+  link_url?: string | null;
   read_at: string | null;
   created_at: string;
 }
@@ -24,7 +34,7 @@ export async function getAdminHeaderNotificationsAction(): Promise<{
   try {
     const list = await prisma.notification.findMany({
       orderBy: { createdAt: "desc" },
-      take: 10,
+      take: 15,
     });
 
     const notifications: AdminNotification[] = list.map((n: any) => ({
@@ -33,6 +43,7 @@ export async function getAdminHeaderNotificationsAction(): Promise<{
       title: n.title,
       message: n.message,
       type: n.type,
+      link_url: n.linkUrl || null,
       read_at: n.readAt ? new Date(n.readAt).toISOString() : null,
       created_at: n.createdAt ? new Date(n.createdAt).toISOString() : new Date().toISOString(),
     }));
@@ -125,8 +136,7 @@ export async function createAdminNotificationAction(payload: {
       },
     });
 
-    revalidatePath("/admin/notifications");
-    revalidatePath("/admin", "layout");
+    safeRevalidate();
     return {
       success: true,
       data: {
@@ -170,8 +180,7 @@ export async function updateAdminNotificationAction(
       },
     });
 
-    revalidatePath("/admin/notifications");
-    revalidatePath("/admin", "layout");
+    safeRevalidate();
     return {
       success: true,
       data: {
@@ -199,8 +208,7 @@ export async function deleteAdminNotificationAction(
     if (!id) return { success: false, error: "Notification ID is required" };
     await prisma.notification.delete({ where: { id } });
 
-    revalidatePath("/admin/notifications");
-    revalidatePath("/admin", "layout");
+    safeRevalidate();
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -217,7 +225,7 @@ export async function markNotificationAsReadAction(id: string): Promise<{ error?
       data: { readAt: new Date() },
     });
 
-    revalidatePath("/admin", "layout");
+    safeRevalidate();
     return {};
   } catch (err: any) {
     return { error: err.message };
@@ -234,7 +242,7 @@ export async function markAllNotificationsAsReadAction(): Promise<{ error?: stri
       data: { readAt: new Date() },
     });
 
-    revalidatePath("/admin", "layout");
+    safeRevalidate();
     return {};
   } catch (err: any) {
     return { error: err.message };
@@ -253,8 +261,7 @@ export async function toggleNotificationStatusAction(
       where: { id },
       data: { readAt: currentlyRead ? null : new Date() },
     });
-    revalidatePath("/admin/notifications");
-    revalidatePath("/admin", "layout");
+    safeRevalidate();
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -270,8 +277,7 @@ export async function deleteAllAdminNotificationsAction(): Promise<{
 }> {
   try {
     await prisma.notification.deleteMany({});
-    revalidatePath("/admin/notifications");
-    revalidatePath("/admin", "layout");
+    safeRevalidate();
     return { success: true };
   } catch (err: any) {
     return { success: false, error: err.message };
@@ -284,3 +290,62 @@ export async function deleteAllAdminNotificationsAction(): Promise<{
 export async function seedInitialNotificationsIfEmptyAction(): Promise<void> {
   // Intentionally empty — strictly real notifications only
 }
+
+/**
+ * Creates an authoritative order notification in Neon PostgreSQL and Supabase,
+ * and revalidates admin caches.
+ */
+export async function createOrderNotificationAction(params: {
+  orderId: string;
+  orderNumber: string;
+  customerName: string;
+  amount: number | string;
+  paymentMethod?: string;
+  status?: string;
+}): Promise<{ success: boolean; id?: string; error?: string }> {
+  try {
+    const amountNum = Number(params.amount || 0);
+    const formattedAmount = amountNum.toLocaleString("en-BD", {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    });
+    const method = (params.paymentMethod || "COD").toUpperCase();
+    const title = "New Order Placed";
+    const message = `Order #${params.orderNumber} received from ${params.customerName || "Customer"} for ৳${formattedAmount} (${method})`;
+    const linkUrl = `/admin/orders`;
+
+    // 1. Neon PostgreSQL via Prisma
+    const notif = await prisma.notification.create({
+      data: {
+        title,
+        message,
+        type: "order",
+        linkUrl,
+        readAt: null,
+      },
+    });
+
+    // 2. Supabase notifications table (for realtime broadcasting)
+    try {
+      const { createAdminClient } = await import("@/lib/supabase/admin-client");
+      const supabase = createAdminClient();
+      await supabase.from("notifications").insert({
+        title,
+        message,
+        type: "order",
+        read_at: null,
+        user_id: null,
+      });
+    } catch (sbErr) {
+      console.warn("Supabase notification broadcast fallback:", sbErr);
+    }
+
+    safeRevalidate();
+
+    return { success: true, id: notif.id };
+  } catch (err: any) {
+    console.error("Failed to create order notification:", err);
+    return { success: false, error: err.message };
+  }
+}
+

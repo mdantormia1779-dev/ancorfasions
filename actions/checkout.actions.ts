@@ -97,6 +97,24 @@ export async function placeOrderAction(sessionId: string) {
   try {
     const order = await orderService.placeOrder(sessionId, userId);
 
+    try {
+      const { createOrderNotificationAction } = await import("@/actions/admin/notification.actions");
+      const customerName = (order as any).customer_name || (order as any).shipping_address?.first_name 
+        ? `${(order as any).shipping_address?.first_name || ""} ${(order as any).shipping_address?.last_name || ""}`.trim()
+        : "Customer";
+
+      await createOrderNotificationAction({
+        orderId: order.id,
+        orderNumber: order.order_number,
+        customerName: customerName || "Customer",
+        amount: order.total_amount || (order as any).grand_total || 0,
+        paymentMethod: order.payment_method || "COD",
+        status: order.status,
+      });
+    } catch (notifErr) {
+      console.warn("Notification trigger warning:", notifErr);
+    }
+
     // Prepare payment based on method (Mock)
     if (order.payment_method !== "COD") {
       // Return a prepared payload that the frontend could use to redirect to payment gateway

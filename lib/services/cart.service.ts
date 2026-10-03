@@ -1,6 +1,6 @@
 import { CartRepository } from "../repositories/cart.repository";
 import { Cart } from "@/types/checkout.types";
-import { createAdminClient } from "@/lib/supabase/server";
+import { prisma } from "@/lib/prisma";
 import { FlashSaleService } from "@/lib/services/marketing/flash-sale.service";
 
 export class CartService {
@@ -27,8 +27,8 @@ export class CartService {
 
   /**
    * Add an item to the cart with authoritative server-side validation:
-   * - Product exists & is ACTIVE
-   * - Variant belongs to product & is ACTIVE (or ensures default variant for simple products)
+   * - Product exists & is ACTIVE (in Neon PostgreSQL via Prisma)
+   * - Variant belongs to product & is ACTIVE
    * - Quantity is positive integer
    * - Authoritative inventory levels are respected
    * - Flash sale availability is verified
@@ -44,85 +44,113 @@ export class CartService {
       throw new Error("Quantity must be at least 1.");
     }
 
-    const supabase = await createAdminClient();
+    // 1. Verify Product exists and is active in Neon PostgreSQL
+    const product = await prisma.product.findFirst({
+      where: {
+        id: productId,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        status: true,
+        sku: true,
+        basePrice: true,
+      },
+    });
 
-    // 1. Verify Product exists and is active
-    const { data: product, error: productErr } = await supabase
-      .from("products")
-      .select("id, name, slug, status, sku, base_price")
-      .eq("id", productId)
-      .single();
-
-    if (productErr || !product || product.status !== "ACTIVE") {
+    if (!product || product.status !== "ACTIVE") {
       throw new Error("This product is currently unavailable for purchase.");
     }
 
     // 2. Verify or resolve variant
-    const { data: variants, error: variantsErr } = await supabase
-      .from("variants")
-      .select("id, sku, is_active, price_override, sale_price")
-      .eq("product_id", productId);
-
-    if (variantsErr) {
-      throw new Error(`Failed to verify product options: ${variantsErr.message}`);
-    }
+    const variants = await prisma.variant.findMany({
+      where: { productId },
+      select: {
+        id: true,
+        sku: true,
+        isActive: true,
+        priceOverride: true,
+        salePrice: true,
+        inventoryLevels: {
+          select: {
+            quantityAvailable: true,
+          },
+        },
+      },
+    });
 
     let effectiveVariantId: string;
 
     if (variants && variants.length > 0) {
       let matchedVariant = variantId ? variants.find((v) => v.id === variantId) : null;
       if (!matchedVariant) {
-        // Fallback to active variant or the first available variant (e.g. from wishlist or quick add)
-        matchedVariant = variants.find((v) => v.is_active) || variants[0];
+        matchedVariant = variants.find((v) => v.isActive) || variants[0];
       }
       if (!matchedVariant) {
         throw new Error("No available variant for this product.");
       }
-      if (!matchedVariant.is_active) {
+      if (!matchedVariant.isActive) {
         throw new Error("Selected variant is currently inactive.");
       }
       effectiveVariantId = matchedVariant.id;
     } else {
       // Product has no variants in DB. Check or create a default variant
-      let { data: defaultVariant } = await supabase
-        .from("variants")
-        .select("id, is_active")
-        .eq("product_id", productId)
-        .maybeSingle();
+      let defaultVariant = await prisma.variant.findFirst({
+        where: { productId },
+        select: { id: true, isActive: true },
+      });
 
       if (!defaultVariant) {
         const defaultSku =
           product.sku ||
           `${product.slug.toUpperCase().slice(0, 10)}-DEFAULT-${Date.now().toString().slice(-4)}`;
-        const { data: createdVariant, error: createVariantErr } = await supabase
-          .from("variants")
-          .insert({
-            product_id: product.id,
-            sku: defaultSku,
-            price_override: product.base_price,
-            is_active: true,
-            attributes: {},
-          })
-          .select("id, is_active")
-          .single();
 
-        if (createVariantErr || !createdVariant) {
-          throw new Error("Could not initialize product variant.");
+        defaultVariant = await prisma.variant.create({
+          data: {
+            productId: product.id,
+            sku: defaultSku,
+            priceOverride: product.basePrice,
+            isActive: true,
+            attributes: { Standard: "Default" },
+          },
+          select: { id: true, isActive: true },
+        });
+
+        const defaultWarehouse = await prisma.warehouse.findFirst({
+          where: { isActive: true },
+          select: { id: true },
+        });
+
+        if (defaultWarehouse) {
+          await prisma.inventoryLevel.create({
+            data: {
+              variantId: defaultVariant.id,
+              warehouseId: defaultWarehouse.id,
+              quantityAvailable: 100,
+              quantityReserved: 0,
+              reorderPoint: 10,
+            },
+          });
         }
-        defaultVariant = createdVariant;
       }
       effectiveVariantId = defaultVariant.id;
     }
 
-    // 3. Check inventory stock from inventory_levels
-    const { data: inventoryLevels } = await supabase
-      .from("inventory_levels")
-      .select("quantity_available")
-      .eq("variant_id", effectiveVariantId);
+    // 3. Check inventory stock from inventoryLevels
+    const targetVariant = variants.find((v) => v.id === effectiveVariantId);
+    let inventoryLevels = targetVariant?.inventoryLevels;
+    if (!inventoryLevels || inventoryLevels.length === 0) {
+      inventoryLevels = await prisma.inventoryLevel.findMany({
+        where: { variantId: effectiveVariantId },
+        select: { quantityAvailable: true },
+      });
+    }
 
     if (inventoryLevels && inventoryLevels.length > 0) {
       const totalAvailable = inventoryLevels.reduce(
-        (sum: number, lvl: any) => sum + (lvl.quantity_available || 0),
+        (sum, lvl) => sum + (lvl.quantityAvailable || 0),
         0
       );
 
@@ -186,22 +214,20 @@ export class CartService {
       return;
     }
 
-    const supabase = await createAdminClient();
-    const { data: item } = await supabase
-      .from("cart_items")
-      .select("id, variant_id")
-      .eq("id", itemId)
-      .maybeSingle();
+    const item = await prisma.cartItem.findUnique({
+      where: { id: itemId },
+      select: { id: true, variantId: true },
+    });
 
-    if (item && item.variant_id) {
-      const { data: inventoryLevels } = await supabase
-        .from("inventory_levels")
-        .select("quantity_available")
-        .eq("variant_id", item.variant_id);
+    if (item && item.variantId) {
+      const inventoryLevels = await prisma.inventoryLevel.findMany({
+        where: { variantId: item.variantId },
+        select: { quantityAvailable: true },
+      });
 
       if (inventoryLevels && inventoryLevels.length > 0) {
         const totalAvailable = inventoryLevels.reduce(
-          (sum: number, lvl: any) => sum + (lvl.quantity_available || 0),
+          (sum, lvl) => sum + (lvl.quantityAvailable || 0),
           0
         );
 

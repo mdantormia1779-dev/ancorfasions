@@ -277,6 +277,31 @@ export async function processCheckoutAction(
       riskMetadata as any
     );
 
+    // Trigger Real-time Admin Notification
+    try {
+      const { createOrderNotificationAction } = await import("@/actions/admin/notification.actions");
+      const customerFullName = [
+        parsedData.information.shipping_address.first_name,
+        parsedData.information.shipping_address.last_name,
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .trim() || "Customer";
+
+      const orderAmount = order.total_amount || order.grand_total || summary.total_amount;
+
+      await createOrderNotificationAction({
+        orderId: order.id,
+        orderNumber: order.order_number,
+        customerName: customerFullName,
+        amount: orderAmount,
+        paymentMethod: order.payment_method || "COD",
+        status: order.status,
+      });
+    } catch (notifErr) {
+      console.warn("[Checkout] Error triggering order notification:", notifErr);
+    }
+
     // 5. If Manual Payment (bKash, Nagad, Rocket, Bank Transfer), record transaction for Admin Approval
     const methodUpper = (order.payment_method || "").toUpperCase();
     const isManualPayment = ["BKASH", "NAGAD", "ROCKET", "BANK", "BANK_TRANSFER"].includes(methodUpper);

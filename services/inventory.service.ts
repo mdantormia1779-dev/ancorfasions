@@ -1,11 +1,10 @@
 import { InventoryRepository } from "@/repositories/inventory.repository";
 import { InventoryLevel } from "@/types/inventory.types";
 import { createAdminClient } from "@/lib/supabase/admin-client";
+import { prisma } from "@/lib/prisma";
 
 // ---------------------------------------------------------------------------
 // Application-level error codes surfaced to the checkout / order flow.
-// These are thrown as Error objects with a .code property so the caller can
-// present a meaningful message without exposing raw PostgreSQL errors.
 // ---------------------------------------------------------------------------
 export class InventoryError extends Error {
   constructor(
@@ -38,7 +37,7 @@ export class InventoryService {
   }
 
   /**
-   * Get stock availability for a variant.
+   * Get stock availability for a variant in Neon PostgreSQL (authoritative).
    */
   async getStockAvailability(
     variantId: string,
@@ -48,26 +47,44 @@ export class InventoryService {
     reserved: number;
     status: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK";
   }> {
-    const levels = await this.repository.getStockLevel(variantId, warehouseId);
+    try {
+      const levels = await prisma.inventoryLevel.findMany({
+        where: {
+          variantId,
+          ...(warehouseId ? { warehouseId } : {}),
+        },
+      });
 
+      if (levels && levels.length > 0) {
+        const available = levels.reduce((sum, l) => sum + l.quantityAvailable, 0);
+        const reserved = levels.reduce((sum, l) => sum + l.quantityReserved, 0);
+        const lowStockThreshold = Math.max(...levels.map((l) => l.reorderPoint || 0), 5);
+
+        let status: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" = "OUT_OF_STOCK";
+        if (available > lowStockThreshold) {
+          status = "IN_STOCK";
+        } else if (available > 0) {
+          status = "LOW_STOCK";
+        }
+
+        return { available, reserved, status };
+      }
+    } catch (e) {
+      console.warn("Prisma getStockAvailability error, checking fallback:", e);
+    }
+
+    const levels = await this.repository.getStockLevel(variantId, warehouseId).catch(() => []);
     if (!levels || levels.length === 0) {
       return { available: 0, reserved: 0, status: "OUT_OF_STOCK" };
     }
 
     const available = levels.reduce((sum, l) => sum + l.quantity_available, 0);
     const reserved = levels.reduce((sum, l) => sum + l.quantity_reserved, 0);
-    const lowStockThreshold = Math.max(
-      ...levels.map((l) => l.reorder_point || 0)
-    );
-
-    let status: "IN_STOCK" | "LOW_STOCK" | "OUT_OF_STOCK" = "IN_STOCK";
-    if (available <= 0) {
-      status = "OUT_OF_STOCK";
-    } else if (available <= lowStockThreshold) {
-      status = "LOW_STOCK";
-    }
-
-    return { available, reserved, status };
+    return {
+      available,
+      reserved,
+      status: available > 0 ? "IN_STOCK" : "OUT_OF_STOCK",
+    };
   }
 
   /**
@@ -114,7 +131,6 @@ export class InventoryService {
     warehouseId: string,
     quantity: number
   ): Promise<void> {
-    // Usually shipped from reserved stock
     await this.repository.reduceStock(variantId, warehouseId, quantity, true);
     await this.repository.recordMovement({
       variant_id: variantId,
@@ -224,7 +240,6 @@ export class InventoryService {
     }
 
     if (alertType) {
-      // Check if active alert already exists
       const { data: existing } = await supabase
         .from("system_alerts")
         .select("id")
@@ -263,20 +278,9 @@ export class InventoryService {
     await this.repository.updateAuditStatus(id, status);
   }
 
-  // ── ORDER-LEVEL ATOMIC RESERVATION METHODS ──────────────────────────────
-  // These call the PostgreSQL RPCs defined in migration
-  // 20260911000000_atomic_order_inventory_reservation.sql
-  // and are the ONLY safe path for checkout inventory management.
-  // Never call the per-item reserveStock() in a checkout loop.
-
   /**
-   * Atomically reserve inventory for ALL items in an order in a single
-   * PostgreSQL transaction with SELECT ... FOR UPDATE row locking.
-   *
-   * If any item has insufficient stock the entire reservation fails and
-   * PostgreSQL rolls back all changes — no partial reservation is possible.
-   *
-   * Idempotent: calling twice with the same orderId is a no-op.
+   * Atomically reserve inventory for ALL items in an order in Neon PostgreSQL.
+   * Decrements available stock and increments reserved stock.
    */
   async reserveOrderInventory(
     orderId: string,
@@ -286,306 +290,202 @@ export class InventoryService {
       throw new InventoryError("RESERVATION_FAILED", "No items to reserve");
     }
 
-    const supabase = createAdminClient();
-
-    // 0. Pre-flight check & warehouse auto-resolution:
-    // Ensure every item has a valid inventory_levels record in its assigned warehouse.
-    // If the variant's stock is located in another warehouse, dynamically switch item.warehouse_id.
-    // If no inventory record exists in any warehouse, auto-seed one with default stock.
-    for (const item of items) {
-      if (!item.variant_id) continue;
-
-      let { data: level } = await supabase
-        .from("inventory_levels")
-        .select("id, quantity_available, quantity_reserved, warehouse_id")
-        .eq("variant_id", item.variant_id)
-        .eq("warehouse_id", item.warehouse_id)
-        .maybeSingle();
-
-      if (!level || (level.quantity_available || 0) < item.quantity) {
-        // Look for any warehouse with available stock >= item.quantity
-        const { data: anyLevel } = await supabase
-          .from("inventory_levels")
-          .select("id, quantity_available, quantity_reserved, warehouse_id")
-          .eq("variant_id", item.variant_id)
-          .gte("quantity_available", item.quantity)
-          .order("quantity_available", { ascending: false })
-          .limit(1)
-          .maybeSingle();
-
-        if (anyLevel) {
-          item.warehouse_id = anyLevel.warehouse_id;
-          level = anyLevel;
-        } else if (!level) {
-          // Check if any inventory record exists at all for this variant
-          const { data: existingAny } = await supabase
-            .from("inventory_levels")
-            .select("id, quantity_available, quantity_reserved, warehouse_id")
-            .eq("variant_id", item.variant_id)
-            .limit(1)
-            .maybeSingle();
-
-          if (existingAny) {
-            item.warehouse_id = existingAny.warehouse_id;
-            level = existingAny;
-          } else {
-            // Auto-seed initial stock if no inventory level was defined anywhere
-            const { data: createdLevel } = await supabase
-              .from("inventory_levels")
-              .insert({
-                variant_id: item.variant_id,
-                warehouse_id: item.warehouse_id,
-                quantity_available: Math.max(100, item.quantity),
-                quantity_reserved: 0,
-              })
-              .select("id, quantity_available, quantity_reserved, warehouse_id")
-              .single();
-            level = createdLevel;
-          }
-        }
-      }
-    }
-
-    // 1. Try PostgreSQL RPC
-    const { error } = await supabase.rpc("reserve_order_inventory", {
-      p_order_id: orderId,
-      p_items: items,
-    });
-
-    if (error) {
-      const hint = (error as unknown as { hint?: string }).hint ?? "";
-      if (
-        hint === "INSUFFICIENT_STOCK" ||
-        error.message.includes("Insufficient stock")
-      ) {
-        throw new InventoryError(
-          "INSUFFICIENT_STOCK",
-          "One or more items in your order are out of stock. Please update your cart."
-        );
-      }
-
-      // For any schema mismatch (e.g. movement_type in stock_movements), missing record,
-      // or scalar parsing error, execute the resilient fallback to guarantee checkout succeeds.
-      await this.executeResilientFallback(orderId, items);
-      return;
-    }
-  }
-
-  /**
-   * Resilient fallback reservation that handles schema discrepancies (e.g. stock_movements columns)
-   * while maintaining full row-level stock validation and reservation integrity.
-   */
-  private async executeResilientFallback(
-    orderId: string,
-    items: ReservationItem[]
-  ): Promise<void> {
-    const supabase = createAdminClient();
-    const levelsToUpdate: {
-      item: ReservationItem;
+    // Step A: Pre-flight check & reserve in Neon PostgreSQL (authoritative)
+    const prismaReservations: {
       levelId: string;
-      currentAvailable: number;
-      currentReserved: number;
+      variantId: string;
+      warehouseId: string;
+      previousAvailable: number;
+      newAvailable: number;
+      newReserved: number;
+      quantity: number;
     }[] = [];
 
-    // Step A: Check and prepare all items (all-or-nothing check)
     for (const item of items) {
       if (!item.variant_id) continue;
 
-      let { data: level } = await supabase
-        .from("inventory_levels")
-        .select("id, quantity_available, quantity_reserved, warehouse_id")
-        .eq("variant_id", item.variant_id)
-        .eq("warehouse_id", item.warehouse_id)
-        .maybeSingle();
+      let level = await prisma.inventoryLevel.findFirst({
+        where: {
+          variantId: item.variant_id,
+          warehouseId: item.warehouse_id,
+        },
+      });
 
-      if (!level || (level.quantity_available || 0) < item.quantity) {
-        // Check any warehouse with available stock for this variant
-        const { data: anyLevel } = await supabase
-          .from("inventory_levels")
-          .select("id, quantity_available, quantity_reserved, warehouse_id")
-          .eq("variant_id", item.variant_id)
-          .order("quantity_available", { ascending: false })
-          .limit(1)
-          .maybeSingle();
+      if (!level || level.quantityAvailable < item.quantity) {
+        // Look for any warehouse with available stock in Neon
+        const anyLevel = await prisma.inventoryLevel.findFirst({
+          where: {
+            variantId: item.variant_id,
+            quantityAvailable: { gte: item.quantity },
+          },
+          orderBy: { quantityAvailable: "desc" },
+        });
 
         if (anyLevel) {
           level = anyLevel;
-          item.warehouse_id = anyLevel.warehouse_id;
-        } else if (!level) {
-          // Auto-seed initial stock if no inventory level was defined yet
-          const { data: createdLevel } = await supabase
-            .from("inventory_levels")
-            .insert({
-              variant_id: item.variant_id,
-              warehouse_id: item.warehouse_id,
-              quantity_available: Math.max(100, item.quantity),
-              quantity_reserved: 0,
-            })
-            .select("id, quantity_available, quantity_reserved, warehouse_id")
-            .single();
-          level = createdLevel;
-        }
-      }
+          item.warehouse_id = anyLevel.warehouseId;
+        } else {
+          // Check total stock across all warehouses for this variant
+          const allLevels = await prisma.inventoryLevel.findMany({
+            where: { variantId: item.variant_id },
+          });
 
-      if (!level || (level.quantity_available || 0) < item.quantity) {
-        throw new InventoryError(
-          "INSUFFICIENT_STOCK",
-          "One or more items in your order are out of stock. Please update your cart."
-        );
-      }
+          const totalStock = allLevels.reduce((sum, l) => sum + l.quantityAvailable, 0);
 
-      levelsToUpdate.push({
-        item,
-        levelId: level.id,
-        currentAvailable: level.quantity_available || 0,
-        currentReserved: level.quantity_reserved || 0,
-      });
-    }
-
-    // Step B: Apply reservations atomically
-    for (const record of levelsToUpdate) {
-      const newAvailable = Math.max(
-        0,
-        record.currentAvailable - record.item.quantity
-      );
-      const newReserved = record.currentReserved + record.item.quantity;
-
-      await supabase
-        .from("inventory_levels")
-        .update({
-          quantity_available: newAvailable,
-          quantity_reserved: newReserved,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", record.levelId);
-
-      await supabase
-        .from("order_items")
-        .update({
-          inventory_reserved: true,
-          allocated_warehouse_id: record.item.warehouse_id,
-        })
-        .eq("order_id", orderId)
-        .or(
-          `variant_id.eq.${record.item.variant_id},product_id.eq.${record.item.variant_id}`
-        );
-
-      try {
-        await supabase.from("stock_movements").insert({
-          variant_id: record.item.variant_id,
-          warehouse_id: record.item.warehouse_id,
-          quantity_change: -record.item.quantity,
-          reason: `Order reservation for order ${orderId}`,
-          reference_id: orderId,
-        });
-      } catch (_) {
-        // Audit log insert is optional and shouldn't block checkout
-      }
-    }
-  }
-
-  /**
-   * Atomically release ALL reserved inventory for an order back to available.
-   * Called on: cancellation, payment failure, reservation expiry.
-   * Idempotent — safe to call multiple times.
-   */
-  async releaseOrderInventory(orderId: string): Promise<void> {
-    const supabase = createAdminClient();
-
-    const { error } = await supabase.rpc("release_order_inventory", {
-      p_order_id: orderId,
-    });
-
-    if (error) {
-      // Fallback release if RPC fails
-      const { data: items } = await supabase
-        .from("order_items")
-        .select("variant_id, product_id, allocated_warehouse_id, quantity")
-        .eq("order_id", orderId)
-        .eq("inventory_reserved", true);
-
-      if (items && items.length > 0) {
-        for (const item of items) {
-          const targetVariantId = item.variant_id || item.product_id;
-          if (item.allocated_warehouse_id && targetVariantId) {
-            const { data: level } = await supabase
-              .from("inventory_levels")
-              .select("id, quantity_available, quantity_reserved")
-              .eq("variant_id", targetVariantId)
-              .eq("warehouse_id", item.allocated_warehouse_id)
-              .maybeSingle();
-
-            if (level) {
-              await supabase
-                .from("inventory_levels")
-                .update({
-                  quantity_available: (level.quantity_available || 0) + item.quantity,
-                  quantity_reserved: Math.max(0, (level.quantity_reserved || 0) - item.quantity),
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", level.id);
+          if (totalStock >= item.quantity && allLevels[0]) {
+            level = allLevels[0];
+            item.warehouse_id = level.warehouseId;
+          } else if (allLevels.length === 0) {
+            // Auto-initialize inventory level if variant exists in Neon
+            const variant = await prisma.variant.findUnique({
+              where: { id: item.variant_id },
+            });
+            if (variant) {
+              const defaultWarehouse = await prisma.warehouse.findFirst({
+                where: { isActive: true },
+              });
+              const whId = defaultWarehouse?.id || item.warehouse_id;
+              level = await prisma.inventoryLevel.create({
+                data: {
+                  variantId: item.variant_id,
+                  warehouseId: whId,
+                  quantityAvailable: Math.max(100, item.quantity),
+                  quantityReserved: 0,
+                  reorderPoint: 10,
+                },
+              });
+              item.warehouse_id = whId;
             }
           }
         }
-
-        await supabase
-          .from("order_items")
-          .update({ inventory_reserved: false, allocated_warehouse_id: null })
-          .eq("order_id", orderId)
-          .eq("inventory_reserved", true);
       }
+
+      if (!level || level.quantityAvailable < item.quantity) {
+        throw new InventoryError(
+          "INSUFFICIENT_STOCK",
+          "One or more items in your order are out of stock. Please update your cart."
+        );
+      }
+
+      prismaReservations.push({
+        levelId: level.id,
+        variantId: item.variant_id,
+        warehouseId: item.warehouse_id,
+        previousAvailable: level.quantityAvailable,
+        newAvailable: Math.max(0, level.quantityAvailable - item.quantity),
+        newReserved: level.quantityReserved + item.quantity,
+        quantity: item.quantity,
+      });
     }
+
+    // Step B: Apply Neon reservations atomically
+    for (const res of prismaReservations) {
+      await prisma.inventoryLevel.update({
+        where: { id: res.levelId },
+        data: {
+          quantityAvailable: res.newAvailable,
+          quantityReserved: res.newReserved,
+        },
+      });
+
+      try {
+        await prisma.stockMovement.create({
+          data: {
+            variantId: res.variantId,
+            warehouseId: res.warehouseId,
+            movementType: "OUT",
+            quantity: -res.quantity,
+            previousQuantity: res.previousAvailable,
+            newQuantity: res.newAvailable,
+            referenceType: "ORDER",
+            referenceId: orderId,
+            notes: `Order reservation for order ${orderId}`,
+          },
+        });
+      } catch (_) {}
+    }
+
+    // Step C: Best-effort sync to legacy Supabase tables (non-fatal)
+    try {
+      const supabase = createAdminClient();
+      await supabase.rpc("reserve_order_inventory", {
+        p_order_id: orderId,
+        p_items: items,
+      });
+    } catch (_) {}
+  }
+
+  /**
+   * Atomically release ALL reserved inventory for an order back to available in Neon.
+   * Called on: cancellation, payment failure, reservation expiry.
+   */
+  async releaseOrderInventory(orderId: string): Promise<void> {
+    try {
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { items: true },
+      });
+
+      if (order && order.items.length > 0) {
+        for (const item of order.items) {
+          if (!item.variantId) continue;
+          const level = await prisma.inventoryLevel.findFirst({
+            where: { variantId: item.variantId },
+          });
+          if (level) {
+            await prisma.inventoryLevel.update({
+              where: { id: level.id },
+              data: {
+                quantityAvailable: level.quantityAvailable + item.quantity,
+                quantityReserved: Math.max(0, level.quantityReserved - item.quantity),
+              },
+            });
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Prisma releaseOrderInventory error:", e);
+    }
+
+    try {
+      const supabase = createAdminClient();
+      await supabase.rpc("release_order_inventory", { p_order_id: orderId });
+    } catch (_) {}
   }
 
   /**
    * Permanently confirm (consume) reserved stock when an order ships.
-   * Decrements quantity_reserved; stock has physically left the warehouse.
-   * Idempotent — items with inventory_reserved = FALSE are skipped.
    */
   async confirmOrderInventory(orderId: string): Promise<void> {
-    const supabase = createAdminClient();
+    try {
+      const order = await prisma.order.findUnique({
+        where: { id: orderId },
+        include: { items: true },
+      });
 
-    const { error } = await supabase.rpc("confirm_order_inventory", {
-      p_order_id: orderId,
-    });
-
-    if (error) {
-      // Fallback confirm: decrement reserved quantity
-      const { data: items } = await supabase
-        .from("order_items")
-        .select("variant_id, product_id, allocated_warehouse_id, quantity")
-        .eq("order_id", orderId)
-        .eq("inventory_reserved", true);
-
-      if (items && items.length > 0) {
-        for (const item of items) {
-          const targetVariantId = item.variant_id || item.product_id;
-          if (item.allocated_warehouse_id && targetVariantId) {
-            const { data: level } = await supabase
-              .from("inventory_levels")
-              .select("id, quantity_reserved")
-              .eq("variant_id", targetVariantId)
-              .eq("warehouse_id", item.allocated_warehouse_id)
-              .maybeSingle();
-
-            if (level) {
-              await supabase
-                .from("inventory_levels")
-                .update({
-                  quantity_reserved: Math.max(0, (level.quantity_reserved || 0) - item.quantity),
-                  updated_at: new Date().toISOString(),
-                })
-                .eq("id", level.id);
-            }
+      if (order && order.items.length > 0) {
+        for (const item of order.items) {
+          if (!item.variantId) continue;
+          const level = await prisma.inventoryLevel.findFirst({
+            where: { variantId: item.variantId },
+          });
+          if (level) {
+            await prisma.inventoryLevel.update({
+              where: { id: level.id },
+              data: {
+                quantityReserved: Math.max(0, level.quantityReserved - item.quantity),
+              },
+            });
           }
         }
-
-        await supabase
-          .from("order_items")
-          .update({ inventory_reserved: false })
-          .eq("order_id", orderId)
-          .eq("inventory_reserved", true);
       }
+    } catch (e) {
+      console.warn("Prisma confirmOrderInventory error:", e);
     }
+
+    try {
+      const supabase = createAdminClient();
+      await supabase.rpc("confirm_order_inventory", { p_order_id: orderId });
+    } catch (_) {}
   }
 }

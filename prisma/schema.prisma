@@ -549,7 +549,8 @@ model Cart {
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  items CartItem[]
+  items            CartItem[]
+  checkoutSessions CheckoutSession[]
 
   @@unique([userId])
   @@index([sessionId])
@@ -571,6 +572,28 @@ model CartItem {
 
   @@unique([cartId, productId, variantId])
   @@map("cart_items")
+}
+
+model CheckoutSession {
+  id                     String    @id @default(uuid()) @db.Uuid
+  userId                 String?   @map("user_id") @db.Uuid
+  guestEmail             String?   @map("guest_email")
+  cartId                 String    @map("cart_id") @db.Uuid
+  currentStep            String    @default("INFORMATION") @map("current_step")
+  shippingAddressSnapshot Json?    @map("shipping_address_snapshot")
+  billingAddressSnapshot  Json?    @map("billing_address_snapshot")
+  shippingMethod         String?   @map("shipping_method")
+  paymentMethod          String?   @map("payment_method")
+  couponCode             String?   @map("coupon_code")
+  expiresAt              DateTime  @default(now()) @map("expires_at") @db.Timestamptz(6)
+  createdAt              DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt              DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  cart Cart @relation(fields: [cartId], references: [id], onDelete: Cascade)
+
+  @@index([cartId])
+  @@index([userId])
+  @@map("checkout_sessions")
 }
 
 model Wishlist {
